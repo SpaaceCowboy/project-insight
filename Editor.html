@@ -5,57 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0c252e">
 <title>INSIGHT — Puzzle Studio</title>
-<link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="editor.css">
+
+
+
 </head>
 <body class="editor-page">
-<div class="ambient-lights" aria-hidden="true"><span></span><span></span></div>
-<div class="editor-app">
-  <header class="topbar"><div class="editor-brand">INSIGHT <span id="editorSubtitle">Puzzle Studio</span></div><div class="top-actions"><span id="saveState" role="status">Saved</span><a class="ui-btn" href="Puzzle.html">Game</a></div></header>
-  <main class="editor-main">
-    <aside class="studio-tools" aria-label="Puzzle tools">
-      <div class="studio-tabs" role="tablist" aria-label="Editor tools">
-        <button id="paintTab" role="tab" aria-controls="paintPanel" aria-selected="true" data-panel="paint">Build</button>
-        <button id="puzzlesTab" role="tab" aria-controls="puzzlesPanel" aria-selected="false" data-panel="puzzles" tabindex="-1">Puzzles</button>
-        <button id="filesTab" role="tab" aria-controls="filesPanel" aria-selected="false" data-panel="files" tabindex="-1">Files</button>
-      </div>
-      <section id="paintPanel" role="tabpanel" aria-labelledby="paintTab">
-        <div class="tool-heading">Tiles · drag onto the board</div>
-        <div id="palette" role="group" aria-label="Tiles to drag onto the board"></div>
-        <div class="studio-row paint-actions"><button id="copyBoard" class="ui-btn">Start → Target</button><button id="swapBoards" class="ui-btn">Swap boards</button></div>
-        <div id="tileCounts" aria-label="Board tile counts"></div>
-      </section>
-      <section id="puzzlesPanel" role="tabpanel" aria-labelledby="puzzlesTab" hidden>
-        <label class="studio-field">Puzzle name<input id="puzzleName" maxlength="60" autocomplete="off"></label>
-        <label class="studio-field">My puzzles<select id="draftSelect"></select></label>
-        <div class="studio-row"><button id="newDraft" class="ui-btn">New</button><button id="duplicateDraft" class="ui-btn">Duplicate</button><button id="deleteDraft" class="ui-btn">Delete</button></div>
-        <div class="studio-row sizes"><label>Columns<select id="boardWidth" aria-label="Board columns"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label><label>Rows<select id="boardHeight" aria-label="Board rows"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label><button id="clearBoard" class="ui-btn">Clear</button></div>
-        <div class="studio-row"><select id="seedLevel" aria-label="Built-in puzzle to copy"></select><button id="copyLevel" class="ui-btn">Copy level</button></div>
-        <button id="shuffleStart" class="ui-btn">Shuffle Start from Target</button>
-      </section>
-      <section id="filesPanel" role="tabpanel" aria-labelledby="filesTab" hidden>
-        <div class="studio-row"><select id="exportScope" aria-label="Export scope"><option value="one">This puzzle</option><option value="all">All my puzzles</option></select><button id="exportFile" class="ui-btn">Export</button><button id="importFile" class="ui-btn">Import file</button></div>
-        <input id="fileInput" type="file" accept=".json,application/json" hidden>
-        <label class="studio-field">Puzzle JSON<textarea id="importText" spellcheck="false" placeholder="Paste a puzzle or collection"></textarea></label>
-        <button id="importPaste" class="ui-btn">Import pasted JSON</button>
-      </section>
-    </aside>
-    <section class="studio-canvas" aria-label="Puzzle design">
-      <div class="canvas-heading"><h1 id="draftTitle">My first puzzle</h1><span id="boardDimensions">2 × 2</span></div>
-      <div class="studio-row canvas-toolbar"><div class="board-switch" role="group" aria-label="Board to edit"><button id="editStart" aria-pressed="true">Start</button><button id="editTarget" aria-pressed="false">Target</button></div><div class="studio-row"><button id="editUndo" class="ui-btn" disabled aria-label="Undo edit">↶ Undo</button><button id="editRedo" class="ui-btn" disabled aria-label="Redo edit">↷ Redo</button></div></div>
-      <div class="studio-board-shell"><div id="editorBoard" role="group" aria-label="Start board"></div></div>
-    </section>
-    <footer class="studio-footer">
-      <div id="validationStatus" role="status" aria-live="polite">Validate to check your puzzle.</div>
-      <div class="studio-row"><button id="validatePuzzle" class="control-btn">Validate</button><button id="playtestPuzzle" class="control-btn primary" disabled>Playtest</button></div>
-    </footer>
-  </main>
-</div>
-<script src="levels.js" defer></script>
-<script src="level-solutions.js" defer></script>
-<script src="puzzle-rules.js" defer></script>
-<script src="puzzle-solver.js" defer></script>
-<script src="tile-art.js" defer></script>
-<script src="editor.js" defer></script>
+<div id="root" inert></div>
+<script type="module" src="./src/main.jsx"></script>
 </body>
 </html>

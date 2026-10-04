@@ -1,20 +1,20 @@
-// Stable array positions preserve saved progress.
+// Stable campaign positions; changed boards have individual revisions.
 const CORE_LEVELS = [
   {
-    "world": 1,
     "name": "The First Turn",
-    "desc": "Learn the two primitive directions. One red wants vertical lanes; blue wants horizontal lanes.",
+    "start": [
+      "BR",
+      "RB"
+    ],
     "target": [
       "RB",
       "RB"
     ],
-    "start": [
-      "BR",
-      "RB"
-    ],
-    "par": 1,
+    "revision": 2,
+    "world": 1,
     "tag": "basics",
-    "intro": "",
+    "par": 1,
+    "limitedPar": 1,
     "solution_len": 1,
     "allowanceFloor": [
       [
@@ -28,20 +28,20 @@ const CORE_LEVELS = [
     ]
   },
   {
-    "world": 1,
     "name": "Opposite Corners",
-    "desc": "A single wrong corner can force a second swap. Watch which tile is actually allowed to move.",
-    "target": [
-      "BR",
-      "BR"
-    ],
     "start": [
       "RR",
       "BB"
     ],
-    "par": 2,
+    "target": [
+      "BR",
+      "BR"
+    ],
+    "revision": 2,
+    "world": 1,
     "tag": "basics",
-    "intro": "",
+    "par": 2,
+    "limitedPar": 2,
     "solution_len": 2,
     "allowanceFloor": [
       [
@@ -55,107 +55,20 @@ const CORE_LEVELS = [
     ]
   },
   {
-    "world": 1,
-    "name": "Two by Three",
-    "desc": "More room, same rules. The extra column creates a real choice of route.",
-    "target": [
-      "RBR",
-      "BRB"
-    ],
-    "start": [
-      "RBB",
-      "BRR"
-    ],
-    "par": 1,
-    "tag": "basics",
-    "intro": "",
-    "solution_len": 1,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        1
-      ]
-    ]
-  },
-  {
-    "world": 1,
-    "name": "False Shortcut",
-    "desc": "The visually closest tile is not always the tile that can legally move.",
-    "target": [
-      "RBR",
-      "BRB"
-    ],
-    "start": [
-      "RRB",
-      "BBR"
-    ],
-    "par": 2,
-    "tag": "basics",
-    "intro": "",
-    "solution_len": 2,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        1
-      ],
-      [
-        0,
-        1,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 1,
-    "name": "Cross Current",
-    "desc": "Swap the lower Blue horizontally to complete the alternating columns.",
-    "target": [
-      "RBR",
-      "RBR"
-    ],
-    "start": [
-      "RBR",
-      "BRR"
-    ],
-    "par": 1,
-    "tag": "basics",
-    "intro": "",
-    "solution_len": 1,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 1,
     "name": "The Long Pair",
-    "desc": "Identical colors are interchangeable. Plan which tile initiates each swap to create the target lanes.",
-    "target": [
-      "RBRB",
-      "RBRB"
-    ],
     "start": [
       "BRRB",
       "BBRR"
     ],
-    "par": 4,
+    "target": [
+      "RBRB",
+      "RBRB"
+    ],
+    "revision": 2,
+    "world": 1,
     "tag": "basics",
-    "intro": "",
+    "par": 4,
+    "limitedPar": 4,
     "solution_len": 4,
     "allowanceFloor": [
       [
@@ -173,914 +86,337 @@ const CORE_LEVELS = [
     ]
   },
   {
-    "world": 1,
     "name": "Vertical Trap",
-    "desc": "A red at the edge may need to move away from its final place first.",
-    "target": [
-      "RB",
-      "RB",
-      "RB"
-    ],
     "start": [
       "RR",
       "BR",
       "BB"
     ],
-    "par": 4,
-    "tag": "basics",
-    "intro": "",
-    "solution_len": 4,
-    "allowanceFloor": [
-      [
-        1,
-        0
-      ],
-      [
-        1,
-        1
-      ],
-      [
-        1,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 1,
-    "name": "Horizontal Trap",
-    "desc": "One horizontal Blue swap restores the repeated target rows.",
     "target": [
-      "BR",
-      "BR",
-      "BR"
-    ],
-    "start": [
-      "BR",
       "RB",
-      "BR"
+      "RB",
+      "RB"
     ],
-    "par": 1,
+    "revision": 2,
+    "world": 1,
     "tag": "basics",
-    "intro": "",
-    "solution_len": 1,
-    "allowanceFloor": [
-      [
-        0,
-        0
-      ],
-      [
-        0,
-        1
-      ],
-      [
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 1,
-    "name": "Green Enters",
-    "desc": "Green may only use the rising diagonal. The board now has three directions.",
-    "target": [
-      "RBG",
-      "RBG",
-      "RBG"
-    ],
-    "start": [
-      "BRG",
-      "GRG",
-      "RBB"
-    ],
-    "par": 6,
-    "tag": "green",
-    "intro": "Green ↗↙ joins the board.",
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        2,
-        0
-      ],
-      [
-        0,
-        2,
-        1
-      ]
-    ]
-  },
-  {
-    "world": 1,
-    "name": "Diagonal Door",
-    "desc": "A diagonal swap opens a horizontal move that did not exist one second earlier.",
-    "target": [
-      "GBR",
-      "GBR",
-      "GBR"
-    ],
-    "start": [
-      "GGR",
-      "RGR",
-      "BBB"
-    ],
-    "par": 5,
-    "tag": "green",
-    "intro": "",
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0
-      ],
-      [
-        1,
-        1,
-        1
-      ],
-      [
-        0,
-        0,
-        1
-      ]
-    ]
-  },
-  {
-    "world": 1,
-    "name": "Three-Way Weave",
-    "desc": "Think in pairs: the move you make now changes who your next legal neighbors can be.",
-    "target": [
-      "GBRG",
-      "BRGB"
-    ],
-    "start": [
-      "RGBR",
-      "GBBG"
-    ],
-    "par": 6,
-    "tag": "green",
-    "intro": "",
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        1,
-        2
-      ],
-      [
-        0,
-        1,
-        1,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 1,
-    "name": "Green Between",
-    "desc": "Place green at the center without trapping the reds around it.",
-    "target": [
-      "RBG",
-      "RBG",
-      "RBG"
-    ],
-    "start": [
-      "RGB",
-      "BGG",
-      "RRB"
-    ],
     "par": 4,
-    "tag": "green",
-    "intro": "",
+    "limitedPar": 4,
+    "solution_len": 4,
+    "allowanceFloor": [
+      [
+        1,
+        0
+      ],
+      [
+        1,
+        1
+      ],
+      [
+        1,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Hold the Light",
+    "start": [
+      "RBWB",
+      "BRWR"
+    ],
+    "target": [
+      "RRBR",
+      "BWBW"
+    ],
+    "revision": 2,
+    "world": 1,
+    "tag": "gates",
+    "par": 4,
+    "limitedPar": 4,
     "solution_len": 4,
     "allowanceFloor": [
       [
         0,
-        0,
-        1
-      ],
-      [
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        1
-      ]
-    ]
-  },
-  {
-    "world": 1,
-    "name": "Mirror Without Symmetry",
-    "desc": "The target looks mirrored. The correct route does not need to be.",
-    "target": [
-      "RBG",
-      "RBG",
-      "RBG"
-    ],
-    "start": [
-      "BRB",
-      "RGB",
-      "GRG"
-    ],
-    "par": 5,
-    "tag": "green",
-    "intro": "",
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        1
-      ],
-      [
-        2,
-        1,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 1,
-    "name": "Yellow Arrives",
-    "desc": "Yellow uses the opposite diagonal. Read the arrow, not the color.",
-    "target": [
-      "RBG",
-      "YRB",
-      "GYR"
-    ],
-    "start": [
-      "YRB",
-      "YBG",
-      "RGR"
-    ],
-    "par": 6,
-    "tag": "yellow",
-    "intro": "Yellow ↖↘ joins the board.",
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        1
-      ],
-      [
-        1,
-        1,
-        0
-      ],
-      [
-        2,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 1,
-    "name": "Four Directions",
-    "desc": "Four directional tiles now share one tiny geometry.",
-    "target": [
-      "BGY",
-      "RBG",
-      "YRB"
-    ],
-    "start": [
-      "YRG",
-      "YRB",
-      "BGB"
-    ],
-    "par": 7,
-    "tag": "yellow",
-    "intro": "",
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
         1,
         0,
         1
       ],
       [
-        1,
-        1,
-        1
-      ],
-      [
-        1,
-        1,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 1,
-    "name": "The Diagonal Gate",
-    "desc": "Only one of the two diagonal colors can unlock the center at the right time.",
-    "target": [
-      "RGYB",
-      "RGYB"
-    ],
-    "start": [
-      "RBYG",
-      "BYGR"
-    ],
-    "par": 8,
-    "tag": "yellow",
-    "intro": "",
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        0,
-        2,
-        1,
-        2
-      ],
-      [
-        3,
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 1,
-    "name": "Interference",
-    "desc": "Every color is both a destination and a moving obstacle.",
-    "target": [
-      "GRY",
-      "BGR",
-      "YBG"
-    ],
-    "start": [
-      "GYR",
-      "GBY",
-      "BGR"
-    ],
-    "par": 6,
-    "tag": "yellow",
-    "intro": "",
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
         0,
         1,
-        1
-      ],
-      [
-        0,
-        1,
-        0
-      ],
-      [
-        1,
-        1,
-        1
-      ]
-    ]
-  },
-  {
-    "world": 1,
-    "name": "Corner Pressure",
-    "desc": "The corner pieces are deliberately difficult to reach directly.",
-    "target": [
-      "GBR",
-      "YGB",
-      "RYG"
-    ],
-    "start": [
-      "GGB",
-      "RBY",
-      "GRY"
-    ],
-    "par": 7,
-    "tag": "yellow",
-    "intro": "",
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        1
-      ],
-      [
-        1,
-        1,
-        0
-      ],
-      [
-        1,
-        2,
-        1
-      ]
-    ]
-  },
-  {
-    "world": 1,
-    "name": "The Exact Pattern",
-    "desc": "No partial credit: every tile has one exact final place.",
-    "target": [
-      "YGBR",
-      "YGBR"
-    ],
-    "start": [
-      "YBRB",
-      "RGGY"
-    ],
-    "par": 8,
-    "tag": "yellow",
-    "intro": "",
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        0,
-        2,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        2,
-        3
-      ]
-    ]
-  },
-  {
-    "world": 1,
-    "name": "White Space",
-    "desc": "White cannot move on its own. It becomes a passenger in someone else’s move.",
-    "target": [
-      "RBW",
-      "GYR",
-      "BWG"
-    ],
-    "start": [
-      "WGW",
-      "BRR",
-      "BYG"
-    ],
-    "par": 5,
-    "tag": "white",
-    "intro": "White is passive.",
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        2,
-        0
-      ],
-      [
-        0,
-        2,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 1,
-    "name": "Quiet Passenger",
-    "desc": "Treat white as an object you can relocate, never as a move you can initiate.",
-    "target": [
-      "BRG",
-      "YWB",
-      "RGY"
-    ],
-    "start": [
-      "YGW",
-      "RBY",
-      "RBG"
-    ],
-    "par": 8,
-    "tag": "white",
-    "intro": "",
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        2,
-        1,
-        0
-      ],
-      [
-        1,
-        2,
-        1
-      ],
-      [
-        0,
         0,
         1
       ]
     ]
   },
   {
-    "world": 1,
-    "name": "White Corridor",
-    "desc": "The passive tile creates a tempting move that belongs to a different color.",
-    "target": [
-      "BRWB",
-      "RWBR"
-    ],
+    "name": "Borrowed Passage",
     "start": [
-      "BRRB",
-      "RBWW"
-    ],
-    "par": 4,
-    "tag": "white",
-    "intro": "",
-    "solution_len": 4,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        1,
-        2
-      ],
-      [
-        0,
-        1,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 1,
-    "name": "Room to Breathe",
-    "desc": "A second white changes the problem from routing to planning.",
-    "target": [
-      "RBG",
-      "YWR",
-      "BGY"
-    ],
-    "start": [
-      "RBG",
-      "BRG",
-      "YYW"
-    ],
-    "par": 5,
-    "tag": "white",
-    "intro": "",
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        1,
-        1
-      ],
-      [
-        1,
-        1,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 1,
-    "name": "Last Lesson",
-    "desc": "Mix everything learned so far on a compact board.",
-    "target": [
-      "BWR",
-      "GYB",
-      "WRG"
-    ],
-    "start": [
+      "RRW",
       "WRB",
-      "BGR",
-      "GWY"
+      "BRB"
     ],
-    "par": 7,
-    "tag": "white",
-    "intro": "",
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        0,
-        2,
-        0
-      ],
-      [
-        1,
-        1,
-        1
-      ],
-      [
-        1,
-        0,
-        1
-      ]
-    ]
-  },
-  {
-    "world": 1,
-    "name": "Foundations",
-    "desc": "The first world ends with a deceptively small board and a surprisingly long route.",
     "target": [
-      "BRWG",
-      "YBRW"
+      "WBR",
+      "RRW",
+      "BRB"
     ],
-    "start": [
-      "RRBB",
-      "YWGW"
-    ],
-    "par": 5,
-    "tag": "white",
-    "intro": "",
-    "solution_len": 5,
+    "revision": 2,
+    "world": 1,
+    "tag": "gates",
+    "par": 4,
+    "limitedPar": 4,
+    "solution_len": 4,
     "allowanceFloor": [
+      [
+        1,
+        1,
+        0
+      ],
       [
         0,
         1,
-        2,
         1
       ],
       [
         0,
         0,
-        1,
         0
       ]
     ]
   },
   {
-    "world": 2,
-    "name": "Bent Line",
-    "desc": "A three-cell corner means direction matters more than distance.",
+    "name": "Leave It Open",
+    "start": [
+      "R.R",
+      "RBB",
+      "W.B"
+    ],
+    "target": [
+      "B.R",
+      "RBW",
+      "R.B"
+    ],
+    "revision": 2,
+    "world": 1,
+    "tag": "gates",
+    "par": 4,
+    "limitedPar": 4,
+    "solution_len": 4,
+    "allowanceFloor": [
+      [
+        1,
+        0,
+        0
+      ],
+      [
+        1,
+        1,
+        1
+      ],
+      [
+        0,
+        0,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "First Connection",
+    "start": [
+      "B..",
+      "RRR",
+      "BBW"
+    ],
     "target": [
       "R..",
-      "BG.",
-      "..."
+      "RWB",
+      "RBB"
     ],
+    "revision": 2,
+    "world": 1,
+    "tag": "gates",
+    "par": 6,
+    "limitedPar": 6,
+    "solution_len": 6,
+    "allowanceFloor": [
+      [
+        2,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        1
+      ],
+      [
+        1,
+        1,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Quarter Turn",
     "start": [
-      "G..",
-      "RB.",
-      "..."
+      "RYYR",
+      "GBGB"
     ],
+    "target": [
+      "RGYR",
+      "BYGB"
+    ],
+    "revision": 2,
+    "world": 1,
+    "tag": "rotation",
     "par": 2,
-    "tag": "shapes",
-    "intro": "",
+    "limitedPar": 2,
     "solution_len": 2,
     "allowanceFloor": [
       [
         0,
         0,
-        0
-      ],
-      [
-        1,
-        1,
-        0
-      ],
-      [
         0,
+        0
+      ],
+      [
+        1,
+        1,
         0,
         0
       ]
     ]
   },
   {
-    "world": 2,
-    "name": "The Hook",
-    "desc": "A hooked corridor turns one legal swap into a positional commitment.",
-    "target": [
-      "R.GY",
-      "B.RG",
-      "YB..",
-      "...."
-    ],
-    "start": [
-      "B.RG",
-      "R.YG",
-      "YB..",
-      "...."
-    ],
-    "par": 3,
-    "tag": "shapes",
-    "intro": "",
-    "solution_len": 3,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        1,
-        1
-      ],
-      [
-        1,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 2,
-    "name": "T Junction",
-    "desc": "At the fork, only one branch can be used by the right color.",
-    "target": [
-      "BGR",
-      ".B.",
-      ".G."
-    ],
-    "start": [
-      "GRG",
-      ".B.",
-      ".B."
-    ],
-    "par": 7,
-    "tag": "shapes",
-    "intro": "",
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        0,
-        4,
-        1
-      ],
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        2,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 2,
-    "name": "Tight T",
-    "desc": "The second branch is a decoy. Solve the junction before the colors pile up.",
-    "target": [
-      "GYBR",
-      ".GY.",
-      ".BR.",
-      "...."
-    ],
-    "start": [
-      "BGRG",
-      ".YY.",
-      ".RB.",
-      "...."
-    ],
-    "par": 7,
-    "tag": "shapes",
-    "intro": "",
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        4,
-        0,
-        1,
-        1
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 2,
-    "name": "Broken Stair",
-    "desc": "The diagonal tiles finally have a shape built around them.",
-    "target": [
-      ".GR",
-      "BY.",
-      "..."
-    ],
-    "start": [
-      ".GY",
-      "RB.",
-      "..."
-    ],
-    "par": 6,
-    "tag": "shapes",
-    "intro": "",
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        0,
-        2,
-        0
-      ],
-      [
-        2,
-        2,
-        0
-      ],
-      [
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 2,
-    "name": "Zigzag Logic",
-    "desc": "Alternating lanes force you to think two swaps ahead.",
-    "target": [
-      "RG.",
-      ".BY",
-      "..."
-    ],
+    "name": "A New Direction",
     "start": [
       "YG.",
-      ".BR",
-      "..."
+      "RGB",
+      "BR."
     ],
-    "par": 3,
-    "tag": "shapes",
-    "intro": "",
-    "solution_len": 3,
+    "target": [
+      "RG.",
+      "RYB",
+      "BG."
+    ],
+    "revision": 2,
+    "world": 1,
+    "tag": "rotation",
+    "par": 2,
+    "limitedPar": 2,
+    "solution_len": 2,
     "allowanceFloor": [
       [
         1,
         0,
         0
       ],
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Turn Twice",
+    "start": [
+      "RY..",
+      "B...",
+      "RBGG"
+    ],
+    "target": [
+      "RY..",
+      "B...",
+      "GBRG"
+    ],
+    "revision": 2,
+    "world": 1,
+    "tag": "rotation",
+    "par": 11,
+    "limitedPar": 11,
+    "solution_len": 11,
+    "allowanceFloor": [
+      [
+        4,
+        2,
+        0,
+        0
+      ],
+      [
+        2,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        2,
+        0,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Return Angle",
+    "start": [
+      ".BB",
+      "GRR",
+      "YG."
+    ],
+    "target": [
+      ".BG",
+      "YGB",
+      "RR."
+    ],
+    "revision": 2,
+    "world": 1,
+    "tag": "rotation",
+    "par": 6,
+    "limitedPar": 6,
+    "solution_len": 6,
+    "allowanceFloor": [
       [
         0,
         2,
+        1
+      ],
+      [
+        1,
+        1,
         0
       ],
       [
         0,
-        0,
+        1,
         0
       ]
     ]
   },
   {
-    "world": 2,
-    "name": "Open U",
-    "desc": "The missing center cannot be used. Work around it with legal swaps.",
-    "target": [
-      "B.R",
-      "GYW",
-      "..."
-    ],
+    "name": "The Spare Step",
     "start": [
-      "R.W",
-      "BGY",
-      "..."
+      "Y..",
+      "RBG",
+      "RGB"
     ],
-    "par": 6,
-    "tag": "shapes",
-    "intro": "",
-    "solution_len": 6,
+    "target": [
+      "G..",
+      "BRY",
+      "BGR"
+    ],
+    "revision": 2,
+    "world": 1,
+    "tag": "circuits",
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
     "allowanceFloor": [
       [
         1,
@@ -1088,84 +424,35 @@ const CORE_LEVELS = [
         0
       ],
       [
-        3,
-        0,
-        2
+        1,
+        1,
+        1
       ],
       [
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 2,
-    "name": "The C Turn",
-    "desc": "A closed side creates a long way around.",
-    "target": [
-      "GBRW",
-      "Y...",
-      "GBRW",
-      "...."
-    ],
-    "start": [
-      "GGWB",
-      "R...",
-      "RYBW",
-      "...."
-    ],
-    "par": 6,
-    "tag": "shapes",
-    "intro": "",
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        0,
         1,
         0,
         2
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
       ]
     ]
   },
   {
-    "world": 2,
-    "name": "Five Around",
-    "desc": "The central tile has four potential neighbors but only some movements are legal.",
-    "target": [
-      ".R.",
-      "BGY",
-      ".W.",
-      "..."
-    ],
+    "name": "Shared Ground",
     "start": [
-      ".Y.",
-      "RGB",
-      ".W.",
-      "..."
+      "YYW",
+      "GBG",
+      "RRB"
     ],
-    "par": 4,
-    "tag": "shapes",
-    "intro": "",
-    "solution_len": 4,
+    "target": [
+      "RGG",
+      "YBW",
+      "RBY"
+    ],
+    "revision": 2,
+    "world": 1,
+    "tag": "circuits",
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
     "allowanceFloor": [
       [
         0,
@@ -1173,98 +460,42 @@ const CORE_LEVELS = [
         0
       ],
       [
+        1,
+        2,
+        1
+      ],
+      [
         0,
         1,
-        2
-      ],
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0
+        1
       ]
     ]
   },
   {
-    "world": 2,
-    "name": "Stairwell",
-    "desc": "A staircase of cells makes every move visibly meaningful.",
-    "target": [
-      "RB..",
-      ".YG.",
-      "..WR",
-      "...."
-    ],
+    "name": "Return Journey",
     "start": [
-      "RB..",
-      ".WG.",
-      "..YR",
-      "...."
+      "RR.",
+      "BGB",
+      "GY."
     ],
-    "par": 1,
-    "tag": "shapes",
-    "intro": "",
-    "solution_len": 1,
+    "target": [
+      "BY.",
+      "GBR",
+      "GR."
+    ],
+    "revision": 2,
+    "world": 1,
+    "tag": "circuits",
+    "par": 5,
+    "limitedPar": 5,
+    "solution_len": 5,
     "allowanceFloor": [
       [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
+        1,
         1,
         0
       ],
       [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 2,
-    "name": "Diamond Path",
-    "desc": "The diamond is compact, but getting one corner color into another is awkward.",
-    "target": [
-      ".RY.",
-      "GBRY",
-      ".GB.",
-      "...."
-    ],
-    "start": [
-      ".RR.",
-      "GYBG",
-      ".BY.",
-      "...."
-    ],
-    "par": 4,
-    "tag": "shapes",
-    "intro": "",
-    "solution_len": 4,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
         0,
         1,
         1
@@ -1272,1494 +503,724 @@ const CORE_LEVELS = [
       [
         0,
         1,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "The Waiting Tile",
+    "start": [
+      "RGB",
+      "GWB",
+      "RYY"
+    ],
+    "target": [
+      "RYG",
+      "YRB",
+      "BGW"
+    ],
+    "revision": 2,
+    "world": 1,
+    "tag": "circuits",
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
+    "allowanceFloor": [
+      [
+        0,
+        0,
+        1
+      ],
+      [
+        2,
         0,
         0
       ],
       [
+        2,
+        1,
+        1
+      ]
+    ]
+  },
+  {
+    "name": "Crossed Intentions",
+    "start": [
+      "GR.",
+      "BYB",
+      "RG."
+    ],
+    "target": [
+      "RB.",
+      "GGY",
+      "BR."
+    ],
+    "revision": 2,
+    "world": 1,
+    "tag": "circuits",
+    "par": 5,
+    "limitedPar": 5,
+    "solution_len": 5,
+    "allowanceFloor": [
+      [
         0,
+        2,
+        0
+      ],
+      [
         0,
+        1,
+        0
+      ],
+      [
+        2,
         0,
         0
       ]
     ]
   },
   {
-    "world": 2,
-    "name": "Hourglass",
-    "desc": "The narrow waist creates a forced exchange point.",
-    "target": [
-      "YRGB",
-      ".WY.",
-      "RGBW",
-      "...."
-    ],
+    "name": "Two Responsibilities",
     "start": [
-      "BWRG",
-      ".RW.",
-      "GBYY",
-      "...."
+      "GG..",
+      "B...",
+      "RYBR"
     ],
+    "target": [
+      "BG..",
+      "G...",
+      "YRBR"
+    ],
+    "revision": 2,
+    "world": 1,
+    "tag": "circuits",
     "par": 8,
-    "tag": "shapes",
-    "intro": "",
+    "limitedPar": 8,
     "solution_len": 8,
     "allowanceFloor": [
       [
-        3,
         0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
         1,
+        0,
+        0
+      ],
+      [
+        2,
+        0,
+        0,
+        0
+      ],
+      [
         1,
         2,
-        1
-      ],
-      [
-        0,
-        0,
-        0,
+        2,
         0
       ]
     ]
   },
   {
-    "world": 2,
-    "name": "Snake",
-    "desc": "The route bends twice before reaching the target.",
-    "target": [
-      "GY..",
-      ".WR.",
-      "BG..",
-      "...."
-    ],
+    "name": "Narrow Opportunity",
     "start": [
-      "WG..",
-      ".GB.",
-      "YR..",
-      "...."
+      "YBGB",
+      "RRGY"
     ],
-    "par": 10,
-    "tag": "shapes",
-    "intro": "",
-    "solution_len": 10,
+    "target": [
+      "YGYB",
+      "GRRB"
+    ],
+    "revision": 2,
+    "world": 1,
+    "tag": "circuits",
+    "par": 6,
+    "limitedPar": 6,
+    "solution_len": 6,
     "allowanceFloor": [
       [
         0,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        2,
-        2,
-        0
-      ],
-      [
         3,
-        2,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 2,
-    "name": "The Ring",
-    "desc": "Missing cells leave narrow connections around the edge.",
-    "target": [
-      ".BR.",
-      "Y..G",
-      "W..B",
-      ".RY."
-    ],
-    "start": [
-      ".RB.",
-      "Y..G",
-      "W..B",
-      ".RY."
-    ],
-    "par": 1,
-    "tag": "holes",
-    "intro": "Missing cells cannot hold tiles.",
-    "solution_len": 1,
-    "allowanceFloor": [
-      [
-        0,
-        0,
         1,
         0
       ],
       [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 2,
-    "name": "Corner Window",
-    "desc": "A missing corner means the target can only be approached from one side.",
-    "target": [
-      "YBR.",
-      "W..G",
-      "YBR.",
-      "...."
-    ],
-    "start": [
-      "YRY.",
-      "R..B",
-      "BWG.",
-      "...."
-    ],
-    "par": 10,
-    "tag": "holes",
-    "intro": "",
-    "solution_len": 10,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        3,
-        0
-      ],
-      [
-        0,
+        1,
         0,
         0,
         1
-      ],
-      [
-        5,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
       ]
     ]
   },
   {
-    "world": 2,
-    "name": "Bridge",
-    "desc": "The middle pair is the only bridge between the two sides.",
-    "target": [
-      "Y..G",
-      "W..B",
-      "R..Y",
-      "GWBR"
-    ],
+    "name": "The Long Exchange",
     "start": [
-      "R..G",
-      "Y..R",
-      "W..B",
-      "GBWY"
+      "BRB",
+      "GRG"
     ],
+    "target": [
+      "BRG",
+      "GRB"
+    ],
+    "revision": 2,
+    "world": 1,
+    "tag": "circuits",
+    "par": 4,
+    "limitedPar": 4,
+    "solution_len": 4,
+    "allowanceFloor": [
+      [
+        0,
+        0,
+        2
+      ],
+      [
+        0,
+        1,
+        1
+      ]
+    ]
+  },
+  {
+    "name": "Bring It Back",
+    "start": [
+      "RG..",
+      "BGR.",
+      ".YYB"
+    ],
+    "target": [
+      "GR..",
+      "YRB.",
+      ".YBG"
+    ],
+    "revision": 2,
+    "world": 1,
+    "tag": "circuits",
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
+    "allowanceFloor": [
+      [
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        2,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        3,
+        1
+      ]
+    ]
+  },
+  {
+    "name": "Careful Timing",
+    "start": [
+      "RGB",
+      "RGB"
+    ],
+    "target": [
+      "GBR",
+      "BGR"
+    ],
+    "revision": 2,
+    "world": 1,
+    "tag": "circuits",
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
+    "allowanceFloor": [
+      [
+        0,
+        2,
+        3
+      ],
+      [
+        1,
+        0,
+        1
+      ]
+    ]
+  },
+  {
+    "name": "Another Way Through",
+    "start": [
+      "RRB",
+      "YY.",
+      "GGB"
+    ],
+    "target": [
+      "BYY",
+      "RB.",
+      "GRG"
+    ],
+    "revision": 2,
+    "world": 1,
+    "tag": "circuits",
+    "par": 6,
+    "limitedPar": 6,
+    "solution_len": 6,
+    "allowanceFloor": [
+      [
+        1,
+        2,
+        2
+      ],
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        1
+      ]
+    ]
+  },
+  {
+    "name": "The Final Charge",
+    "start": [
+      "BGB",
+      "GRR"
+    ],
+    "target": [
+      "GBR",
+      "RBG"
+    ],
+    "revision": 2,
+    "world": 1,
+    "tag": "circuits",
     "par": 5,
-    "tag": "shapes",
-    "intro": "",
+    "limitedPar": 5,
     "solution_len": 5,
     "allowanceFloor": [
       [
         2,
         0,
+        1
+      ],
+      [
+        1,
+        0,
+        1
+      ]
+    ]
+  },
+  {
+    "name": "A Small Sacrifice",
+    "start": [
+      "BBR",
+      "RGG"
+    ],
+    "target": [
+      "GBR",
+      "RBG"
+    ],
+    "revision": 2,
+    "world": 1,
+    "tag": "circuits",
+    "par": 3,
+    "limitedPar": 3,
+    "solution_len": 3,
+    "allowanceFloor": [
+      [
+        1,
         0,
         0
       ],
       [
+        2,
         0,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Borrowed Light II",
+    "start": [
+      "RG.",
+      "RYG",
+      "BB."
+    ],
+    "target": [
+      "GR.",
+      "YBG",
+      "BR."
+    ],
+    "revision": 2,
+    "world": 2,
+    "tag": "circuits",
+    "par": 5,
+    "limitedPar": 5,
+    "solution_len": 5,
+    "allowanceFloor": [
+      [
+        2,
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        1,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "The Handoff II",
+    "start": [
+      ".YR",
+      "RBB",
+      "GG."
+    ],
+    "target": [
+      ".RG",
+      "GBR",
+      "BY."
+    ],
+    "revision": 2,
+    "world": 2,
+    "tag": "circuits",
+    "par": 6,
+    "limitedPar": 6,
+    "solution_len": 6,
+    "allowanceFloor": [
+      [
+        0,
+        1,
+        1
+      ],
+      [
+        0,
+        0,
+        1
+      ],
+      [
+        2,
+        1,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Across the Fold II",
+    "start": [
+      "RWG",
+      "RYB",
+      "GYB"
+    ],
+    "target": [
+      "BGY",
+      "WBR",
+      "GYR"
+    ],
+    "revision": 2,
+    "world": 2,
+    "tag": "circuits",
+    "par": 9,
+    "limitedPar": 9,
+    "solution_len": 9,
+    "allowanceFloor": [
+      [
+        1,
+        0,
+        2
+      ],
+      [
+        0,
+        2,
+        3
+      ],
+      [
+        0,
+        0,
+        1
+      ]
+    ]
+  },
+  {
+    "name": "A Place to Wait II",
+    "start": [
+      ".BR",
+      "GRB",
+      "GY."
+    ],
+    "target": [
+      ".YG",
+      "RGB",
+      "RB."
+    ],
+    "revision": 2,
+    "world": 2,
+    "tag": "circuits",
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
+    "allowanceFloor": [
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        3,
+        1,
+        0
+      ],
+      [
+        2,
+        1,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Turn and Return II",
+    "start": [
+      "RGYB",
+      "BRYG"
+    ],
+    "target": [
+      "BGBY",
+      "RRGY"
+    ],
+    "revision": 2,
+    "world": 2,
+    "tag": "circuits",
+    "par": 4,
+    "limitedPar": 4,
+    "solution_len": 4,
+    "allowanceFloor": [
+      [
+        1,
+        0,
+        1,
+        1
+      ],
+      [
+        0,
+        0,
+        0,
+        1
+      ]
+    ]
+  },
+  {
+    "name": "The Quiet Detour II",
+    "start": [
+      "R.G",
+      "BYG",
+      "B.R"
+    ],
+    "target": [
+      "B.R",
+      "BYR",
+      "G.G"
+    ],
+    "revision": 2,
+    "world": 2,
+    "tag": "circuits",
+    "par": 5,
+    "limitedPar": 5,
+    "solution_len": 5,
+    "allowanceFloor": [
+      [
         0,
         0,
         2
       ],
       [
         0,
-        0,
-        0,
+        2,
         0
       ],
       [
         0,
-        1,
         0,
-        0
+        1
       ]
     ]
   },
   {
-    "world": 2,
-    "name": "Archway",
-    "desc": "White can be carried through the arch, but never moved by itself.",
-    "target": [
-      ".WB.",
-      "RGYW",
-      "B..R",
-      "...."
-    ],
+    "name": "Hold the Crossing II",
     "start": [
-      ".YG.",
-      "RWBW",
-      "B..R",
-      "...."
+      "GB.",
+      "RBY",
+      "RG."
     ],
-    "par": 3,
-    "tag": "white",
-    "intro": "",
-    "solution_len": 3,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 2,
-    "name": "Pinwheel",
-    "desc": "The central turn rewards planning the order of operations.",
     "target": [
-      "RYB.",
-      "WGRY",
-      ".BW.",
-      "...."
+      "BR.",
+      "YGB",
+      "GR."
     ],
-    "start": [
-      "YBG.",
-      "BRRY",
-      ".WW.",
-      "...."
-    ],
+    "revision": 2,
+    "world": 2,
+    "tag": "circuits",
     "par": 6,
-    "tag": "shapes",
-    "intro": "",
+    "limitedPar": 6,
     "solution_len": 6,
     "allowanceFloor": [
       [
         1,
         1,
+        0
+      ],
+      [
+        0,
         1,
-        0
+        1
       ],
       [
         1,
-        2,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
+        1,
         0
       ]
     ]
   },
   {
-    "world": 2,
-    "name": "Crosscurrent",
-    "desc": "Two diagonal systems intersect while the board itself is asymmetric.",
-    "target": [
-      ".B.",
-      "RWY",
-      ".G.",
-      ".B."
-    ],
+    "name": "Moving Anchor II",
     "start": [
-      ".Y.",
-      "RGB",
-      ".W.",
-      ".B."
+      "BRYG",
+      "RGYB"
     ],
-    "par": 4,
-    "tag": "shapes",
-    "intro": "",
-    "solution_len": 4,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        2
-      ],
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 2,
-    "name": "Maze Entrance",
-    "desc": "Missing cells change which diagonal destinations exist.",
     "target": [
-      "BR..",
-      "..G.",
-      "YWB.",
-      "...."
-    ],
-    "start": [
-      "RB..",
-      "..B.",
-      "YGW.",
-      "...."
-    ],
-    "par": 3,
-    "tag": "holes",
-    "intro": "",
-    "solution_len": 3,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 2,
-    "name": "Maze Middle",
-    "desc": "The same principle, with a second bottleneck.",
-    "target": [
-      "YBR.",
-      "W.GY",
-      "BR..",
-      ".WG."
-    ],
-    "start": [
-      "RRB.",
-      "G.YW",
-      "GY..",
-      ".WB."
-    ],
-    "par": 13,
-    "tag": "holes",
-    "intro": "",
-    "solution_len": 13,
-    "allowanceFloor": [
-      [
-        2,
-        2,
-        1,
-        0
-      ],
-      [
-        1,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        3,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        3,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 2,
-    "name": "Hook and Gap",
-    "desc": "The missing cells make an apparent shortcut impossible.",
-    "target": [
-      "GY..",
-      "W...",
-      "RB..",
-      "...."
-    ],
-    "start": [
-      "GY..",
-      "R...",
-      "BW..",
-      "...."
-    ],
-    "par": 2,
-    "tag": "holes",
-    "intro": "",
-    "solution_len": 2,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 2,
-    "name": "Arrowhead",
-    "desc": "Everything points inward, but the answer is to create space first.",
-    "target": [
-      ".BR.",
-      "GYWB",
-      ".RG.",
-      "...."
-    ],
-    "start": [
-      ".GG.",
-      "RBYW",
-      ".BR.",
-      "...."
-    ],
-    "par": 8,
-    "tag": "shapes",
-    "intro": "",
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        2,
-        2,
-        0
-      ],
-      [
-        0,
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 2,
-    "name": "Shattered Bridge",
-    "desc": "Missing cells make the target feel further away than it is.",
-    "target": [
-      "BRWG",
-      ".YB.",
-      "RWGY",
-      "...."
-    ],
-    "start": [
-      "BYYG",
-      ".RR.",
-      "WGBW",
-      "...."
-    ],
-    "par": 11,
-    "tag": "holes",
-    "intro": "",
-    "solution_len": 11,
-    "allowanceFloor": [
-      [
-        0,
-        2,
-        2,
-        0
-      ],
-      [
-        0,
-        2,
-        0,
-        0
-      ],
-      [
-        0,
-        4,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 2,
-    "name": "Geometry Lesson",
-    "desc": "World 2 finale: a full board where every lane can interfere with every other lane.",
-    "target": [
-      "RBYW",
-      "GRBY",
-      "WGRB",
-      "YWGR"
-    ],
-    "start": [
-      "BYWR",
-      "RBRW",
-      "YWGG",
+      "GBRY",
       "BYRG"
     ],
-    "par": 19,
-    "tag": "white",
-    "intro": "",
-    "solution_len": 19,
-    "allowanceFloor": [
-      [
-        1,
-        1,
-        0,
-        3
-      ],
-      [
-        1,
-        1,
-        1,
-        0
-      ],
-      [
-        1,
-        0,
-        2,
-        3
-      ],
-      [
-        2,
-        0,
-        2,
-        1
-      ]
-    ]
-  },
-  {
-    "world": 3,
-    "name": "First Detour",
-    "desc": "Begin the routing challenges with one vertical swap beside a gap.",
-    "target": [
-      "RB..",
-      "..R.",
-      "BRB.",
-      "...."
-    ],
-    "start": [
-      "RB..",
-      "..B.",
-      "BRR.",
-      "...."
-    ],
-    "par": 1,
-    "tag": "holes",
-    "intro": "",
-    "solution_len": 1,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 3,
-    "name": "Two Chambers",
-    "desc": "Missing cells divide the board into connected pockets.",
-    "target": [
-      "RGB.",
-      "R.GB",
-      "RG..",
-      ".BR."
-    ],
-    "start": [
-      "BRG.",
-      "R.BG",
-      "BG..",
-      ".RR."
-    ],
-    "par": 7,
-    "tag": "holes",
-    "intro": "",
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        2,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        2,
-        2,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 3,
-    "name": "No Through Road",
-    "desc": "A tempting route ends at a gap; plan around it before moving.",
-    "target": [
-      "YG..",
-      "R...",
-      "BY..",
-      "...."
-    ],
-    "start": [
-      "BR..",
-      "Y...",
-      "YG..",
-      "...."
-    ],
-    "par": 6,
-    "tag": "holes",
-    "intro": "",
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        1,
-        3,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 3,
-    "name": "Window in the Gap",
-    "desc": "Missing cells restrict which colors can reach each side.",
-    "target": [
-      "GY..",
-      "..B.",
-      "RGY.",
-      "...."
-    ],
-    "start": [
-      "GY..",
-      "..Y.",
-      "BRG.",
-      "...."
-    ],
-    "par": 5,
-    "tag": "holes",
-    "intro": "",
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        3,
-        0,
-        2,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 3,
-    "name": "Missing Corner",
-    "desc": "The missing corner changes the routes around the board.",
-    "target": [
-      "RYG.",
-      "B..R",
-      "YGB.",
-      "...."
-    ],
-    "start": [
-      "RBG.",
-      "Y..R",
-      "YBG.",
-      "...."
-    ],
-    "par": 4,
-    "tag": "holes",
-    "intro": "",
-    "solution_len": 4,
-    "allowanceFloor": [
-      [
-        2,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 3,
-    "name": "Offset Gate",
-    "desc": "One diagonal tile can cross the gate only at one orientation.",
-    "target": [
-      "GBW.",
-      "Y.RG",
-      "BW..",
-      ".YR."
-    ],
-    "start": [
-      "GBR.",
-      "W.WG",
-      "RY..",
-      ".YB."
-    ],
-    "par": 5,
-    "tag": "holes",
-    "intro": "",
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        3,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 3,
-    "name": "Split Stair",
-    "desc": "The stair shape now has a dead-looking but solvable end.",
-    "target": [
-      "GW..",
-      ".RY.",
-      "..BG",
-      "...."
-    ],
-    "start": [
-      "GW..",
-      ".GY.",
-      "..RB",
-      "...."
-    ],
-    "par": 6,
-    "tag": "holes",
-    "intro": "",
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        2,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        3
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 3,
-    "name": "Twin Gaps",
-    "desc": "Two gaps create two separate routing problems.",
-    "target": [
-      ".RY.",
-      "G..W",
-      "B..R",
-      ".YG."
-    ],
-    "start": [
-      ".GR.",
-      "G..Y",
-      "Y..W",
-      ".BR."
-    ],
+    "revision": 2,
+    "world": 2,
+    "tag": "circuits",
     "par": 9,
-    "tag": "holes",
-    "intro": "",
-    "solution_len": 9,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        1
-      ],
-      [
-        3,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        2,
-        1,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 3,
-    "name": "Hollow Heart",
-    "desc": "A missing center changes who can swap with whom.",
-    "target": [
-      ".G.",
-      "YWR",
-      ".B.",
-      ".G."
-    ],
-    "start": [
-      ".R.",
-      "GGB",
-      ".Y.",
-      ".W."
-    ],
-    "par": 12,
-    "tag": "holes",
-    "intro": "",
-    "solution_len": 12,
-    "allowanceFloor": [
-      [
-        0,
-        6,
-        0
-      ],
-      [
-        1,
-        1,
-        1
-      ],
-      [
-        0,
-        3,
-        0
-      ],
-      [
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 3,
-    "name": "Broken Loop",
-    "desc": "A gap breaks the direct route; use a vertical swap on the outside.",
-    "target": [
-      ".YG.",
-      "R..B",
-      "W..Y",
-      ".GR."
-    ],
-    "start": [
-      ".YG.",
-      "W..B",
-      "R..Y",
-      ".GR."
-    ],
-    "par": 1,
-    "tag": "holes",
-    "intro": "",
-    "solution_len": 1,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 3,
-    "name": "Gate and Ghost",
-    "desc": "White is trapped on the wrong side until another tile carries it across.",
-    "target": [
-      "RBGY",
-      "W...",
-      "RBGY",
-      "...."
-    ],
-    "start": [
-      "BGWY",
-      "R...",
-      "RBGY",
-      "...."
-    ],
-    "par": 5,
-    "tag": "white",
-    "intro": "",
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        3,
-        1,
-        0,
-        0
-      ],
-      [
-        1,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 3,
-    "name": "Four Pockets",
-    "desc": "Missing cells create a compact routing maze.",
-    "target": [
-      "GYW.",
-      "B.RG",
-      "YW..",
-      ".BR."
-    ],
-    "start": [
-      "WYR.",
-      "B.GG",
-      "WR..",
-      ".BY."
-    ],
-    "par": 14,
-    "tag": "holes",
-    "intro": "",
-    "solution_len": 14,
-    "allowanceFloor": [
-      [
-        0,
-        2,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        5,
-        0,
-        0
-      ],
-      [
-        0,
-        2,
-        3,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 3,
-    "name": "The Narrow Hourglass",
-    "desc": "Only a few legal transitions exist around the waist.",
-    "target": [
-      "YBGR",
-      ".WY.",
-      "BGRW",
-      "...."
-    ],
-    "start": [
-      "BGRG",
-      ".YY.",
-      "WBWR",
-      "...."
-    ],
-    "par": 9,
-    "tag": "holes",
-    "intro": "",
+    "limitedPar": 9,
     "solution_len": 9,
     "allowanceFloor": [
       [
         1,
-        1,
+        0,
         2,
         1
       ],
       [
         0,
-        1,
         2,
-        0
-      ],
-      [
         0,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
+        3
       ]
     ]
   },
   {
-    "world": 3,
-    "name": "Corner Cut",
-    "desc": "The obvious diagonal destination is missing.",
-    "target": [
-      ".RY.",
-      "BWGR",
-      ".YB.",
-      "...."
-    ],
+    "name": "Second Passage II",
     "start": [
-      ".BW.",
-      "GYYR",
-      ".RB.",
-      "...."
+      "GYB",
+      "GR.",
+      "YRB"
     ],
-    "par": 7,
-    "tag": "holes",
-    "intro": "",
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        0,
-        3,
-        0,
-        0
-      ],
-      [
-        1,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        2,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 3,
-    "name": "Waiting Room",
-    "desc": "One color has to wait while another clears a lane.",
     "target": [
-      "GYWR",
-      ".BG.",
-      ".YW.",
-      "...."
+      "RYB",
+      "RG.",
+      "GYB"
     ],
-    "start": [
-      "GYGR",
-      ".BW.",
-      ".WY.",
-      "...."
-    ],
+    "revision": 2,
+    "world": 2,
+    "tag": "circuits",
     "par": 8,
-    "tag": "holes",
-    "intro": "",
+    "limitedPar": 8,
     "solution_len": 8,
     "allowanceFloor": [
       [
         0,
-        0,
+        1,
+        0
+      ],
+      [
         3,
-        0
-      ],
-      [
-        0,
-        4,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
         1,
         0
       ],
       [
         0,
-        0,
-        0,
+        3,
         0
       ]
     ]
   },
   {
-    "world": 3,
-    "name": "Crossed Gates",
-    "desc": "Missing cells interrupt opposite diagonals; plan the swap order.",
-    "target": [
-      "YRGB",
-      "..WY",
-      "RG..",
-      ".BWY"
-    ],
+    "name": "A Different Angle II",
     "start": [
-      "YRYR",
-      "..GW",
-      "GW..",
-      ".BYB"
+      "BR..",
+      "B...",
+      "GRGY"
     ],
-    "par": 13,
-    "tag": "holes",
-    "intro": "",
-    "solution_len": 13,
+    "target": [
+      "BG..",
+      "B...",
+      "RGYR"
+    ],
+    "revision": 2,
+    "world": 2,
+    "tag": "circuits",
+    "par": 20,
+    "limitedPar": 21,
+    "solution_len": 20,
     "allowanceFloor": [
       [
-        0,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        0
-      ],
-      [
-        2,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
         5,
-        2,
+        6,
+        0,
+        0
+      ],
+      [
+        6,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        1,
+        0,
         2
       ]
     ]
   },
   {
-    "world": 3,
-    "name": "The Detour",
-    "desc": "The route looks longer than the board because two swaps must be spent creating access.",
-    "target": [
-      "RY..",
-      ".GW.",
-      "BR..",
-      "...."
-    ],
+    "name": "Before the Last Turn II",
     "start": [
-      "RW..",
-      ".GY.",
-      "RB..",
-      "...."
+      "BGY",
+      "YWR",
+      "GBR"
     ],
-    "par": 2,
-    "tag": "holes",
-    "intro": "",
-    "solution_len": 2,
+    "target": [
+      "WRB",
+      "YYB",
+      "GGR"
+    ],
+    "revision": 2,
+    "world": 2,
+    "tag": "circuits",
+    "par": 6,
+    "limitedPar": 6,
+    "solution_len": 6,
     "allowanceFloor": [
       [
-        0,
-        0,
-        0,
-        0
+        2,
+        1,
+        2
       ],
       [
         0,
         0,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 3,
-    "name": "Silent Room",
-    "desc": "White is passive, while missing cells cannot be occupied.",
-    "target": [
-      "R.G",
-      "YWB",
-      "..."
-    ],
-    "start": [
-      "B.R",
-      "WGY",
-      "..."
-    ],
-    "par": 8,
-    "tag": "white",
-    "intro": "",
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        3
-      ],
-      [
-        0,
-        1,
-        3
+        1
       ],
       [
         0,
@@ -2769,1218 +1230,744 @@ const CORE_LEVELS = [
     ]
   },
   {
-    "world": 3,
-    "name": "The Lock",
-    "desc": "A short horizontal swap solves the top row above a narrow stem.",
+    "name": "Open Circuit II",
+    "start": [
+      "RGYG",
+      "YBRB"
+    ],
+    "target": [
+      "BGGY",
+      "YRRB"
+    ],
+    "revision": 2,
+    "world": 2,
+    "tag": "circuits",
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
+    "allowanceFloor": [
+      [
+        1,
+        0,
+        0,
+        2
+      ],
+      [
+        0,
+        2,
+        2,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "The Spare Step II",
+    "start": [
+      "B.G",
+      "BRR",
+      "G.Y"
+    ],
+    "target": [
+      "G.B",
+      "YGR",
+      "R.B"
+    ],
+    "revision": 2,
+    "world": 2,
+    "tag": "circuits",
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
+    "allowanceFloor": [
+      [
+        0,
+        0,
+        1
+      ],
+      [
+        1,
+        1,
+        0
+      ],
+      [
+        1,
+        0,
+        3
+      ]
+    ]
+  },
+  {
+    "name": "Shared Ground II",
+    "start": [
+      "GG..",
+      "YBR.",
+      ".YRB"
+    ],
+    "target": [
+      "GB..",
+      "YRG.",
+      ".RYB"
+    ],
+    "revision": 2,
+    "world": 2,
+    "tag": "circuits",
+    "par": 5,
+    "limitedPar": 5,
+    "solution_len": 5,
+    "allowanceFloor": [
+      [
+        0,
+        2,
+        0,
+        0
+      ],
+      [
+        1,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Return Journey II",
+    "start": [
+      "B..",
+      "BGR",
+      "RYG"
+    ],
+    "target": [
+      "R..",
+      "RBG",
+      "YBG"
+    ],
+    "revision": 2,
+    "world": 2,
+    "tag": "circuits",
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
+    "allowanceFloor": [
+      [
+        1,
+        0,
+        0
+      ],
+      [
+        2,
+        1,
+        0
+      ],
+      [
+        2,
+        1,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "The Waiting Tile II",
+    "start": [
+      "B.G",
+      "YRB",
+      "G.R"
+    ],
+    "target": [
+      "B.B",
+      "GGR",
+      "Y.R"
+    ],
+    "revision": 2,
+    "world": 2,
+    "tag": "circuits",
+    "par": 5,
+    "limitedPar": 5,
+    "solution_len": 5,
+    "allowanceFloor": [
+      [
+        0,
+        0,
+        1
+      ],
+      [
+        0,
+        0,
+        3
+      ],
+      [
+        1,
+        0,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Crossed Intentions II",
+    "start": [
+      "BYG",
+      "YB.",
+      "GRR"
+    ],
+    "target": [
+      "BRG",
+      "GY.",
+      "BYR"
+    ],
+    "revision": 2,
+    "world": 2,
+    "tag": "circuits",
+    "par": 4,
+    "limitedPar": 4,
+    "solution_len": 4,
+    "allowanceFloor": [
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0
+      ],
+      [
+        1,
+        2,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Two Responsibilities II",
+    "start": [
+      ".YG",
+      "BRR",
+      "BG."
+    ],
+    "target": [
+      ".GR",
+      "YBB",
+      "GR."
+    ],
+    "revision": 2,
+    "world": 2,
+    "tag": "circuits",
+    "par": 6,
+    "limitedPar": 6,
+    "solution_len": 6,
+    "allowanceFloor": [
+      [
+        0,
+        0,
+        2
+      ],
+      [
+        2,
+        0,
+        0
+      ],
+      [
+        0,
+        2,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Narrow Opportunity II",
+    "start": [
+      "BG..",
+      "RGB.",
+      ".YRY"
+    ],
+    "target": [
+      "YR..",
+      "YGB.",
+      ".BRG"
+    ],
+    "revision": 2,
+    "world": 2,
+    "tag": "circuits",
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
+    "allowanceFloor": [
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        2,
+        0,
+        2,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        2
+      ]
+    ]
+  },
+  {
+    "name": "The Long Exchange II",
+    "start": [
+      "GYR",
+      "GR.",
+      "BYB"
+    ],
+    "target": [
+      "YBR",
+      "RG.",
+      "GBY"
+    ],
+    "revision": 2,
+    "world": 2,
+    "tag": "circuits",
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
+    "allowanceFloor": [
+      [
+        0,
+        1,
+        0
+      ],
+      [
+        2,
+        3,
+        0
+      ],
+      [
+        0,
+        0,
+        1
+      ]
+    ]
+  },
+  {
+    "name": "Bring It Back II",
+    "start": [
+      "RGR",
+      "GY.",
+      "BBY"
+    ],
+    "target": [
+      "BRR",
+      "BG.",
+      "GYY"
+    ],
+    "revision": 2,
+    "world": 2,
+    "tag": "circuits",
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
+    "allowanceFloor": [
+      [
+        1,
+        1,
+        0
+      ],
+      [
+        0,
+        3,
+        0
+      ],
+      [
+        0,
+        2,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Careful Timing II",
+    "start": [
+      "R..",
+      "RGY",
+      "GBB"
+    ],
+    "target": [
+      "G..",
+      "RYG",
+      "RBB"
+    ],
+    "revision": 2,
+    "world": 2,
+    "tag": "circuits",
+    "par": 6,
+    "limitedPar": 6,
+    "solution_len": 6,
+    "allowanceFloor": [
+      [
+        1,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0
+      ],
+      [
+        1,
+        3,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Another Way Through II",
+    "start": [
+      "YYW",
+      "GBG",
+      "BRR"
+    ],
+    "target": [
+      "BRY",
+      "GYR",
+      "GBW"
+    ],
+    "revision": 2,
+    "world": 2,
+    "tag": "circuits",
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
+    "allowanceFloor": [
+      [
+        1,
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        1
+      ],
+      [
+        1,
+        2,
+        1
+      ]
+    ]
+  },
+  {
+    "name": "The Final Charge II",
+    "start": [
+      "YBRG",
+      "YGRB"
+    ],
+    "target": [
+      "GRRY",
+      "BYGB"
+    ],
+    "revision": 2,
+    "world": 2,
+    "tag": "circuits",
+    "par": 6,
+    "limitedPar": 6,
+    "solution_len": 6,
+    "allowanceFloor": [
+      [
+        1,
+        3,
+        0,
+        1
+      ],
+      [
+        0,
+        0,
+        1,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "A Small Sacrifice II",
+    "start": [
+      "BGG",
+      "YB.",
+      "YRR"
+    ],
+    "target": [
+      "BRY",
+      "GG.",
+      "BYR"
+    ],
+    "revision": 2,
+    "world": 2,
+    "tag": "circuits",
+    "par": 5,
+    "limitedPar": 5,
+    "solution_len": 5,
+    "allowanceFloor": [
+      [
+        0,
+        1,
+        1
+      ],
+      [
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        2,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Borrowed Light III",
+    "start": [
+      "RYR",
+      "GB.",
+      "BYG"
+    ],
     "target": [
       "GYB",
-      ".R.",
-      ".W."
+      "BR.",
+      "GRY"
     ],
-    "start": [
-      "GBY",
-      ".R.",
-      ".W."
-    ],
-    "par": 1,
-    "tag": "holes",
-    "intro": "",
-    "solution_len": 1,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
+    "revision": 2,
     "world": 3,
-    "name": "Three Gaps",
-    "desc": "Several gaps make the order of operations critical.",
-    "target": [
-      "RGY.",
-      "W.BR",
-      "GY..",
-      ".WB."
-    ],
-    "start": [
-      "WYG.",
-      "G.YR",
-      "WB..",
-      ".BR."
-    ],
-    "par": 15,
-    "tag": "holes",
-    "intro": "",
-    "solution_len": 15,
+    "tag": "circuits",
+    "par": 9,
+    "limitedPar": 9,
+    "solution_len": 9,
     "allowanceFloor": [
+      [
+        2,
+        0,
+        1
+      ],
       [
         0,
         1,
-        0,
-        0
-      ],
-      [
-        4,
-        0,
-        2,
         0
       ],
       [
         0,
         2,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        5,
-        0
+        3
       ]
     ]
   },
   {
-    "world": 3,
-    "name": "False Center",
-    "desc": "The visual center is not the logical center.",
-    "target": [
-      ".R.",
-      "GWY",
-      ".B.",
-      "..."
-    ],
+    "name": "The Handoff III",
     "start": [
-      ".R.",
-      "BGY",
-      ".W.",
-      "..."
+      "BY..",
+      "BRY.",
+      ".GGR"
     ],
+    "target": [
+      "YB..",
+      "GBY.",
+      ".GRR"
+    ],
+    "revision": 2,
+    "world": 3,
+    "tag": "circuits",
     "par": 6,
-    "tag": "holes",
-    "intro": "",
+    "limitedPar": 6,
     "solution_len": 6,
     "allowanceFloor": [
       [
         0,
-        4,
+        3,
+        0,
         0
       ],
       [
+        0,
+        2,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
         1,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
         0
       ]
     ]
   },
   {
-    "world": 3,
-    "name": "The Empty Door",
-    "desc": "A missing cell cannot hold a tile. Route White around the gap.",
-    "target": [
-      ".GR.",
-      "YBWG",
-      "R..Y",
-      "...."
-    ],
+    "name": "Across the Fold III",
     "start": [
-      ".RR.",
-      "WGYY",
-      "G..B",
-      "...."
+      "YBRG",
+      "YBGR"
     ],
-    "par": 10,
-    "tag": "holes",
-    "intro": "",
-    "solution_len": 10,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        2,
-        0
-      ],
-      [
-        0,
-        2,
-        1,
-        2
-      ],
-      [
-        2,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 3,
-    "name": "Outer Loop",
-    "desc": "The outside edge is the only reliable highway.",
     "target": [
-      "R..Y",
-      "G..W",
-      "B..R",
-      "YGWB"
+      "YRGB",
+      "GRYB"
     ],
-    "start": [
-      "G..Y",
-      "B..R",
-      "R..G",
-      "YWBW"
-    ],
+    "revision": 2,
+    "world": 3,
+    "tag": "circuits",
     "par": 7,
-    "tag": "holes",
-    "intro": "",
+    "limitedPar": 7,
     "solution_len": 7,
     "allowanceFloor": [
       [
         0,
-        0,
-        0,
+        2,
+        1,
         0
       ],
       [
-        0,
-        0,
-        0,
-        1
-      ],
-      [
+        1,
         2,
-        0,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        3,
+        1,
         0
       ]
     ]
   },
   {
+    "name": "A Place to Wait III",
+    "start": [
+      "GGRY",
+      "BYRB"
+    ],
+    "target": [
+      "GRYB",
+      "BGYR"
+    ],
+    "revision": 2,
     "world": 3,
-    "name": "Last Detour",
-    "desc": "A full 4×4 board tests planning without any missing cells.",
-    "target": [
-      "RBYW",
-      "GRBY",
-      "WGRB",
-      "YWGR"
-    ],
-    "start": [
-      "GRBB",
-      "WGWR",
-      "RYYY",
-      "GRWB"
-    ],
-    "par": 15,
-    "tag": "holes",
-    "intro": "",
-    "solution_len": 15,
+    "tag": "circuits",
+    "par": 6,
+    "limitedPar": 6,
+    "solution_len": 6,
     "allowanceFloor": [
       [
         0,
-        2,
         1,
-        2
-      ],
-      [
-        0,
-        0,
-        0,
-        2
-      ],
-      [
-        2,
-        2,
-        1,
-        0
-      ],
-      [
-        1,
-        2,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 3,
-    "name": "Routing Finale",
-    "desc": "Finish the routing challenges by carrying tiles around the missing center.",
-    "target": [
-      ".BR.",
-      "Y..G",
-      "W..R",
-      ".BR."
-    ],
-    "start": [
-      ".BR.",
-      "Y..R",
-      "W..B",
-      ".RG."
-    ],
-    "par": 3,
-    "tag": "holes",
-    "intro": "",
-    "solution_len": 3,
-    "allowanceFloor": [
-      [
-        0,
-        0,
         0,
         0
       ],
       [
-        0,
-        0,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        1,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 4,
-    "name": "First Jump",
-    "desc": "Purple moves two cells in a straight line. It can jump over the middle.",
-    "target": [
-      "PRBW",
-      "PRBW"
-    ],
-    "start": [
-      "RWWB",
-      "PPRB"
-    ],
-    "par": 8,
-    "tag": "purple",
-    "intro": "Purple ↕↔ jumps exactly two cells.",
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
         2,
         0,
-        0,
-        1
-      ],
-      [
-        0,
-        2,
         0,
         3
       ]
     ]
   },
   {
-    "world": 4,
-    "name": "Leapfrog",
-    "desc": "A two-cell jump opens destinations ordinary tiles cannot reach.",
-    "target": [
-      "BRP",
-      "BRP",
-      "BRP"
-    ],
+    "name": "Turn and Return III",
     "start": [
-      "PBR",
-      "RPR",
-      "BBP"
+      "RYB",
+      "RB.",
+      "YGG"
     ],
-    "par": 7,
-    "tag": "purple",
-    "intro": "",
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        1,
-        1,
-        0
-      ],
-      [
-        1,
-        1,
-        0
-      ],
-      [
-        2,
-        1,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 4,
-    "name": "Long Sight",
-    "desc": "Purple is powerful only when the destination exists.",
     "target": [
-      "GWYP",
-      "GWYP"
+      "BRY",
+      "RB.",
+      "GYG"
     ],
-    "start": [
-      "PWGG",
-      "YWPY"
-    ],
-    "par": 8,
-    "tag": "purple",
-    "intro": "",
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        0,
-        2
-      ],
-      [
-        2,
-        0,
-        2,
-        1
-      ]
-    ]
-  },
-  {
-    "world": 4,
-    "name": "Cross Jump",
-    "desc": "A horizontal leap and a vertical lane compete for the same cell.",
-    "target": [
-      "RBP",
-      "YRB",
-      "PYR"
-    ],
-    "start": [
-      "BPR",
-      "RPB",
-      "YRY"
-    ],
-    "par": 6,
-    "tag": "purple",
-    "intro": "",
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        1,
-        1,
-        0
-      ],
-      [
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        1
-      ]
-    ]
-  },
-  {
-    "world": 4,
-    "name": "Purple in the Corner",
-    "desc": "The jumper begins stranded and must be released indirectly.",
-    "target": [
-      "BGYR",
-      ".PB.",
-      ".GY.",
-      "...."
-    ],
-    "start": [
-      "YGPB",
-      ".GB.",
-      ".RY.",
-      "...."
-    ],
-    "par": 7,
-    "tag": "purple",
-    "intro": "",
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        2,
-        0,
-        3,
-        1
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 4,
-    "name": "Over the Gap",
-    "desc": "Purple jumps exactly two cells; its destination must exist.",
-    "target": [
-      "YGBP",
-      "YGBP"
-    ],
-    "start": [
-      "PGYB",
-      "YPBG"
-    ],
-    "par": 3,
-    "tag": "purple",
-    "intro": "",
-    "solution_len": 3,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        0,
-        1
-      ],
-      [
-        0,
-        1,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 4,
-    "name": "Jump and Carry",
-    "desc": "White becomes the passenger in a Purple exchange.",
-    "target": [
-      "PWB",
-      "RGP",
-      "WBR"
-    ],
-    "start": [
-      "BRW",
-      "RPB",
-      "GWP"
-    ],
-    "par": 7,
-    "tag": "purple",
-    "intro": "",
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        2,
-        2,
-        0
-      ],
-      [
-        0,
-        0,
-        2
-      ],
-      [
-        1,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 4,
-    "name": "Diagonal Launch",
-    "desc": "The diagonal colors create the only way to put Purple where it belongs.",
-    "target": [
-      ".GR.",
-      "YBPG",
-      ".RY.",
-      "...."
-    ],
-    "start": [
-      ".YY.",
-      "PGBG",
-      ".RR.",
-      "...."
-    ],
+    "revision": 2,
+    "world": 3,
+    "tag": "circuits",
     "par": 5,
-    "tag": "purple",
-    "intro": "",
+    "limitedPar": 5,
     "solution_len": 5,
     "allowanceFloor": [
       [
         0,
-        1,
-        0,
-        0
-      ],
-      [
-        1,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        2,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 4,
-    "name": "Gap Jump",
-    "desc": "Purple may leap over a missing cell, but must land on a tile.",
-    "target": [
-      "RYG.",
-      "W.PB",
-      "RY..",
-      ".GW."
-    ],
-    "start": [
-      "BRP.",
-      "R.GW",
-      "GW..",
-      ".YY."
-    ],
-    "par": 12,
-    "tag": "purple",
-    "intro": "",
-    "solution_len": 12,
-    "allowanceFloor": [
-      [
-        4,
-        0,
-        2,
-        0
-      ],
-      [
-        1,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        4,
-        1,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 4,
-    "name": "Four-way Knot",
-    "desc": "All five movable tile types compete in one compact space.",
-    "target": [
-      ".W.",
-      "PRG",
-      ".Y.",
-      "..."
-    ],
-    "start": [
-      ".W.",
-      "RPY",
-      ".G.",
-      "..."
-    ],
-    "par": 4,
-    "tag": "purple",
-    "intro": "",
-    "solution_len": 4,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        1,
         0,
         2
       ],
       [
+        2,
         0,
-        1,
         0
       ],
       [
-        0,
+        1,
         0,
         0
       ]
     ]
   },
   {
-    "world": 4,
-    "name": "The Long Hall",
-    "desc": "A 4-cell corridor makes horizontal Blue moves and Purple jumps collide.",
-    "target": [
-      "BWRP"
-    ],
+    "name": "The Quiet Detour III",
     "start": [
-      "WPRB"
+      ".GY",
+      "GRB",
+      "RB."
     ],
-    "par": 2,
-    "tag": "purple",
-    "intro": "",
-    "solution_len": 2,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0,
-        1
-      ]
-    ]
-  },
-  {
-    "world": 4,
-    "name": "Chopped Hall",
-    "desc": "Two missing cells remove the easy route.",
     "target": [
-      "GWYB",
-      "R...",
-      "PGWY",
-      "...."
+      ".RR",
+      "BGY",
+      "BG."
     ],
-    "start": [
-      "BWYG",
-      "R...",
-      "WGPY",
-      "...."
-    ],
+    "revision": 2,
+    "world": 3,
+    "tag": "circuits",
     "par": 6,
-    "tag": "purple",
-    "intro": "",
+    "limitedPar": 6,
     "solution_len": 6,
     "allowanceFloor": [
       [
+        0,
+        0,
+        0
+      ],
+      [
+        0,
         1,
-        0,
-        0,
-        0
+        2
       ],
       [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        5,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
+        2,
+        1,
         0
       ]
     ]
   },
   {
-    "world": 4,
-    "name": "Twin Jumps",
-    "desc": "Two Purple tiles can exchange strategic roles without moving themselves identically.",
-    "target": [
-      "PPRB",
-      "GWYP"
-    ],
+    "name": "Hold the Crossing III",
     "start": [
-      "RGWY",
-      "PBPP"
+      "WYB",
+      "BRG",
+      "YGR"
     ],
+    "target": [
+      "GGB",
+      "RBW",
+      "YYR"
+    ],
+    "revision": 2,
+    "world": 3,
+    "tag": "circuits",
     "par": 8,
-    "tag": "purple",
-    "intro": "",
+    "limitedPar": 8,
     "solution_len": 8,
     "allowanceFloor": [
       [
-        2,
-        1,
         0,
-        1
-      ],
-      [
-        0,
-        1,
-        3,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 4,
-    "name": "The Offset Tower",
-    "desc": "A short vertical swap carries White into position without using Purple.",
-    "target": [
-      "Y.RP",
-      "B.WG",
-      "YR..",
-      "...."
-    ],
-    "start": [
-      "Y.WP",
-      "B.RG",
-      "YR..",
-      "...."
-    ],
-    "par": 1,
-    "tag": "purple",
-    "intro": "",
-    "solution_len": 1,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 4,
-    "name": "Broken Mirror",
-    "desc": "The shape looks symmetric, but the swap sequence need not be.",
-    "target": [
-      ".RY.",
-      "G..B",
-      "P..W",
-      ".RY."
-    ],
-    "start": [
-      ".YR.",
-      "G..P",
-      "B..W",
-      ".YR."
-    ],
-    "par": 21,
-    "tag": "purple",
-    "intro": "",
-    "solution_len": 21,
-    "allowanceFloor": [
-      [
-        0,
-        4,
-        2,
-        0
-      ],
-      [
-        6,
-        0,
-        0,
-        0
-      ],
-      [
-        5,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        2,
-        2,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 4,
-    "name": "Five-point Turn",
-    "desc": "The central point has multiple colors but very few legal transitions.",
-    "target": [
-      ".B.",
-      "RPY",
-      ".G.",
-      ".W."
-    ],
-    "start": [
-      ".W.",
-      "PYG",
-      ".R.",
-      ".B."
-    ],
-    "par": 10,
-    "tag": "purple",
-    "intro": "",
-    "solution_len": 10,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        3,
-        2,
-        1
-      ],
-      [
-        0,
-        4,
-        0
-      ],
-      [
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 4,
-    "name": "Maze Runner",
-    "desc": "Purple can bypass one bottleneck; the other colors cannot.",
-    "target": [
-      "GPB.",
-      "R.WY",
-      "GP..",
-      ".BR."
-    ],
-    "start": [
-      "RPG.",
-      "P.GY",
-      "BW..",
-      ".RB."
-    ],
-    "par": 7,
-    "tag": "purple",
-    "intro": "",
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        1,
-        1,
-        0,
-        0
-      ],
-      [
-        1,
-        0,
-        1,
-        0
-      ],
-      [
-        2,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 4,
-    "name": "The Missing Step",
-    "desc": "A staircase with a hole demands a jump at exactly the right moment.",
-    "target": [
-      "YG..",
-      ".BW.",
-      "..PR",
-      "...."
-    ],
-    "start": [
-      "WR..",
-      ".YB.",
-      "..GP",
-      "...."
-    ],
-    "par": 10,
-    "tag": "purple",
-    "intro": "",
-    "solution_len": 10,
-    "allowanceFloor": [
-      [
-        0,
-        2,
-        0,
-        0
-      ],
-      [
-        0,
-        5,
         3,
         0
       ],
       [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 4,
-    "name": "Quiet Gate",
-    "desc": "White must be positioned before Purple can make the final jump.",
-    "target": [
-      "W..P",
-      "R..G",
-      "Y..B",
-      "WPRG"
-    ],
-    "start": [
-      "Y..P",
-      "W..G",
-      "R..B",
-      "RWPG"
-    ],
-    "par": 7,
-    "tag": "purple",
-    "intro": "",
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
+        1,
         2,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        4,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 4,
-    "name": "Four Gaps",
-    "desc": "Missing cells make each Purple jump a deliberate choice.",
-    "target": [
-      "BRY.",
-      "G.WP",
-      "BR..",
-      ".YG."
-    ],
-    "start": [
-      "GRW.",
-      "P.GB",
-      "YB..",
-      ".RY."
-    ],
-    "par": 13,
-    "tag": "purple",
-    "intro": "",
-    "solution_len": 13,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        1,
-        0,
-        1,
-        4
-      ],
-      [
-        3,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        1,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 4,
-    "name": "The False Finish",
-    "desc": "A near-perfect arrangement has one subtle impossible move left.",
-    "target": [
-      "PRW.",
-      "BGYP",
-      ".RW.",
-      "...."
-    ],
-    "start": [
-      "RWR.",
-      "PGPY",
-      ".WB.",
-      "...."
-    ],
-    "par": 10,
-    "tag": "purple",
-    "intro": "",
-    "solution_len": 10,
-    "allowanceFloor": [
-      [
-        2,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        2,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        4,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 4,
-    "name": "Convergence",
-    "desc": "Every tile family is now active in the same geometric language, across a full board.",
-    "target": [
-      "PBYR",
-      "GWPB",
-      "YRGW",
-      "PBYR"
-    ],
-    "start": [
-      "WPRG",
-      "YPRY",
-      "BPBY",
-      "BGRW"
-    ],
-    "par": 15,
-    "tag": "purple",
-    "intro": "",
-    "solution_len": 15,
-    "allowanceFloor": [
-      [
-        0,
-        2,
-        2,
-        1
-      ],
-      [
-        2,
-        1,
-        0,
-        1
-      ],
-      [
-        1,
-        1,
-        1,
         2
       ],
       [
-        1,
         0,
         0,
         0
@@ -3988,319 +1975,1111 @@ const CORE_LEVELS = [
     ]
   },
   {
-    "world": 4,
-    "name": "Almost There",
-    "desc": "The board is small, but the exact route is not.",
+    "name": "Moving Anchor III",
+    "start": [
+      "GGY",
+      "RYB",
+      "BRW"
+    ],
     "target": [
-      "R.P",
+      "RRG",
       "YGB",
-      "..."
+      "YWB"
     ],
-    "start": [
-      "Y.G",
-      "RPB",
-      "..."
-    ],
-    "par": 2,
-    "tag": "purple",
-    "intro": "",
-    "solution_len": 2,
+    "revision": 2,
+    "world": 3,
+    "tag": "circuits",
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
     "allowanceFloor": [
       [
-        0,
-        0,
-        1
-      ],
-      [
         1,
         0,
         0
       ],
       [
-        0,
-        0,
-        0
-      ]
-    ]
-  },
-  {
-    "world": 4,
-    "name": "The Last Maze",
-    "desc": "Plan the swap order to arrange the colors across a zigzag board.",
-    "target": [
-      "PRY.",
-      ".WGB",
-      "PRY.",
-      ".WGB"
-    ],
-    "start": [
-      "PWG.",
-      ".RRY",
-      "WBP.",
-      ".GBY"
-    ],
-    "par": 9,
-    "tag": "purple",
-    "intro": "",
-    "solution_len": 9,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        1
-      ],
-      [
-        0,
         1,
         1,
         0
       ],
       [
-        0,
         2,
-        1,
-        1
-      ]
-    ]
-  },
-  {
-    "world": 4,
-    "name": "INSIGHT",
-    "desc": "Finale: combine all six tile types on a full 4×4 board.",
-    "target": [
-      "PBRY",
-      "GWPB",
-      "RYGW",
-      "PBRY"
-    ],
-    "start": [
-      "BYBG",
-      "YYWG",
-      "WRRP",
-      "BPPR"
-    ],
-    "par": 15,
-    "tag": "purple",
-    "intro": "",
-    "solution_len": 15,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        0,
-        1
-      ],
-      [
-        1,
         2,
-        0,
-        2
-      ],
-      [
-        0,
-        1,
-        1,
-        2
-      ],
-      [
-        1,
-        0,
-        1,
-        2
+        0
       ]
     ]
   },
   {
-    "world": 5,
-    "name": "Twin Rooms",
-    "desc": "A branching map combining diagonal routes and Purple jumps.",
-    "target": [
-      "RGB..",
-      "YWP..",
-      "..R..",
-      "..BGY",
-      "..WPR"
-    ],
+    "name": "Second Passage III",
     "start": [
-      "PYB..",
-      "GWR..",
-      "..B..",
-      "..WGY",
-      "..RPR"
+      "YRG",
+      "RY.",
+      "GBB"
     ],
+    "target": [
+      "RGB",
+      "GR.",
+      "YYB"
+    ],
+    "revision": 2,
+    "world": 3,
+    "tag": "circuits",
     "par": 6,
-    "tag": "maps",
-    "intro": "",
+    "limitedPar": 6,
     "solution_len": 6,
     "allowanceFloor": [
       [
         1,
         1,
-        0,
-        0,
         0
       ],
       [
         1,
         0,
-        1,
-        0,
         0
       ],
       [
-        0,
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
         2,
+        1,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "A Different Angle III",
+    "start": [
+      ".BG.",
+      "RYRG",
+      ".YB."
+    ],
+    "target": [
+      ".YR.",
+      "GYGR",
+      ".BB."
+    ],
+    "revision": 2,
+    "world": 3,
+    "tag": "circuits",
+    "par": 8,
+    "limitedPar": 8,
+    "solution_len": 8,
+    "allowanceFloor": [
+      [
+        0,
+        3,
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        2
+      ],
+      [
+        0,
+        1,
         0,
         0
       ]
     ]
   },
   {
-    "world": 5,
-    "name": "Hourglass Crossing",
-    "desc": "A branching map combining diagonal routes and Purple jumps.",
-    "target": [
-      "RBGY",
-      ".PW.",
-      ".RG.",
-      "YPBR"
-    ],
+    "name": "Before the Last Turn III",
     "start": [
-      "BPRY",
-      ".RY.",
-      ".BW.",
-      "GPGR"
+      ".RR.",
+      "GYBY",
+      ".GB."
     ],
+    "target": [
+      ".RB.",
+      "YRYG",
+      ".GB."
+    ],
+    "revision": 2,
+    "world": 3,
+    "tag": "circuits",
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
+    "allowanceFloor": [
+      [
+        0,
+        1,
+        2,
+        0
+      ],
+      [
+        1,
+        0,
+        2,
+        1
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Open Circuit III",
+    "start": [
+      "GRG",
+      "BYW",
+      "RBY"
+    ],
+    "target": [
+      "RYB",
+      "BRG",
+      "YGW"
+    ],
+    "revision": 2,
+    "world": 3,
+    "tag": "circuits",
     "par": 11,
-    "tag": "maps",
-    "intro": "",
+    "limitedPar": 11,
     "solution_len": 11,
     "allowanceFloor": [
       [
+        2,
         1,
+        1
+      ],
+      [
+        0,
+        2,
+        0
+      ],
+      [
+        2,
+        2,
+        1
+      ]
+    ]
+  },
+  {
+    "name": "The Spare Step III",
+    "start": [
+      "RGB",
+      "YB.",
+      "YRG"
+    ],
+    "target": [
+      "GBY",
+      "RG.",
+      "BYR"
+    ],
+    "revision": 2,
+    "world": 3,
+    "tag": "circuits",
+    "par": 8,
+    "limitedPar": 8,
+    "solution_len": 8,
+    "allowanceFloor": [
+      [
+        1,
+        1,
+        1
+      ],
+      [
         0,
         3,
         0
       ],
       [
         0,
-        1,
-        1,
-        0
-      ],
-      [
-        0,
         2,
-        0,
-        0
-      ],
-      [
-        2,
-        1,
-        0,
         0
       ]
     ]
   },
   {
-    "world": 5,
-    "name": "Island Chain",
-    "desc": "A branching map combining diagonal routes and Purple jumps.",
-    "target": [
-      "RB.PG",
-      "..W..",
-      "YG.PR",
-      "..B.."
-    ],
+    "name": "Shared Ground III",
     "start": [
-      "PP.BG",
-      "..B..",
-      "YW.RR",
-      "..G.."
+      "GBYG",
+      "RBRY"
     ],
-    "par": 10,
-    "tag": "maps",
-    "intro": "",
-    "solution_len": 10,
+    "target": [
+      "RRGB",
+      "YYGB"
+    ],
+    "revision": 2,
+    "world": 3,
+    "tag": "circuits",
+    "par": 8,
+    "limitedPar": 8,
+    "solution_len": 8,
+    "allowanceFloor": [
+      [
+        1,
+        1,
+        2,
+        1
+      ],
+      [
+        1,
+        1,
+        0,
+        1
+      ]
+    ]
+  },
+  {
+    "name": "Return Journey III",
+    "start": [
+      "B.R",
+      "GGY",
+      "R.B"
+    ],
+    "target": [
+      "Y.R",
+      "GBB",
+      "G.R"
+    ],
+    "revision": 2,
+    "world": 3,
+    "tag": "circuits",
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
+    "allowanceFloor": [
+      [
+        0,
+        0,
+        2
+      ],
+      [
+        0,
+        1,
+        1
+      ],
+      [
+        1,
+        0,
+        2
+      ]
+    ]
+  },
+  {
+    "name": "The Waiting Tile III",
+    "start": [
+      "RG..",
+      "R...",
+      "GYBB"
+    ],
+    "target": [
+      "GR..",
+      "B...",
+      "BRGY"
+    ],
+    "revision": 2,
+    "world": 3,
+    "tag": "circuits",
+    "par": 8,
+    "limitedPar": 8,
+    "solution_len": 8,
     "allowanceFloor": [
       [
         2,
-        3,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
         0,
         2,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        3,
-        0,
-        0
+        3
       ]
     ]
   },
   {
-    "world": 5,
-    "name": "Spiral Passage",
-    "desc": "A branching map combining diagonal routes and Purple jumps.",
-    "target": [
-      "RBGYP",
-      "....R",
-      "YWP..",
-      "R....",
-      "BGP.."
-    ],
+    "name": "Crossed Intentions III",
     "start": [
-      "PBRPY",
-      "....R",
-      "YWG..",
-      "G....",
-      "PRB.."
+      "RR..",
+      "BGG.",
+      ".YBY"
     ],
+    "target": [
+      "GY..",
+      "GBB.",
+      ".RYR"
+    ],
+    "revision": 2,
+    "world": 3,
+    "tag": "circuits",
     "par": 9,
-    "tag": "maps",
-    "intro": "",
+    "limitedPar": 9,
+    "solution_len": 9,
+    "allowanceFloor": [
+      [
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        2,
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        4
+      ]
+    ]
+  },
+  {
+    "name": "Two Responsibilities III",
+    "start": [
+      "GBRY",
+      "YRGB"
+    ],
+    "target": [
+      "RGBB",
+      "YRYG"
+    ],
+    "revision": 2,
+    "world": 3,
+    "tag": "circuits",
+    "par": 9,
+    "limitedPar": 9,
     "solution_len": 9,
     "allowanceFloor": [
       [
         2,
+        3,
         0,
+        0
+      ],
+      [
+        1,
+        0,
+        0,
+        3
+      ]
+    ]
+  },
+  {
+    "name": "Narrow Opportunity III",
+    "start": [
+      "RYB",
+      "YG.",
+      "RGB"
+    ],
+    "target": [
+      "BRG",
+      "GY.",
+      "YBR"
+    ],
+    "revision": 2,
+    "world": 3,
+    "tag": "circuits",
+    "par": 8,
+    "limitedPar": 8,
+    "solution_len": 8,
+    "allowanceFloor": [
+      [
+        0,
+        0,
+        2
+      ],
+      [
+        1,
+        3,
+        0
+      ],
+      [
+        1,
+        0,
+        1
+      ]
+    ]
+  },
+  {
+    "name": "The Long Exchange III",
+    "start": [
+      "Y.B",
+      "GRB",
+      "R.G"
+    ],
+    "target": [
+      "B.G",
+      "YRR",
+      "B.G"
+    ],
+    "revision": 2,
+    "world": 3,
+    "tag": "circuits",
+    "par": 9,
+    "limitedPar": 9,
+    "solution_len": 9,
+    "allowanceFloor": [
+      [
+        1,
+        0,
+        1
+      ],
+      [
+        3,
+        1,
+        3
+      ],
+      [
+        0,
+        0,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Bring It Back III",
+    "start": [
+      "RR..",
+      "Y...",
+      "BGBG"
+    ],
+    "target": [
+      "BB..",
+      "Y...",
+      "GGRR"
+    ],
+    "revision": 2,
+    "world": 3,
+    "tag": "circuits",
+    "par": 15,
+    "limitedPar": 15,
+    "solution_len": 15,
+    "allowanceFloor": [
+      [
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        6,
+        0,
+        0,
+        0
+      ],
+      [
+        3,
+        0,
+        3,
+        2
+      ]
+    ]
+  },
+  {
+    "name": "Careful Timing III",
+    "start": [
+      ".BR.",
+      "YGRB",
+      ".GY."
+    ],
+    "target": [
+      ".BY.",
+      "BGYG",
+      ".RR."
+    ],
+    "revision": 2,
+    "world": 3,
+    "tag": "circuits",
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
+    "allowanceFloor": [
+      [
+        0,
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        2,
+        0,
+        3
+      ],
+      [
+        0,
+        1,
+        0,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Another Way Through III",
+    "start": [
+      "YGGY",
+      "BRRB"
+    ],
+    "target": [
+      "RBGY",
+      "RBYG"
+    ],
+    "revision": 2,
+    "world": 3,
+    "tag": "circuits",
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
+    "allowanceFloor": [
+      [
+        3,
+        0,
+        0,
+        0
+      ],
+      [
+        3,
+        0,
+        0,
+        1
+      ]
+    ]
+  },
+  {
+    "name": "The Final Charge III",
+    "start": [
+      "YY..",
+      "BRG.",
+      ".RGB"
+    ],
+    "target": [
+      "RG..",
+      "RYB.",
+      ".YBG"
+    ],
+    "revision": 2,
+    "world": 3,
+    "tag": "circuits",
+    "par": 6,
+    "limitedPar": 6,
+    "solution_len": 6,
+    "allowanceFloor": [
+      [
+        1,
+        1,
+        0,
+        0
+      ],
+      [
+        2,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        1
+      ]
+    ]
+  },
+  {
+    "name": "A Small Sacrifice III",
+    "start": [
+      ".GY.",
+      "YBRR",
+      ".GB."
+    ],
+    "target": [
+      ".GR.",
+      "BYRB",
+      ".YG."
+    ],
+    "revision": 2,
+    "world": 3,
+    "tag": "circuits",
+    "par": 5,
+    "limitedPar": 5,
+    "solution_len": 5,
+    "allowanceFloor": [
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        2,
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Borrowed Light IV",
+    "start": [
+      "B..",
+      "GRY",
+      "BRG"
+    ],
+    "target": [
+      "R..",
+      "RBG",
+      "GYB"
+    ],
+    "revision": 2,
+    "world": 4,
+    "tag": "circuits",
+    "par": 6,
+    "limitedPar": 6,
+    "solution_len": 6,
+    "allowanceFloor": [
+      [
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        2,
+        2,
+        1
+      ]
+    ]
+  },
+  {
+    "name": "The Handoff IV",
+    "start": [
+      "RYGY",
+      "GBRB"
+    ],
+    "target": [
+      "BYYG",
+      "GRRB"
+    ],
+    "revision": 2,
+    "world": 4,
+    "tag": "circuits",
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
+    "allowanceFloor": [
+      [
+        2,
+        2,
+        1,
+        0
+      ],
+      [
+        0,
+        1,
+        1,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Across the Fold IV",
+    "start": [
+      "BYY",
+      "RG.",
+      "RGB"
+    ],
+    "target": [
+      "GBY",
+      "RB.",
+      "RYG"
+    ],
+    "revision": 2,
+    "world": 4,
+    "tag": "circuits",
+    "par": 6,
+    "limitedPar": 6,
+    "solution_len": 6,
+    "allowanceFloor": [
+      [
+        1,
+        1,
+        0
+      ],
+      [
+        2,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        2
+      ]
+    ]
+  },
+  {
+    "name": "A Place to Wait IV",
+    "start": [
+      "RYB",
+      "BG.",
+      "GYR"
+    ],
+    "target": [
+      "YRG",
+      "GR.",
+      "BBY"
+    ],
+    "revision": 2,
+    "world": 4,
+    "tag": "circuits",
+    "par": 8,
+    "limitedPar": 8,
+    "solution_len": 8,
+    "allowanceFloor": [
+      [
+        4,
+        1,
+        0
+      ],
+      [
+        1,
+        1,
+        0
+      ],
+      [
+        0,
+        1,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Turn and Return IV",
+    "start": [
+      "YYG",
+      "WBR",
+      "GRB"
+    ],
+    "target": [
+      "GGR",
+      "BYB",
+      "RWY"
+    ],
+    "revision": 2,
+    "world": 4,
+    "tag": "circuits",
+    "par": 8,
+    "limitedPar": 8,
+    "solution_len": 8,
+    "allowanceFloor": [
+      [
+        2,
+        1,
+        0
+      ],
+      [
+        0,
+        1,
+        1
+      ],
+      [
+        1,
+        1,
+        1
+      ]
+    ]
+  },
+  {
+    "name": "The Quiet Detour IV",
+    "start": [
+      "BY..",
+      "BGG.",
+      ".RYR"
+    ],
+    "target": [
+      "GG..",
+      "RBR.",
+      ".YBY"
+    ],
+    "revision": 2,
+    "world": 4,
+    "tag": "circuits",
+    "par": 8,
+    "limitedPar": 8,
+    "solution_len": 8,
+    "allowanceFloor": [
+      [
+        1,
+        2,
+        0,
+        0
+      ],
+      [
+        1,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        2,
+        1,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Hold the Crossing IV",
+    "start": [
+      "BRRG",
+      "GYBY"
+    ],
+    "target": [
+      "RGYR",
+      "YGBB"
+    ],
+    "revision": 2,
+    "world": 4,
+    "tag": "circuits",
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
+    "allowanceFloor": [
+      [
+        1,
+        1,
+        0,
+        1
+      ],
+      [
+        1,
+        1,
+        1,
+        1
+      ]
+    ]
+  },
+  {
+    "name": "Moving Anchor IV",
+    "start": [
+      ".YB",
+      "RBG",
+      "RG."
+    ],
+    "target": [
+      ".RG",
+      "BRG",
+      "BY."
+    ],
+    "revision": 2,
+    "world": 4,
+    "tag": "circuits",
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
+    "allowanceFloor": [
+      [
+        0,
+        1,
+        1
+      ],
+      [
+        0,
+        1,
+        2
+      ],
+      [
+        1,
+        1,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Second Passage IV",
+    "start": [
+      ".BG.",
+      "YYRB",
+      ".RG."
+    ],
+    "target": [
+      ".YY.",
+      "RGGR",
+      ".BB."
+    ],
+    "revision": 2,
+    "world": 4,
+    "tag": "circuits",
+    "par": 8,
+    "limitedPar": 8,
+    "solution_len": 8,
+    "allowanceFloor": [
+      [
+        0,
+        0,
+        1,
+        0
+      ],
+      [
+        2,
+        0,
+        2,
+        1
+      ],
+      [
+        0,
+        0,
+        2,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "A Different Angle IV",
+    "start": [
+      "R.G",
+      "GBB",
+      "Y.R"
+    ],
+    "target": [
+      "R.B",
+      "GRG",
+      "B.Y"
+    ],
+    "revision": 2,
+    "world": 4,
+    "tag": "circuits",
+    "par": 8,
+    "limitedPar": 8,
+    "solution_len": 8,
+    "allowanceFloor": [
+      [
+        4,
+        0,
+        1
+      ],
+      [
+        0,
+        0,
+        2
+      ],
+      [
+        1,
+        0,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Before the Last Turn IV",
+    "start": [
+      "GRB",
+      "BGR"
+    ],
+    "target": [
+      "BBR",
+      "GGR"
+    ],
+    "revision": 2,
+    "world": 4,
+    "tag": "circuits",
+    "par": 3,
+    "limitedPar": 3,
+    "solution_len": 3,
+    "allowanceFloor": [
+      [
+        1,
+        0,
+        2
+      ],
+      [
+        0,
+        0,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Open Circuit IV",
+    "start": [
+      "YG..",
+      "YRB.",
+      ".BRG"
+    ],
+    "target": [
+      "GB..",
+      "YBG.",
+      ".YRR"
+    ],
+    "revision": 2,
+    "world": 4,
+    "tag": "circuits",
+    "par": 8,
+    "limitedPar": 8,
+    "solution_len": 8,
+    "allowanceFloor": [
+      [
+        3,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        1,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        2
+      ]
+    ]
+  },
+  {
+    "name": "The Spare Step IV",
+    "start": [
+      "Y.R",
+      "GBG",
+      "R.B"
+    ],
+    "target": [
+      "B.R",
+      "GBY",
+      "G.R"
+    ],
+    "revision": 2,
+    "world": 4,
+    "tag": "circuits",
+    "par": 6,
+    "limitedPar": 6,
+    "solution_len": 6,
+    "allowanceFloor": [
+      [
+        3,
+        0,
+        0
+      ],
+      [
         0,
         0,
         1
@@ -4308,6 +3087,547 @@ const CORE_LEVELS = [
       [
         0,
         0,
+        2
+      ]
+    ]
+  },
+  {
+    "name": "Shared Ground IV",
+    "start": [
+      "GBGR",
+      "BYYR"
+    ],
+    "target": [
+      "YBGG",
+      "YRBR"
+    ],
+    "revision": 2,
+    "world": 4,
+    "tag": "circuits",
+    "par": 6,
+    "limitedPar": 6,
+    "solution_len": 6,
+    "allowanceFloor": [
+      [
+        1,
+        2,
+        0,
+        0
+      ],
+      [
+        2,
+        0,
+        1,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Return Journey IV",
+    "start": [
+      ".GR",
+      "BBR",
+      "GY."
+    ],
+    "target": [
+      ".BG",
+      "BRR",
+      "YG."
+    ],
+    "revision": 2,
+    "world": 4,
+    "tag": "circuits",
+    "par": 5,
+    "limitedPar": 5,
+    "solution_len": 5,
+    "allowanceFloor": [
+      [
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        1,
+        0
+      ],
+      [
+        2,
+        1,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "The Waiting Tile IV",
+    "start": [
+      "RG..",
+      "Y...",
+      "GRBB"
+    ],
+    "target": [
+      "GR..",
+      "B...",
+      "RYGB"
+    ],
+    "revision": 2,
+    "world": 4,
+    "tag": "circuits",
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
+    "allowanceFloor": [
+      [
+        2,
+        1,
+        0,
+        0
+      ],
+      [
+        3,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Crossed Intentions IV",
+    "start": [
+      "R.R",
+      "BGG",
+      "B.Y"
+    ],
+    "target": [
+      "G.B",
+      "YBR",
+      "R.G"
+    ],
+    "revision": 2,
+    "world": 4,
+    "tag": "circuits",
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
+    "allowanceFloor": [
+      [
+        2,
+        0,
+        1
+      ],
+      [
+        1,
+        0,
+        1
+      ],
+      [
+        1,
+        0,
+        1
+      ]
+    ]
+  },
+  {
+    "name": "Two Responsibilities IV",
+    "start": [
+      ".BB.",
+      "GRYR",
+      ".YG."
+    ],
+    "target": [
+      ".BY.",
+      "RGYR",
+      ".GB."
+    ],
+    "revision": 2,
+    "world": 4,
+    "tag": "circuits",
+    "par": 8,
+    "limitedPar": 8,
+    "solution_len": 8,
+    "allowanceFloor": [
+      [
+        0,
+        1,
+        1,
+        0
+      ],
+      [
+        2,
+        2,
+        0,
+        0
+      ],
+      [
+        0,
+        2,
+        0,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Narrow Opportunity IV",
+    "start": [
+      "GR..",
+      "B...",
+      "BGYR"
+    ],
+    "target": [
+      "GB..",
+      "Y...",
+      "RGBR"
+    ],
+    "revision": 2,
+    "world": 4,
+    "tag": "circuits",
+    "par": 9,
+    "limitedPar": 9,
+    "solution_len": 9,
+    "allowanceFloor": [
+      [
+        0,
+        1,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        2,
+        2,
+        3,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "The Long Exchange IV",
+    "start": [
+      "G..",
+      "BGR",
+      "YRB"
+    ],
+    "target": [
+      "Y..",
+      "GRG",
+      "BRB"
+    ],
+    "revision": 2,
+    "world": 4,
+    "tag": "circuits",
+    "par": 6,
+    "limitedPar": 6,
+    "solution_len": 6,
+    "allowanceFloor": [
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        3,
+        0
+      ],
+      [
+        1,
+        1,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Bring It Back IV",
+    "start": [
+      "BGRB",
+      "YRYG"
+    ],
+    "target": [
+      "GRYG",
+      "BBRY"
+    ],
+    "revision": 2,
+    "world": 4,
+    "tag": "circuits",
+    "par": 8,
+    "limitedPar": 8,
+    "solution_len": 8,
+    "allowanceFloor": [
+      [
+        1,
+        2,
+        1,
+        2
+      ],
+      [
+        0,
+        1,
+        1,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Careful Timing IV",
+    "start": [
+      "B.Y",
+      "RRG",
+      "B.G"
+    ],
+    "target": [
+      "B.R",
+      "GGR",
+      "Y.B"
+    ],
+    "revision": 2,
+    "world": 4,
+    "tag": "circuits",
+    "par": 12,
+    "limitedPar": 12,
+    "solution_len": 12,
+    "allowanceFloor": [
+      [
+        0,
+        0,
+        2
+      ],
+      [
+        1,
+        0,
+        2
+      ],
+      [
+        5,
+        0,
+        2
+      ]
+    ]
+  },
+  {
+    "name": "Another Way Through IV",
+    "start": [
+      "B..",
+      "RGY",
+      "RBG"
+    ],
+    "target": [
+      "Y..",
+      "GBB",
+      "GRR"
+    ],
+    "revision": 2,
+    "world": 4,
+    "tag": "circuits",
+    "par": 8,
+    "limitedPar": 8,
+    "solution_len": 8,
+    "allowanceFloor": [
+      [
+        2,
+        0,
+        0
+      ],
+      [
+        2,
+        0,
+        3
+      ],
+      [
+        0,
+        0,
+        1
+      ]
+    ]
+  },
+  {
+    "name": "The Final Charge IV",
+    "start": [
+      "BB..",
+      "Y...",
+      "RGRG"
+    ],
+    "target": [
+      "BY..",
+      "B...",
+      "RGGR"
+    ],
+    "revision": 2,
+    "world": 4,
+    "tag": "circuits",
+    "par": 22,
+    "limitedPar": 22,
+    "solution_len": 22,
+    "allowanceFloor": [
+      [
+        5,
+        4,
+        0,
+        0
+      ],
+      [
+        6,
+        0,
+        0,
+        0
+      ],
+      [
+        4,
+        2,
+        1,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "A Small Sacrifice IV",
+    "start": [
+      "YR..",
+      "GGR.",
+      ".BYB"
+    ],
+    "target": [
+      "GR..",
+      "RBY.",
+      ".GBY"
+    ],
+    "revision": 2,
+    "world": 4,
+    "tag": "circuits",
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
+    "allowanceFloor": [
+      [
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        3,
+        0
+      ],
+      [
+        0,
+        1,
+        1,
+        1
+      ]
+    ]
+  },
+  {
+    "name": "Twin Responsibilities",
+    "start": [
+      "YY...",
+      "RG...",
+      ".BWB.",
+      "..GR.",
+      "....."
+    ],
+    "target": [
+      "BR...",
+      "GY...",
+      ".GBY.",
+      "..RW.",
+      "....."
+    ],
+    "revision": 2,
+    "world": 5,
+    "tag": "circuits",
+    "par": 12,
+    "limitedPar": 12,
+    "solution_len": 12,
+    "allowanceFloor": [
+      [
+        1,
+        2,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        2,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        3,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Hourglass Exchange",
+    "start": [
+      "..P..",
+      ".WYY.",
+      "BRRGB",
+      "..G..",
+      "....."
+    ],
+    "target": [
+      "..W..",
+      ".BPR.",
+      "BYRGG",
+      "..Y..",
+      "....."
+    ],
+    "revision": 2,
+    "world": 5,
+    "tag": "circuits",
+    "par": 10,
+    "limitedPar": 10,
+    "solution_len": 10,
+    "allowanceFloor": [
+      [
+        0,
+        0,
+        3,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        2,
+        0
+      ],
+      [
+        0,
+        1,
         0,
         0,
         2
@@ -4315,7 +3635,7 @@ const CORE_LEVELS = [
       [
         0,
         0,
-        0,
+        1,
         0,
         0
       ],
@@ -4323,43 +3643,43 @@ const CORE_LEVELS = [
         0,
         0,
         0,
-        0,
-        0
-      ],
-      [
-        1,
-        1,
-        2,
         0,
         0
       ]
     ]
   },
   {
-    "world": 5,
-    "name": "Branching Paths",
-    "desc": "A branching map combining diagonal routes and Purple jumps.",
-    "target": [
-      "..R..",
-      "BGYPW",
-      "..B..",
-      "..G..",
-      "RYP.."
-    ],
+    "name": "The Winding Circuit",
     "start": [
-      "..Y..",
-      "BGPYW",
-      "..R..",
+      "GY...",
+      "R....",
+      "WGY..",
       "..B..",
-      "PGR.."
+      "..RB."
     ],
-    "par": 8,
-    "tag": "maps",
-    "intro": "",
-    "solution_len": 8,
+    "target": [
+      "GR...",
+      "W....",
+      "BYY..",
+      "..G..",
+      "..RB."
+    ],
+    "revision": 2,
+    "world": 5,
+    "tag": "circuits",
+    "par": 12,
+    "limitedPar": 12,
+    "solution_len": 12,
     "allowanceFloor": [
       [
+        2,
+        3,
         0,
+        0,
+        0
+      ],
+      [
+        2,
         0,
         0,
         0,
@@ -4375,20 +3695,13 @@ const CORE_LEVELS = [
       [
         0,
         0,
-        2,
+        3,
         0,
         0
       ],
       [
         0,
         0,
-        2,
-        0,
-        0
-      ],
-      [
-        1,
-        1,
         0,
         0,
         0
@@ -4396,53 +3709,53 @@ const CORE_LEVELS = [
     ]
   },
   {
-    "world": 5,
-    "name": "Split Diamond",
-    "desc": "A branching map combining diagonal routes and Purple jumps.",
-    "target": [
-      ".R.B.",
-      "GY.PW",
-      "..R..",
-      "BP.YG",
-      ".W.P."
-    ],
+    "name": "Three Holders",
     "start": [
-      ".P.R.",
-      "BP.GW",
-      "..P..",
-      "YB.RG",
-      ".W.Y."
+      ".WG..",
+      "BRY..",
+      "..B..",
+      ".RYG.",
+      "....."
     ],
+    "target": [
+      ".GR..",
+      "BGW..",
+      "..R..",
+      ".BYY.",
+      "....."
+    ],
+    "revision": 2,
+    "world": 5,
+    "tag": "circuits",
     "par": 12,
-    "tag": "maps",
-    "intro": "",
+    "limitedPar": 12,
     "solution_len": 12,
     "allowanceFloor": [
       [
         0,
+        0,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        2,
         3,
         0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
         2,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
+        2,
         2,
         0
       ],
@@ -4450,9 +3763,130 @@ const CORE_LEVELS = [
         0,
         0,
         0,
+        0,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Last Crossing",
+    "start": [
+      "..G..",
+      "RBYRW",
+      "..Y..",
+      "..BG.",
+      "....."
+    ],
+    "target": [
+      "..W..",
+      "BBRYR",
+      "..Y..",
+      "..GG.",
+      "....."
+    ],
+    "revision": 2,
+    "world": 5,
+    "tag": "circuits",
+    "par": 17,
+    "limitedPar": 17,
+    "solution_len": 17,
+    "allowanceFloor": [
+      [
+        0,
+        0,
+        3,
+        0,
+        0
+      ],
+      [
+        0,
+        4,
+        0,
+        5,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        4,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "Everything Returns",
+    "start": [
+      ".RG..",
+      "YRG..",
+      ".WB..",
+      "..BY.",
+      "....."
+    ],
+    "target": [
+      ".GR..",
+      "GBY..",
+      ".WR..",
+      "..YB.",
+      "....."
+    ],
+    "revision": 2,
+    "world": 5,
+    "tag": "circuits",
+    "par": 9,
+    "limitedPar": 9,
+    "solution_len": 9,
+    "allowanceFloor": [
+      [
+        0,
         2,
+        2,
+        0,
+        0
+      ],
+      [
+        1,
+        2,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
         0
       ]
     ]
   }
 ];
+if(typeof window!=='undefined')window.CORE_LEVELS=CORE_LEVELS;

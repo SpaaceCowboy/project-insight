@@ -1,6 +1,5 @@
+const {dismissMenus,home,play,settings,settingClick,collection}=require('./check-ui-helpers.cjs');
 const fs=require('node:fs');
-const http=require('node:http');
-const path=require('node:path');
 const assert=require('node:assert/strict');
 const vm=require('node:vm');
 const rules=require('./puzzle-rules.js');
@@ -12,8 +11,16 @@ assert.equal(certificates.length,levels.length);
 for(const [i,level] of levels.entries())assert.equal(solver.verify(level,{path:certificates[i]}).par,level.par,'Cached route matches its campaign puzzle');
 for(const directions of Object.values(rules.moves))for(const [r,c] of directions)assert(directions.some(([rr,cc])=>rr===-r&&cc===-c));
 assert.equal(solver.solve(sample).distance,1);
+const legacyBoard={name:'Legacy board',start:['BR'],target:['RB'],rotators:[[0,0]],switches:[{cell:[0,0],color:'R',group:1}],gates:[{from:[0,0],to:[0,1],group:1}],allowances:[[1,1]]};
+assert.deepEqual(rules.validate(legacyBoard),{name:'Legacy board',start:['BR'],target:['RB']},'Old mechanic imports retain board data only');
+assert.equal(solver.solve(legacyBoard).distance,1,'Removed gates and rotations cannot affect moves');
+const before=rules.initialState(legacyBoard,[[3,4]]),after=rules.transition(before,[0,0],[0,1]);
+assert.deepEqual(after.remaining,[[4,2]],'Only initiator pays and allowances follow tiles');
+assert.deepEqual(before.remaining,[[3,4]],'Transition preserves the state needed for undo');
+assert.deepEqual(rules.legalMoves(after.board,0,0),[],'Red retains vertical movement');
+assert.deepEqual(rules.legalMoves(after.board,0,1),[[0,0]],'Blue retains horizontal movement');
 assert.equal(solver.solve(levels[1]).distance,2);
-assert.equal(solver.solve(levels[85]).distance,2,'Single-row built-in puzzles remain supported');
+assert.equal(solver.solve({start:['BR'],target:['RB']}).distance,1,'Single-row puzzles remain supported');
 assert.doesNotThrow(()=>rules.validate({start:['..','..'],target:['..','..']},false),'Empty drafts can be saved');
 assert.throws(()=>solver.solve({start:['..','..'],target:['..','..']}),/at least one tile/);
 assert.throws(()=>rules.validate({...sample,target:['RR','RR']}),/same number/);
@@ -27,17 +34,19 @@ assert.throws(()=>solver.verify(sample,{path:[]}),/does not solve/);
 const verified=solver.verify(sample,solver.solve(sample));
 assert.equal(verified.par,1); assert.equal(verified.fitsLimits,true);
 assert.deepEqual(verified.allowanceFloor,[[1,0],[0,0]]);
+const cappedBoard=JSON.parse(JSON.stringify(levels[34]));
+const capped=solver.solve(cappedBoard,{remaining:cappedBoard.start.map(row=>[...row].map(t=>'.W'.includes(t)?0:6)),maxStates:350000,timeout:8000});
+assert.equal(solver.solve(cappedBoard).distance,20);
+assert.equal(capped.distance,21,'Limited route repairs the certificate without changing the board');
+assert(solver.verify(cappedBoard,{path:certificates[34],limitedPath:capped.path}).fitsLimits);
+assert.throws(()=>solver.solve(sample,{remaining:[[3]],maxStates:350000}),/allowances/);
+assert.throws(()=>solver.solve(sample,{remaining:[[6,6],[6,6]],maxStates:0}),/not verified/);
 const longRoute=[[1,3],...Array.from({length:7},()=>[[0,1],[1,0]]).flat(),[3,1],[0,1]];
 assert.equal(solver.verify(sample,{path:longRoute}).fitsLimits,false,'Routes needing more than six moves per tile are restricted to Classic');
 
 (async()=>{
   const {chromium}=require(process.env.PLAYWRIGHT_PATH||'playwright');
-  const allowed=new Set(['Editor.html','editor.js','editor.css','Puzzle.html','game.js','levels.js','level-solutions.js','styles.css','sound.js','puzzle-rules.js','puzzle-solver.js','tile-art.js',...['ambient','select','move','deny','win','voice'].map(name=>'sounds/'+name+'.wav')]);
-  const server=http.createServer((req,res)=>{
-    const file=new URL(req.url,'http://localhost').pathname.slice(1);
-    if(!allowed.has(file)){res.writeHead(404);res.end();return}
-    res.setHeader('Cache-Control','no-store');res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.wav')?'audio/wav':'text/html');res.end(fs.readFileSync(file));
-  });
+  const server=require('./check-server.cjs').createServer();
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const base='http://127.0.0.1:'+server.address().port;
   let browser,touchBrowser;
@@ -46,15 +55,17 @@ assert.equal(solver.verify(sample,{path:longRoute}).fitsLimits,false,'Routes nee
     const page=await browser.newPage({viewport:{width:1280,height:720},reducedMotion:'reduce'}),errors=[];
     page.on('pageerror',error=>errors.push(error.message));
     page.on('dialog',dialog=>dialog.accept());
-    await page.goto(base+'/Editor.html');
+    await page.goto(base+'/Editor.html');await page.waitForFunction(()=>document.documentElement.dataset.ready==='true');
     await page.evaluate(()=>{
-      localStorage.setItem('insight-100-fixed-v4',JSON.stringify({done:{1:3,10:2}}));
-      localStorage.setItem('insight-limit-stars-v1',JSON.stringify({done:{2:1}}));
-      localStorage.setItem('insight-attempts-v1',JSON.stringify({last:0,entries:{}}));
-      localStorage.setItem('insight-session-v1',JSON.stringify({level:0,limits:false,allowances:null,path:[]}));
+      localStorage.setItem('insight-campaign-r2-classic',JSON.stringify({done:{1:3,10:2}}));
+      localStorage.setItem('insight-campaign-r2-limits',JSON.stringify({done:{2:1}}));
+      localStorage.setItem('insight-attempts-r2',JSON.stringify({last:0,entries:{}}));
+      localStorage.setItem('insight-session-r2',JSON.stringify({level:0,limits:false,allowances:null,path:[]}));
       localStorage.setItem('insight-sound-v1','off');
+      localStorage.setItem('insight-campaign-v2',JSON.stringify({unlocked:11}));
+      localStorage.setItem('insight-dev-mode-v1','off');
     });
-    const coreKeys=['insight-100-fixed-v4','insight-limit-stars-v1','insight-attempts-v1','insight-session-v1'];
+    const coreKeys=['insight-campaign-r2-classic','insight-campaign-r2-limits','insight-attempts-r2','insight-session-r2','insight-campaign-v2','insight-dev-mode-v1','insight-achievements-v1','insight-appearance-v1'];
     const coreBefore=await page.evaluate(keys=>keys.map(key=>localStorage.getItem(key)),coreKeys);
     const draft=()=>page.evaluate(()=>{const data=JSON.parse(localStorage.getItem('insight-editor-drafts-v1'));return data.drafts.find(item=>item.id===data.active)});
     const cell=(r,c)=>page.locator(`.edit-cell[data-r="${r}"][data-c="${c}"]`);
@@ -81,7 +92,7 @@ assert.equal(solver.verify(sample,{path:longRoute}).fitsLimits,false,'Routes nee
     assert.equal(await page.locator('.color-stroke[data-type="R"]').count(),4,'Moving paints another pair of strokes');
     const ink=page.locator('.color-stroke span').last();
     const early=await ink.evaluate(el=>getComputedStyle(el).transform);
-    await page.waitForTimeout(180);
+    await page.waitForFunction(previous=>getComputedStyle(document.querySelector('.screen-stroke:last-child span')).transform!==previous,early,{polling:50,timeout:5000});
     assert.notEqual(await ink.evaluate(el=>getComputedStyle(el).transform),early,'Ink slowly expands');
     assert.equal(await page.locator('.color-stroke').last().evaluate(el=>getComputedStyle(el).pointerEvents),'none','Ink cannot block dragging');
     assert.equal((await draft()).start[0],'.R.');assert.equal((await draft()).target[0],'.R.','Relocation preserves the shared shape');
@@ -129,7 +140,7 @@ assert.equal(solver.verify(sample,{path:longRoute}).fitsLimits,false,'Routes nee
     await page.locator('#puzzlesTab').click();
     await page.locator('#puzzleName').fill('My <img src=x> puzzle');
     assert.equal(await page.locator('#draftTitle img').count(),0,'Names render as text');
-    await page.reload();assert.equal(await page.locator('#draftTitle').textContent(),'My <img src=x> puzzle');
+    await page.reload();await page.waitForFunction(()=>document.documentElement.dataset.ready==='true');assert.equal(await page.locator('#draftTitle').textContent(),'My <img src=x> puzzle');
     assert.deepEqual((await draft()).start,initial.start,'Autosave survives reload');
     await page.locator('#puzzlesTab').click();await page.locator('#duplicateDraft').click();
     assert.equal(await page.locator('#draftSelect option').count(),3);
@@ -176,7 +187,7 @@ assert.equal(solver.verify(sample,{path:longRoute}).fitsLimits,false,'Routes nee
     const allDownload=await allDownloadPromise, collection=JSON.parse(fs.readFileSync(await allDownload.path(),'utf8'));
     assert.equal(collection.puzzles.length,await page.locator('#draftSelect option').count());
     await page.locator('#puzzlesTab').click();await page.locator('#seedLevel').selectOption('25');await page.locator('#copyLevel').click();
-    await validate();assert.match(await page.locator('#validationStatus').textContent(),/optimal par 2/);
+    await validate();assert.match(await page.locator('#validationStatus').textContent(),new RegExp('optimal par '+levels[25].par));
     const custom=await draft();
     async function playMove(from,to,width) {
       const count=+(await page.locator('#moves').textContent());
@@ -186,7 +197,10 @@ assert.equal(solver.verify(sample,{path:longRoute}).fitsLimits,false,'Routes nee
     }
     await page.locator('#playtestPuzzle').click();await page.waitForURL('**/Puzzle.html?editor=1');
     assert.match(await page.locator('#levelNo').textContent(),/PLAYTEST/);
-    await page.locator('#playBtn').click();
+    assert(await page.locator('#newGameBtn').isHidden());assert(await page.locator('#devModeBtn').isHidden());
+    await page.evaluate(()=>{document.getElementById('newGameBtn').click();document.getElementById('devModeBtn').click()});
+    assert.deepEqual(await page.evaluate(keys=>keys.map(key=>localStorage.getItem(key)),coreKeys),coreBefore,'Playtest controls cannot reset campaign progress');
+    await play(page);
     const width=custom.start[0].length;
     await playMove(...custom.proof.path[0],width);
     const partial=await page.locator('.tile').evaluateAll(els=>els.map(el=>[el.dataset.type,el.querySelector('.tile-allowance')?.textContent||null]));
@@ -194,15 +208,15 @@ assert.equal(solver.verify(sample,{path:longRoute}).fitsLimits,false,'Routes nee
     await page.locator('#puzzlesTab').click();await page.locator('#duplicateDraft').click();
     await page.locator('#playtestPuzzle').click();await page.waitForURL('**/Puzzle.html?editor=1');
     assert.equal(await page.locator('#moves').textContent(),'0','Another custom puzzle starts independently');
-    await page.locator('#playBtn').click();await page.locator('#nextBtn').click();await page.waitForURL('**/Editor.html');
+    await play(page);await page.locator('#nextBtn').click();await page.waitForURL('**/Editor.html');
     await page.locator('#puzzlesTab').click();await page.locator('#draftSelect').selectOption(custom.id);
     await page.locator('#playtestPuzzle').click();await page.waitForURL('**/Puzzle.html?editor=1');
     assert.equal(await page.locator('#moves').textContent(),'1','Returning restores the custom attempt');
     assert.deepEqual(await page.locator('.tile').evaluateAll(els=>els.map(el=>[el.dataset.type,el.querySelector('.tile-allowance')?.textContent||null])),partial);
-    await page.locator('#playBtn').click();await page.locator('#menuBtn').click();await page.locator('#limitsBtn').click();
+    await play(page);await home(page);await settingClick(page,'limitsBtn');
     assert.equal(await page.locator('#moves').textContent(),'0','Classic custom attempt is independent');
     await playMove(...custom.proof.path[0],width);
-    await page.locator('#menuBtn').click();await page.locator('#limitsBtn').click();
+    await home(page);await settingClick(page,'limitsBtn');
     assert.equal(await page.locator('#moves').textContent(),'1');
     assert.deepEqual(await page.locator('.tile').evaluateAll(els=>els.map(el=>[el.dataset.type,el.querySelector('.tile-allowance')?.textContent||null])),partial);
     for(const [from,to] of custom.proof.path.slice(1))await playMove(from,to,width);
@@ -210,9 +224,9 @@ assert.equal(solver.verify(sample,{path:longRoute}).fitsLimits,false,'Routes nee
     assert.deepEqual(await page.evaluate(keys=>keys.map(key=>localStorage.getItem(key)),coreKeys),coreBefore,'Custom puzzles never overwrite campaign progress');
     await page.locator('#winNextBtn').click();await page.waitForURL('**/Editor.html');
     assert.equal((await draft()).id,custom.id,'Playtesting returns to the same draft');
-    await page.locator('#puzzlesTab').click();await page.locator('#deleteDraft').click();assert.notEqual((await draft()).id,custom.id);
+    await page.locator('#puzzlesTab').click();await page.locator('#deleteDraft').click();await page.locator('#confirmAccept').click();assert.notEqual((await draft()).id,custom.id);
     await page.locator('#seedLevel').selectOption('99');await page.locator('#copyLevel').click();
-    await validate();assert.match(await page.locator('#validationStatus').textContent(),/optimal par 15/,'Hard campaign copies use verified routes');
+    await validate();assert.match(await page.locator('#validationStatus').textContent(),new RegExp('optimal par '+levels[99].par),'Hard campaign copies use verified routes');
     await page.locator('#filesTab').click();
     await page.locator('#importText').fill(JSON.stringify({name:'Worker test',start:['BW','WW'],target:['WB','WW']}));await page.locator('#importPaste').click();
     await page.evaluate(()=>{const button=document.getElementById('validatePuzzle');button.click();button.click()});
@@ -222,22 +236,22 @@ assert.equal(solver.verify(sample,{path:longRoute}).fitsLimits,false,'Routes nee
     await page.locator('#seedLevel').selectOption('0');await page.locator('#copyLevel').click();
     await page.locator('#shuffleStart').click();await page.waitForFunction(()=>document.getElementById('validatePuzzle').textContent==='Validate');
     assert.equal(await page.locator('#playtestPuzzle').isEnabled(),true,'A shuffled puzzle validates');
-    await page.locator('#clearBoard').click();assert((await draft()).start.every(row=>/^\.+$/.test(row)));
+    await page.locator('#clearBoard').click();await page.locator('#confirmAccept').click();assert((await draft()).start.every(row=>/^\.+$/.test(row)));
     await page.locator('#editUndo').click();
     await page.locator('#boardWidth').selectOption('3');await page.locator('#boardHeight').selectOption('3');await validate();
     await page.locator('#paintTab').click();await page.screenshot({path:'editor-desktop.png'});
     await page.setViewportSize({width:375,height:667});await page.screenshot({path:'editor-mobile.png'});
     const filePage=await browser.newPage({reducedMotion:'reduce'});filePage.on('pageerror',error=>errors.push(error.message));
-    await filePage.goto('file:///'+path.resolve('Editor.html').replaceAll('\\','/'));
+    await filePage.goto(base+'/Editor.html');await filePage.waitForFunction(()=>document.documentElement.dataset.ready==='true');
     await filePage.locator('#filesTab').click();
-    await filePage.locator('#importText').fill(JSON.stringify({name:'Direct file',start:['BW','WW'],target:['WB','WW']}));await filePage.locator('#importPaste').click();
+    await filePage.locator('#importText').fill(JSON.stringify({name:'Production worker',start:['BW','WW'],target:['WB','WW']}));await filePage.locator('#importPaste').click();
     await filePage.locator('#validatePuzzle').click();await filePage.waitForFunction(()=>document.getElementById('validatePuzzle').textContent==='Validate');
-    assert.match(await filePage.locator('#validationStatus').textContent(),/optimal par 1/,'The editor worker works when opened directly from disk');
+    assert.match(await filePage.locator('#validationStatus').textContent(),/optimal par 1/,'The editor worker validates custom puzzles from the production bundle');
     await filePage.close();
     // Keep native touch injection separate from the desktop browser's mouse input.
     touchBrowser=await chromium.launch({executablePath:process.env.CHROME_PATH||`${process.env.ProgramFiles}/Google/Chrome/Application/chrome.exe`,headless:true});
     const touch=await touchBrowser.newPage({viewport:{width:375,height:667},hasTouch:true,reducedMotion:'reduce'});
-    touch.on('pageerror',error=>errors.push(error.message));await touch.goto(base+'/Editor.html');
+    touch.on('pageerror',error=>errors.push(error.message));await touch.goto(base+'/Editor.html');await touch.waitForFunction(()=>document.documentElement.dataset.ready==='true');
     await touch.bringToFront();
     const touchSource=await touch.locator('[data-type="G"]').boundingBox(),touchTarget=await touch.locator('.edit-cell[data-r="0"][data-c="0"]').boundingBox();
     const touchSession=await touch.context().newCDPSession(touch);
@@ -250,7 +264,7 @@ assert.equal(solver.verify(sample,{path:longRoute}).fitsLimits,false,'Routes nee
     await touch.locator('#editUndo').tap();
     await touch.waitForFunction(()=>document.querySelector('.edit-cell[data-r="0"][data-c="0"]').getAttribute('aria-label').startsWith('Empty slot'),null,{polling:50,timeout:3000});
     await touch.addInitScript(()=>localStorage.setItem('insight-editor-drafts-v1','{broken'));
-    await touch.reload();
+    await touch.reload();await touch.waitForFunction(()=>document.documentElement.dataset.ready==='true');
     assert.equal(await touch.evaluate(()=>localStorage.getItem('insight-editor-drafts-v1-recovery')),'{broken','Damaged storage is backed up before replacement');
     assert.match(await touch.locator('#validationStatus').textContent(),/unavailable/);await touchBrowser.close();touchBrowser=null;
     await page.evaluate(()=>{Storage.prototype.setItem=()=>{throw new DOMException('Blocked','SecurityError')}});
@@ -258,6 +272,6 @@ assert.equal(solver.verify(sample,{path:longRoute}).fitsLimits,false,'Routes nee
     assert.equal(await cell(0,0).getAttribute('aria-label'),'Green, row 1, column 1','Storage failure does not stop editing');
     await page.locator('#editUndo').click();assert.equal(await page.locator('#playtestPuzzle').isEnabled(),true);
     assert.deepEqual(errors,[]);
-    console.log('Editor checks passed: drag/drop, placeholders, touch, keyboard, undo/redo, solver, drafts, import/export, playtesting, storage isolation, direct-file worker and five viewport sizes.');
+    console.log('Editor checks passed: drag/drop, placeholders, touch, keyboard, undo/redo, solver, drafts, import/export, playtesting, storage isolation, production worker and five viewport sizes.');
   } finally {await touchBrowser?.close();await browser?.close();await new Promise(resolve=>server.close(resolve))}
 })().catch(error=>{console.error(error);process.exitCode=1});

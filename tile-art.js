@@ -45,3 +45,5 @@ function paintStroke(shell,from,to,type) {
 }
 return {ICONS,META,TILE_LIGHTS,paintStroke};
 })();
+
+if (typeof window!=='undefined') window.PuzzleArt=PuzzleArt;

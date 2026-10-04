@@ -1,3 +1,6 @@
+export function initAudio() {
+const events=new AbortController();
+const listen=(target,type,callback)=>target.addEventListener(type,callback,{signal:events.signal});
 // Original forest ambience; the sparse voice cue contains no instructions.
 const ambientSound = new Audio('sounds/ambient.wav');
 ambientSound.loop = true;
@@ -50,19 +53,19 @@ function setAmbienceVolume(value) {
 }
 setVolume(masterVolume); setAmbienceVolume(ambienceVolume); applyVolumes(true);
 document.getElementById('voiceToggle').checked=voiceEnabled;
-document.getElementById('volumeSlider').addEventListener('input',event=>{
+listen(document.getElementById('volumeSlider'),'input',event=>{
   setVolume(+event.target.value/100);
-  try {localStorage.setItem('insight-volume-v1',String(masterVolume));} catch {}
+  try {localStorage.setItem('insight-volume-v1',String(masterVolume));} catch {window.dispatchEvent(new Event('insight-storage-warning'))}
 });
-document.getElementById('ambienceSlider').addEventListener('input',event=>{
+listen(document.getElementById('ambienceSlider'),'input',event=>{
   setAmbienceVolume(+event.target.value/100);
-  try {localStorage.setItem('insight-ambience-volume-v1',String(ambienceVolume));} catch {}
+  try {localStorage.setItem('insight-ambience-volume-v1',String(ambienceVolume));} catch {window.dispatchEvent(new Event('insight-storage-warning'))}
 });
-document.getElementById('voiceToggle').addEventListener('change',event=>{
+listen(document.getElementById('voiceToggle'),'change',event=>{
   voiceEnabled=event.target.checked;
   if (!voiceEnabled) voiceSound.pause();
   applyVolumes();
-  try {localStorage.setItem('insight-voice-v1',voiceEnabled ? 'on' : 'off');} catch {}
+  try {localStorage.setItem('insight-voice-v1',voiceEnabled ? 'on' : 'off');} catch {window.dispatchEvent(new Event('insight-storage-warning'))}
 });
 
 // A pentatonic palette lets every tile share the same gentle harmony.
@@ -130,7 +133,7 @@ function stopMusic() {
     stopNotes();
   },140);
 }
-document.addEventListener('visibilitychange', () => {
+listen(document,'visibilitychange', () => {
   if (document.hidden) {
     clearTimeout(silenceTimer); applyVolumes(true);
     for (const sound of [ambientSound,voiceSound,...Object.values(soundEffects)]) sound.pause();
@@ -140,3 +143,12 @@ document.addEventListener('visibilitychange', () => {
     ambientSound.play().catch(() => {});
   }
 });
+
+return {ambientSound,voiceSound,soundEffects,ringingNotes,playTone,stopMusic,stopNotes,
+  get masterVolume(){return masterVolume},get ambienceVolume(){return ambienceVolume},get noteGain(){return noteGain},
+  dispose(){events.abort();cancelAnimationFrame(volumeFrame);clearTimeout(silenceTimer);
+    for(const sound of [ambientSound,voiceSound,...Object.values(soundEffects)])sound.pause();
+    stopNotes();noteContext?.close().catch(()=>{});
+  }
+};
+}

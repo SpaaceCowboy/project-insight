@@ -4,9 +4,16 @@
     "name": "The First Turn",
     "world": 1,
     "par": 1,
+    "limitedPar": 1,
     "width": 2,
     "distance": 1,
     "path": [
+      [
+        0,
+        1
+      ]
+    ],
+    "limitedPath": [
       [
         0,
         1
@@ -18,9 +25,20 @@
     "name": "Opposite Corners",
     "world": 1,
     "par": 2,
+    "limitedPar": 2,
     "width": 2,
     "distance": 2,
     "path": [
+      [
+        1,
+        3
+      ],
+      [
+        1,
+        0
+      ]
+    ],
+    "limitedPath": [
       [
         1,
         3
@@ -33,250 +51,537 @@
   },
   {
     "level": 3,
-    "name": "Two by Three",
+    "name": "The Long Pair",
     "world": 1,
-    "par": 1,
-    "width": 3,
-    "distance": 1,
+    "par": 4,
+    "limitedPar": 4,
+    "width": 4,
+    "distance": 4,
     "path": [
       [
         5,
-        2
-      ]
-    ]
-  },
-  {
-    "level": 4,
-    "name": "False Shortcut",
-    "world": 1,
-    "par": 2,
-    "width": 3,
-    "distance": 2,
-    "path": [
+        6
+      ],
+      [
+        6,
+        7
+      ],
       [
         4,
         5
       ],
       [
+        0,
+        1
+      ]
+    ],
+    "limitedPath": [
+      [
+        5,
+        6
+      ],
+      [
+        6,
+        7
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        0,
+        1
+      ]
+    ]
+  },
+  {
+    "level": 4,
+    "name": "Vertical Trap",
+    "world": 1,
+    "par": 4,
+    "limitedPar": 4,
+    "width": 2,
+    "distance": 4,
+    "path": [
+      [
         2,
+        3
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        0,
+        2
+      ],
+      [
+        0,
+        1
+      ]
+    ],
+    "limitedPath": [
+      [
+        2,
+        3
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        0,
+        2
+      ],
+      [
+        0,
         1
       ]
     ]
   },
   {
     "level": 5,
-    "name": "Cross Current",
+    "name": "Hold the Light",
     "world": 1,
-    "par": 1,
-    "width": 3,
-    "distance": 1,
+    "par": 4,
+    "limitedPar": 4,
+    "width": 4,
+    "distance": 4,
     "path": [
       [
-        3,
-        4
+        7,
+        3
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        5,
+        1
+      ]
+    ],
+    "limitedPath": [
+      [
+        7,
+        3
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        5,
+        1
       ]
     ]
   },
   {
     "level": 6,
-    "name": "The Long Pair",
+    "name": "Borrowed Passage",
     "world": 1,
     "par": 4,
-    "width": 4,
+    "limitedPar": 4,
+    "width": 3,
     "distance": 4,
     "path": [
       [
         5,
+        4
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        0,
+        3
+      ],
+      [
+        5,
+        2
+      ]
+    ],
+    "limitedPath": [
+      [
+        5,
+        4
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        0,
+        3
+      ],
+      [
+        5,
+        2
+      ]
+    ]
+  },
+  {
+    "level": 7,
+    "name": "Leave It Open",
+    "world": 1,
+    "par": 4,
+    "limitedPar": 4,
+    "width": 3,
+    "distance": 4,
+    "path": [
+      [
+        3,
         6
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        0,
+        3
+      ]
+    ],
+    "limitedPath": [
+      [
+        3,
+        6
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        0,
+        3
+      ]
+    ]
+  },
+  {
+    "level": 8,
+    "name": "First Connection",
+    "world": 1,
+    "par": 6,
+    "limitedPar": 6,
+    "width": 3,
+    "distance": 6,
+    "path": [
+      [
+        5,
+        8
+      ],
+      [
+        7,
+        8
       ],
       [
         6,
         7
       ],
       [
-        4,
-        5
+        3,
+        0
       ],
       [
-        0,
-        1
-      ]
-    ]
-  },
-  {
-    "level": 7,
-    "name": "Vertical Trap",
-    "world": 1,
-    "par": 4,
-    "width": 2,
-    "distance": 4,
-    "path": [
-      [
-        2,
-        3
-      ],
-      [
-        2,
+        3,
         4
       ],
       [
-        0,
-        2
+        4,
+        5
+      ]
+    ],
+    "limitedPath": [
+      [
+        5,
+        8
       ],
       [
-        0,
-        1
-      ]
-    ]
-  },
-  {
-    "level": 8,
-    "name": "Horizontal Trap",
-    "world": 1,
-    "par": 1,
-    "width": 2,
-    "distance": 1,
-    "path": [
+        7,
+        8
+      ],
+      [
+        6,
+        7
+      ],
       [
         3,
-        2
+        0
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        4,
+        5
       ]
     ]
   },
   {
     "level": 9,
-    "name": "Green Enters",
+    "name": "Quarter Turn",
     "world": 1,
-    "par": 6,
-    "width": 3,
-    "distance": 6,
+    "par": 2,
+    "limitedPar": 2,
+    "width": 4,
+    "distance": 2,
     "path": [
       [
-        0,
+        4,
         1
       ],
       [
-        4,
-        7
-      ],
-      [
-        4,
-        3
-      ],
-      [
-        7,
+        5,
         4
+      ]
+    ],
+    "limitedPath": [
+      [
+        4,
+        1
       ],
       [
-        8,
-        7
-      ],
-      [
-        3,
+        5,
         4
       ]
     ]
   },
   {
     "level": 10,
-    "name": "Diagonal Door",
+    "name": "A New Direction",
     "world": 1,
-    "par": 5,
+    "par": 2,
+    "limitedPar": 2,
     "width": 3,
-    "distance": 5,
+    "distance": 2,
     "path": [
       [
-        1,
-        3
-      ],
-      [
-        4,
-        6
-      ],
-      [
-        1,
+        7,
         4
       ],
       [
-        5,
-        8
+        0,
+        4
+      ]
+    ],
+    "limitedPath": [
+      [
+        7,
+        4
       ],
       [
-        5,
+        0,
         4
       ]
     ]
   },
   {
     "level": 11,
-    "name": "Three-Way Weave",
+    "name": "Turn Twice",
     "world": 1,
-    "par": 6,
+    "par": 11,
+    "limitedPar": 11,
     "width": 4,
-    "distance": 6,
+    "distance": 11,
     "path": [
       [
         0,
         4
       ],
       [
-        2,
+        0,
         1
       ],
       [
-        3,
-        7
+        4,
+        0
       ],
       [
-        6,
-        7
+        9,
+        10
       ],
       [
-        5,
+        4,
+        9
+      ],
+      [
+        8,
         4
       ],
       [
-        6,
-        2
+        9,
+        4
+      ],
+      [
+        10,
+        9
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        4,
+        0
+      ]
+    ],
+    "limitedPath": [
+      [
+        0,
+        4
+      ],
+      [
+        0,
+        1
+      ],
+      [
+        4,
+        0
+      ],
+      [
+        9,
+        10
+      ],
+      [
+        4,
+        9
+      ],
+      [
+        8,
+        4
+      ],
+      [
+        9,
+        4
+      ],
+      [
+        10,
+        9
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        4,
+        0
       ]
     ]
   },
   {
     "level": 12,
-    "name": "Green Between",
+    "name": "Return Angle",
     "world": 1,
-    "par": 4,
+    "par": 6,
+    "limitedPar": 6,
     "width": 3,
-    "distance": 4,
+    "distance": 6,
     "path": [
       [
-        2,
+        3,
         1
       ],
       [
-        7,
+        3,
         4
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        7,
+        5
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        2,
+        1
+      ]
+    ],
+    "limitedPath": [
+      [
+        3,
+        1
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        7,
+        5
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        2,
+        1
+      ]
+    ]
+  },
+  {
+    "level": 13,
+    "name": "The Spare Step",
+    "world": 1,
+    "par": 7,
+    "limitedPar": 7,
+    "width": 3,
+    "distance": 7,
+    "path": [
+      [
+        4,
+        3
+      ],
+      [
+        4,
+        7
       ],
       [
         8,
         7
       ],
       [
-        3,
-        4
-      ]
-    ]
-  },
-  {
-    "level": 13,
-    "name": "Mirror Without Symmetry",
-    "world": 1,
-    "par": 5,
-    "width": 3,
-    "distance": 5,
-    "path": [
+        7,
+        6
+      ],
       [
-        5,
+        0,
         4
       ],
       [
@@ -284,37 +589,60 @@
         4
       ],
       [
-        6,
-        4
+        5,
+        7
+      ]
+    ],
+    "limitedPath": [
+      [
+        4,
+        3
       ],
       [
         4,
-        2
+        7
+      ],
+      [
+        8,
+        7
+      ],
+      [
+        7,
+        6
       ],
       [
         0,
-        1
+        4
+      ],
+      [
+        7,
+        4
+      ],
+      [
+        5,
+        7
       ]
     ]
   },
   {
     "level": 14,
-    "name": "Yellow Arrives",
+    "name": "Shared Ground",
     "world": 1,
-    "par": 6,
+    "par": 7,
+    "limitedPar": 7,
     "width": 3,
-    "distance": 6,
+    "distance": 7,
     "path": [
       [
-        2,
+        3,
         1
       ],
       [
-        2,
-        5
+        3,
+        7
       ],
       [
-        3,
+        8,
         7
       ],
       [
@@ -322,8 +650,42 @@
         5
       ],
       [
-        6,
-        3
+        4,
+        2
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        3,
+        0
+      ]
+    ],
+    "limitedPath": [
+      [
+        3,
+        1
+      ],
+      [
+        3,
+        7
+      ],
+      [
+        8,
+        7
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        5,
+        4
       ],
       [
         3,
@@ -333,30 +695,19 @@
   },
   {
     "level": 15,
-    "name": "Four Directions",
+    "name": "Return Journey",
     "world": 1,
-    "par": 7,
+    "par": 5,
+    "limitedPar": 5,
     "width": 3,
-    "distance": 7,
+    "distance": 5,
     "path": [
       [
-        3,
-        7
-      ],
-      [
-        6,
-        7
-      ],
-      [
-        4,
-        7
-      ],
-      [
         0,
-        4
+        3
       ],
       [
-        2,
+        1,
         4
       ],
       [
@@ -364,144 +715,248 @@
         4
       ],
       [
-        3,
-        1
+        7,
+        3
+      ],
+      [
+        1,
+        3
+      ]
+    ],
+    "limitedPath": [
+      [
+        0,
+        3
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        7,
+        3
+      ],
+      [
+        1,
+        3
       ]
     ]
   },
   {
     "level": 16,
-    "name": "The Diagonal Gate",
+    "name": "The Waiting Tile",
     "world": 1,
-    "par": 8,
-    "width": 4,
-    "distance": 8,
+    "par": 7,
+    "limitedPar": 7,
+    "width": 3,
+    "distance": 7,
     "path": [
       [
-        1,
-        2
-      ],
-      [
         2,
-        3
+        1
       ],
       [
-        2,
-        5
-      ],
-      [
-        4,
-        5
-      ],
-      [
-        5,
-        6
+        3,
+        1
       ],
       [
         6,
-        7
+        3
       ],
       [
         1,
-        6
+        3
       ],
       [
-        4,
+        8,
+        4
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        7,
+        3
+      ]
+    ],
+    "limitedPath": [
+      [
+        2,
         1
+      ],
+      [
+        3,
+        1
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        8,
+        4
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        7,
+        3
       ]
     ]
   },
   {
     "level": 17,
-    "name": "Interference",
+    "name": "Crossed Intentions",
     "world": 1,
-    "par": 6,
+    "par": 5,
+    "limitedPar": 5,
     "width": 3,
-    "distance": 6,
+    "distance": 5,
     "path": [
       [
-        7,
-        5
-      ],
-      [
-        6,
-        7
-      ],
-      [
-        8,
-        5
+        1,
+        4
       ],
       [
         1,
         5
       ],
       [
-        2,
+        4,
+        7
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        3,
+        0
+      ]
+    ],
+    "limitedPath": [
+      [
+        1,
+        4
+      ],
+      [
+        1,
         5
       ],
       [
         4,
+        7
+      ],
+      [
+        6,
         3
+      ],
+      [
+        3,
+        0
       ]
     ]
   },
   {
     "level": 18,
-    "name": "Corner Pressure",
+    "name": "Two Responsibilities",
     "world": 1,
-    "par": 7,
-    "width": 3,
-    "distance": 7,
+    "par": 8,
+    "limitedPar": 8,
+    "width": 4,
+    "distance": 8,
     "path": [
-      [
-        4,
-        5
-      ],
-      [
-        6,
-        4
-      ],
-      [
-        3,
-        6
-      ],
       [
         8,
         4
       ],
       [
-        7,
+        9,
         4
       ],
       [
-        4,
-        1
+        10,
+        9
       ],
       [
-        2,
-        1
+        4,
+        9
+      ],
+      [
+        8,
+        9
+      ],
+      [
+        9,
+        10
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        1,
+        0
+      ]
+    ],
+    "limitedPath": [
+      [
+        8,
+        4
+      ],
+      [
+        9,
+        4
+      ],
+      [
+        10,
+        9
+      ],
+      [
+        4,
+        9
+      ],
+      [
+        8,
+        9
+      ],
+      [
+        9,
+        10
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        1,
+        0
       ]
     ]
   },
   {
     "level": 19,
-    "name": "The Exact Pattern",
+    "name": "Narrow Opportunity",
     "world": 1,
-    "par": 8,
+    "par": 6,
+    "limitedPar": 6,
     "width": 4,
-    "distance": 8,
+    "distance": 6,
     "path": [
       [
-        7,
-        2
-      ],
-      [
         1,
         2
-      ],
-      [
-        1,
-        6
       ],
       [
         1,
@@ -512,177 +967,334 @@
         1
       ],
       [
-        3,
+        2,
+        6
+      ],
+      [
+        1,
         2
       ],
       [
-        6,
+        7,
+        2
+      ]
+    ],
+    "limitedPath": [
+      [
+        1,
+        2
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        2,
         1
       ],
       [
-        4,
-        1
+        2,
+        6
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        7,
+        2
       ]
     ]
   },
   {
     "level": 20,
-    "name": "White Space",
+    "name": "The Long Exchange",
     "world": 1,
-    "par": 5,
+    "par": 4,
+    "limitedPar": 4,
     "width": 3,
-    "distance": 5,
+    "distance": 4,
     "path": [
       [
-        1,
-        3
+        2,
+        1
       ],
       [
         4,
-        7
+        1
       ],
       [
         4,
-        0
+        5
       ],
       [
-        7,
-        4
+        4,
+        2
+      ]
+    ],
+    "limitedPath": [
+      [
+        2,
+        1
       ],
       [
-        0,
-        4
+        4,
+        1
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        4,
+        2
       ]
     ]
   },
   {
     "level": 21,
-    "name": "Quiet Passenger",
+    "name": "Bring It Back",
     "world": 1,
-    "par": 8,
-    "width": 3,
-    "distance": 8,
+    "par": 7,
+    "limitedPar": 7,
+    "width": 4,
+    "distance": 7,
     "path": [
       [
-        0,
-        4
+        10,
+        5
       ],
       [
-        4,
-        8
+        5,
+        0
+      ],
+      [
+        11,
+        10
       ],
       [
         5,
         1
       ],
       [
-        5,
-        7
+        0,
+        5
       ],
       [
         4,
-        2
+        5
       ],
       [
-        0,
+        5,
+        6
+      ]
+    ],
+    "limitedPath": [
+      [
+        10,
+        5
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        11,
+        10
+      ],
+      [
+        5,
         1
       ],
       [
-        3,
-        0
+        0,
+        5
       ],
       [
-        1,
-        0
+        4,
+        5
+      ],
+      [
+        5,
+        6
       ]
     ]
   },
   {
     "level": 22,
-    "name": "White Corridor",
-    "world": 1,
-    "par": 4,
-    "width": 4,
-    "distance": 4,
-    "path": [
-      [
-        3,
-        2
-      ],
-      [
-        3,
-        7
-      ],
-      [
-        5,
-        6
-      ],
-      [
-        2,
-        3
-      ]
-    ]
-  },
-  {
-    "level": 23,
-    "name": "Room to Breathe",
-    "world": 1,
-    "par": 5,
-    "width": 3,
-    "distance": 5,
-    "path": [
-      [
-        7,
-        3
-      ],
-      [
-        7,
-        6
-      ],
-      [
-        4,
-        7
-      ],
-      [
-        4,
-        8
-      ],
-      [
-        5,
-        7
-      ]
-    ]
-  },
-  {
-    "level": 24,
-    "name": "Last Lesson",
+    "name": "Careful Timing",
     "world": 1,
     "par": 7,
+    "limitedPar": 7,
     "width": 3,
     "distance": 7,
     "path": [
       [
         1,
-        4
+        3
       ],
       [
-        1,
-        3
+        2,
+        1
+      ],
+      [
+        2,
+        5
       ],
       [
         1,
         0
       ],
       [
+        2,
+        1
+      ],
+      [
+        3,
+        1
+      ],
+      [
+        0,
+        1
+      ]
+    ],
+    "limitedPath": [
+      [
+        1,
+        3
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        3,
+        1
+      ],
+      [
+        0,
+        1
+      ]
+    ]
+  },
+  {
+    "level": 23,
+    "name": "Another Way Through",
+    "world": 1,
+    "par": 6,
+    "limitedPar": 6,
+    "width": 3,
+    "distance": 6,
+    "path": [
+      [
+        0,
+        3
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        8,
+        7
+      ],
+      [
         4,
         7
       ],
       [
-        6,
+        1,
+        0
+      ]
+    ],
+    "limitedPath": [
+      [
+        0,
+        3
+      ],
+      [
+        1,
         4
       ],
       [
+        2,
+        1
+      ],
+      [
         8,
+        7
+      ],
+      [
+        4,
+        7
+      ],
+      [
+        1,
+        0
+      ]
+    ]
+  },
+  {
+    "level": 24,
+    "name": "The Final Charge",
+    "world": 1,
+    "par": 5,
+    "limitedPar": 5,
+    "width": 3,
+    "distance": 5,
+    "path": [
+      [
+        0,
+        1
+      ],
+      [
+        3,
+        1
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        5,
+        2
+      ]
+    ],
+    "limitedPath": [
+      [
+        0,
+        1
+      ],
+      [
+        3,
+        1
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        3,
         4
       ],
       [
@@ -693,885 +1305,1418 @@
   },
   {
     "level": 25,
-    "name": "Foundations",
+    "name": "A Small Sacrifice",
     "world": 1,
-    "par": 5,
-    "width": 4,
-    "distance": 5,
+    "par": 3,
+    "limitedPar": 3,
+    "width": 3,
+    "distance": 3,
     "path": [
       [
-        1,
-        5
-      ],
-      [
-        2,
-        1
-      ],
-      [
-        1,
+        3,
         0
       ],
       [
-        6,
-        3
+        3,
+        4
       ],
       [
-        6,
-        5
+        0,
+        3
+      ]
+    ],
+    "limitedPath": [
+      [
+        3,
+        0
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        0,
+        3
       ]
     ]
   },
   {
     "level": 26,
-    "name": "Bent Line",
+    "name": "Borrowed Light II",
     "world": 2,
-    "par": 2,
+    "par": 5,
+    "limitedPar": 5,
     "width": 3,
-    "distance": 2,
+    "distance": 5,
     "path": [
       [
-        3,
-        0
+        1,
+        3
       ],
       [
-        4,
+        0,
         3
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        3,
+        4
+      ]
+    ],
+    "limitedPath": [
+      [
+        1,
+        3
+      ],
+      [
+        0,
+        3
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        3,
+        4
       ]
     ]
   },
   {
     "level": 27,
-    "name": "The Hook",
+    "name": "The Handoff II",
     "world": 2,
-    "par": 3,
-    "width": 4,
-    "distance": 3,
+    "par": 6,
+    "limitedPar": 6,
+    "width": 3,
+    "distance": 6,
     "path": [
       [
-        3,
-        6
+        6,
+        4
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        7,
+        5
       ],
       [
         2,
-        6
+        5
       ],
       [
-        4,
-        0
+        1,
+        3
+      ]
+    ],
+    "limitedPath": [
+      [
+        6,
+        4
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        7,
+        5
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        1,
+        3
       ]
     ]
   },
   {
     "level": 28,
-    "name": "T Junction",
+    "name": "Across the Fold II",
     "world": 2,
-    "par": 7,
+    "par": 9,
+    "limitedPar": 9,
     "width": 3,
-    "distance": 7,
+    "distance": 9,
     "path": [
       [
-        1,
-        4
-      ],
-      [
         4,
-        7
-      ],
-      [
-        2,
-        4
-      ],
-      [
-        7,
-        4
-      ],
-      [
-        4,
-        1
-      ],
-      [
-        2,
-        1
-      ],
-      [
-        1,
         0
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        5,
+        8
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        3,
+        1
+      ]
+    ],
+    "limitedPath": [
+      [
+        4,
+        0
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        5,
+        8
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        3,
+        1
       ]
     ]
   },
   {
     "level": 29,
-    "name": "Tight T",
+    "name": "A Place to Wait II",
     "world": 2,
     "par": 7,
-    "width": 4,
+    "limitedPar": 7,
+    "width": 3,
     "distance": 7,
     "path": [
       [
-        0,
+        3,
         1
       ],
       [
-        1,
-        2
+        6,
+        4
       ],
       [
-        10,
-        9
-      ],
-      [
-        1,
-        5
-      ],
-      [
-        2,
+        7,
         3
       ],
       [
-        2,
-        5
+        1,
+        3
       ],
       [
-        3,
+        6,
+        3
+      ],
+      [
+        4,
         2
+      ],
+      [
+        6,
+        4
+      ]
+    ],
+    "limitedPath": [
+      [
+        3,
+        1
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        7,
+        3
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        6,
+        4
       ]
     ]
   },
   {
     "level": 30,
-    "name": "Broken Stair",
+    "name": "Turn and Return II",
     "world": 2,
-    "par": 6,
-    "width": 3,
-    "distance": 6,
+    "par": 4,
+    "limitedPar": 4,
+    "width": 4,
+    "distance": 4,
     "path": [
       [
-        1,
-        3
-      ],
-      [
-        1,
-        4
-      ],
-      [
-        1,
-        2
-      ],
-      [
-        4,
-        1
-      ],
-      [
         2,
-        1
+        7
       ],
       [
         3,
-        1
+        2
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        0,
+        4
+      ]
+    ],
+    "limitedPath": [
+      [
+        2,
+        7
+      ],
+      [
+        3,
+        2
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        0,
+        4
       ]
     ]
   },
   {
     "level": 31,
-    "name": "Zigzag Logic",
+    "name": "The Quiet Detour II",
     "world": 2,
-    "par": 3,
+    "par": 5,
+    "limitedPar": 5,
     "width": 3,
-    "distance": 3,
+    "distance": 5,
     "path": [
       [
         4,
+        0
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        4,
+        6
+      ],
+      [
+        8,
         5
       ],
       [
         0,
         4
+      ]
+    ],
+    "limitedPath": [
+      [
+        4,
+        0
       ],
       [
-        5,
+        2,
+        4
+      ],
+      [
+        4,
+        6
+      ],
+      [
+        8,
+        5
+      ],
+      [
+        0,
         4
       ]
     ]
   },
   {
     "level": 32,
-    "name": "Open U",
+    "name": "Hold the Crossing II",
     "world": 2,
     "par": 6,
+    "limitedPar": 6,
     "width": 3,
     "distance": 6,
     "path": [
       [
-        3,
-        4
-      ],
-      [
-        4,
-        5
-      ],
-      [
-        4,
+        1,
         0
-      ],
-      [
-        5,
-        4
-      ],
-      [
-        0,
-        4
-      ],
-      [
-        5,
-        2
-      ]
-    ]
-  },
-  {
-    "level": 33,
-    "name": "The C Turn",
-    "world": 2,
-    "par": 6,
-    "width": 4,
-    "distance": 6,
-    "path": [
-      [
-        1,
-        4
-      ],
-      [
-        3,
-        2
-      ],
-      [
-        2,
-        1
-      ],
-      [
-        8,
-        4
-      ],
-      [
-        9,
-        4
-      ],
-      [
-        10,
-        9
-      ]
-    ]
-  },
-  {
-    "level": 34,
-    "name": "Five Around",
-    "world": 2,
-    "par": 4,
-    "width": 3,
-    "distance": 4,
-    "path": [
-      [
-        5,
-        4
-      ],
-      [
-        1,
-        5
       ],
       [
         1,
         3
       ],
       [
+        6,
+        3
+      ],
+      [
+        7,
+        5
+      ],
+      [
         4,
+        5
+      ],
+      [
+        7,
+        3
+      ]
+    ],
+    "limitedPath": [
+      [
+        1,
+        0
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        7,
+        5
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        7,
+        3
+      ]
+    ]
+  },
+  {
+    "level": 33,
+    "name": "Moving Anchor II",
+    "world": 2,
+    "par": 9,
+    "limitedPar": 9,
+    "width": 4,
+    "distance": 9,
+    "path": [
+      [
+        0,
+        1
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        6,
+        5
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        0,
+        5
+      ]
+    ],
+    "limitedPath": [
+      [
+        0,
+        1
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        6,
+        5
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        0,
+        5
+      ]
+    ]
+  },
+  {
+    "level": 34,
+    "name": "Second Passage II",
+    "world": 2,
+    "par": 8,
+    "limitedPar": 8,
+    "width": 3,
+    "distance": 8,
+    "path": [
+      [
+        3,
+        1
+      ],
+      [
+        3,
+        7
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        3,
+        0
+      ],
+      [
+        6,
+        3
+      ]
+    ],
+    "limitedPath": [
+      [
+        3,
+        1
+      ],
+      [
+        3,
+        7
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        3,
+        0
+      ],
+      [
+        6,
         3
       ]
     ]
   },
   {
     "level": 35,
-    "name": "Stairwell",
+    "name": "A Different Angle II",
     "world": 2,
-    "par": 1,
+    "par": 20,
+    "limitedPar": 21,
     "width": 4,
-    "distance": 1,
+    "distance": 20,
     "path": [
       [
+        0,
+        1
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        4,
+        8
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        8,
+        4
+      ],
+      [
+        4,
+        0
+      ],
+      [
+        8,
+        9
+      ],
+      [
+        8,
+        4
+      ],
+      [
+        9,
+        10
+      ],
+      [
+        8,
+        9
+      ],
+      [
         10,
-        5
+        11
+      ],
+      [
+        9,
+        10
+      ],
+      [
+        9,
+        4
+      ],
+      [
+        10,
+        9
+      ],
+      [
+        4,
+        9
+      ],
+      [
+        11,
+        10
+      ],
+      [
+        10,
+        9
+      ],
+      [
+        9,
+        8
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        4,
+        8
+      ]
+    ],
+    "limitedPath": [
+      [
+        0,
+        1
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        4,
+        8
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        8,
+        4
+      ],
+      [
+        4,
+        0
+      ],
+      [
+        8,
+        9
+      ],
+      [
+        8,
+        4
+      ],
+      [
+        9,
+        10
+      ],
+      [
+        8,
+        9
+      ],
+      [
+        10,
+        11
+      ],
+      [
+        9,
+        10
+      ],
+      [
+        9,
+        4
+      ],
+      [
+        10,
+        9
+      ],
+      [
+        4,
+        9
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        11,
+        10
+      ],
+      [
+        10,
+        9
+      ],
+      [
+        9,
+        8
+      ],
+      [
+        4,
+        8
       ]
     ]
   },
   {
     "level": 36,
-    "name": "Diamond Path",
+    "name": "Before the Last Turn II",
     "world": 2,
-    "par": 4,
-    "width": 4,
-    "distance": 4,
+    "par": 6,
+    "limitedPar": 6,
+    "width": 3,
+    "distance": 6,
     "path": [
       [
-        7,
-        10
+        5,
+        2
       ],
       [
-        9,
-        10
+        5,
+        1
       ],
       [
-        6,
-        5
+        5,
+        7
       ],
       [
-        2,
-        6
+        0,
+        1
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        1,
+        2
+      ]
+    ],
+    "limitedPath": [
+      [
+        5,
+        2
+      ],
+      [
+        5,
+        1
+      ],
+      [
+        5,
+        7
+      ],
+      [
+        0,
+        1
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        1,
+        2
       ]
     ]
   },
   {
     "level": 37,
-    "name": "Hourglass",
+    "name": "Open Circuit II",
     "world": 2,
-    "par": 8,
+    "par": 7,
+    "limitedPar": 7,
     "width": 4,
-    "distance": 8,
+    "distance": 7,
     "path": [
       [
-        0,
+        6,
+        2
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        2,
+        6
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        2,
         1
       ],
       [
         1,
+        0
+      ],
+      [
+        1,
+        5
+      ]
+    ],
+    "limitedPath": [
+      [
+        6,
         2
       ],
       [
-        2,
-        3
-      ],
-      [
-        8,
-        5
-      ],
-      [
-        10,
-        5
-      ],
-      [
-        9,
-        10
-      ],
-      [
-        11,
+        3,
         6
       ],
       [
-        5,
+        2,
+        6
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        1,
         0
+      ],
+      [
+        1,
+        5
       ]
     ]
   },
   {
     "level": 38,
-    "name": "Snake",
+    "name": "The Spare Step II",
     "world": 2,
-    "par": 10,
-    "width": 4,
-    "distance": 10,
+    "par": 7,
+    "limitedPar": 7,
+    "width": 3,
+    "distance": 7,
     "path": [
       [
-        5,
-        8
-      ],
-      [
-        5,
-        0
+        3,
+        4
       ],
       [
         8,
-        5
+        4
+      ],
+      [
+        4,
+        0
+      ],
+      [
+        2,
+        4
       ],
       [
         0,
-        5
+        4
       ],
       [
         6,
-        5
+        4
       ],
       [
-        9,
-        5
+        3,
+        6
+      ]
+    ],
+    "limitedPath": [
+      [
+        3,
+        4
       ],
       [
-        5,
-        1
+        8,
+        4
       ],
       [
-        5,
-        8
+        4,
+        0
       ],
       [
-        9,
-        8
+        2,
+        4
+      ],
+      [
+        0,
+        4
       ],
       [
         6,
-        1
+        4
+      ],
+      [
+        3,
+        6
       ]
     ]
   },
   {
     "level": 39,
-    "name": "The Ring",
+    "name": "Shared Ground II",
     "world": 2,
-    "par": 1,
+    "par": 5,
+    "limitedPar": 5,
     "width": 4,
-    "distance": 1,
+    "distance": 5,
     "path": [
       [
-        2,
-        1
+        5,
+        4
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        5,
+        10
+      ],
+      [
+        9,
+        4
+      ],
+      [
+        9,
+        6
+      ]
+    ],
+    "limitedPath": [
+      [
+        5,
+        4
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        5,
+        10
+      ],
+      [
+        9,
+        4
+      ],
+      [
+        9,
+        6
       ]
     ]
   },
   {
     "level": 40,
-    "name": "Corner Window",
+    "name": "Return Journey II",
     "world": 2,
-    "par": 10,
-    "width": 4,
-    "distance": 10,
+    "par": 7,
+    "limitedPar": 7,
+    "width": 3,
+    "distance": 7,
     "path": [
       [
-        2,
-        7
-      ],
-      [
-        2,
-        1
-      ],
-      [
-        8,
-        9
-      ],
-      [
-        10,
-        7
-      ],
-      [
-        9,
-        10
-      ],
-      [
-        9,
+        3,
         4
       ],
       [
-        10,
-        9
+        4,
+        5
       ],
       [
-        9,
-        8
+        7,
+        3
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        7,
+        5
+      ],
+      [
+        3,
+        0
+      ],
+      [
+        3,
+        4
+      ]
+    ],
+    "limitedPath": [
+      [
+        3,
+        4
       ],
       [
         4,
-        9
+        5
       ],
       [
-        8,
-        9
+        7,
+        3
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        7,
+        5
+      ],
+      [
+        3,
+        0
+      ],
+      [
+        3,
+        4
       ]
     ]
   },
   {
     "level": 41,
-    "name": "Bridge",
+    "name": "The Waiting Tile II",
     "world": 2,
     "par": 5,
-    "width": 4,
+    "limitedPar": 5,
+    "width": 3,
     "distance": 5,
     "path": [
       [
-        0,
+        5,
         4
       ],
       [
         4,
-        8
+        3
       ],
       [
-        7,
-        11
+        6,
+        4
       ],
       [
-        11,
-        15
+        3,
+        4
       ],
       [
-        13,
-        14
+        2,
+        4
+      ]
+    ],
+    "limitedPath": [
+      [
+        5,
+        4
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        2,
+        4
       ]
     ]
   },
   {
     "level": 42,
-    "name": "Archway",
-    "world": 2,
-    "par": 3,
-    "width": 4,
-    "distance": 3,
-    "path": [
-      [
-        1,
-        6
-      ],
-      [
-        2,
-        5
-      ],
-      [
-        1,
-        2
-      ]
-    ]
-  },
-  {
-    "level": 43,
-    "name": "Pinwheel",
-    "world": 2,
-    "par": 6,
-    "width": 4,
-    "distance": 6,
-    "path": [
-      [
-        5,
-        9
-      ],
-      [
-        4,
-        5
-      ],
-      [
-        9,
-        5
-      ],
-      [
-        0,
-        5
-      ],
-      [
-        2,
-        5
-      ],
-      [
-        1,
-        2
-      ]
-    ]
-  },
-  {
-    "level": 44,
-    "name": "Crosscurrent",
+    "name": "Crossed Intentions II",
     "world": 2,
     "par": 4,
+    "limitedPar": 4,
     "width": 3,
     "distance": 4,
     "path": [
       [
-        5,
-        4
-      ],
-      [
-        5,
-        7
-      ],
-      [
-        4,
-        5
-      ],
-      [
-        1,
-        5
-      ]
-    ]
-  },
-  {
-    "level": 45,
-    "name": "Maze Entrance",
-    "world": 2,
-    "par": 3,
-    "width": 4,
-    "distance": 3,
-    "path": [
-      [
-        1,
-        0
-      ],
-      [
-        9,
-        6
-      ],
-      [
-        9,
-        10
-      ]
-    ]
-  },
-  {
-    "level": 46,
-    "name": "Maze Middle",
-    "world": 2,
-    "par": 13,
-    "width": 4,
-    "distance": 13,
-    "path": [
-      [
-        2,
-        1
-      ],
-      [
-        2,
-        6
-      ],
-      [
-        2,
-        7
-      ],
-      [
-        9,
-        14
-      ],
-      [
-        9,
-        8
-      ],
-      [
-        14,
-        9
-      ],
-      [
-        9,
-        4
-      ],
-      [
         6,
-        2
-      ],
-      [
-        9,
-        6
-      ],
-      [
-        8,
-        9
-      ],
-      [
-        0,
         4
       ],
       [
-        4,
-        8
-      ],
-      [
-        9,
-        8
-      ]
-    ]
-  },
-  {
-    "level": 47,
-    "name": "Hook and Gap",
-    "world": 2,
-    "par": 2,
-    "width": 4,
-    "distance": 2,
-    "path": [
-      [
-        8,
-        9
-      ],
-      [
-        4,
-        8
-      ]
-    ]
-  },
-  {
-    "level": 48,
-    "name": "Arrowhead",
-    "world": 2,
-    "par": 8,
-    "width": 4,
-    "distance": 8,
-    "path": [
-      [
-        5,
-        6
-      ],
-      [
-        5,
-        10
-      ],
-      [
-        5,
-        9
-      ],
-      [
-        6,
-        7
-      ],
-      [
-        2,
-        5
-      ],
-      [
-        10,
-        5
-      ],
-      [
-        1,
+        7,
         4
       ],
-      [
-        2,
-        1
-      ]
-    ]
-  },
-  {
-    "level": 49,
-    "name": "Shattered Bridge",
-    "world": 2,
-    "par": 11,
-    "width": 4,
-    "distance": 11,
-    "path": [
-      [
-        1,
-        6
-      ],
-      [
-        5,
-        9
-      ],
-      [
-        5,
-        8
-      ],
-      [
-        6,
-        11
-      ],
-      [
-        9,
-        5
-      ],
-      [
-        8,
-        5
-      ],
-      [
-        5,
-        2
-      ],
-      [
-        5,
-        10
-      ],
-      [
-        5,
-        6
-      ],
-      [
-        2,
-        5
-      ],
-      [
-        10,
-        5
-      ]
-    ]
-  },
-  {
-    "level": 50,
-    "name": "Geometry Lesson",
-    "world": 2,
-    "par": 19,
-    "width": 4,
-    "distance": 19,
-    "path": [
       [
         3,
         7
       ],
       [
-        7,
-        11
-      ],
-      [
-        10,
-        13
-      ],
-      [
-        7,
-        10
-      ],
-      [
-        8,
-        13
-      ],
-      [
-        11,
-        15
-      ],
-      [
-        12,
-        13
-      ],
-      [
-        13,
-        14
-      ],
-      [
-        11,
-        14
-      ],
+        4,
+        1
+      ]
+    ],
+    "limitedPath": [
       [
         6,
-        10
+        4
       ],
       [
-        13,
-        9
+        7,
+        4
+      ],
+      [
+        3,
+        7
+      ],
+      [
+        4,
+        1
+      ]
+    ]
+  },
+  {
+    "level": 43,
+    "name": "Two Responsibilities II",
+    "world": 2,
+    "par": 6,
+    "limitedPar": 6,
+    "width": 3,
+    "distance": 6,
+    "path": [
+      [
+        2,
+        4
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        3,
+        1
+      ],
+      [
+        7,
+        5
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        4,
+        6
+      ]
+    ],
+    "limitedPath": [
+      [
+        2,
+        4
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        3,
+        1
+      ],
+      [
+        7,
+        5
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        4,
+        6
+      ]
+    ]
+  },
+  {
+    "level": 44,
+    "name": "Narrow Opportunity II",
+    "world": 2,
+    "par": 7,
+    "limitedPar": 7,
+    "width": 4,
+    "distance": 7,
+    "path": [
+      [
+        6,
+        5
+      ],
+      [
+        11,
+        6
       ],
       [
         5,
         6
       ],
       [
-        5,
-        2
-      ],
-      [
-        8,
-        5
-      ],
-      [
-        0,
-        1
-      ],
-      [
-        0,
-        5
-      ],
-      [
-        2,
-        5
+        4,
+        0
       ],
       [
         9,
+        4
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        5,
+        1
+      ]
+    ],
+    "limitedPath": [
+      [
+        6,
         5
+      ],
+      [
+        11,
+        6
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        4,
+        0
+      ],
+      [
+        9,
+        4
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        5,
+        1
+      ]
+    ]
+  },
+  {
+    "level": 45,
+    "name": "The Long Exchange II",
+    "world": 2,
+    "par": 7,
+    "limitedPar": 7,
+    "width": 3,
+    "distance": 7,
+    "path": [
+      [
+        4,
+        1
+      ],
+      [
+        3,
+        1
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        8,
+        7
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        4,
+        0
+      ]
+    ],
+    "limitedPath": [
+      [
+        4,
+        1
+      ],
+      [
+        3,
+        1
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        8,
+        7
+      ],
+      [
+        6,
+        3
       ],
       [
         4,
@@ -1580,348 +2725,1008 @@
     ]
   },
   {
-    "level": 51,
-    "name": "First Detour",
-    "world": 3,
-    "par": 1,
-    "width": 4,
-    "distance": 1,
+    "level": 46,
+    "name": "Bring It Back II",
+    "world": 2,
+    "par": 7,
+    "limitedPar": 7,
+    "width": 3,
+    "distance": 7,
     "path": [
       [
-        10,
+        4,
+        0
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        4,
+        6
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        7,
+        8
+      ],
+      [
+        4,
+        8
+      ],
+      [
+        4,
+        3
+      ]
+    ],
+    "limitedPath": [
+      [
+        4,
+        0
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        4,
+        6
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        7,
+        8
+      ],
+      [
+        4,
+        8
+      ],
+      [
+        4,
+        3
+      ]
+    ]
+  },
+  {
+    "level": 47,
+    "name": "Careful Timing II",
+    "world": 2,
+    "par": 6,
+    "limitedPar": 6,
+    "width": 3,
+    "distance": 6,
+    "path": [
+      [
+        7,
+        6
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        0,
+        3
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        7,
+        5
+      ]
+    ],
+    "limitedPath": [
+      [
+        7,
+        6
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        0,
+        3
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        7,
+        5
+      ]
+    ]
+  },
+  {
+    "level": 48,
+    "name": "Another Way Through II",
+    "world": 2,
+    "par": 7,
+    "limitedPar": 7,
+    "width": 3,
+    "distance": 7,
+    "path": [
+      [
+        0,
+        4
+      ],
+      [
+        5,
+        7
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        6,
+        7
+      ],
+      [
+        8,
+        5
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        2,
+        5
+      ]
+    ],
+    "limitedPath": [
+      [
+        0,
+        4
+      ],
+      [
+        5,
+        7
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        6,
+        7
+      ],
+      [
+        8,
+        5
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        2,
+        5
+      ]
+    ]
+  },
+  {
+    "level": 49,
+    "name": "The Final Charge II",
+    "world": 2,
+    "par": 6,
+    "limitedPar": 6,
+    "width": 4,
+    "distance": 6,
+    "path": [
+      [
+        0,
+        5
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        6,
+        2
+      ],
+      [
+        6,
+        5
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        5,
+        4
+      ]
+    ],
+    "limitedPath": [
+      [
+        0,
+        5
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        6,
+        2
+      ],
+      [
+        6,
+        5
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        5,
+        4
+      ]
+    ]
+  },
+  {
+    "level": 50,
+    "name": "A Small Sacrifice II",
+    "world": 2,
+    "par": 5,
+    "limitedPar": 5,
+    "width": 3,
+    "distance": 5,
+    "path": [
+      [
+        1,
+        3
+      ],
+      [
+        7,
+        4
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        2,
+        4
+      ]
+    ],
+    "limitedPath": [
+      [
+        1,
+        3
+      ],
+      [
+        7,
+        4
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        2,
+        4
+      ]
+    ]
+  },
+  {
+    "level": 51,
+    "name": "Borrowed Light III",
+    "world": 3,
+    "par": 9,
+    "limitedPar": 9,
+    "width": 3,
+    "distance": 9,
+    "path": [
+      [
+        0,
+        3
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        7,
+        3
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        4,
+        8
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        4,
+        7
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        4,
+        6
+      ]
+    ],
+    "limitedPath": [
+      [
+        0,
+        3
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        7,
+        3
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        4,
+        8
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        4,
+        7
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        4,
         6
       ]
     ]
   },
   {
     "level": 52,
-    "name": "Two Chambers",
+    "name": "The Handoff III",
     "world": 3,
-    "par": 7,
+    "par": 6,
+    "limitedPar": 6,
     "width": 4,
-    "distance": 7,
+    "distance": 6,
     "path": [
       [
-        9,
-        6
-      ],
-      [
-        13,
-        9
-      ],
-      [
-        8,
-        9
-      ],
-      [
-        6,
-        9
-      ],
-      [
-        6,
-        7
-      ],
-      [
-        0,
+        5,
         1
       ],
       [
+        5,
+        10
+      ],
+      [
         1,
-        2
+        5
+      ],
+      [
+        10,
+        5
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        5,
+        0
+      ]
+    ],
+    "limitedPath": [
+      [
+        5,
+        1
+      ],
+      [
+        5,
+        10
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        10,
+        5
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        5,
+        0
       ]
     ]
   },
   {
     "level": 53,
-    "name": "No Through Road",
+    "name": "Across the Fold III",
     "world": 3,
-    "par": 6,
+    "par": 7,
+    "limitedPar": 7,
     "width": 4,
-    "distance": 6,
+    "distance": 7,
     "path": [
       [
-        0,
-        1
+        1,
+        2
       ],
       [
-        0,
+        2,
+        3
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        6,
+        7
+      ],
+      [
+        1,
         4
       ],
       [
-        4,
-        8
+        1,
+        6
+      ]
+    ],
+    "limitedPath": [
+      [
+        1,
+        2
       ],
       [
-        4,
-        9
+        2,
+        3
       ],
       [
-        4,
-        1
+        5,
+        6
       ],
       [
-        8,
+        1,
+        5
+      ],
+      [
+        6,
+        7
+      ],
+      [
+        1,
         4
+      ],
+      [
+        1,
+        6
       ]
     ]
   },
   {
     "level": 54,
-    "name": "Window in the Gap",
+    "name": "A Place to Wait III",
     "world": 3,
-    "par": 5,
+    "par": 6,
+    "limitedPar": 6,
     "width": 4,
-    "distance": 5,
+    "distance": 6,
     "path": [
       [
-        8,
-        9
+        1,
+        4
       ],
       [
-        9,
-        10
-      ],
-      [
-        9,
+        7,
         6
       ],
       [
-        10,
-        9
+        6,
+        5
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        2,
+        3
+      ]
+    ],
+    "limitedPath": [
+      [
+        1,
+        4
+      ],
+      [
+        7,
+        6
       ],
       [
         6,
-        9
+        5
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        2,
+        3
       ]
     ]
   },
   {
     "level": 55,
-    "name": "Missing Corner",
+    "name": "Turn and Return III",
     "world": 3,
-    "par": 4,
-    "width": 4,
-    "distance": 4,
+    "par": 5,
+    "limitedPar": 5,
+    "width": 3,
+    "distance": 5,
     "path": [
       [
-        9,
-        10
-      ],
-      [
-        0,
-        4
+        2,
+        1
       ],
       [
         1,
         0
       ],
       [
-        4,
+        3,
+        6
+      ],
+      [
+        3,
+        7
+      ],
+      [
+        6,
+        3
+      ]
+    ],
+    "limitedPath": [
+      [
+        2,
+        1
+      ],
+      [
+        1,
         0
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        3,
+        7
+      ],
+      [
+        6,
+        3
       ]
     ]
   },
   {
     "level": 56,
-    "name": "Offset Gate",
+    "name": "The Quiet Detour III",
     "world": 3,
-    "par": 5,
-    "width": 4,
-    "distance": 5,
+    "par": 6,
+    "limitedPar": 6,
+    "width": 3,
+    "distance": 6,
     "path": [
       [
-        9,
-        14
+        5,
+        4
       ],
       [
-        9,
-        8
+        6,
+        3
       ],
       [
-        14,
-        9
-      ],
-      [
-        2,
+        7,
         6
       ],
       [
-        9,
+        4,
+        3
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        4,
+        1
+      ]
+    ],
+    "limitedPath": [
+      [
+        5,
         4
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        4,
+        1
       ]
     ]
   },
   {
     "level": 57,
-    "name": "Split Stair",
+    "name": "Hold the Crossing III",
     "world": 3,
-    "par": 6,
-    "width": 4,
-    "distance": 6,
+    "par": 8,
+    "limitedPar": 8,
+    "width": 3,
+    "distance": 8,
     "path": [
       [
-        6,
-        11
-      ],
-      [
-        6,
+        1,
         5
       ],
       [
-        10,
-        6
+        3,
+        4
+      ],
+      [
+        3,
+        0
+      ],
+      [
+        1,
+        3
       ],
       [
         5,
-        6
+        1
       ],
       [
-        11,
-        6
+        3,
+        1
       ],
       [
-        11,
-        10
+        3,
+        7
+      ],
+      [
+        0,
+        3
+      ]
+    ],
+    "limitedPath": [
+      [
+        1,
+        5
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        3,
+        0
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        5,
+        1
+      ],
+      [
+        3,
+        1
+      ],
+      [
+        3,
+        7
+      ],
+      [
+        0,
+        3
       ]
     ]
   },
   {
     "level": 58,
-    "name": "Twin Gaps",
+    "name": "Moving Anchor III",
     "world": 3,
-    "par": 9,
-    "width": 4,
-    "distance": 9,
+    "par": 7,
+    "limitedPar": 7,
+    "width": 3,
+    "distance": 7,
     "path": [
       [
-        13,
-        14
+        4,
+        0
       ],
       [
-        8,
-        13
+        3,
+        0
       ],
       [
-        8,
-        4
-      ],
-      [
-        13,
-        8
-      ],
-      [
-        14,
-        13
-      ],
-      [
-        8,
-        13
-      ],
-      [
-        7,
+        4,
         2
       ],
       [
         7,
-        11
+        4
       ],
       [
-        1,
+        6,
+        7
+      ],
+      [
+        7,
+        8
+      ],
+      [
+        4,
+        1
+      ]
+    ],
+    "limitedPath": [
+      [
+        4,
+        0
+      ],
+      [
+        3,
+        0
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        7,
         4
+      ],
+      [
+        6,
+        7
+      ],
+      [
+        7,
+        8
+      ],
+      [
+        4,
+        1
       ]
     ]
   },
   {
     "level": 59,
-    "name": "Hollow Heart",
+    "name": "Second Passage III",
     "world": 3,
-    "par": 12,
+    "par": 6,
+    "limitedPar": 6,
     "width": 3,
-    "distance": 12,
+    "distance": 6,
     "path": [
       [
-        1,
-        4
-      ],
-      [
-        4,
-        7
-      ],
-      [
-        5,
-        4
-      ],
-      [
-        5,
-        1
-      ],
-      [
-        7,
-        10
-      ],
-      [
-        5,
-        7
-      ],
-      [
-        1,
-        5
-      ],
-      [
-        10,
-        7
-      ],
-      [
-        7,
-        4
-      ],
-      [
-        4,
-        1
-      ],
-      [
-        5,
-        1
+        3,
+        0
       ],
       [
         3,
-        1
+        7
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        1,
+        2
+      ]
+    ],
+    "limitedPath": [
+      [
+        3,
+        0
+      ],
+      [
+        3,
+        7
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        1,
+        2
       ]
     ]
   },
   {
     "level": 60,
-    "name": "Broken Loop",
+    "name": "A Different Angle III",
     "world": 3,
-    "par": 1,
+    "par": 8,
+    "limitedPar": 8,
     "width": 4,
-    "distance": 1,
+    "distance": 8,
     "path": [
       [
-        8,
+        1,
+        2
+      ],
+      [
+        1,
         4
+      ],
+      [
+        6,
+        2
+      ],
+      [
+        6,
+        7
+      ],
+      [
+        6,
+        9
+      ],
+      [
+        6,
+        1
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        9,
+        6
+      ]
+    ],
+    "limitedPath": [
+      [
+        1,
+        2
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        6,
+        2
+      ],
+      [
+        6,
+        7
+      ],
+      [
+        6,
+        9
+      ],
+      [
+        6,
+        1
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        9,
+        6
       ]
     ]
   },
   {
     "level": 61,
-    "name": "Gate and Ghost",
+    "name": "Before the Last Turn III",
     "world": 3,
-    "par": 5,
+    "par": 7,
+    "limitedPar": 7,
     "width": 4,
-    "distance": 5,
+    "distance": 7,
     "path": [
       [
-        0,
-        1
-      ],
-      [
         1,
-        2
+        5
       ],
       [
-        4,
-        0
+        2,
+        6
       ],
       [
         4,
@@ -1930,47 +3735,94 @@
       [
         2,
         1
+      ],
+      [
+        7,
+        2
+      ],
+      [
+        6,
+        2
+      ],
+      [
+        1,
+        2
+      ]
+    ],
+    "limitedPath": [
+      [
+        1,
+        5
+      ],
+      [
+        2,
+        6
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        7,
+        2
+      ],
+      [
+        6,
+        2
+      ],
+      [
+        1,
+        2
       ]
     ]
   },
   {
     "level": 62,
-    "name": "Four Pockets",
+    "name": "Open Circuit III",
     "world": 3,
-    "par": 14,
-    "width": 4,
-    "distance": 14,
+    "par": 11,
+    "limitedPar": 11,
+    "width": 3,
+    "distance": 11,
     "path": [
       [
-        1,
+        4,
+        0
+      ],
+      [
+        4,
         6
       ],
       [
-        13,
-        14
+        4,
+        7
       ],
       [
-        13,
-        8
-      ],
-      [
-        9,
-        13
-      ],
-      [
-        8,
-        13
+        4,
+        5
       ],
       [
         8,
         4
       ],
       [
-        4,
-        0
+        6,
+        4
       ],
       [
-        1,
+        5,
+        4
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        7,
         4
       ],
       [
@@ -1978,700 +3830,1210 @@
         4
       ],
       [
+        1,
+        4
+      ]
+    ],
+    "limitedPath": [
+      [
         4,
-        8
+        0
       ],
       [
-        13,
-        8
+        4,
+        6
       ],
       [
-        14,
-        13
+        4,
+        7
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        8,
+        4
       ],
       [
         6,
-        1
+        4
+      ],
+      [
+        5,
+        4
       ],
       [
         2,
-        6
+        4
+      ],
+      [
+        7,
+        4
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        1,
+        4
       ]
     ]
   },
   {
     "level": 63,
-    "name": "The Narrow Hourglass",
+    "name": "The Spare Step III",
     "world": 3,
-    "par": 9,
-    "width": 4,
-    "distance": 9,
+    "par": 8,
+    "limitedPar": 8,
+    "width": 3,
+    "distance": 8,
     "path": [
       [
-        0,
-        1
+        7,
+        4
       ],
       [
-        5,
-        0
-      ],
-      [
-        5,
+        7,
         8
       ],
       [
-        6,
-        11
+        4,
+        7
       ],
       [
-        3,
+        8,
+        7
+      ],
+      [
+        7,
         6
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        0,
+        3
       ],
       [
         2,
-        6
+        1
+      ]
+    ],
+    "limitedPath": [
+      [
+        7,
+        4
       ],
       [
-        6,
-        10
-      ],
-      [
-        9,
+        7,
         8
       ],
       [
-        11,
+        4,
+        7
+      ],
+      [
+        8,
+        7
+      ],
+      [
+        7,
         6
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        0,
+        3
+      ],
+      [
+        2,
+        1
       ]
     ]
   },
   {
     "level": 64,
-    "name": "Corner Cut",
+    "name": "Shared Ground III",
     "world": 3,
-    "par": 7,
+    "par": 8,
+    "limitedPar": 8,
     "width": 4,
-    "distance": 7,
+    "distance": 8,
     "path": [
       [
         1,
         2
       ],
       [
+        1,
+        6
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        7,
+        2
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        5,
+        2
+      ],
+      [
         4,
-        1
+        0
+      ]
+    ],
+    "limitedPath": [
+      [
+        1,
+        2
       ],
       [
-        6,
-        1
-      ],
-      [
-        2,
-        1
-      ],
-      [
-        9,
-        5
-      ],
-      [
-        5,
-        1
+        1,
+        6
       ],
       [
         5,
-        4
+        6
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        7,
+        2
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        4,
+        0
       ]
     ]
   },
   {
     "level": 65,
-    "name": "Waiting Room",
+    "name": "Return Journey III",
     "world": 3,
-    "par": 8,
-    "width": 4,
-    "distance": 8,
+    "par": 7,
+    "limitedPar": 7,
+    "width": 3,
+    "distance": 7,
     "path": [
-      [
-        5,
-        6
-      ],
       [
         2,
         5
       ],
       [
-        6,
-        5
-      ],
-      [
-        6,
-        9
+        4,
+        6
       ],
       [
         5,
-        6
+        8
       ],
       [
-        10,
+        5,
+        4
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        4,
         5
       ],
       [
-        6,
+        4,
+        0
+      ]
+    ],
+    "limitedPath": [
+      [
+        2,
         5
       ],
       [
-        9,
+        4,
         6
+      ],
+      [
+        5,
+        8
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        4,
+        0
       ]
     ]
   },
   {
     "level": 66,
-    "name": "Crossed Gates",
+    "name": "The Waiting Tile III",
     "world": 3,
-    "par": 13,
+    "par": 8,
+    "limitedPar": 8,
     "width": 4,
-    "distance": 13,
+    "distance": 8,
     "path": [
       [
-        14,
+        10,
         9
       ],
       [
-        13,
-        14
-      ],
-      [
-        9,
-        14
+        11,
+        10
       ],
       [
         9,
         8
       ],
       [
-        15,
-        14
+        10,
+        9
       ],
       [
-        14,
-        13
+        1,
+        4
       ],
       [
-        6,
-        3
+        0,
+        4
+      ],
+      [
+        4,
+        8
       ],
       [
         9,
-        6
-      ],
+        8
+      ]
+    ],
+    "limitedPath": [
       [
-        8,
+        10,
         9
       ],
       [
-        6,
+        11,
+        10
+      ],
+      [
+        9,
+        8
+      ],
+      [
+        10,
         9
       ],
       [
-        6,
-        7
+        1,
+        4
       ],
       [
-        2,
-        7
+        0,
+        4
       ],
       [
-        2,
-        3
+        4,
+        8
+      ],
+      [
+        9,
+        8
       ]
     ]
   },
   {
     "level": 67,
-    "name": "The Detour",
+    "name": "Crossed Intentions III",
     "world": 3,
-    "par": 2,
+    "par": 9,
+    "limitedPar": 9,
     "width": 4,
-    "distance": 2,
+    "distance": 9,
     "path": [
       [
-        9,
-        8
+        4,
+        5
+      ],
+      [
+        6,
+        9
       ],
       [
         6,
         1
+      ],
+      [
+        11,
+        6
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        5,
+        9
+      ],
+      [
+        0,
+        5
+      ],
+      [
+        5,
+        10
+      ]
+    ],
+    "limitedPath": [
+      [
+        4,
+        5
+      ],
+      [
+        6,
+        9
+      ],
+      [
+        6,
+        1
+      ],
+      [
+        11,
+        6
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        5,
+        9
+      ],
+      [
+        0,
+        5
+      ],
+      [
+        5,
+        10
       ]
     ]
   },
   {
     "level": 68,
-    "name": "Silent Room",
+    "name": "Two Responsibilities III",
     "world": 3,
-    "par": 8,
-    "width": 3,
-    "distance": 8,
+    "par": 9,
+    "limitedPar": 9,
+    "width": 4,
+    "distance": 9,
     "path": [
       [
-        2,
-        5
+        1,
+        0
       ],
       [
-        4,
+        1,
+        4
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        1,
+        6
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        0,
+        1
+      ],
+      [
+        1,
         2
       ],
       [
         4,
+        1
+      ]
+    ],
+    "limitedPath": [
+      [
+        1,
         0
       ],
       [
-        4,
-        5
-      ],
-      [
-        0,
+        1,
         4
       ],
       [
-        0,
+        7,
+        6
+      ],
+      [
+        1,
+        6
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        2,
         3
       ],
       [
-        4,
-        0
+        0,
+        1
       ],
       [
-        3,
-        0
+        1,
+        2
+      ],
+      [
+        4,
+        1
       ]
     ]
   },
   {
     "level": 69,
-    "name": "The Lock",
+    "name": "Narrow Opportunity III",
     "world": 3,
-    "par": 1,
+    "par": 8,
+    "limitedPar": 8,
     "width": 3,
-    "distance": 1,
+    "distance": 8,
     "path": [
       [
-        1,
+        3,
+        7
+      ],
+      [
+        4,
+        6
+      ],
+      [
+        4,
+        7
+      ],
+      [
+        8,
+        7
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        4,
         2
+      ],
+      [
+        1,
+        0
+      ]
+    ],
+    "limitedPath": [
+      [
+        3,
+        7
+      ],
+      [
+        4,
+        6
+      ],
+      [
+        4,
+        7
+      ],
+      [
+        8,
+        7
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        1,
+        0
       ]
     ]
   },
   {
     "level": 70,
-    "name": "Three Gaps",
+    "name": "The Long Exchange III",
     "world": 3,
-    "par": 15,
-    "width": 4,
-    "distance": 15,
+    "par": 9,
+    "limitedPar": 9,
+    "width": 3,
+    "distance": 9,
     "path": [
       [
-        4,
-        1
-      ],
-      [
-        6,
-        1
-      ],
-      [
-        9,
-        8
-      ],
-      [
-        13,
-        14
-      ],
-      [
-        13,
-        9
-      ],
-      [
-        6,
-        9
-      ],
-      [
-        6,
-        2
-      ],
-      [
-        1,
-        6
-      ],
-      [
-        2,
-        6
-      ],
-      [
-        9,
-        6
-      ],
-      [
-        8,
-        9
-      ],
-      [
-        6,
-        9
-      ],
-      [
-        4,
-        9
-      ],
-      [
-        8,
+        5,
         4
       ],
       [
         4,
-        0
+        3
+      ],
+      [
+        4,
+        6
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        4,
+        2
+      ]
+    ],
+    "limitedPath": [
+      [
+        5,
+        4
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        4,
+        6
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        4,
+        2
       ]
     ]
   },
   {
     "level": 71,
-    "name": "False Center",
+    "name": "Bring It Back III",
     "world": 3,
-    "par": 6,
-    "width": 3,
-    "distance": 6,
+    "par": 15,
+    "limitedPar": 15,
+    "width": 4,
+    "distance": 15,
     "path": [
       [
-        1,
-        4
+        8,
+        9
+      ],
+      [
+        10,
+        11
+      ],
+      [
+        9,
+        10
       ],
       [
         4,
-        7
-      ],
-      [
-        3,
-        4
-      ],
-      [
-        7,
-        4
-      ],
-      [
-        1,
-        3
+        9
       ],
       [
         4,
         1
+      ],
+      [
+        9,
+        4
+      ],
+      [
+        10,
+        9
+      ],
+      [
+        11,
+        10
+      ],
+      [
+        4,
+        9
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        9,
+        4
+      ],
+      [
+        10,
+        9
+      ],
+      [
+        4,
+        9
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        9,
+        4
+      ]
+    ],
+    "limitedPath": [
+      [
+        8,
+        9
+      ],
+      [
+        10,
+        11
+      ],
+      [
+        9,
+        10
+      ],
+      [
+        4,
+        9
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        9,
+        4
+      ],
+      [
+        10,
+        9
+      ],
+      [
+        11,
+        10
+      ],
+      [
+        4,
+        9
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        9,
+        4
+      ],
+      [
+        10,
+        9
+      ],
+      [
+        4,
+        9
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        9,
+        4
       ]
     ]
   },
   {
     "level": 72,
-    "name": "The Empty Door",
+    "name": "Careful Timing III",
     "world": 3,
-    "par": 10,
+    "par": 7,
+    "limitedPar": 7,
     "width": 4,
-    "distance": 10,
+    "distance": 7,
     "path": [
-      [
-        1,
-        5
-      ],
-      [
-        1,
-        4
-      ],
-      [
-        6,
-        11
-      ],
-      [
-        2,
-        6
-      ],
-      [
-        8,
-        5
-      ],
       [
         5,
         2
       ],
       [
+        9,
+        6
+      ],
+      [
         7,
-        2
+        6
       ],
       [
         6,
-        2
+        5
       ],
       [
         6,
-        1
+        10
       ],
       [
-        4,
-        1
+        5,
+        4
+      ],
+      [
+        2,
+        5
+      ]
+    ],
+    "limitedPath": [
+      [
+        5,
+        2
+      ],
+      [
+        9,
+        6
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        6,
+        5
+      ],
+      [
+        6,
+        10
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        2,
+        5
       ]
     ]
   },
   {
     "level": 73,
-    "name": "Outer Loop",
+    "name": "Another Way Through III",
     "world": 3,
     "par": 7,
+    "limitedPar": 7,
     "width": 4,
     "distance": 7,
     "path": [
       [
-        8,
-        4
-      ],
-      [
         4,
-        0
+        5
       ],
       [
-        14,
-        13
+        5,
+        6
       ],
       [
-        11,
-        14
+        0,
+        5
       ],
       [
-        13,
-        14
+        6,
+        5
       ],
       [
-        14,
-        15
+        6,
+        1
       ],
       [
         7,
-        11
+        6
+      ],
+      [
+        1,
+        6
+      ]
+    ],
+    "limitedPath": [
+      [
+        4,
+        5
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        0,
+        5
+      ],
+      [
+        6,
+        5
+      ],
+      [
+        6,
+        1
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        1,
+        6
       ]
     ]
   },
   {
     "level": 74,
-    "name": "Last Detour",
+    "name": "The Final Charge III",
     "world": 3,
-    "par": 15,
+    "par": 6,
+    "limitedPar": 6,
     "width": 4,
-    "distance": 15,
+    "distance": 6,
     "path": [
       [
-        2,
-        1
-      ],
-      [
-        2,
+        1,
         6
       ],
       [
-        6,
-        10
-      ],
-      [
-        7,
-        11
-      ],
-      [
-        9,
-        14
+        4,
+        5
       ],
       [
         11,
-        15
+        10
       ],
       [
-        13,
-        9
+        5,
+        6
       ],
       [
         9,
         5
       ],
       [
-        14,
-        9
-      ],
+        0,
+        5
+      ]
+    ],
+    "limitedPath": [
       [
-        12,
-        9
-      ],
-      [
-        8,
-        4
-      ],
-      [
-        3,
-        2
-      ],
-      [
-        6,
-        1
-      ],
-      [
-        2,
-        1
+        1,
+        6
       ],
       [
         4,
-        0
+        5
+      ],
+      [
+        11,
+        10
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        9,
+        5
+      ],
+      [
+        0,
+        5
       ]
     ]
   },
   {
     "level": 75,
-    "name": "Routing Finale",
+    "name": "A Small Sacrifice III",
     "world": 3,
-    "par": 3,
+    "par": 5,
+    "limitedPar": 5,
     "width": 4,
-    "distance": 3,
+    "distance": 5,
     "path": [
       [
-        14,
-        11
+        10,
+        9
       ],
       [
-        7,
-        11
+        4,
+        9
       ],
       [
-        14,
-        13
+        6,
+        2
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        6,
+        7
+      ]
+    ],
+    "limitedPath": [
+      [
+        10,
+        9
+      ],
+      [
+        4,
+        9
+      ],
+      [
+        6,
+        2
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        6,
+        7
       ]
     ]
   },
   {
     "level": 76,
-    "name": "First Jump",
+    "name": "Borrowed Light IV",
     "world": 4,
-    "par": 8,
-    "width": 4,
-    "distance": 8,
+    "par": 6,
+    "limitedPar": 6,
+    "width": 3,
+    "distance": 6,
     "path": [
       [
-        0,
-        4
-      ],
-      [
-        3,
-        2
-      ],
-      [
-        5,
+        6,
         7
       ],
       [
-        5,
+        6,
+        3
+      ],
+      [
+        3,
+        0
+      ],
+      [
+        3,
         4
       ],
       [
-        5,
-        1
+        7,
+        8
       ],
       [
         7,
         5
+      ]
+    ],
+    "limitedPath": [
+      [
+        6,
+        7
       ],
       [
-        4,
+        6,
+        3
+      ],
+      [
+        3,
+        0
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        7,
+        8
+      ],
+      [
+        7,
         5
-      ],
-      [
-        5,
-        6
       ]
     ]
   },
   {
     "level": 77,
-    "name": "Leapfrog",
+    "name": "The Handoff IV",
     "world": 4,
     "par": 7,
-    "width": 3,
+    "limitedPar": 7,
+    "width": 4,
     "distance": 7,
     "path": [
       [
-        3,
+        1,
         6
       ],
       [
-        3,
-        4
-      ],
-      [
-        7,
-        6
-      ],
-      [
-        3,
+        1,
         5
-      ],
-      [
-        4,
-        3
-      ],
-      [
-        0,
-        2
       ],
       [
         1,
         0
-      ]
-    ]
-  },
-  {
-    "level": 78,
-    "name": "Long Sight",
-    "world": 4,
-    "par": 8,
-    "width": 4,
-    "distance": 8,
-    "path": [
-      [
-        6,
-        4
       ],
       [
         6,
         1
       ],
       [
-        3,
-        6
+        6,
+        2
       ],
       [
-        1,
-        6
-      ],
-      [
-        1,
-        4
-      ],
-      [
-        1,
+        6,
         3
       ],
       [
-        0,
+        2,
+        6
+      ]
+    ],
+    "limitedPath": [
+      [
+        1,
+        6
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        6,
+        1
+      ],
+      [
+        6,
         2
       ],
       [
-        7,
-        2
+        6,
+        3
+      ],
+      [
+        2,
+        6
       ]
     ]
   },
   {
-    "level": 79,
-    "name": "Cross Jump",
+    "level": 78,
+    "name": "Across the Fold IV",
     "world": 4,
     "par": 6,
+    "limitedPar": 6,
     "width": 3,
     "distance": 6,
     "path": [
@@ -2680,543 +5042,1034 @@
         1
       ],
       [
-        0,
-        6
+        3,
+        0
       ],
       [
         8,
+        7
+      ],
+      [
+        3,
+        7
+      ],
+      [
+        3,
         4
+      ],
+      [
+        0,
+        3
+      ]
+    ],
+    "limitedPath": [
+      [
+        0,
+        1
+      ],
+      [
+        3,
+        0
+      ],
+      [
+        8,
+        7
+      ],
+      [
+        3,
+        7
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        0,
+        3
+      ]
+    ]
+  },
+  {
+    "level": 79,
+    "name": "A Place to Wait IV",
+    "world": 4,
+    "par": 8,
+    "limitedPar": 8,
+    "width": 3,
+    "distance": 8,
+    "path": [
+      [
+        7,
+        3
+      ],
+      [
+        0,
+        3
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        4,
+        2
       ],
       [
         7,
         4
       ],
       [
-        8,
-        2
+        4,
+        1
+      ],
+      [
+        4,
+        8
+      ]
+    ],
+    "limitedPath": [
+      [
+        7,
+        3
+      ],
+      [
+        0,
+        3
       ],
       [
         3,
-        0
+        6
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        7,
+        4
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        4,
+        8
       ]
     ]
   },
   {
     "level": 80,
-    "name": "Purple in the Corner",
+    "name": "Turn and Return IV",
     "world": 4,
-    "par": 7,
-    "width": 4,
-    "distance": 7,
+    "par": 8,
+    "limitedPar": 8,
+    "width": 3,
+    "distance": 8,
     "path": [
+      [
+        4,
+        3
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        7,
+        4
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        4,
+        8
+      ],
+      [
+        4,
+        5
+      ]
+    ],
+    "limitedPath": [
+      [
+        4,
+        3
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        7,
+        4
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        4,
+        8
+      ],
+      [
+        4,
+        5
+      ]
+    ]
+  },
+  {
+    "level": 81,
+    "name": "The Quiet Detour IV",
+    "world": 4,
+    "par": 8,
+    "limitedPar": 8,
+    "width": 4,
+    "distance": 8,
+    "path": [
+      [
+        1,
+        6
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        6,
+        11
+      ],
+      [
+        10,
+        5
+      ],
       [
         9,
         5
       ],
       [
         0,
+        1
+      ],
+      [
+        5,
+        1
+      ],
+      [
+        4,
+        1
+      ]
+    ],
+    "limitedPath": [
+      [
+        1,
+        6
+      ],
+      [
+        4,
         5
       ],
       [
-        2,
-        0
+        6,
+        11
       ],
       [
-        3,
-        2
+        10,
+        5
+      ],
+      [
+        9,
+        5
       ],
       [
         0,
-        2
-      ],
-      [
-        2,
-        10
+        1
       ],
       [
         5,
-        10
-      ]
-    ]
-  },
-  {
-    "level": 81,
-    "name": "Over the Gap",
-    "world": 4,
-    "par": 3,
-    "width": 4,
-    "distance": 3,
-    "path": [
-      [
-        0,
-        2
+        1
       ],
       [
-        3,
-        2
-      ],
-      [
-        5,
-        7
+        4,
+        1
       ]
     ]
   },
   {
     "level": 82,
-    "name": "Jump and Carry",
+    "name": "Hold the Crossing IV",
     "world": 4,
     "par": 7,
-    "width": 3,
+    "limitedPar": 7,
+    "width": 4,
     "distance": 7,
     "path": [
       [
-        1,
-        4
+        3,
+        6
       ],
       [
-        0,
-        1
+        5,
+        0
       ],
       [
-        1,
+        5,
+        6
+      ],
+      [
+        3,
         2
       ],
       [
-        5,
-        4
+        7,
+        2
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        4,
+        0
+      ]
+    ],
+    "limitedPath": [
+      [
+        3,
+        6
       ],
       [
         5,
-        8
+        0
       ],
       [
-        6,
-        4
+        5,
+        6
       ],
       [
-        6,
-        7
+        3,
+        2
+      ],
+      [
+        7,
+        2
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        4,
+        0
       ]
     ]
   },
   {
     "level": 83,
-    "name": "Diagonal Launch",
+    "name": "Moving Anchor IV",
     "world": 4,
-    "par": 5,
-    "width": 4,
-    "distance": 5,
+    "par": 7,
+    "limitedPar": 7,
+    "width": 3,
+    "distance": 7,
     "path": [
       [
-        6,
+        1,
         5
       ],
       [
         1,
-        6
-      ],
-      [
-        10,
-        6
-      ],
-      [
-        6,
-        2
+        3
       ],
       [
         4,
-        6
+        3
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        7,
+        5
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        4,
+        3
+      ]
+    ],
+    "limitedPath": [
+      [
+        1,
+        5
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        7,
+        5
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        4,
+        3
       ]
     ]
   },
   {
     "level": 84,
-    "name": "Gap Jump",
+    "name": "Second Passage IV",
     "world": 4,
-    "par": 12,
+    "par": 8,
+    "limitedPar": 8,
     "width": 4,
-    "distance": 12,
+    "distance": 8,
     "path": [
       [
-        0,
+        4,
+        9
+      ],
+      [
+        6,
+        10
+      ],
+      [
+        6,
+        9
+      ],
+      [
+        6,
         1
       ],
       [
-        1,
-        2
+        10,
+        6
       ],
       [
-        13,
-        8
+        7,
+        6
       ],
       [
-        4,
-        8
-      ],
-      [
-        4,
-        9
-      ],
-      [
-        1,
-        9
-      ],
-      [
-        14,
-        9
-      ],
-      [
-        1,
+        9,
         6
       ],
       [
         2,
-        1
+        5
+      ]
+    ],
+    "limitedPath": [
+      [
+        4,
+        9
+      ],
+      [
+        6,
+        10
+      ],
+      [
+        6,
+        9
       ],
       [
         6,
         1
       ],
       [
-        6,
-        7
-      ],
-      [
-        14,
+        10,
         6
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        9,
+        6
+      ],
+      [
+        2,
+        5
       ]
     ]
   },
   {
     "level": 85,
-    "name": "Four-way Knot",
+    "name": "A Different Angle IV",
     "world": 4,
-    "par": 4,
+    "par": 8,
+    "limitedPar": 8,
     "width": 3,
-    "distance": 4,
+    "distance": 8,
     "path": [
       [
-        7,
-        5
-      ],
-      [
-        7,
+        0,
         3
       ],
       [
-        7,
+        2,
         4
       ],
       [
         3,
-        7
+        6
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        4,
+        8
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        3,
+        0
+      ]
+    ],
+    "limitedPath": [
+      [
+        0,
+        3
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        4,
+        8
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        3,
+        0
       ]
     ]
   },
   {
     "level": 86,
-    "name": "The Long Hall",
+    "name": "Before the Last Turn IV",
     "world": 4,
-    "par": 2,
-    "width": 4,
-    "distance": 2,
+    "par": 3,
+    "limitedPar": 3,
+    "width": 3,
+    "distance": 3,
     "path": [
       [
-        1,
-        3
+        2,
+        1
       ],
       [
         1,
         0
+      ],
+      [
+        1,
+        3
+      ]
+    ],
+    "limitedPath": [
+      [
+        2,
+        1
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        1,
+        3
       ]
     ]
   },
   {
     "level": 87,
-    "name": "Chopped Hall",
+    "name": "Open Circuit IV",
     "world": 4,
-    "par": 6,
+    "par": 8,
+    "limitedPar": 8,
     "width": 4,
-    "distance": 6,
+    "distance": 8,
     "path": [
       [
-        10,
-        2
-      ],
-      [
-        2,
-        0
-      ],
-      [
-        2,
-        3
+        5,
+        9
       ],
       [
         0,
-        2
+        5
       ],
       [
-        2,
-        10
+        0,
+        1
       ],
       [
-        10,
-        8
+        6,
+        5
+      ],
+      [
+        6,
+        11
+      ],
+      [
+        6,
+        9
+      ],
+      [
+        11,
+        6
+      ],
+      [
+        9,
+        6
+      ]
+    ],
+    "limitedPath": [
+      [
+        5,
+        9
+      ],
+      [
+        0,
+        5
+      ],
+      [
+        0,
+        1
+      ],
+      [
+        6,
+        5
+      ],
+      [
+        6,
+        11
+      ],
+      [
+        6,
+        9
+      ],
+      [
+        11,
+        6
+      ],
+      [
+        9,
+        6
       ]
     ]
   },
   {
     "level": 88,
-    "name": "Twin Jumps",
+    "name": "The Spare Step IV",
     "world": 4,
-    "par": 8,
-    "width": 4,
-    "distance": 8,
+    "par": 6,
+    "limitedPar": 6,
+    "width": 3,
+    "distance": 6,
     "path": [
       [
         0,
         4
       ],
       [
-        6,
+        4,
+        8
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        4,
+        6
+      ],
+      [
+        8,
         4
       ],
       [
+        5,
+        4
+      ]
+    ],
+    "limitedPath": [
+      [
+        0,
+        4
+      ],
+      [
+        4,
+        8
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        4,
+        6
+      ],
+      [
+        8,
+        4
+      ],
+      [
+        5,
+        4
+      ]
+    ]
+  },
+  {
+    "level": 89,
+    "name": "Shared Ground IV",
+    "world": 4,
+    "par": 6,
+    "limitedPar": 6,
+    "width": 4,
+    "distance": 6,
+    "path": [
+      [
+        1,
+        0
+      ],
+      [
+        4,
+        5
+      ],
+      [
         6,
-        2
+        1
+      ],
+      [
+        6,
+        3
       ],
       [
         5,
         6
       ],
       [
-        1,
-        4
-      ],
+        0,
+        1
+      ]
+    ],
+    "limitedPath": [
       [
         1,
+        0
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        6,
+        1
+      ],
+      [
+        6,
         3
       ],
       [
-        1,
+        5,
         6
       ],
       [
-        3,
+        0,
         1
-      ]
-    ]
-  },
-  {
-    "level": 89,
-    "name": "The Offset Tower",
-    "world": 4,
-    "par": 1,
-    "width": 4,
-    "distance": 1,
-    "path": [
-      [
-        6,
-        2
       ]
     ]
   },
   {
     "level": 90,
-    "name": "Broken Mirror",
+    "name": "Return Journey IV",
     "world": 4,
-    "par": 21,
-    "width": 4,
-    "distance": 21,
+    "par": 5,
+    "limitedPar": 5,
+    "width": 3,
+    "distance": 5,
     "path": [
       [
-        4,
-        1
-      ],
-      [
-        13,
-        8
-      ],
-      [
-        13,
-        14
-      ],
-      [
-        8,
-        13
-      ],
-      [
-        8,
-        4
-      ],
-      [
-        14,
-        13
-      ],
-      [
-        8,
-        13
-      ],
-      [
-        4,
-        8
-      ],
-      [
         1,
-        4
-      ],
-      [
-        1,
-        2
-      ],
-      [
-        4,
-        1
-      ],
-      [
-        13,
-        8
-      ],
-      [
-        4,
-        8
-      ],
-      [
-        1,
-        4
-      ],
-      [
-        2,
-        1
-      ],
-      [
-        2,
-        7
-      ],
-      [
-        1,
-        2
-      ],
-      [
-        4,
-        1
-      ],
-      [
-        8,
-        4
-      ],
-      [
-        1,
-        4
+        3
       ],
       [
         7,
+        3
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        4,
+        2
+      ]
+    ],
+    "limitedPath": [
+      [
+        1,
+        3
+      ],
+      [
+        7,
+        3
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        4,
         2
       ]
     ]
   },
   {
     "level": 91,
-    "name": "Five-point Turn",
+    "name": "The Waiting Tile IV",
     "world": 4,
-    "par": 10,
-    "width": 3,
-    "distance": 10,
+    "par": 7,
+    "limitedPar": 7,
+    "width": 4,
+    "distance": 7,
     "path": [
       [
-        7,
+        4,
+        9
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        0,
         4
       ],
       [
         4,
-        1
+        8
       ],
       [
-        7,
-        3
+        9,
+        4
       ],
       [
-        7,
-        1
+        10,
+        9
       ],
       [
-        7,
-        10
+        4,
+        9
+      ]
+    ],
+    "limitedPath": [
+      [
+        4,
+        9
       ],
       [
         1,
-        7
-      ],
-      [
-        10,
-        7
-      ],
-      [
-        3,
-        7
-      ],
-      [
-        5,
-        7
-      ],
-      [
-        10,
         4
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        4,
+        8
+      ],
+      [
+        9,
+        4
+      ],
+      [
+        10,
+        9
+      ],
+      [
+        4,
+        9
       ]
     ]
   },
   {
     "level": 92,
-    "name": "Maze Runner",
+    "name": "Crossed Intentions IV",
     "world": 4,
     "par": 7,
-    "width": 4,
+    "limitedPar": 7,
+    "width": 3,
     "distance": 7,
     "path": [
       [
-        6,
-        9
-      ],
-      [
-        8,
-        9
-      ],
-      [
-        14,
-        13
-      ],
-      [
-        1,
-        9
-      ],
-      [
-        0,
+        3,
         4
       ],
       [
         0,
-        2
+        3
       ],
       [
-        1,
-        2
+        3,
+        6
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        8,
+        4
+      ],
+      [
+        3,
+        4
+      ]
+    ],
+    "limitedPath": [
+      [
+        3,
+        4
+      ],
+      [
+        0,
+        3
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        8,
+        4
+      ],
+      [
+        3,
+        4
       ]
     ]
   },
   {
     "level": 93,
-    "name": "The Missing Step",
+    "name": "Two Responsibilities IV",
     "world": 4,
-    "par": 10,
+    "par": 8,
+    "limitedPar": 8,
     "width": 4,
-    "distance": 10,
+    "distance": 8,
     "path": [
+      [
+        4,
+        1
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        5,
+        9
+      ],
       [
         5,
         10
       ],
       [
-        1,
+        9,
+        5
+      ],
+      [
+        4,
         5
       ],
       [
@@ -3224,542 +6077,470 @@
         5
       ],
       [
-        6,
+        2,
+        5
+      ]
+    ],
+    "limitedPath": [
+      [
+        4,
+        1
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        5,
+        9
+      ],
+      [
+        5,
+        10
+      ],
+      [
+        9,
         5
       ],
       [
-        6,
-        11
+        4,
+        5
       ],
       [
         10,
-        6
+        5
       ],
       [
-        11,
-        6
-      ],
-      [
-        5,
-        6
-      ],
-      [
-        5,
-        0
-      ],
-      [
-        6,
+        2,
         5
       ]
     ]
   },
   {
     "level": 94,
-    "name": "Quiet Gate",
+    "name": "Narrow Opportunity IV",
     "world": 4,
-    "par": 7,
+    "par": 9,
+    "limitedPar": 9,
     "width": 4,
-    "distance": 7,
+    "distance": 9,
     "path": [
       [
-        14,
-        12
+        8,
+        9
       ],
       [
-        12,
+        9,
+        10
+      ],
+      [
+        9,
         4
       ],
       [
-        8,
+        9,
+        8
+      ],
+      [
+        4,
+        9
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        4,
+        8
+      ],
+      [
+        1,
         4
       ],
       [
-        8,
-        0
-      ],
+        9,
+        4
+      ]
+    ],
+    "limitedPath": [
       [
         8,
-        13
+        9
       ],
       [
-        0,
+        9,
+        10
+      ],
+      [
+        9,
+        4
+      ],
+      [
+        9,
         8
       ],
       [
-        13,
+        4,
+        9
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        4,
         8
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        9,
+        4
       ]
     ]
   },
   {
     "level": 95,
-    "name": "Four Gaps",
+    "name": "The Long Exchange IV",
     "world": 4,
-    "par": 13,
-    "width": 4,
-    "distance": 13,
+    "par": 6,
+    "limitedPar": 6,
+    "width": 3,
+    "distance": 6,
     "path": [
-      [
-        9,
-        8
-      ],
-      [
-        6,
-        9
-      ],
-      [
-        6,
-        1
-      ],
       [
         4,
         6
       ],
       [
-        14,
-        9
+        4,
+        0
       ],
       [
-        13,
-        9
+        3,
+        4
+      ],
+      [
+        6,
+        4
       ],
       [
         7,
+        4
+      ],
+      [
+        7,
+        5
+      ]
+    ],
+    "limitedPath": [
+      [
+        4,
         6
-      ],
-      [
-        1,
-        6
-      ],
-      [
-        1,
-        2
-      ],
-      [
-        6,
-        1
-      ],
-      [
-        2,
-        1
       ],
       [
         4,
         0
       ],
       [
-        1,
-        0
+        3,
+        4
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        7,
+        4
+      ],
+      [
+        7,
+        5
       ]
     ]
   },
   {
     "level": 96,
-    "name": "The False Finish",
+    "name": "Bring It Back IV",
     "world": 4,
-    "par": 10,
+    "par": 8,
+    "limitedPar": 8,
     "width": 4,
-    "distance": 10,
+    "distance": 8,
     "path": [
       [
-        5,
-        2
+        1,
+        4
       ],
       [
-        10,
-        9
-      ],
-      [
-        5,
-        9
-      ],
-      [
-        5,
+        2,
         6
       ],
       [
-        5,
+        2,
         7
       ],
       [
-        6,
-        5
+        3,
+        2
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        4,
+        1
       ],
       [
         0,
-        4
-      ],
-      [
-        5,
-        4
+        1
       ],
       [
         5,
         1
+      ]
+    ],
+    "limitedPath": [
+      [
+        1,
+        4
       ],
       [
         2,
-        5
+        6
+      ],
+      [
+        2,
+        7
+      ],
+      [
+        3,
+        2
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        0,
+        1
+      ],
+      [
+        5,
+        1
       ]
     ]
   },
   {
     "level": 97,
-    "name": "Convergence",
+    "name": "Careful Timing IV",
     "world": 4,
-    "par": 15,
-    "width": 4,
-    "distance": 15,
+    "par": 12,
+    "limitedPar": 12,
+    "width": 3,
+    "distance": 12,
     "path": [
       [
         3,
         6
       ],
       [
-        5,
-        13
-      ],
-      [
-        7,
-        2
-      ],
-      [
-        8,
-        9
-      ],
-      [
-        1,
-        9
+        3,
+        4
       ],
       [
         4,
-        9
+        5
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        4,
+        8
       ],
       [
         4,
         6
       ],
       [
-        9,
-        14
-      ],
-      [
-        10,
-        11
-      ],
-      [
-        7,
-        11
-      ],
-      [
-        11,
-        15
-      ],
-      [
-        12,
-        13
-      ],
-      [
-        10,
-        5
-      ],
-      [
         5,
-        0
+        4
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        3,
+        4
       ],
       [
         8,
-        0
+        4
+      ],
+      [
+        6,
+        4
+      ]
+    ],
+    "limitedPath": [
+      [
+        3,
+        6
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        4,
+        8
+      ],
+      [
+        4,
+        6
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        8,
+        4
+      ],
+      [
+        6,
+        4
       ]
     ]
   },
   {
     "level": 98,
-    "name": "Almost There",
+    "name": "Another Way Through IV",
     "world": 4,
-    "par": 2,
+    "par": 8,
+    "limitedPar": 8,
     "width": 3,
-    "distance": 2,
+    "distance": 8,
     "path": [
-      [
-        2,
-        4
-      ],
       [
         3,
         0
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        4,
+        8
+      ],
+      [
+        4,
+        6
+      ],
+      [
+        8,
+        4
+      ],
+      [
+        4,
+        0
+      ],
+      [
+        4,
+        7
+      ]
+    ],
+    "limitedPath": [
+      [
+        3,
+        0
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        4,
+        8
+      ],
+      [
+        4,
+        6
+      ],
+      [
+        8,
+        4
+      ],
+      [
+        4,
+        0
+      ],
+      [
+        4,
+        7
       ]
     ]
   },
   {
     "level": 99,
-    "name": "The Last Maze",
+    "name": "The Final Charge IV",
     "world": 4,
-    "par": 9,
+    "par": 22,
+    "limitedPar": 22,
     "width": 4,
-    "distance": 9,
-    "path": [
-      [
-        7,
-        2
-      ],
-      [
-        10,
-        8
-      ],
-      [
-        13,
-        10
-      ],
-      [
-        9,
-        10
-      ],
-      [
-        7,
-        10
-      ],
-      [
-        15,
-        10
-      ],
-      [
-        14,
-        15
-      ],
-      [
-        9,
-        6
-      ],
-      [
-        5,
-        1
-      ]
-    ]
-  },
-  {
-    "level": 100,
-    "name": "INSIGHT",
-    "world": 4,
-    "par": 15,
-    "width": 4,
-    "distance": 15,
+    "distance": 22,
     "path": [
       [
         4,
         9
       ],
       [
-        10,
-        14
-      ],
-      [
-        10,
-        2
-      ],
-      [
-        7,
-        10
-      ],
-      [
-        5,
-        10
-      ],
-      [
-        10,
-        15
-      ],
-      [
-        12,
-        13
-      ],
-      [
-        5,
-        8
-      ],
-      [
         4,
-        8
-      ],
-      [
-        3,
-        6
-      ],
-      [
-        10,
-        6
-      ],
-      [
-        11,
-        3
-      ],
-      [
-        6,
-        2
-      ],
-      [
-        3,
         1
-      ],
-      [
-        0,
-        1
-      ]
-    ]
-  },
-  {
-    "level": 101,
-    "name": "Twin Rooms",
-    "world": 5,
-    "par": 6,
-    "width": 5,
-    "distance": 6,
-    "path": [
-      [
-        1,
-        7
-      ],
-      [
-        22,
-        17
-      ],
-      [
-        17,
-        12
-      ],
-      [
-        5,
-        1
-      ],
-      [
-        5,
-        0
-      ],
-      [
-        5,
-        7
-      ]
-    ]
-  },
-  {
-    "level": 102,
-    "name": "Hourglass Crossing",
-    "world": 5,
-    "par": 11,
-    "width": 4,
-    "distance": 11,
-    "path": [
-      [
-        12,
-        9
-      ],
-      [
-        9,
-        6
-      ],
-      [
-        2,
-        6
-      ],
-      [
-        6,
-        10
-      ],
-      [
-        10,
-        14
-      ],
-      [
-        9,
-        14
-      ],
-      [
-        12,
-        13
-      ],
-      [
-        12,
-        14
-      ],
-      [
-        13,
-        14
-      ],
-      [
-        5,
-        1
-      ],
-      [
-        0,
-        1
-      ]
-    ]
-  },
-  {
-    "level": 103,
-    "name": "Island Chain",
-    "world": 5,
-    "par": 10,
-    "width": 5,
-    "distance": 10,
-    "path": [
-      [
-        1,
-        3
-      ],
-      [
-        1,
-        0
-      ],
-      [
-        3,
-        13
-      ],
-      [
-        1,
-        3
-      ],
-      [
-        17,
-        13
-      ],
-      [
-        3,
-        13
-      ],
-      [
-        17,
-        7
-      ],
-      [
-        3,
-        7
-      ],
-      [
-        7,
-        11
-      ],
-      [
-        0,
-        1
-      ]
-    ]
-  },
-  {
-    "level": 104,
-    "name": "Spiral Passage",
-    "world": 5,
-    "par": 9,
-    "width": 5,
-    "distance": 9,
-    "path": [
-      [
-        0,
-        2
-      ],
-      [
-        2,
-        12
       ],
       [
         9,
@@ -3767,48 +6548,712 @@
       ],
       [
         9,
-        3
+        10
       ],
       [
         4,
         9
       ],
       [
-        20,
-        22
+        4,
+        0
       ],
       [
-        20,
-        21
+        10,
+        11
       ],
       [
-        20,
-        15
+        9,
+        4
       ],
       [
-        21,
-        20
+        9,
+        10
+      ],
+      [
+        4,
+        9
+      ],
+      [
+        8,
+        4
+      ],
+      [
+        9,
+        4
+      ],
+      [
+        10,
+        9
+      ],
+      [
+        11,
+        10
+      ],
+      [
+        9,
+        8
+      ],
+      [
+        10,
+        9
+      ],
+      [
+        4,
+        9
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        9,
+        4
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        4,
+        8
+      ],
+      [
+        1,
+        0
+      ]
+    ],
+    "limitedPath": [
+      [
+        4,
+        9
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        8,
+        4
+      ],
+      [
+        4,
+        0
+      ],
+      [
+        9,
+        4
+      ],
+      [
+        9,
+        10
+      ],
+      [
+        8,
+        9
+      ],
+      [
+        10,
+        11
+      ],
+      [
+        9,
+        10
+      ],
+      [
+        4,
+        9
+      ],
+      [
+        8,
+        4
+      ],
+      [
+        9,
+        4
+      ],
+      [
+        10,
+        9
+      ],
+      [
+        4,
+        9
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        9,
+        4
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        11,
+        10
+      ],
+      [
+        10,
+        9
+      ],
+      [
+        9,
+        8
+      ],
+      [
+        4,
+        8
+      ]
+    ]
+  },
+  {
+    "level": 100,
+    "name": "A Small Sacrifice IV",
+    "world": 4,
+    "par": 7,
+    "limitedPar": 7,
+    "width": 4,
+    "distance": 7,
+    "path": [
+      [
+        6,
+        10
+      ],
+      [
+        6,
+        11
+      ],
+      [
+        9,
+        10
+      ],
+      [
+        9,
+        5
+      ],
+      [
+        0,
+        5
+      ],
+      [
+        6,
+        5
+      ],
+      [
+        0,
+        4
+      ]
+    ],
+    "limitedPath": [
+      [
+        6,
+        10
+      ],
+      [
+        6,
+        11
+      ],
+      [
+        9,
+        10
+      ],
+      [
+        9,
+        5
+      ],
+      [
+        0,
+        5
+      ],
+      [
+        6,
+        5
+      ],
+      [
+        0,
+        4
+      ]
+    ]
+  },
+  {
+    "level": 101,
+    "name": "Twin Responsibilities",
+    "world": 5,
+    "par": 12,
+    "limitedPar": 12,
+    "width": 5,
+    "distance": 12,
+    "path": [
+      [
+        0,
+        6
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        5,
+        1
+      ],
+      [
+        5,
+        11
+      ],
+      [
+        11,
+        17
+      ],
+      [
+        13,
+        12
+      ],
+      [
+        18,
+        13
+      ],
+      [
+        12,
+        13
+      ],
+      [
+        12,
+        17
+      ],
+      [
+        13,
+        12
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        1,
+        0
+      ]
+    ],
+    "limitedPath": [
+      [
+        0,
+        6
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        5,
+        1
+      ],
+      [
+        5,
+        11
+      ],
+      [
+        11,
+        17
+      ],
+      [
+        13,
+        12
+      ],
+      [
+        18,
+        13
+      ],
+      [
+        12,
+        13
+      ],
+      [
+        12,
+        17
+      ],
+      [
+        13,
+        12
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        1,
+        0
+      ]
+    ]
+  },
+  {
+    "level": 102,
+    "name": "Hourglass Exchange",
+    "world": 5,
+    "par": 10,
+    "limitedPar": 10,
+    "width": 5,
+    "distance": 10,
+    "path": [
+      [
+        8,
+        2
+      ],
+      [
+        8,
+        6
+      ],
+      [
+        2,
+        8
+      ],
+      [
+        6,
+        8
+      ],
+      [
+        11,
+        6
+      ],
+      [
+        14,
+        13
+      ],
+      [
+        7,
+        13
+      ],
+      [
+        17,
+        13
+      ],
+      [
+        8,
+        6
+      ],
+      [
+        7,
+        6
+      ]
+    ],
+    "limitedPath": [
+      [
+        8,
+        2
+      ],
+      [
+        8,
+        6
+      ],
+      [
+        2,
+        8
+      ],
+      [
+        6,
+        8
+      ],
+      [
+        11,
+        6
+      ],
+      [
+        14,
+        13
+      ],
+      [
+        7,
+        13
+      ],
+      [
+        17,
+        13
+      ],
+      [
+        8,
+        6
+      ],
+      [
+        7,
+        6
+      ]
+    ]
+  },
+  {
+    "level": 103,
+    "name": "The Winding Circuit",
+    "world": 5,
+    "par": 12,
+    "limitedPar": 12,
+    "width": 5,
+    "distance": 12,
+    "path": [
+      [
+        5,
+        0
+      ],
+      [
+        5,
+        1
+      ],
+      [
+        5,
+        11
+      ],
+      [
+        0,
+        5
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        11,
+        17
+      ],
+      [
+        11,
+        12
+      ],
+      [
+        11,
+        5
+      ],
+      [
+        17,
+        11
+      ],
+      [
+        12,
+        11
+      ],
+      [
+        11,
+        10
+      ],
+      [
+        5,
+        11
+      ]
+    ],
+    "limitedPath": [
+      [
+        5,
+        0
+      ],
+      [
+        5,
+        1
+      ],
+      [
+        5,
+        11
+      ],
+      [
+        0,
+        5
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        11,
+        17
+      ],
+      [
+        11,
+        12
+      ],
+      [
+        11,
+        5
+      ],
+      [
+        17,
+        11
+      ],
+      [
+        12,
+        11
+      ],
+      [
+        11,
+        10
+      ],
+      [
+        5,
+        11
+      ]
+    ]
+  },
+  {
+    "level": 104,
+    "name": "Three Holders",
+    "world": 5,
+    "par": 12,
+    "limitedPar": 12,
+    "width": 5,
+    "distance": 12,
+    "path": [
+      [
+        7,
+        1
+      ],
+      [
+        6,
+        1
+      ],
+      [
+        6,
+        12
+      ],
+      [
+        12,
+        18
+      ],
+      [
+        12,
+        16
+      ],
+      [
+        12,
+        17
+      ],
+      [
+        12,
+        6
+      ],
+      [
+        16,
+        12
+      ],
+      [
+        6,
+        12
+      ],
+      [
+        17,
+        12
+      ],
+      [
+        1,
+        6
+      ],
+      [
+        2,
+        6
+      ]
+    ],
+    "limitedPath": [
+      [
+        7,
+        1
+      ],
+      [
+        6,
+        1
+      ],
+      [
+        6,
+        12
+      ],
+      [
+        12,
+        18
+      ],
+      [
+        12,
+        16
+      ],
+      [
+        12,
+        17
+      ],
+      [
+        12,
+        6
+      ],
+      [
+        16,
+        12
+      ],
+      [
+        6,
+        12
+      ],
+      [
+        17,
+        12
+      ],
+      [
+        1,
+        6
+      ],
+      [
+        2,
+        6
       ]
     ]
   },
   {
     "level": 105,
-    "name": "Branching Paths",
+    "name": "Last Crossing",
     "world": 5,
-    "par": 8,
+    "par": 17,
+    "limitedPar": 17,
     "width": 5,
-    "distance": 8,
+    "distance": 17,
     "path": [
       [
-        7,
+        2,
+        6
+      ],
+      [
+        12,
+        6
+      ],
+      [
+        12,
+        8
+      ],
+      [
+        12,
         17
+      ],
+      [
+        8,
+        12
+      ],
+      [
+        8,
+        9
+      ],
+      [
+        17,
+        12
+      ],
+      [
+        12,
+        7
+      ],
+      [
+        7,
+        2
       ],
       [
         7,
         8
       ],
       [
-        17,
+        2,
         7
       ],
       [
@@ -3816,12 +7261,54 @@
         7
       ],
       [
-        20,
-        22
+        9,
+        8
       ],
       [
-        21,
+        7,
+        6
+      ],
+      [
+        8,
+        7
+      ],
+      [
+        6,
+        5
+      ],
+      [
+        7,
+        6
+      ]
+    ],
+    "limitedPath": [
+      [
+        2,
+        6
+      ],
+      [
+        12,
+        6
+      ],
+      [
+        12,
+        8
+      ],
+      [
+        12,
         17
+      ],
+      [
+        8,
+        12
+      ],
+      [
+        8,
+        9
+      ],
+      [
+        17,
+        12
       ],
       [
         12,
@@ -3830,24 +7317,53 @@
       [
         7,
         2
+      ],
+      [
+        7,
+        8
+      ],
+      [
+        2,
+        7
+      ],
+      [
+        8,
+        7
+      ],
+      [
+        9,
+        8
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        8,
+        7
+      ],
+      [
+        6,
+        5
+      ],
+      [
+        7,
+        6
       ]
     ]
   },
   {
     "level": 106,
-    "name": "Split Diamond",
+    "name": "Everything Returns",
     "world": 5,
-    "par": 12,
+    "par": 9,
+    "limitedPar": 9,
     "width": 5,
-    "distance": 12,
+    "distance": 9,
     "path": [
       [
-        1,
-        3
-      ],
-      [
-        6,
-        8
+        2,
+        6
       ],
       [
         1,
@@ -3858,36 +7374,66 @@
         5
       ],
       [
-        3,
-        1
+        17,
+        18
       ],
       [
-        6,
-        1
+        1,
+        7
       ],
       [
-        18,
-        23
+        2,
+        7
       ],
       [
-        18,
+        7,
         12
       ],
       [
-        23,
+        7,
+        6
+      ],
+      [
+        7,
+        2
+      ]
+    ],
+    "limitedPath": [
+      [
+        2,
+        6
+      ],
+      [
+        1,
+        6
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        17,
         18
       ],
       [
-        12,
-        18
+        1,
+        7
       ],
       [
-        16,
-        15
+        2,
+        7
       ],
       [
-        6,
-        16
+        7,
+        12
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        7,
+        2
       ]
     ]
   }

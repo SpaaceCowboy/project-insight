@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>INSIGHT · Achievement progress</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0;min-height:100dvh;display:grid;place-items:center;padding:24px;background:#102a34;color:#edf5e9;font:16px/1.5 system-ui,sans-serif; }
+  main { width:min(480px,100%); }
+  h1 { font:32px Georgia,serif; }
+  p { color:#aac9c8; }
+  button,a { display:block;width:100%;padding:14px;margin-top:12px;border:1px solid #aac9c84d;border-radius:12px;background:#a8dfcf;color:#102f32;text-align:center;font:inherit;text-decoration:none;cursor:pointer; }
+  button:disabled { opacity:.4;cursor:default; }
+  button:focus-visible,a:focus-visible { outline:3px solid #edf5e9;outline-offset:4px; }
+  #status { min-height:48px;color:#edf5e9; }
+</style></head>
+<body><main><h1>Achievement progress</h1><p>Reset badges, cosmetic rewards, and equipped appearance. Campaign levels, stars, and custom puzzles stay saved. A backup lets you restore the previous collection here.</p>
+<button id="reset">Reset achievements</button><button id="restore" disabled>Restore previous achievements</button><a href="../Puzzle.html">Return to game</a><p id="status" role="status" aria-live="polite"></p></main>
+<script type="module">
+  const badgeKey='insight-achievements-v1',appearanceKey='insight-appearance-v1',backupKey='insight-achievements-reset-backup-v1';
+  const status=document.getElementById('status'),restore=document.getElementById('restore');
+  function backup() {
+    try {
+      const saved=JSON.parse(localStorage.getItem(backupKey));
+      return saved?.version===1 && [saved.badges,saved.appearance].every(value=>value===null || typeof value==='string') ? saved : null;
+    } catch {return null}
+  }
+  restore.disabled=!backup();
+  document.getElementById('reset').addEventListener('click',()=>{
+    try {
+      const badges=localStorage.getItem(badgeKey),appearance=localStorage.getItem(appearanceKey);
+      let parsed=null;try{parsed=JSON.parse(badges||'null')}catch{}
+      if(Object.keys(parsed?.results||{}).length || (badges!==null && parsed===null) || !backup())localStorage.setItem(backupKey,JSON.stringify({version:1,badges,appearance}));
+      localStorage.setItem(badgeKey,JSON.stringify({version:1,migrated:true,results:{},earned:{}}));
+      localStorage.setItem(appearanceKey,JSON.stringify({version:1,background:'forest',finish:'original'}));
+      restore.disabled=!backup();status.textContent='Achievements reset to 0 / 15. Default appearance equipped. Your previous collection is backed up.';
+    } catch {status.textContent='Browser storage is unavailable. Achievement progress could not be reset.'}
+  });
+  restore.addEventListener('click',()=>{
+    const saved=backup();if(!saved)return;
+    try {
+      for(const [key,value] of [[badgeKey,saved.badges],[appearanceKey,saved.appearance]]) {
+        if(value===null)localStorage.removeItem(key);else localStorage.setItem(key,value);
+      }
+      status.textContent='Previous achievement progress restored. Return to the game to see your collection.';
+    } catch {status.textContent='Browser storage is unavailable. Achievement progress could not be restored.'}
+  });
+</script></body></html>

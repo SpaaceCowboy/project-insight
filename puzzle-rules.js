@@ -10,10 +10,18 @@
     }
     function legalMoves(g, r, c, remaining = null) {
       if (!active(g, r, c) || remaining?.[r]?.[c] === 0) return [];
-      return MOVES[g[r][c]].map(([dr, dc]) => [r + dr, c + dc])
-        .filter(([nr, nc]) => active(g, nr, nc));
+      return MOVES[g[r][c]].map(([dr,dc])=>[r+dr,c+dc]).filter(([nr,nc])=>active(g,nr,nc));
     }
     function swapCells(g,a,b){const h=clone(g);[h[a[0]][a[1]],h[b[0]][b[1]]]=[h[b[0]][b[1]],h[a[0]][a[1]]];return h}
+    function initialState(level, remaining = null) {
+      return {board:parse(level.start),remaining:remaining ? clone(remaining) : null};
+    }
+    function transition(state, a, b) {
+      if (!legalMoves(state.board,...a,state.remaining).some(([r,c])=>r===b[0] && c===b[1])) throw new Error('Invalid solution move.');
+      let remaining=state.remaining ? clone(state.remaining) : null;
+      if(remaining){remaining[a[0]][a[1]]--;remaining=swapCells(remaining,a,b)}
+      return {board:swapCells(state.board,a,b),remaining};
+    }
 
     function validate(level,matchCounts=true) {
       if (!level || typeof level!=='object') throw new Error('Choose a puzzle file.');
@@ -25,12 +33,14 @@
       if (matchCounts && ![...a].some(t=>t!=='.')) throw new Error('Add at least one tile.');
       if ([...a].some((t,i)=>(t==='.')!==(b[i]==='.'))) throw new Error('Gaps must occupy the same cells on both boards.');
       if (matchCounts && [...a].sort().join('')!==[...b].sort().join('')) throw new Error('Start and Target need the same number of each tile.');
-      return {name:typeof level.name==='string' ? level.name.trim().slice(0,60)||'Untitled puzzle' : 'Untitled puzzle',start:start.slice(),target:target.slice()};
+      const spec={name:typeof level.name==='string' ? level.name.trim().slice(0,60)||'Untitled puzzle' : 'Untitled puzzle',start:start.slice(),target:target.slice()};
+      if(level.revision!==undefined){if(!Number.isInteger(level.revision) || level.revision<1)throw new Error('Invalid puzzle revision.');spec.revision=level.revision}
+      return spec;
     }
-    return {moves:MOVES,clone,parse,key,active,legalMoves,swapCells,validate};
+    return {moves:MOVES,clone,parse,key,active,legalMoves,swapCells,validate,initialState,transition};
   }
   const rules=create();
   rules.create=create;
   if (typeof module!=='undefined' && module.exports) module.exports=rules;
-  else root.PuzzleRules=rules;
+  if (typeof window!=='undefined' || typeof module==='undefined') root.PuzzleRules=rules;
 })(globalThis);

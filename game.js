@@ -1,4 +1,16 @@
-(() => {
+import {CORE_LEVELS,PuzzleRules,PuzzleSolver,PuzzleArt} from './src/data.js';
+import {renderView} from './src/view-store.js';
+import {initAudio} from './sound.js';
+import {newAttempt,restoreAttempt} from './achievements.mjs';
+import {achievements,hasAchievementStorageWarning} from './src/achievement-store.js';
+import {createFeedback} from './src/feedback.js';
+
+export function initGame() {
+const audio=initAudio(), {stopMusic}=audio;
+window.InsightAudio=audio;
+const events=new AbortController();
+const listen=(target,type,callback)=>target.addEventListener(type,callback,{signal:events.signal});
+let animationFrame=null;
 let editorProblem=null;
 function readEditorPuzzle() {
   if (!new URLSearchParams(location.search).has('editor')) return null;
@@ -12,28 +24,32 @@ function readEditorPuzzle() {
 }
 const customPuzzle=readEditorPuzzle();
 if(editorProblem){
+  audio.dispose();
   try{sessionStorage.setItem('insight-editor-message-v1',editorProblem)}catch{}
   location.replace('Editor.html');return;
 }
 const LEVELS=customPuzzle ? [customPuzzle] : CORE_LEVELS;
-const puzzleStamp=customPuzzle ? JSON.stringify([customPuzzle.id,customPuzzle.start,customPuzzle.target]) : null;
+function customStamp(puzzle){const {name,...spec}=PuzzleRules.validate(puzzle);return JSON.stringify([puzzle.id,spec])}
+const puzzleStamp=customPuzzle ? customStamp(customPuzzle) : null;
+const legacyStamp=customPuzzle ? JSON.stringify([customPuzzle.id,customPuzzle.start,customPuzzle.target]) : null;
 const WORLD_META = {
-  1: {name: 'FOUNDATIONS'},
-  2: {name: 'SHAPED SPACE'},
-  3: {name: 'ROUTING CHALLENGES'},
+  1: {name: 'FIRST CONNECTIONS'},
+  2: {name: 'BORROWED PATHS'},
+  3: {name: 'LAST CHARGE'},
   4: {name: 'CONVERGENCE'},
   5: {name: 'COMPLEX MAPS'}
 };
 const {ICONS,META,TILE_LIGHTS}=PuzzleArt;
 const {clone,parse,key,active,legalMoves,swapCells}=PuzzleRules;
-const KEY = 'insight-100-fixed-v4';
+const KEY = 'insight-campaign-r2-classic';
 const MODE_KEY = 'insight-mode-v1';
 const THEME_KEY = 'insight-theme-v1';
 const LIMITS_KEY = 'insight-tile-limits-v1';
-const LIMIT_STARS_KEY = 'insight-limit-stars-v1';
-const SESSION_KEY = customPuzzle ? 'insight-editor-session-v1' : 'insight-session-v1';
-const ATTEMPTS_KEY = customPuzzle ? 'insight-editor-attempts-v1' : 'insight-attempts-v1';
+const LIMIT_STARS_KEY = 'insight-campaign-r2-limits';
+const SESSION_KEY = customPuzzle ? 'insight-editor-session-v1' : 'insight-session-r2';
+const ATTEMPTS_KEY = customPuzzle ? 'insight-editor-attempts-v1' : 'insight-attempts-r2';
 const SOUND_KEY = 'insight-sound-v1';
+const CAMPAIGN_KEY = 'insight-campaign-v2', DEV_KEY = 'insight-dev-mode-v1';
 let limitsOn = loadLimits();
 function loadLimits() {
   if (customPuzzle && !customPuzzle.fitsLimits) return false;
@@ -42,12 +58,15 @@ function loadLimits() {
 }
 const $=id=>document.getElementById(id);
 const boardEl=$('board'), targetEl=$('target');
-const levelsOverlay=$('levelsOverlay'), menuOverlay=$('menuOverlay'), winOverlay=$('winOverlay');
+const levelsOverlay=$('levelsOverlay'), menuOverlay=$('menuOverlay'), winOverlay=$('winOverlay'),pauseOverlay=$('pauseOverlay'),settingsOverlay=$('settingsOverlay');
 let moveTimer=null, winTimer=null, selected=null, history=[], activeOverlay=null, returnFocus=null;
 let selectorWorld = 1;
-let progress=loadProgress(), levelIndex=0, levelState=null, drag=null, busy=false, soundOn=loadSound(), toastTimer=null, particles=[], zenMode=loadMode(), darkMode=loadTheme();
+let overlayTrail=[];
+let progress=loadProgress(), levelIndex=0, levelState=null, drag=null, busy=false, soundOn=loadSound(), particles=[], zenMode=loadMode(), darkMode=loadTheme();
 let attempts=loadAttempts(), restartRecovery=null;
+let unlocked=loadCampaign(), devMode=loadDevMode();
 const fx=$('fx'),fctx=fx.getContext('2d');
+const feedback=createFeedback({open:()=>openOverlay($('confirmationOverlay'),{nested:true}),close:()=>closeOverlay()});
 function loadProgress() {
   if (customPuzzle) return {done:{}};
   try {
@@ -64,11 +83,52 @@ function store(key, value) {
   catch { toast('Browser storage unavailable; changes last for this session.'); }
 }
 function saveProgress(){if(!customPuzzle)store(limitsOn ? LIMIT_STARS_KEY : KEY,JSON.stringify(progress))}
+function loadCampaign() {
+  if(customPuzzle)return 1;
+  try {
+    const saved=JSON.parse(localStorage.getItem(CAMPAIGN_KEY));
+    if(Number.isInteger(saved?.unlocked) && saved.unlocked>=1 && saved.unlocked<=LEVELS.length)return saved.unlocked;
+  } catch {}
+  // Preserve access to previously completed levels and verified legacy attempts.
+  let count=1;
+  for(const storageKey of [KEY,LIMIT_STARS_KEY]) {
+    try {
+      const done=JSON.parse(localStorage.getItem(storageKey))?.done;
+      for(const [id,stars] of Object.entries(done||{}))if(/^[1-9]\d*$/.test(id) && +id<=LEVELS.length && Number.isInteger(stars) && stars>=1 && stars<=3)count=Math.max(count,+id+1);
+    } catch {}
+  }
+  for(const entry of Object.values(attempts.entries)) {
+    const restored=loadSession(entry);
+    if(restored)count=Math.max(count,restored.state.level+1);
+  }
+  return Math.min(LEVELS.length,count);
+}
+function loadDevMode(){try{return !customPuzzle && localStorage.getItem(DEV_KEY)==='on'}catch{return false}}
+function canAccess(index){return customPuzzle || devMode || index<unlocked}
+function saveCampaign(){if(!customPuzzle)store(CAMPAIGN_KEY,JSON.stringify({unlocked}))}
+function applyDevMode() {
+  $('devModeBtn').textContent='Dev Mode · '+(devMode?'ON':'OFF');
+  $('devModeBtn').setAttribute('aria-pressed',String(devMode));
+}
+async function newGame() {
+  if(customPuzzle)return;
+  if(!await feedback.confirm({title:'Start a new game?',message:'Campaign stars and saved attempts in both modes will be cleared. Achievements and cosmetics remain unlocked. Your custom puzzles and settings will stay.',accept:'Start new game',danger:true}))return;
+  cancelPending();
+  progress={done:{}};attempts={last:0,entries:{}};restartRecovery=null;levelState=null;
+  unlocked=1;devMode=false;
+  store(KEY,JSON.stringify(progress));store(LIMIT_STARS_KEY,JSON.stringify(progress));
+  store(DEV_KEY,'off');saveCampaign();applyDevMode();
+  startLevel(0,true);buildLevelSelector();
+  announce('New game started. Level 1.');
+  feedback.notify('Your campaign starts again at Level 1. Achievements and cosmetics are kept.',{title:'New game started',tone:'success'});
+}
 function loadSound(){try{return localStorage.getItem(SOUND_KEY)!=='off'}catch{return true}}
 function applySound() {
-  $('soundBtn').innerHTML = soundOn ? '♪ <span>Sound</span>' : '× <span>Muted</span>';
+  renderView('sound',{enabled:soundOn});
   $('soundBtn').setAttribute('aria-label', soundOn ? 'Mute sound' : 'Enable sound');
   $('soundBtn').setAttribute('aria-pressed', String(soundOn));
+  $('settingsSoundBtn').textContent='Sound · '+(soundOn?'ON':'OFF');
+  $('settingsSoundBtn').setAttribute('aria-pressed',String(soundOn));
 }
 function attemptKey(level,limited){return (customPuzzle ? customPuzzle.id+':' : '')+(limited ? 'limited:' : 'classic:')+level}
 function loadAttempts() {
@@ -90,7 +150,7 @@ function loadAttempts() {
   return {last:0,entries:{}};
 }
 function sessionSnapshot(state=levelState,steps=history) {
-  return {level:state.level,limits:state.limits,allowances:state.allowances,path:steps.map(step=>step.move),...(customPuzzle ? {puzzleStamp} : {})};
+  return {revision:LEVELS[state.level].revision || 1,level:state.level,limits:state.limits,allowances:state.allowances,path:steps.map(step=>step.move),achievementAttempt:{...state.achievementAttempt},...(customPuzzle ? {puzzleStamp} : {})};
 }
 function saveSession() {
   const saved=sessionSnapshot();
@@ -102,15 +162,17 @@ function saveSession() {
 }
 function loadSession(saved) {
   try {
-    if (!saved || (customPuzzle && saved.puzzleStamp!==puzzleStamp) || saved.limits!==limitsOn || !Number.isInteger(saved.level) || !LEVELS[saved.level] ||
+    if (!saved || (customPuzzle && saved.puzzleStamp!==puzzleStamp && (!legacyStamp || saved.puzzleStamp!==legacyStamp)) || saved.limits!==limitsOn || !Number.isInteger(saved.level) || !LEVELS[saved.level] ||
         !Array.isArray(saved.path) || saved.path.length>10000) return null;
     const spec = LEVELS[saved.level];
+    if((saved.revision || 1)!==(spec.revision || 1))return null;
     const allowances = saved.allowances;
     if (limitsOn && (!Array.isArray(allowances) || allowances.length!==spec.start.length ||
         !allowances.every((row,r)=>Array.isArray(row) && row.length===spec.start[r].length && row.every((n,c)=>
           Number.isInteger(n) && ('.W'.includes(spec.start[r][c]) ? n===0 : n>=Math.max(3,spec.allowanceFloor[r][c]) && n<=6))))) return null;
-    const state = {level:saved.level, limits:saved.limits, target:parse(spec.target), board:parse(spec.start), moves:0,
-      allowances:limitsOn ? allowances : null, remaining:limitsOn ? clone(allowances) : null};
+    const state = {level:saved.level, limits:saved.limits, target:parse(spec.target), ...PuzzleRules.initialState(spec,limitsOn ? allowances : null), moves:0,
+      allowances:limitsOn ? allowances : null, remaining:limitsOn ? clone(allowances) : null,
+      achievementAttempt:restoreAttempt(saved.achievementAttempt,!customPuzzle && !loadDevMode())};
     const steps = [];
     let color = TILE_LIGHTS.B;
     for (const move of saved.path) {
@@ -119,8 +181,7 @@ function loadSession(saved) {
       if (!legalMoves(state.board,...a,state.remaining).some(([r,c])=>r===b[0] && c===b[1]) || key(state.board)===key(state.target)) return null;
       steps.push({board:clone(state.board), moves:state.moves, remaining:state.remaining ? clone(state.remaining) : null, color, move});
       color = TILE_LIGHTS[state.board[a[0]][a[1]]];
-      if (state.remaining) { state.remaining[a[0]][a[1]]--; state.remaining=swapCells(state.remaining,a,b); }
-      state.board=swapCells(state.board,a,b);
+      Object.assign(state,PuzzleRules.transition(state,a,b,spec));
       state.moves++;
     }
     return {state, steps, color};
@@ -142,10 +203,11 @@ function loadTheme(){try{return localStorage.getItem(THEME_KEY)!=='light'}catch{
 function saveTheme(){store(THEME_KEY,darkMode?'dark':'light')}
 function applyTheme() {
   document.body.classList.toggle('light-mode', !darkMode);
-  $('themeBtn').textContent = darkMode ? 'Moonlit Forest' : 'Forest at Dawn';
+  $('themeBtn').textContent = darkMode ? 'Dark Mode · ON' : 'Light Mode · ON';
   document.querySelector('meta[name=theme-color]').content = darkMode ? '#0c252e' : '#d9e9dc';
 }
 function toggleTheme(){darkMode=!darkMode;saveTheme();applyTheme();playTone('select')}
+function currentPar(){const spec=LEVELS[levelIndex];return limitsOn ? spec.limitedPar ?? spec.par : spec.par}
 function starsFor(moves,par){return moves<=par?3:moves<=par+2?2:1}
 function starText(n){return '★'.repeat(n)+'☆'.repeat(3-n)}
 function cancelPending() {
@@ -157,7 +219,7 @@ function cancelPending() {
 }
 function isSolved(){return key(levelState.board)===key(levelState.target)}
 function isExhausted() {
-  return levelState.remaining && !isSolved() && !levelState.board.some((row,r)=>row.some((t,c)=>legalMoves(levelState.board,r,c,levelState.remaining).length));
+  return !isSolved() && !levelState.board.some((row,r)=>row.some((t,c)=>legalMoves(levelState.board,r,c,levelState.remaining).length));
 }
 function showRecovery(){if(isExhausted())openOverlay($('emptyOverlay'))}
 function focusBoard(position) {
@@ -171,7 +233,7 @@ function restartLevel() {
   playTone('undo');
 }
 function startLevel(idx,restart=false) {
-  if (idx < 0 || idx >= LEVELS.length) return;
+  if (idx < 0 || idx >= LEVELS.length || !canAccess(idx)) return;
   document.querySelectorAll('.color-stroke').forEach(el=>el.remove());
   cancelPending();
   if (levelState && !restart) saveSession();
@@ -186,8 +248,9 @@ function startLevel(idx,restart=false) {
     const floor = Math.max(3, spec.allowanceFloor[r][c]);
     return floor + Math.floor(Math.random() * (7-floor));
   })) : null;
-  levelState = canResume ? restored.state : {level:idx, limits:limitsOn, target:parse(spec.target), board:parse(spec.start), moves:0,
-    allowances, remaining:allowances ? clone(allowances) : null};
+  levelState = canResume ? restored.state : {level:idx, limits:limitsOn, target:parse(spec.target), ...PuzzleRules.initialState(spec,allowances), moves:0,
+    allowances, remaining:allowances ? clone(allowances) : null,achievementAttempt:newAttempt(!customPuzzle && !devMode)};
+  if(devMode || customPuzzle)levelState.achievementAttempt.eligible=false;
   history = canResume ? restored.steps : [];
   const recovery=canResume && !history.length ? loadSession(saved.restart) : null;
   restartRecovery=recovery && recovery.state.level===idx && recovery.state.moves ? recovery : null;
@@ -195,7 +258,7 @@ function startLevel(idx,restart=false) {
   renderBoard();
   renderTarget();
   updateHeader();
-  closeOverlay();
+  closeOverlay({all:true});
   saveSession();
   focusBoard();
   showRecovery();
@@ -205,7 +268,7 @@ function updateHeader() {
   $('levelNo').textContent = customPuzzle ? 'MY PUZZLES · PLAYTEST' : WORLD_META[spec.world].name + ' · LEVEL ' + String(levelIndex + 1).padStart(3, '0');
   $('levelName').textContent = spec.name;
   $('moves').textContent = levelState.moves;
-  $('par').textContent = spec.par;
+  $('par').textContent = currentPar();
   const best = progress.done[levelIndex + 1] || 0;
   $('starsTop').textContent = best ? starText(best) : '☆☆☆';
   $('undoBtn').disabled = !history.length && !restartRecovery;
@@ -213,27 +276,22 @@ function updateHeader() {
   const solved = key(levelState.board)===key(levelState.target);
   boardEl.classList.toggle('solved', solved);
   $('nextBtn').textContent=levelIndex<LEVELS.length-1 ? 'Next →' : 'Replay final';
+  $('nextBtn').disabled=levelIndex<LEVELS.length-1 && !canAccess(levelIndex+1);
   $('playBtn').textContent = solved ? levelIndex<LEVELS.length-1 ? 'Next puzzle →' : 'Replay final' : levelState.moves ? 'Resume · Level '+String(levelIndex+1).padStart(3,'0') : 'Play · Level '+String(levelIndex+1).padStart(3,'0');
-  $('menuProgress').textContent = Object.keys(progress.done).length + ' / '+LEVELS.length+' puzzles solved';
+  $('menuProgress').textContent = devMode ? 'Developer Mode · All '+LEVELS.length+' levels unlocked' : 'Campaign · Level '+unlocked+' / '+LEVELS.length;
+  $('pauseDescription').textContent='Level '+String(levelIndex+1).padStart(3,'0')+' · '+spec.name;
+  $('resumeBtn').textContent=solved?'View result':'Resume puzzle';
+  $('resetProgress').textContent=limitsOn?'Reset Tile Limits stars':'Reset Classic stars';
   if (customPuzzle) {
     $('nextBtn').textContent='Back to editor';
     $('playBtn').textContent=solved ? 'Back to editor' : levelState.moves ? 'Resume playtest' : 'Playtest';
     $('menuProgress').textContent='Custom puzzle · Progress kept separate';
   }
 }
-function cellHTML(t, r, c) {
-  if (t === '.') return '<div class="cell hole" data-r="'+r+'" data-c="'+c+'"></div>';
-  const meta = META[t];
-  const left = levelState.remaining?.[r]?.[c];
-  const limited = limitsOn && t !== 'W';
-  const label = meta.name + ', row ' + (r+1) + ', column ' + (c+1) + (limited ? ', '+left+' moves left' : '');
-  const badge = limited ? '<span class="tile-allowance" aria-hidden="true">'+left+'</span>' : '';
-  return '<div class="cell" data-r="'+r+'" data-c="'+c+'"><button type="button" class="tile '+meta.cls+(limited && left===0 ? ' spent' : '')+'" style="--tile-order:'+(r+c)+'" data-r="'+r+'" data-c="'+c+'" data-type="'+t+'" aria-label="'+label+'" aria-pressed="false">'+ICONS[t]+badge+'</button></div>';
-}
 function renderBoard() {
   const g = levelState.board;
   const rows = g.length, cols = g[0].length;
-  boardEl.innerHTML = '';
+  renderView('board',{board:clone(g),remaining:levelState.remaining ? clone(levelState.remaining) : null,limits:limitsOn});
   boardEl.style.gridTemplateColumns = `repeat(${cols},var(--cell))`;
   boardEl.parentElement.style.setProperty('--cols', cols);
   boardEl.parentElement.style.setProperty('--rows', rows);
@@ -246,7 +304,6 @@ function renderBoard() {
         minC = Math.min(minC, c);
         maxC = Math.max(maxC, c);
       }
-      boardEl.insertAdjacentHTML('beforeend', cellHTML(g[r][c], r, c));
     }
   }
   if (maxR < 0) {
@@ -270,7 +327,7 @@ function renderTarget(){
   for(let r=0;r<g.length;r++) for(let c=0;c<(g[r]?.length||0);c++){
     if(g[r][c]!=='.'){minR=Math.min(minR,r);maxR=Math.max(maxR,r);minC=Math.min(minC,c);maxC=Math.max(maxC,c)}
   }
-  if(maxR<0){targetEl.innerHTML='';targetEl.style.width='0px';return}
+  if(maxR<0){renderView('target',{cells:[]});targetEl.style.width='0px';return}
   const rows=maxR-minR+1, cols=maxC-minC+1;
   const s=innerHeight<=450 ? 13 : innerWidth<700 && innerHeight<=650 ? 16 : 20;
   targetEl.style.setProperty('--target-cell',s+'px');
@@ -278,15 +335,10 @@ function renderTarget(){
   targetEl.style.gridTemplateRows=`repeat(${rows},${s}px)`;
   targetEl.style.width=(cols*s+(cols-1)*4)+'px';
   targetEl.style.minHeight=(rows*s+(rows-1)*4)+'px';
-  targetEl.innerHTML='';
   targetEl.setAttribute('aria-label', 'Target arrangement: ' + g.map((row, i) => 'row ' + (i+1) + ': ' + row.map(t => META[t]?.name || 'gap').join(', ')).join('; '));
-  for(let r=minR;r<=maxR;r++) for(let c=minC;c<=maxC;c++){
-    const t=g[r][c],d=document.createElement('div');
-    d.className='target-dot '+(t==='W'?'white':t==='.'?'hole':'');
-    d.style.setProperty('--dot',TILE_LIGHTS[t]||'#bbb');
-    d.innerHTML=ICONS[t]||'';
-    targetEl.appendChild(d);
-  }
+  const cells=[];
+  for(let r=minR;r<=maxR;r++)for(let c=minC;c<=maxC;c++)cells.push(g[r][c]);
+  renderView('target',{cells});
 }
 function clearHover(){boardEl.querySelectorAll('.hover-target').forEach(el=>el.classList.remove('hover-target'))}
 function refreshSelection() {
@@ -402,13 +454,10 @@ function performMove(a, b, fromEl,dragOffset) {
       remaining:current.remaining ? clone(current.remaining) : null, color:document.body.style.getPropertyValue('--light-color'), move:[a,b]});
     const movedType = current.board[a[0]][a[1]];
     restartRecovery=null;
-    if (current.remaining) {
-      current.remaining[a[0]][a[1]]--;
-      current.remaining = swapCells(current.remaining, a, b);
-    }
+    const next=PuzzleRules.transition(current,a,b,LEVELS[levelIndex]);
     document.body.style.setProperty('--light-color', TILE_LIGHTS[movedType]);
     PuzzleArt.paintStroke(boardEl.parentElement,fromRect,toRect,movedType);
-    current.board = swapCells(current.board, a, b);
+    Object.assign(current,next);
     current.moves++;
     busy = false;
     renderBoard();
@@ -434,17 +483,18 @@ function undo() {
     levelState=restartRecovery.state; history=restartRecovery.steps;
     document.body.style.setProperty('--light-color',restartRecovery.color);
     restartRecovery=null;
-    closeOverlay(); renderBoard(); updateHeader(); saveSession();
+    closeOverlay({all:true}); renderBoard(); updateHeader(); saveSession();
     focusBoard(history.at(-1)?.move[1]); showRecovery();
     playTone('undo'); announce('Restart undone. '+levelState.moves+' moves.');
     return;
   }
   const previous = history.pop();
+  levelState.achievementAttempt.undoUsed=true;
   levelState.board = previous.board;
   levelState.moves = previous.moves;
   levelState.remaining = previous.remaining;
   document.body.style.setProperty('--light-color', previous.color);
-  closeOverlay();
+  closeOverlay({all:true});
   renderBoard();
   updateHeader();
   saveSession();
@@ -455,16 +505,21 @@ function undo() {
 function win() {
   busy = true;
   const current = levelState;
-  const stars = starsFor(current.moves, LEVELS[levelIndex].par);
+  const stars = starsFor(current.moves, currentPar());
+  const newBadges=achievements.record({level:levelIndex,stars,limited:limitsOn,custom:!!customPuzzle,developer:devMode,attempt:current.achievementAttempt});
+  if(newBadges.length)window.dispatchEvent(new CustomEvent('insight-achievements-earned',{detail:newBadges}));
+  renderView('achievementUnlocks',{badges:newBadges});
   if (stars > (progress.done[levelIndex+1] || 0)) {
     progress.done[levelIndex+1] = stars;
     saveProgress();
   }
+  if(!customPuzzle && levelIndex===unlocked-1){unlocked=Math.min(LEVELS.length,unlocked+1);saveCampaign()}
   updateHeader();
   $('winTitle').textContent = zenMode ? 'Beautifully solved.' : stars===3 ? 'Perfect shift.' : stars===2 ? 'Clean solve.' : 'Grid conquered.';
   $('winStars').textContent = starText(stars);
-  $('winMeta').textContent = current.moves + ' moves · par ' + LEVELS[levelIndex].par;
+  $('winMeta').textContent = current.moves + ' moves · par ' + currentPar();
   $('winNextBtn').textContent = levelIndex < LEVELS.length-1 ? 'Next →' : 'Replay Final';
+  $('winNextBtn').disabled=levelIndex<LEVELS.length-1 && !canAccess(levelIndex+1);
   $('winLevelsBtn').hidden=levelIndex<LEVELS.length-1;
   if (customPuzzle) { $('winNextBtn').textContent='Back to editor'; $('winLevelsBtn').hidden=true; }
   winTimer = setTimeout(() => {
@@ -480,65 +535,20 @@ function win() {
 function leaveEditor(){cancelPending();saveSession();location.href='Editor.html'}
 function nextLevel(){if(customPuzzle)leaveEditor();else if(levelIndex<LEVELS.length-1)startLevel(levelIndex+1);else restartLevel()}
 function buildLevelSelector() {
-  selectorWorld = LEVELS[levelIndex].world;
-  const tabs = $('worldTabs');
-  tabs.innerHTML = '';
-  for (let w = 1; w <= 5; w++) {
-    const tab = document.createElement('button');
-    tab.id = 'worldTab' + w;
-    tab.className = 'ui-btn';
-    tab.setAttribute('role', 'tab');
-    tab.setAttribute('aria-controls', 'levelWorlds');
-    tab.textContent = 'World ' + w;
-    tab.addEventListener('click', () => renderLevelWorld(w));
-    tab.addEventListener('keydown', e => {
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-        e.preventDefault();
-        const next = (w - 1 + (e.key === 'ArrowRight' ? 1 : 4)) % 5 + 1;
-        renderLevelWorld(next);
-        $('worldTab' + next).focus();
-      }
-    });
-    tabs.appendChild(tab);
-  }
+  selectorWorld=LEVELS[levelIndex].world;
   renderLevelWorld(selectorWorld);
 }
 function renderLevelWorld(w) {
-  selectorWorld = w;
-  for (const tab of $('worldTabs').children) {
-    const active = tab.id === 'worldTab' + w;
-    tab.setAttribute('aria-selected', String(active));
-    tab.tabIndex = active ? 0 : -1;
-  }
-  const root = $('levelWorlds');
-  root.setAttribute('aria-labelledby', 'worldTab' + w);
-  root.innerHTML = '';
-  const section = document.createElement('section');
-  section.className = 'world-block';
-  const completed = LEVELS.filter((level,i)=>level.world===w && progress.done[i+1]).length;
-  const total = LEVELS.filter(level=>level.world===w).length;
-  section.innerHTML = `<div class="world-head"><div class="world-title">WORLD ${w} · ${WORLD_META[w].name}</div><div class="world-sub">${completed} / ${total} solved</div></div>`;
-  const grid = document.createElement('div');
-  grid.className = 'level-grid';
-  LEVELS.forEach((level, i) => {
-    if (level.world !== w) return;
-    const card = document.createElement('button');
-    card.className = 'level-card ' + (i === levelIndex ? 'current ' : '') + (progress.done[i+1] ? 'done' : '');
-    const best = progress.done[i+1] || 0;
-    card.innerHTML = `<div class="lvl-num">${String(i+1).padStart(3,'0')}</div><div class="lvl-name">${level.name}</div><div class="lvl-stars">${best ? starText(best) : ''}</div>`;
-    card.setAttribute('aria-label', `Level ${i+1}, ${level.name}${!zenMode && best ? ', best '+best+' stars' : ''}`);
-    card.addEventListener('click', () => {
-      startLevel(i);
-      playTone('select');
-    });
-    grid.appendChild(card);
-  });
-  section.appendChild(grid);
-  root.appendChild(section);
+  selectorWorld=w;
+  renderView('worldTabs',{selected:w,onSelect:renderLevelWorld});
+  $('levelWorlds').setAttribute('aria-labelledby','worldTab'+w);
+  $('levelsDescription').textContent=devMode ? 'Developer Mode · All levels unlocked.' : unlocked+' / '+LEVELS.length+' levels unlocked.';
+  renderView('levels',{world:w,name:WORLD_META[w].name,levels:LEVELS,progress:{...progress.done},current:levelIndex,zen:zenMode,unlocked:devMode?LEVELS.length:unlocked,
+    onSelect:i=>{startLevel(i);playTone('select')}});
 }
-function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),1800)}
+function toast(msg){feedback.notify(msg,{tone:msg.includes('storage unavailable')?'warning':'info',title:msg.includes('storage unavailable')?'Progress is temporary':'',duration:msg.includes('storage unavailable')?0:6000})}
 function playTone(kind,type) {
-  if (soundOn) window.playTone(kind,type);
+  if (soundOn) audio.playTone(kind,type);
 }
 function resizeFX(){fx.width=innerWidth*devicePixelRatio;fx.height=innerHeight*devicePixelRatio;fx.style.width=innerWidth+'px';fx.style.height=innerHeight+'px';fctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0)}
 function cellCenter(pos) {
@@ -549,7 +559,7 @@ function cellCenter(pos) {
 }
 function popParticlesAtCell(pos) {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  if (!particles.length) requestAnimationFrame(animate);
+  if (!particles.length) animationFrame=requestAnimationFrame(animate);
   const p = cellCenter(pos);
   for (let i = 0; i < 7; i++) {
     const angle = (i/7)*Math.PI*2;
@@ -558,7 +568,7 @@ function popParticlesAtCell(pos) {
 }
 function burstCenter(count) {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  if (!particles.length) requestAnimationFrame(animate);
+  if (!particles.length) animationFrame=requestAnimationFrame(animate);
   for (let i = 0; i < count; i++) {
     const angle = (i/count)*Math.PI*2, speed = 2.2+(i%4)*.8;
     particles.push({x:innerWidth/2, y:innerHeight*.48, vx:Math.cos(angle)*speed,
@@ -581,31 +591,57 @@ function animate() {
     fctx.fill();
     if (p.life <= 0) particles.splice(i, 1);
   }
-  if (particles.length) requestAnimationFrame(animate);
+  if (particles.length) animationFrame=requestAnimationFrame(animate);
 }
 
 function announce(message) { $('announcement').textContent = message; }
-function openOverlay(overlay) {
+function openOverlay(overlay,{nested=false}={}) {
   clearTimeout(winTimer);
   if (key(levelState.board) === key(levelState.target)) busy = false;
   cancelDrag();
   selected = null;
   refreshSelection();
+  if(nested && activeOverlay)overlayTrail.push({overlay:activeOverlay,focus:document.activeElement});
+  else overlayTrail=[];
   if (!activeOverlay) returnFocus = document.activeElement;
+  activateOverlay(overlay);
+}
+function activateOverlay(overlay) {
   if (activeOverlay) activeOverlay.classList.remove('open');
   activeOverlay = overlay;
   overlay.classList.add('open');
   document.querySelector('.app').inert = true;
   for (const other of document.querySelectorAll('.overlay')) other.inert = other !== overlay;
-  overlay.querySelector('button')?.focus();
+  (overlay.querySelector('#confirmCancel') || overlay.querySelector('button:not(:disabled)'))?.focus({preventScroll:true});
 }
-function closeOverlay() {
+function closeOverlay({all=false}={}) {
   if (!activeOverlay) return;
+  if(activeOverlay===$('confirmationOverlay'))feedback.cancel();
+  if(!all && overlayTrail.length) {
+    const previous=overlayTrail.pop();activateOverlay(previous.overlay);
+    if(previous.focus?.isConnected && previous.focus.getClientRects().length)previous.focus.focus({preventScroll:true});
+    return;
+  }
+  overlayTrail=[];
   activeOverlay.classList.remove('open');
   activeOverlay = null;
   document.querySelector('.app').inert = false;
   for (const overlay of document.querySelectorAll('.overlay')) overlay.inert = true;
   if (returnFocus?.isConnected) returnFocus.focus({preventScroll:true});
+}
+function openPause() {updateHeader();openOverlay(pauseOverlay)}
+function openSettings() {openOverlay(settingsOverlay,{nested:true})}
+function changeInSettings(update) {
+  const previous=overlayTrail.slice(),focus=document.activeElement;
+  update();openOverlay(settingsOverlay);overlayTrail=previous;
+  if(focus?.getClientRects().length)focus.focus({preventScroll:true});
+}
+function settingsTab(tab) {
+  for(const button of document.querySelectorAll('[data-settings-tab]')) {
+    const selected=button.dataset.settingsTab===tab;
+    button.setAttribute('aria-selected',String(selected));button.tabIndex=selected?0:-1;
+    $('settingsPanel-'+button.dataset.settingsTab).hidden=!selected;
+  }
 }
 function chooseTile(tile) {
   if (busy || drag || isSolved()) return;
@@ -629,20 +665,45 @@ function chooseTile(tile) {
   playTone('select',levelState.board[position[0]][position[1]]);
   announce(selected ? 'Selected ' + META[levelState.board[position[0]][position[1]]].name + '.' : 'Tile not selected.');
 }
-boardEl.addEventListener('pointerdown', handlePointerDown);
-boardEl.addEventListener('pointermove', handlePointerMove);
-boardEl.addEventListener('pointerup', handlePointerUp);
-boardEl.addEventListener('pointercancel', cancelDrag);
-boardEl.addEventListener('lostpointercapture', () => { if (drag) cancelDrag(); });
-boardEl.addEventListener('click', e => { if (e.detail===0 && e.target.closest('.tile')) chooseTile(e.target.closest('.tile')); });
-boardEl.parentElement.addEventListener('pointerdown', e=>{
+listen(boardEl,'pointerdown', handlePointerDown);
+listen(boardEl,'pointermove', handlePointerMove);
+listen(boardEl,'pointerup', handlePointerUp);
+listen(boardEl,'pointercancel', cancelDrag);
+listen(boardEl,'lostpointercapture', () => { if (drag) cancelDrag(); });
+listen(boardEl,'click', e => { if (e.detail===0 && e.target.closest('.tile')) chooseTile(e.target.closest('.tile')); });
+listen(boardEl.parentElement,'pointerdown', e=>{
   if (e.button===0 && !busy && !drag && !e.target.closest('.tile')) { selected=null; refreshSelection(); }
 });
-window.addEventListener('pointerup', e => { if (drag && e.pointerId===drag.pointerId) endDrag(); });
-$('restartBtn').addEventListener('click', restartLevel);
-$('undoBtn').addEventListener('click', undo);
-$('modeBtn').addEventListener('click', toggleMode);
-$('limitsBtn').addEventListener('click', () => {
+listen(window,'pointerup', e => { if (drag && e.pointerId===drag.pointerId) endDrag(); });
+listen($('restartBtn'),'click', restartLevel);
+listen($('undoBtn'),'click', undo);
+listen($('modeBtn'),'click', toggleMode);
+listen($('newGameBtn'),'click',newGame);
+function showAchievements(tab='collection') {
+  window.dispatchEvent(new CustomEvent('insight-collection-tab',{detail:tab}));
+  openOverlay($('achievementsOverlay'),{nested:true});
+}
+listen($('achievementsBtn'),'click',()=>showAchievements());
+listen($('pauseAchievementsBtn'),'click',()=>showAchievements());
+listen($('appearanceBtn'),'click',()=>showAchievements('appearance'));
+listen($('winAchievementSummary'),'click',e=>{if(e.target.closest('#winAchievementsBtn'))showAchievements()});
+listen($('closeAchievements'),'click',closeOverlay);
+listen(window,'insight-storage-warning',()=>toast('Browser storage unavailable; changes last for this session.'));
+listen($('devModeBtn'),'click',()=>{
+  if(customPuzzle)return;
+  changeInSettings(()=>{
+  devMode=!devMode;store(DEV_KEY,devMode?'on':'off');applyDevMode();
+  if(devMode) {
+    levelState.achievementAttempt.eligible=false;
+    if(restartRecovery)restartRecovery.state.achievementAttempt.eligible=false;
+    saveSession();
+  }
+  if(!canAccess(levelIndex))startLevel(unlocked-1);
+  updateHeader();buildLevelSelector();
+  });
+});
+listen($('limitsBtn'),'click', () => {
+  changeInSettings(()=>{
   limitsOn = !limitsOn;
   store(LIMITS_KEY, limitsOn ? 'on' : 'off');
   progress = loadProgress();
@@ -650,57 +711,78 @@ $('limitsBtn').addEventListener('click', () => {
   $('limitsBtn').textContent = limitsOn ? 'Tile Limits · ON' : 'Tile Limits · OFF';
   $('limitsBtn').setAttribute('aria-pressed', String(limitsOn));
   playTone('select');
+  });
 });
-$('emptyUndoBtn').addEventListener('click', undo);
-$('emptyRestartBtn').addEventListener('click', restartLevel);
-$('emptyLevelsBtn').addEventListener('click', showLevels);
-$('themeBtn').addEventListener('click', toggleTheme);
-$('nextBtn').addEventListener('click', nextLevel);
-function showLevels() { if(customPuzzle){leaveEditor();return} buildLevelSelector(); openOverlay(levelsOverlay); }
-$('levelsBtn').addEventListener('click', showLevels);
-$('levelsBtn2').addEventListener('click', showLevels);
-$('menuLevelsBtn').addEventListener('click', showLevels);
-$('editorBtn').addEventListener('click',()=>{cancelPending();saveSession();location.href='Editor.html'});
-$('menuBtn').addEventListener('click', () => openOverlay(menuOverlay));
-$('playBtn').addEventListener('click', () => {
+listen($('emptyUndoBtn'),'click', undo);
+listen($('emptyRestartBtn'),'click', restartLevel);
+listen($('emptyLevelsBtn'),'click', showLevels);
+listen($('themeBtn'),'click', toggleTheme);
+listen($('nextBtn'),'click', nextLevel);
+function showLevels() { if(customPuzzle){leaveEditor();return} buildLevelSelector(); openOverlay(levelsOverlay,{nested:!!activeOverlay}); }
+listen($('levelsBtn'),'click', showLevels);
+listen($('levelsBtn2'),'click', showLevels);
+listen($('menuLevelsBtn'),'click', showLevels);
+listen($('editorBtn'),'click',()=>{cancelPending();saveSession();location.href='Editor.html'});
+listen($('menuBtn'),'click',openPause);
+listen($('homeSettingsBtn'),'click',openSettings);
+listen($('pauseSettingsBtn'),'click',openSettings);
+listen($('pauseRestartBtn'),'click',restartLevel);
+listen($('pauseLevelsBtn'),'click',showLevels);
+listen($('homeBtn'),'click',()=>{saveSession();updateHeader();openOverlay(menuOverlay)});
+listen($('resumeBtn'),'click',()=>{if(isSolved())openOverlay(winOverlay);else {closeOverlay({all:true});showRecovery()}});
+for(const button of document.querySelectorAll('[data-settings-tab]')) {
+  listen(button,'click',()=>settingsTab(button.dataset.settingsTab));
+  listen(button,'keydown',event=>{
+    if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+    event.preventDefault();const tabs=[...document.querySelectorAll('[data-settings-tab]')],index=tabs.indexOf(button);
+    const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(event.key==='ArrowRight'?1:tabs.length-1))%tabs.length;
+    settingsTab(tabs[next].dataset.settingsTab);tabs[next].focus();
+  });
+}
+listen($('playBtn'),'click', () => {
   if (key(levelState.board)===key(levelState.target)) nextLevel();
-  else { closeOverlay(); showRecovery(); }
+  else { closeOverlay({all:true}); showRecovery(); }
   playTone('select');
 });
-document.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', closeOverlay));
+document.querySelectorAll('[data-close]').forEach(button => listen(button,'click', closeOverlay));
 for (const overlay of document.querySelectorAll('.overlay')) {
-  overlay.addEventListener('click', e => { if (e.target===overlay) closeOverlay(); });
+  listen(overlay,'click', e => { if (e.target===overlay) closeOverlay(); });
 }
-$('replayBtn').addEventListener('click', restartLevel);
-$('winNextBtn').addEventListener('click', nextLevel);
-$('winLevelsBtn').addEventListener('click', showLevels);
-$('soundBtn').addEventListener('click', () => {
+listen($('replayBtn'),'click', restartLevel);
+listen($('winNextBtn'),'click', nextLevel);
+listen($('winLevelsBtn'),'click', showLevels);
+function toggleSound() {
   soundOn = !soundOn;
   store(SOUND_KEY, soundOn ? 'on' : 'off');
   applySound();
   if (soundOn) playTone('select'); else stopMusic();
-});
-$('resetProgress').addEventListener('click', () => {
-  if (!confirm('Reset all saved stars?')) return;
+}
+listen($('soundBtn'),'click',toggleSound);
+listen($('settingsSoundBtn'),'click',toggleSound);
+listen($('resetProgress'),'click', async () => {
+  if(customPuzzle)return;
+  if (!await feedback.confirm({title:'Reset saved stars?',message:'Stars in '+(limitsOn?'Tile Limits':'Classic')+' will be cleared. Campaign access, saved attempts, achievements, and cosmetics stay saved.',accept:'Reset stars',danger:true})) return;
   progress = {done:{}};
   saveProgress();
   buildLevelSelector();
   $('resetProgress').focus();
   updateHeader();
-  toast('Stars reset.');
+  feedback.notify('Your '+(limitsOn?'Tile Limits':'Classic')+' stars have been reset. Campaign access and achievements are kept.',{title:'Stars reset',tone:'success'});
 });
-document.addEventListener('keydown', e => {
+listen(document,'keydown', e => {
   if (activeOverlay) {
     if (e.key==='Escape') { e.preventDefault(); closeOverlay(); }
     if (e.key==='Tab') {
-      const buttons = [...activeOverlay.querySelectorAll('button:not(:disabled), input:not(:disabled)')].filter(el=>el.getClientRects().length);
+      const buttons = [...activeOverlay.querySelectorAll('button:not(:disabled), input:not(:disabled)')].filter(el=>el.getClientRects().length && el.tabIndex>=0);
       const first = buttons[0], last = buttons.at(-1);
       if (e.shiftKey && document.activeElement===first) { e.preventDefault(); last.focus(); }
       else if (!e.shiftKey && document.activeElement===last) { e.preventDefault(); first.focus(); }
     }
     return;
   }
-  if (e.key==='Escape') { cancelDrag(); selected=null; refreshSelection(); }
+  if (e.key==='Escape') {
+    e.preventDefault();if(drag || selected){cancelDrag();selected=null;refreshSelection()}else openPause();return;
+  }
   if (e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
   if (e.key.toLowerCase()==='r') restartLevel();
   if (e.key.toLowerCase()==='l') showLevels();
@@ -718,7 +800,7 @@ document.addEventListener('keydown', e => {
     }
   }
 });
-addEventListener('resize', () => {
+listen(window,'resize', () => {
   const focused=document.activeElement.closest?.('.tile');
   const position=focused ? [+focused.dataset.r,+focused.dataset.c] : null;
   resizeFX(); cancelDrag(); renderBoard(); renderTarget(); refreshSelection();
@@ -726,22 +808,32 @@ addEventListener('resize', () => {
 });
 $('limitsBtn').textContent = limitsOn ? 'Tile Limits · ON' : 'Tile Limits · OFF';
 $('limitsBtn').setAttribute('aria-pressed', String(limitsOn));
-$('menuHero').innerHTML=['R','B','G','P','W','Y','B','G','R'].map(t=>'<span class="hero-tile '+META[t].cls+'">'+ICONS[t]+'</span>').join('');
+renderView('hero',{});
 resizeFX();
 applyMode();
 applyTheme();
 applySound();
+applyDevMode();saveCampaign();
 const savedSession = loadSession(attempts.entries[attemptKey(attempts.last,limitsOn)]);
 const unfinished = LEVELS.findIndex((level,i)=>!progress.done[i+1]);
-startLevel(savedSession && key(savedSession.state.board)!==key(savedSession.state.target) ? savedSession.state.level : Math.max(0,unfinished));
+const initialLevel=savedSession && key(savedSession.state.board)!==key(savedSession.state.target) ? savedSession.state.level : Math.max(0,unfinished);
+startLevel(canAccess(initialLevel) ? initialLevel : unlocked-1);
 if (!customPuzzle) buildLevelSelector();
 else {
   $('levelsBtn2').textContent='My Puzzles';
   $('levelsBtn').setAttribute('aria-label','Back to editor');
   $('menuLevelsBtn').textContent='Back to editor';
   $('editorBtn').hidden=true;
+  $('newGameBtn').hidden=true;$('devModeBtn').hidden=true;
+  $('resetProgress').hidden=true;$('devModeNote').hidden=true;
+  $('pauseLevelsBtn').textContent='Back to editor';
   $('limitsBtn').disabled=!customPuzzle.fitsLimits;
   if (!customPuzzle.fitsLimits) $('limitsBtn').textContent='Classic only';
 }
 openOverlay(menuOverlay);
-})();
+if(hasAchievementStorageWarning())toast('Browser storage unavailable; changes last for this session.');
+return () => {
+  events.abort();cancelPending();feedback.dispose();cancelAnimationFrame(animationFrame);
+  audio.dispose();document.querySelectorAll('.color-stroke').forEach(el=>el.remove());
+};
+}

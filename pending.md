@@ -1,5 +1,22 @@
 # Game Improvement Checklist
 
+## Gameplay rollback — 2026-10-04
+
+- [x] Remove switches, gates, rotation cells, fixed authored budgets, and their editor tools. Restore original directional rules and 3–6 Tile Limits.
+- [x] Preserve all 106 positions, names, targets, and shapes, without changing any Start or Target. Levels 35 and 99 use newly verified routes within the allowance cap.
+- [x] Refresh optimal par and route certificates; preserve campaign progress, preferences, achievements, and custom storage.
+- [ ] Human assessment of difficulty and campaign pacing remains outstanding.
+
+## Latest improvements — Completed on 2026-10-03
+
+- [x] Replace browser alerts and confirmations with consistent in-game dialogs and notices. New Game, resetting stars, deleting a draft, cropping, and clearing use styled confirmations. Success, warning, and error notices appear in the game and editor; temporary-storage warnings persist. Cancellation, focus trapping, and safe focus return are verified.
+- [x] Separate home, pause, and settings into a proper menu system. Home holds campaign choices, Pause holds current-puzzle actions, and Settings has Play, Sound, and Appearance tabs. Nested panels return to their parent; continuing, changing levels, and restarting enter gameplay. All five viewport sizes fit one screen.
+- [x] Move the game and editor to React with Vite, preserving shared rules, the 106 level positions, saved preferences, and custom-puzzle isolation.
+- [x] Add shared campaign progression, New Game, and Developer Mode. A successful frontier solve unlocks the next level; Developer Mode opens all levels while excluding new achievement credit.
+- [x] Add 15 permanent achievements, background themes, tile finishes, a collection panel, and queued corner announcements. New Game preserves lifetime rewards.
+
+No unchecked implementation items remain. Human difficulty and sound-balance assessment are ongoing playtesting work.
+
 Implementation and verification completed on 2026-10-01. Later user instructions take precedence: gameplay fits one screen, and tutorials, help dialogs, explanations, and legal-destination hints are removed.
 
 ## Correctness — Completed
@@ -33,7 +50,7 @@ Tutorial descriptions, introductory explanations, and the explanation of passeng
 
 - [x] Separate `Puzzle.html`, `styles.css`, `levels.js`, and `game.js`. Format level data, CSS, and complex control/rendering functions for review.
 - [x] Remove unused extra mechanics, icons, metadata, and styles: portals, magnets, switches, dominoes, and other unused tile families.
-- [x] Keep plain JavaScript with no new framework or runtime dependency for the game.
+- [x] Keep the original plain JavaScript controllers and shared rules. The later user-requested React/Vite migration supersedes the original no-framework requirement.
 - [x] Leave runnable Node checks and update `AGENTS.md` to match the structure and test commands.
 
 ## Verification & Progression Assessment
@@ -51,7 +68,7 @@ Average route length increases by world, but individual levels are not a smooth 
 
 ## Preserved
 
-The asymmetric swapping rule, six core tile types, directional icons, animation, synthesized audio, particles, Zen mode, star scoring, unrestricted level access, and existing storage keys are retained. Legal destination markers were removed at the user's request for no player help.
+The asymmetric swapping rule, six core tile types, directional icons, animation, audio, particles, Zen mode, star scoring, and existing storage keys are retained. Legal destination markers were removed at the user's request for no player help. Unrestricted level access is now available through Developer Mode; ordinary campaign play advances level by level.
 
 ## Ideas — Completed
 
