@@ -1,7 +1,8 @@
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
+const {rootPath}=require('./check-paths.cjs');
 const rate = 22050;
-fs.mkdirSync('sounds', {recursive:true});
+fs.mkdirSync(rootPath('public','sounds'), {recursive:true});
 
 function write(name, duration, sample) {
   const frames = Math.round(duration*rate);
@@ -24,7 +25,7 @@ function write(name, duration, sample) {
     assert(Number.isFinite(value) && Math.abs(value)<1, `${name}: unclipped audio`);
     wav.writeInt16LE(Math.round(value*32767),44+i*2);
   }
-  fs.writeFileSync(`sounds/${name}.wav`,wav);
+  fs.writeFileSync(rootPath('public','sounds',`${name}.wav`),wav);
   console.log(`${name}: ${duration}s, peak ${(peak*gain).toFixed(3)}`);
 }
 function bell(t, freq, decay) {

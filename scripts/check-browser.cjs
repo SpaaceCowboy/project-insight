@@ -1,7 +1,11 @@
+const {rootPath,screenshotPath}=require('./check-paths.cjs');
 const {dismissMenus,home,play,settings,settingClick,collection}=require('./check-ui-helpers.cjs');
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const {chromium} = require(process.env.PLAYWRIGHT_PATH || 'playwright');
+const {CORE_LEVELS}=require('../src/data/levels.js');
+const {LEVEL_SOLUTIONS}=require('../src/data/level-solutions.js');
+const {PuzzleRules}=require('../src/puzzle-rules.js');
 
 (async () => {
   const server = require('./check-server.cjs').createServer();
@@ -82,7 +86,7 @@ const {chromium} = require(process.env.PLAYWRIGHT_PATH || 'playwright');
     await campaign.locator('#winNextBtn').click();
     assert.match(await campaign.locator('#levelNo').textContent(),/002/);
     assert(await campaign.locator('#nextBtn').isDisabled());
-    const routeTwo=JSON.parse(fs.readFileSync('level-checks.json','utf8'))[1];
+    const routeTwo=JSON.parse(fs.readFileSync(rootPath('artifacts','level-checks.json'),'utf8'))[1];
     await move(...routeTwo.path[0],routeTwo.width,campaign);
     await campaign.waitForFunction(()=>document.querySelector('#moves').textContent==='1');
     const campaignAttempt=await snapshot(campaign);
@@ -96,7 +100,7 @@ const {chromium} = require(process.env.PLAYWRIGHT_PATH || 'playwright');
     assert.equal(await campaign.locator('#devModeBtn').getAttribute('aria-pressed'),'true','Developer mode persists');
     await play(campaign);await choose(105,campaign);
     assert.match(await campaign.locator('#levelNo').textContent(),/106/);
-    const finalRoute=JSON.parse(fs.readFileSync('level-checks.json','utf8'))[105];
+    const finalRoute=JSON.parse(fs.readFileSync(rootPath('artifacts','level-checks.json'),'utf8'))[105];
     for(const [i,[from,to]] of finalRoute.path.entries()){
       await move(from,to,finalRoute.width,campaign);
       await campaign.waitForFunction(n=>document.querySelector('#moves').textContent===String(n),i+1);
@@ -135,7 +139,7 @@ const {chromium} = require(process.env.PLAYWRIGHT_PATH || 'playwright');
     assert.deepEqual(await campaign.evaluate(()=>JSON.parse(localStorage.getItem('insight-campaign-r2-classic')).done),{10:2});
     await campaign.close();
     // Keyboard solve, focus trap/return, progress, undo, and preference persistence.
-    const resultsForShape=await page.evaluate(()=>window.CORE_LEVELS);
+    const resultsForShape=CORE_LEVELS;
     const first=await state();
     await move(0,1,2);
     await page.locator('#winOverlay').waitFor({state:'visible'});
@@ -176,7 +180,7 @@ const {chromium} = require(process.env.PLAYWRIGHT_PATH || 'playwright');
     await page.keyboard.press('Escape');
     await page.locator('#undoBtn').click();
     // A white tile can receive a tap swap although it cannot initiate one.
-    const passengerFixture=await page.evaluate(()=>{for(let i=0;i<CORE_LEVELS.length;i++){const l=CORE_LEVELS[i],state=PuzzleRules.initialState(l);for(let r=0;r<state.board.length;r++)for(let c=0;c<state.board[r].length;c++)for(const to of PuzzleRules.legalMoves(state.board,r,c,null))if(state.board[to[0]][to[1]]==='W')return {i,from:[r,c],to}}});
+    const passengerFixture=(()=>{for(let i=0;i<CORE_LEVELS.length;i++){const l=CORE_LEVELS[i],state=PuzzleRules.initialState(l);for(let r=0;r<state.board.length;r++)for(let c=0;c<state.board[r].length;c++)for(const to of PuzzleRules.legalMoves(state.board,r,c,null))if(state.board[to[0]][to[1]]==='W')return {i,from:[r,c],to}}})();
     await choose(passengerFixture.i);await tile(...passengerFixture.from).click();await tile(...passengerFixture.to).click();await page.waitForFunction(()=>document.querySelector('#moves').textContent==='1');assert.equal(await tile(...passengerFixture.from).getAttribute('data-type'),'W');
     await choose(0);
     // Restart and level switch while a move is still animating.
@@ -201,20 +205,20 @@ const {chromium} = require(process.env.PLAYWRIGHT_PATH || 'playwright');
     assert.equal(await page.locator('#winOverlay').isVisible(),false);
     await page.emulateMedia({reducedMotion:'reduce'});
     // Play every verified solution through the actual keyboard UI.
-    const results=JSON.parse(fs.readFileSync('level-checks.json','utf8'));
+    const results=JSON.parse(fs.readFileSync(rootPath('artifacts','level-checks.json'),'utf8'));
     // An isolated returning player migrates a v1 save, keeps both modes, and recovers a restart.
     const ux=await browser.newPage({viewport:{width:1280,height:720},reducedMotion:'reduce'});
     ux.on('pageerror',e=>errors.push(e.message));
     await ux.goto(page.url());await ux.waitForFunction(()=>document.documentElement.dataset.ready==='true');
-    await ux.evaluate(()=>{
+    await ux.evaluate(({level,route})=>{
       localStorage.clear();
       localStorage.setItem('insight-dev-mode-v1','on');
       localStorage.setItem('insight-tile-limits-v1','off');
       localStorage.setItem('insight-sound-v1','off');
       localStorage.setItem('insight-volume-v1','.5');
       localStorage.setItem('insight-voice-v1','off');
-      const l=CORE_LEVELS[1],w=l.start[0].length,route=LEVEL_SOLUTIONS[1];localStorage.setItem('insight-session-r2',JSON.stringify({revision:2,level:1,limits:false,allowances:null,path:[route[0].map(n=>[Math.floor(n/w),n%w])]}));
-    });
+      const w=level.start[0].length;localStorage.setItem('insight-session-r2',JSON.stringify({revision:2,level:1,limits:false,allowances:null,path:[route[0].map(n=>[Math.floor(n/w),n%w])]}));
+    },{level:CORE_LEVELS[1],route:LEVEL_SOLUTIONS[1]});
     await ux.reload();await ux.waitForFunction(()=>document.documentElement.dataset.ready==='true');
     await play(ux);
     assert.equal(await ux.locator('#moves').textContent(),'1','Legacy route restored');
@@ -258,7 +262,7 @@ const {chromium} = require(process.env.PLAYWRIGHT_PATH || 'playwright');
     await ux.waitForFunction(()=>document.querySelector('#moves').textContent==='1');
     assert.equal(await ux.locator('.tile.arrived').count(),1,'Only the newly correct tile glows');
     assert.equal(await ux.locator('.tile.arrived').evaluate(el=>getComputedStyle(el).animationName),'tileArrival');
-    await ux.screenshot({path:'game-arrival.png'});
+    await ux.screenshot({path:screenshotPath('game-arrival.png')});
     await ux.locator('#undoBtn').click();
     assert.equal(await ux.locator('.tile.arrived').count(),0);
     await choose(0,ux);
@@ -336,10 +340,10 @@ const {chromium} = require(process.env.PLAYWRIGHT_PATH || 'playwright');
     assert(bounds.every(([left,right])=>left>=0&&right<=320),'Tiles fit narrow viewport');
     assert.match(await page.locator('meta[name="viewport"]').getAttribute('content'),/initial-scale=1/);
     assert(!/user-scalable|maximum-scale/.test(await page.locator('meta[name="viewport"]').getAttribute('content')));
-    await page.screenshot({path:'game-mobile.png',fullPage:true});
+    await page.screenshot({path:screenshotPath('game-mobile.png'),fullPage:true});
     await page.setViewportSize({width:1280,height:960});
     await choose(99);
-    await page.screenshot({path:'game-desktop.png',fullPage:true});
+    await page.screenshot({path:screenshotPath('game-desktop.png'),fullPage:true});
     // Limited-mode stars remain separate; counters follow tiles and undo restores them.
     await home(page);
     await settingClick(page,'limitsBtn');
@@ -421,11 +425,12 @@ const {chromium} = require(process.env.PLAYWRIGHT_PATH || 'playwright');
     await choose(2);await page.locator('#restartBtn').click();
     for(let i=0;i<60;i++) {
       if(await page.locator('#emptyOverlay').isVisible())break;
-      const pair=await page.evaluate(()=>{
+      const tiles=await page.locator('#board .tile').evaluateAll(tiles=>tiles.map(tile=>({r:+tile.dataset.r,c:+tile.dataset.c,type:tile.dataset.type,remaining:tile.classList.contains('white')?0:+tile.querySelector('.tile-allowance').textContent})));
+      const pair=(()=>{
         const level=CORE_LEVELS[2],state=PuzzleRules.initialState(level,level.start.map(row=>[...row].map(t=>t==='W'||t==='.'?0:6))),width=level.start[0].length;
-        for(const tile of document.querySelectorAll('#board .tile')){const r=+tile.dataset.r,c=+tile.dataset.c;state.board[r][c]=tile.dataset.type;state.remaining[r][c]=tile.classList.contains('white')?0:+tile.querySelector('.tile-allowance').textContent;}
+        for(const {r,c,type,remaining} of tiles){state.board[r][c]=type;state.remaining[r][c]=remaining;}
         for(let r=0;r<state.board.length;r++)for(let c=0;c<width;c++)for(const b of PuzzleRules.legalMoves(state.board,r,c,state.remaining)){const next=PuzzleRules.transition(state,[r,c],b,level);if(PuzzleRules.key(next.board)!==level.target.join('|'))return [r*width+c,b[0]*width+b[1],width];}
-      });
+      })();
       if(!pair)break;
       const count=+(await page.locator('#moves').textContent());await move(...pair);await page.waitForFunction(n=>document.querySelector('#moves').textContent===String(n),count+1);
     }
@@ -463,7 +468,7 @@ const {chromium} = require(process.env.PLAYWRIGHT_PATH || 'playwright');
       }
       await context.close();
       return decoded;
-    },['ambient','select','move','deny','win','voice'].map(name=>[name,fs.readFileSync(`sounds/${name}.wav`).toString('base64')]));
+    },['ambient','select','move','deny','win','voice'].map(name=>[name,fs.readFileSync(rootPath('public','sounds',`${name}.wav`)).toString('base64')]));
     assert(audioInfo.every(sound=>sound.duration>0&&sound.peak>.005&&sound.peak<1));
     if(await page.locator('#soundBtn').getAttribute('aria-label')==='Enable sound') await page.locator('#soundBtn').click();
     await page.evaluate(()=>{window.InsightAudio.stopNotes();window.InsightAudio.playTone('move','P');});
@@ -483,11 +488,11 @@ const {chromium} = require(process.env.PLAYWRIGHT_PATH || 'playwright');
     await page.waitForFunction(()=>[...document.querySelectorAll('.tile')].every(el=>el.offsetWidth>=44 && el.getBoundingClientRect().width>=43.99));
     assert(await page.locator('.tile').evaluateAll(els=>els.every(el=>el.getBoundingClientRect().width>=44)),'Five-row mobile tiles retain a 44px touch target');
     assert(await page.locator('.tile-allowance').evaluateAll(els=>els.every(el=>{const r=el.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.bottom<=innerHeight;})),'Limited map fits narrow screen');
-    await page.screenshot({path:'game-mobile.png',fullPage:true});
+    await page.screenshot({path:screenshotPath('game-mobile.png'),fullPage:true});
     await page.setViewportSize({width:1280,height:720});
-    await page.screenshot({path:'game-desktop.png',fullPage:true});
+    await page.screenshot({path:screenshotPath('game-desktop.png'),fullPage:true});
     await home(page);
-    await page.screenshot({path:'game-menu.png',fullPage:true});
+    await page.screenshot({path:screenshotPath('game-menu.png'),fullPage:true});
     await page.keyboard.press('Escape');
     assert.match(await page.locator('#nextBtn').textContent(),/Replay final/);
     // Back to classic mode for the blocked-storage regression.

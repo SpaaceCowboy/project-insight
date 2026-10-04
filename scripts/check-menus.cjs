@@ -1,3 +1,4 @@
+const {rootPath,screenshotPath}=require('./check-paths.cjs');
 const assert=require('node:assert/strict');
 const {chromium}=require(process.env.PLAYWRIGHT_PATH||'playwright');
 const {home,play,settings,dismissMenus}=require('./check-ui-helpers.cjs');
@@ -49,10 +50,10 @@ const {home,play,settings,dismissMenus}=require('./check-ui-helpers.cjs');
         });
         assert(overflow.fits,selector+' fits '+viewport.width+'×'+viewport.height+' '+JSON.stringify(overflow));
       }
-      await fits('#menuOverlay .menu-card');await page.screenshot({path:`home-${viewport.width}.png`});
-      await page.locator('#newGameBtn').click();await fits('.confirmation-card');await page.screenshot({path:`confirmation-${viewport.width}.png`});await page.locator('#confirmCancel').click();
-      for(const tab of ['play','sound','appearance']) {await settings(page,tab);await fits('.settings-card');await page.screenshot({path:`settings-${tab}-${viewport.width}.png`})}
-      await page.locator('#closeSettings').click();await play(page);await page.locator('#menuBtn').click();await fits('.pause-card');await page.screenshot({path:`pause-${viewport.width}.png`});
+      await fits('#menuOverlay .menu-card');await page.screenshot({path:screenshotPath(`home-${viewport.width}.png`)});
+      await page.locator('#newGameBtn').click();await fits('.confirmation-card');await page.screenshot({path:screenshotPath(`confirmation-${viewport.width}.png`)});await page.locator('#confirmCancel').click();
+      for(const tab of ['play','sound','appearance']) {await settings(page,tab);await fits('.settings-card');await page.screenshot({path:screenshotPath(`settings-${tab}-${viewport.width}.png`)})}
+      await page.locator('#closeSettings').click();await play(page);await page.locator('#menuBtn').click();await fits('.pause-card');await page.screenshot({path:screenshotPath(`pause-${viewport.width}.png`)});
     }
     await page.setViewportSize({width:375,height:667});await settings(page,'play');
     await page.locator('#limitsBtn').click();assert(await page.locator('#settingsOverlay').isVisible(),'Mode changes keep settings open');

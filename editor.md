@@ -20,4 +20,4 @@ Drafts autosave under `insight-editor-drafts-v1`; custom playtest attempts use `
 
 ## Checks
 
-`node check-editor.cjs` verifies the solver, pointer and touch drag/drop, placeholders, keyboard placement, drop undo/redo, draft persistence, import/export, custom attempt/mode isolation, cancellation, damaged/blocked storage, and a worker launched from the production bundle. It checks all panels at 320×568, 375×667, 768×600, 1280×720, and 844×390; 5×5 placement keeps 44px cells at 320×568. Desktop and phone previews are `editor-desktop.png` and `editor-mobile.png`. Human usability sessions have not been run.
+`node scripts/check-editor.cjs` verifies the solver, pointer and touch drag/drop, placeholders, keyboard placement, drop undo/redo, draft persistence, import/export, custom attempt/mode isolation, cancellation, damaged/blocked storage, and a worker launched from the production bundle. It checks all panels at 320×568, 375×667, 768×600, 1280×720, and 844×390; 5×5 placement keeps 44px cells at 320×568. Desktop and phone previews are `artifacts/screenshots/editor-desktop.png` and `artifacts/screenshots/editor-mobile.png`. Human usability sessions have not been run.

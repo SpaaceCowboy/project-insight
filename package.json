@@ -1,16 +1,18 @@
 {
   "name": "project-insight",
   "private": true,
+  "type": "module",
   "version": "1.0.0",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 8000 --strictPort",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "check:levels": "node check-levels.cjs",
-    "check:game": "node check-browser.cjs",
-    "check:achievements": "node check-achievements.cjs",
-    "check:menus": "node check-menus.cjs",
-    "check:editor": "node check-editor.cjs"
+    "check:levels": "node scripts/check-levels.cjs",
+    "check:game": "node scripts/check-browser.cjs",
+    "check:achievements": "node scripts/check-achievements.cjs",
+    "check:menus": "node scripts/check-menus.cjs",
+    "check:editor": "node scripts/check-editor.cjs",
+    "check:react": "node scripts/check-react.cjs"
   },
   "dependencies": {
     "react": "19.3.0",

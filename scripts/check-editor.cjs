@@ -1,12 +1,12 @@
+const {rootPath,screenshotPath}=require('./check-paths.cjs');
 const {dismissMenus,home,play,settings,settingClick,collection}=require('./check-ui-helpers.cjs');
 const fs=require('node:fs');
 const assert=require('node:assert/strict');
-const vm=require('node:vm');
-const rules=require('./puzzle-rules.js');
-const solver=require('./puzzle-solver.js');
-const levels=vm.runInNewContext(fs.readFileSync('levels.js','utf8')+';CORE_LEVELS');
+const {PuzzleRules:rules}=require('../src/puzzle-rules.js');
+const {PuzzleSolver:solver}=require('../src/puzzle-solver.js');
+const {CORE_LEVELS:levels}=require('../src/data/levels.js');
 const sample=JSON.parse(JSON.stringify(levels[0]));
-const certificates=vm.runInNewContext(fs.readFileSync('level-solutions.js','utf8')+';LEVEL_SOLUTIONS');
+const {LEVEL_SOLUTIONS:certificates}=require('../src/data/level-solutions.js');
 assert.equal(certificates.length,levels.length);
 for(const [i,level] of levels.entries())assert.equal(solver.verify(level,{path:certificates[i]}).par,level.par,'Cached route matches its campaign puzzle');
 for(const directions of Object.values(rules.moves))for(const [r,c] of directions)assert(directions.some(([rr,cc])=>rr===-r&&cc===-c));
@@ -239,8 +239,8 @@ assert.equal(solver.verify(sample,{path:longRoute}).fitsLimits,false,'Routes nee
     await page.locator('#clearBoard').click();await page.locator('#confirmAccept').click();assert((await draft()).start.every(row=>/^\.+$/.test(row)));
     await page.locator('#editUndo').click();
     await page.locator('#boardWidth').selectOption('3');await page.locator('#boardHeight').selectOption('3');await validate();
-    await page.locator('#paintTab').click();await page.screenshot({path:'editor-desktop.png'});
-    await page.setViewportSize({width:375,height:667});await page.screenshot({path:'editor-mobile.png'});
+    await page.locator('#paintTab').click();await page.screenshot({path:screenshotPath('editor-desktop.png')});
+    await page.setViewportSize({width:375,height:667});await page.screenshot({path:screenshotPath('editor-mobile.png')});
     const filePage=await browser.newPage({reducedMotion:'reduce'});filePage.on('pageerror',error=>errors.push(error.message));
     await filePage.goto(base+'/Editor.html');await filePage.waitForFunction(()=>document.documentElement.dataset.ready==='true');
     await filePage.locator('#filesTab').click();

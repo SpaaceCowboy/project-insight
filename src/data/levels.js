@@ -1,5 +1,5 @@
 // Stable campaign positions; changed boards have individual revisions.
-const CORE_LEVELS = [
+export const CORE_LEVELS = [
   {
     "name": "The First Turn",
     "start": [
@@ -3889,4 +3889,3 @@ const CORE_LEVELS = [
     ]
   }
 ];
-if(typeof window!=='undefined')window.CORE_LEVELS=CORE_LEVELS;

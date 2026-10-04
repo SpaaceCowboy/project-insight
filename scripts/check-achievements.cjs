@@ -1,11 +1,11 @@
+const {rootPath,screenshotPath}=require('./check-paths.cjs');
 const {dismissMenus,home,play,settings,settingClick,collection}=require('./check-ui-helpers.cjs');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
-const vm=require('node:vm');
-const levels=vm.runInNewContext(fs.readFileSync('levels.js','utf8')+';CORE_LEVELS');
+const {CORE_LEVELS:levels}=require('../src/data/levels.js');
 
 (async()=>{
-  const {createAchievements,newAttempt,restoreAttempt,ACHIEVEMENTS_KEY,APPEARANCE_KEY}=await import('./achievements.mjs');
+  const {createAchievements,newAttempt,restoreAttempt,ACHIEVEMENTS_KEY,APPEARANCE_KEY}=await import('../src/achievements.mjs');
   function memory(initial={}) {
     const values=new Map(Object.entries(initial));
     return {getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value),values};
@@ -98,7 +98,7 @@ const levels=vm.runInNewContext(fs.readFileSync('levels.js','utf8')+';CORE_LEVEL
     async function move(from,to,width) {
       for(const index of [from,to]){await page.locator(`.tile[data-r="${Math.floor(index/width)}"][data-c="${index%width}"]`).focus();await page.keyboard.press('Enter')}
     }
-    const routes=JSON.parse(fs.readFileSync('level-checks.json','utf8'));
+    const routes=JSON.parse(fs.readFileSync(rootPath('artifacts','level-checks.json'),'utf8'));
     async function solve(index) {
       const route=routes[index];
       for(const [i,[a,b]] of route.path.entries()){await move(a,b,route.width);await page.waitForFunction(n=>document.querySelector('#moves').textContent===String(n),i+1)}
@@ -136,7 +136,7 @@ const levels=vm.runInNewContext(fs.readFileSync('levels.js','utf8')+';CORE_LEVEL
       assert(await page.locator('.achievement-notice').evaluate(el=>{
         const r=el.getBoundingClientRect();return r.top>=0 && r.bottom<=innerHeight && r.left>=0 && r.right<=innerWidth;
       }),'Corner popup fits '+viewport.width+'×'+viewport.height);
-      if(viewport.width===320 || viewport.width===1280)await page.screenshot({path:`achievement-popup-${viewport.width}.png`});
+      if(viewport.width===320 || viewport.width===1280)await page.screenshot({path:screenshotPath(`achievement-popup-${viewport.width}.png`)});
     }
     await page.waitForFunction(()=>document.querySelector('.achievement-notice')?.dataset.achievement==='perfect-1',null,{timeout:7000});
     assert.match(await page.locator('.achievement-notice').textContent(),/First Perfect.*Frosted unlocked/,'Multiple unlocks appear in sequence');
@@ -148,7 +148,7 @@ const levels=vm.runInNewContext(fs.readFileSync('levels.js','utf8')+';CORE_LEVEL
     await page.locator('.achievement-notice[data-achievement=perfect-1]').waitFor();
     await page.emulateMedia({reducedMotion:'no-preference'});
     assert.match(await page.locator('.achievement-notice').evaluate(el=>getComputedStyle(el).animationName),/achievementNoticeEnter/,'Default animation uses a gentle entrance');
-    await page.screenshot({path:'achievement-popup-reward.png'});
+    await page.screenshot({path:screenshotPath('achievement-popup-reward.png')});
     await page.emulateMedia({reducedMotion:'reduce'});
     await page.locator('.achievement-notice').waitFor({state:'detached',timeout:7000});
     await page.setViewportSize({width:375,height:667});
@@ -250,15 +250,15 @@ const levels=vm.runInNewContext(fs.readFileSync('levels.js','utf8')+';CORE_LEVEL
       const overflow=await page.locator('#achievementsOverlay').evaluate(el=>[...el.querySelectorAll('.modal,button,h3,p,progress')].filter(el=>el.getClientRects().length).filter(el=>{
         const r=el.getBoundingClientRect(),card=el.closest('.modal').getBoundingClientRect();return !(r.left>=0 && r.right<=innerWidth+.5 && r.top>=0 && r.bottom<=innerHeight+.5 && r.bottom<=card.bottom+.5);
       }).map(el=>({element:el.tagName,text:el.textContent,rect:el.getBoundingClientRect().toJSON(),viewport:[innerWidth,innerHeight]})));
-      if(overflow.length)await page.screenshot({path:'achievements-overflow.png'});
+      if(overflow.length)await page.screenshot({path:screenshotPath('achievements-overflow.png')});
       assert.deepEqual(overflow,[],'Achievement content fits one screen');
     }
     for(const viewport of viewports) {
       await page.setViewportSize(viewport);await fits();
-      await page.screenshot({path:`achievements-appearance-${viewport.width}x${viewport.height}.png`});
+      await page.screenshot({path:screenshotPath(`achievements-appearance-${viewport.width}x${viewport.height}.png`)});
       await page.locator('#achievementTab-collection').click();
       for(let i=0;i<4;i++) {await fits();if(i<3)await page.getByRole('button',{name:'Next achievements page'}).click()}
-      await page.screenshot({path:`achievements-collection-${viewport.width}x${viewport.height}.png`});
+      await page.screenshot({path:screenshotPath(`achievements-collection-${viewport.width}x${viewport.height}.png`)});
       for(let i=0;i<3;i++)await page.getByRole('button',{name:'Previous achievements page'}).click();
       await page.locator('#achievementTab-appearance').click();
     }
@@ -276,7 +276,7 @@ const levels=vm.runInNewContext(fs.readFileSync('levels.js','utf8')+';CORE_LEVEL
     assert.match(await page.locator('#toast').textContent(),/storage unavailable/);
     // The development reset leaves campaign data untouched and has an explicit restore.
     const resetPage=await browser.newPage();resetPage.on('pageerror',error=>errors.push(error.message));
-    await resetPage.route('**/tools/achievement-progress.html',route=>route.fulfill({contentType:'text/html',body:fs.readFileSync('tools/achievement-progress.html','utf8')}));
+    await resetPage.route('**/tools/achievement-progress.html',route=>route.fulfill({contentType:'text/html',body:fs.readFileSync(rootPath('tools','achievement-progress.html'),'utf8')}));
     await resetPage.goto(base+'/Puzzle.html');await resetPage.waitForFunction(()=>document.documentElement.dataset.ready==='true');
     const resetBefore={badges:completeStore.getItem(ACHIEVEMENTS_KEY),appearance:JSON.stringify({version:1,background:'aurora',finish:'metal'})};
     await resetPage.evaluate(saved=>{

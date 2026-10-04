@@ -6,7 +6,7 @@ The menu now opens My Puzzles · Editor. The studio supports 1–5-row/column bo
 
 The game, editor, and Node checks share movement rules and tile graphics. A cancellable worker verifies solvability, optimal par, and the initiating tile budgets. Search limits report unverified. Playtest uses the existing game and returns to the same draft; custom attempts are separated by draft/mode and campaign progress remains isolated. See `editor.md` for controls, format, and limits.
 
-Verification passed: all 106 solver routes, 212 campaign browser playthroughs, and the studio checks for drag/drop, placeholders, keyboard/touch, undo/redo, persistence, import/export, custom attempts/modes, cancellation, damaged/blocked storage, direct-file validation, and five viewport sizes. Screenshots are `editor-desktop.png` and `editor-mobile.png`. Human playtesting remains pending.
+Verification passed: all 106 solver routes, 212 campaign browser playthroughs, and the studio checks for drag/drop, placeholders, keyboard/touch, undo/redo, persistence, import/export, custom attempts/modes, cancellation, damaged/blocked storage, direct-file validation, and five viewport sizes. Screenshots are `artifacts/screenshots/editor-desktop.png` and `artifacts/screenshots/editor-mobile.png`. Human playtesting remains pending.
 
 ## Player Trust and Feedback — 2026-10-02
 
@@ -28,7 +28,7 @@ Tap twice, drag, or use the keyboard to swap. Small pointer jitter is treated as
 
 Continue keeps the live board. Reload restores an unfinished puzzle, its exact starting allowances, remaining allowances, light color, and undo route. Saved routes are validated by replaying legal moves; malformed saves fall back to an unfinished level. Existing stars and preference keys remain compatible. Sound mute is now saved too.
 
-Each tile color has a native musical pluck from one pentatonic scale; undo plays a descending response. Existing local sounds provide ambience, completion, and a fallback. No runtime dependency was added. See `sounds/README.md`.
+Each tile color has a native musical pluck from one pentatonic scale; undo plays a descending response. Existing local sounds provide ambience, completion, and a fallback. No runtime dependency was added. See `public/sounds/README.md`.
 
 Verification passed: all 106 solver routes and 212 browser playthroughs (classic and limited). Browser checks also cover mouse taps with jitter, real touch taps, passive tile swaps, exact resume and undo, malformed saved routes, saved mute, musical frequencies/volume, budget exhaustion, focus, and five viewport sizes. Five-row maps retain 44px tiles at 320×568. Before/after desktop and phone screenshots are included, alongside menu, Zen, and dawn previews.
 
@@ -44,7 +44,7 @@ Random allocations respect a verified solution's minimum requirements, so every 
 
 Six local WAV files provide slow, spacious pads, occasional distant chimes, soft selection and movement notes, a low invalid-move note, a completion chime, and an occasional “Lovely.” voice cue. All are original instrumental sounds or synthesized speech; no Ori soundtrack is used.
 
-Recording levels and playback levels have both been raised. The menu has a saved 0–100% volume slider, defaulting to 80%. Sound mutes every layer, and background audio pauses when the page is hidden. Playback starts after interaction. See `sounds/README.md`.
+Recording levels and playback levels have both been raised. The menu has a saved 0–100% volume slider, defaulting to 80%. Sound mutes every layer, and background audio pauses when the page is hidden. Playback starts after interaction. See `public/sounds/README.md`.
 
 ## Tile-Reactive Moving Lights — Done
 

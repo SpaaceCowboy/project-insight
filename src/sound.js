@@ -41,32 +41,14 @@ function setVolume(value) {
   if (!Number.isFinite(value)) return;
   masterVolume=Math.max(0,Math.min(1,value));
   applyVolumes();
-  document.getElementById('volumeSlider').value=Math.round(masterVolume*100);
-  document.getElementById('volumeValue').value=Math.round(masterVolume*100)+'%';
 }
 function setAmbienceVolume(value) {
   if (!Number.isFinite(value)) return;
   ambienceVolume=Math.max(0,Math.min(1,value));
   applyVolumes();
-  document.getElementById('ambienceSlider').value=Math.round(ambienceVolume*100);
-  document.getElementById('ambienceValue').value=Math.round(ambienceVolume*100)+'%';
 }
 setVolume(masterVolume); setAmbienceVolume(ambienceVolume); applyVolumes(true);
-document.getElementById('voiceToggle').checked=voiceEnabled;
-listen(document.getElementById('volumeSlider'),'input',event=>{
-  setVolume(+event.target.value/100);
-  try {localStorage.setItem('insight-volume-v1',String(masterVolume));} catch {window.dispatchEvent(new Event('insight-storage-warning'))}
-});
-listen(document.getElementById('ambienceSlider'),'input',event=>{
-  setAmbienceVolume(+event.target.value/100);
-  try {localStorage.setItem('insight-ambience-volume-v1',String(ambienceVolume));} catch {window.dispatchEvent(new Event('insight-storage-warning'))}
-});
-listen(document.getElementById('voiceToggle'),'change',event=>{
-  voiceEnabled=event.target.checked;
-  if (!voiceEnabled) voiceSound.pause();
-  applyVolumes();
-  try {localStorage.setItem('insight-voice-v1',voiceEnabled ? 'on' : 'off');} catch {window.dispatchEvent(new Event('insight-storage-warning'))}
-});
+function setVoiceEnabled(value){voiceEnabled=!!value;if(!voiceEnabled)voiceSound.pause();applyVolumes()}
 
 // A pentatonic palette lets every tile share the same gentle harmony.
 function playTileNote(kind,type) {
@@ -145,6 +127,7 @@ listen(document,'visibilitychange', () => {
 });
 
 return {ambientSound,voiceSound,soundEffects,ringingNotes,playTone,stopMusic,stopNotes,
+  setVolume,setAmbienceVolume,setVoiceEnabled,get voiceEnabled(){return voiceEnabled},
   get masterVolume(){return masterVolume},get ambienceVolume(){return ambienceVolume},get noteGain(){return noteGain},
   dispose(){events.abort();cancelAnimationFrame(volumeFrame);clearTimeout(silenceTimer);
     for(const sound of [ambientSound,voiceSound,...Object.values(soundEffects)])sound.pause();

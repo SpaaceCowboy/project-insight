@@ -1,21 +1,18 @@
-import React, {useEffect,useState} from 'react';
+import React, {useEffect,useRef,useState} from 'react';
 
-export default function AchievementAnnouncer() {
-  const [queue,setQueue]=useState([]),[visible,setVisible]=useState(!document.hidden);
+export default function AchievementAnnouncer({queue,onDismiss}) {
+  const [visible,setVisible]=useState(!document.hidden),dismiss=useRef(onDismiss);dismiss.current=onDismiss;
   const current=queue[0];
   useEffect(()=>{
-    const earned=event=>setQueue(items=>[...items,...event.detail]);
     const visibility=()=>setVisible(!document.hidden);
-    window.addEventListener('insight-achievements-earned',earned);
     document.addEventListener('visibilitychange',visibility);
     return ()=>{
-      window.removeEventListener('insight-achievements-earned',earned);
       document.removeEventListener('visibilitychange',visibility);
     };
   },[]);
   useEffect(()=>{
     if(!current || !visible)return;
-    const timer=setTimeout(()=>setQueue(items=>items.slice(1)),5000);
+    const timer=setTimeout(()=>dismiss.current(),5000);
     return ()=>clearTimeout(timer);
   },[current,visible]);
   return <div className="achievement-announcer" role="status" aria-live="polite" aria-atomic="true">

@@ -1,15 +1,12 @@
 import React, {useEffect,useState,useSyncExternalStore} from 'react';
 import {achievements} from './achievement-store.js';
+import {Dialog} from './react-ui.jsx';
 
-export default function AchievementsPanel() {
+export default function AchievementsPanel({dialogs,request}) {
   const state=useSyncExternalStore(achievements.subscribe,achievements.getSnapshot);
   const [tab,setTab]=useState('collection'),[page,setPage]=useState(0);
   const pages=Math.ceil(state.badges.length/4);
-  useEffect(()=>{
-    const change=event=>setTab(event.detail==='appearance'?'appearance':'collection');
-    window.addEventListener('insight-collection-tab',change);
-    return ()=>window.removeEventListener('insight-collection-tab',change);
-  },[]);
+  useEffect(()=>setTab(request.tab==='appearance'?'appearance':'collection'),[request]);
   function changePage(next) {
     setPage(next);requestAnimationFrame(()=>document.getElementById('collectionPageStatus')?.focus());
   }
@@ -19,10 +16,10 @@ export default function AchievementsPanel() {
     const next=event.key==='Home'?'collection':event.key==='End'?'appearance':tab==='collection'?'appearance':'collection';
     setTab(next);document.getElementById('achievementTab-'+next).focus();
   }
-  return <div className="overlay" id="achievementsOverlay" role="dialog" aria-modal="true" aria-labelledby="achievementsTitle" inert={true}>
+  return <Dialog dialogs={dialogs} id="achievementsOverlay" role="dialog" aria-modal="true" aria-labelledby="achievementsTitle">
     <div className="modal achievement-modal">
       <div className="modal-head"><div><h2 id="achievementsTitle">Achievements</h2><p>{state.earnedCount} / {state.badges.length} earned · Yours to keep</p></div>
-        <button className="close" id="closeAchievements" aria-label="Close achievements">×</button></div>
+        <button className="close" id="closeAchievements" onClick={()=>dialogs.close()} aria-label="Close achievements">×</button></div>
       <div className="achievement-tabs" role="tablist" aria-label="Achievements and appearance">{['collection','appearance'].map(value=><button key={value} className="ui-btn" role="tab" id={'achievementTab-'+value}
         aria-selected={tab===value} aria-controls={'achievementPanel-'+value} tabIndex={tab===value?0:-1} onKeyDown={tabKeys} onClick={()=>setTab(value)}>{value==='collection'?'Collection':'Appearance'}</button>)}</div>
       <section className="collection-panel" role="tabpanel" id="achievementPanel-collection" aria-labelledby="achievementTab-collection" hidden={tab!=='collection'}>
@@ -45,5 +42,5 @@ export default function AchievementsPanel() {
         <p className="appearance-note">Keep your light or dark setting. Rewards change the look; your puzzle stays the same.</p>
       </section>
     </div>
-  </div>;
+  </Dialog>;
 }

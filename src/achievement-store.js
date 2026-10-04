@@ -1,5 +1,5 @@
 import {CORE_LEVELS} from './data.js';
-import {createAchievements} from '../achievements.mjs';
+import {createAchievements} from './achievements.mjs';
 
 let storageUnavailable=false;
 const storage={
@@ -11,10 +11,3 @@ export const achievements=createAchievements({levels:CORE_LEVELS,storage,progres
   window.dispatchEvent(new Event('insight-storage-warning'));
 }});
 export function hasAchievementStorageWarning() {return storageUnavailable}
-function applyAppearance() {
-  const {appearance}=achievements.getSnapshot();
-  document.body.dataset.background=appearance.background;
-  document.body.dataset.finish=appearance.finish;
-}
-applyAppearance();
-achievements.subscribe(applyAppearance);

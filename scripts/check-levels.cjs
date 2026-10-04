@@ -1,6 +1,7 @@
-const fs=require('node:fs'),assert=require('node:assert/strict'),vm=require('node:vm');
-const rules=require('./puzzle-rules.js'),solver=require('./puzzle-solver.js');
-const levels=JSON.parse(JSON.stringify(vm.runInNewContext(fs.readFileSync('levels.js','utf8')+';CORE_LEVELS')));
+const fs=require('node:fs'),assert=require('node:assert/strict');
+const {rootPath}=require('./check-paths.cjs');
+const {PuzzleRules:rules}=require('../src/puzzle-rules.js'),{PuzzleSolver:solver}=require('../src/puzzle-solver.js');
+const levels=JSON.parse(JSON.stringify(require('../src/data/levels.js').CORE_LEVELS));
 assert.equal(levels.length,106);
 const results=[];
 for(const [index,level] of levels.entries()){
@@ -20,7 +21,8 @@ for(const [index,level] of levels.entries()){
   results.push({level:index+1,name:level.name,world:level.world,par:level.par,limitedPar:level.limitedPar,width,...classic,limitedPath:limited.path});
   console.log((index+1)+': '+classic.distance+'/'+limited.distance+' moves '+level.name);
 }
-fs.writeFileSync('level-checks.json',JSON.stringify(results,null,2)+'\n');
-fs.writeFileSync('level-solutions.js','// Generated optimal routes for both campaign modes.\nconst LEVEL_SOLUTIONS = '+JSON.stringify(results.map(r=>r.path))+';\nconst LEVEL_LIMIT_SOLUTIONS = '+JSON.stringify(results.map(r=>r.limitedPath))+';\nif(typeof window!==\'undefined\'){window.LEVEL_SOLUTIONS=LEVEL_SOLUTIONS;window.LEVEL_LIMIT_SOLUTIONS=LEVEL_LIMIT_SOLUTIONS}\n');
-if(process.argv.includes('--update'))fs.writeFileSync('levels.js','// Stable campaign positions; changed boards have individual revisions.\nconst CORE_LEVELS = '+JSON.stringify(levels,null,2)+';\nif(typeof window!==\'undefined\')window.CORE_LEVELS=CORE_LEVELS;\n');
+fs.mkdirSync(rootPath('artifacts'),{recursive:true});
+fs.writeFileSync(rootPath('artifacts','level-checks.json'),JSON.stringify(results,null,2)+'\n');
+fs.writeFileSync(rootPath('src','data','level-solutions.js'),'// Generated optimal routes for both campaign modes.\nexport const LEVEL_SOLUTIONS = '+JSON.stringify(results.map(r=>r.path))+';\nexport const LEVEL_LIMIT_SOLUTIONS = '+JSON.stringify(results.map(r=>r.limitedPath))+';\n');
+if(process.argv.includes('--update'))fs.writeFileSync(rootPath('src','data','levels.js'),'// Stable campaign positions; changed boards have individual revisions.\nexport const CORE_LEVELS = '+JSON.stringify(levels,null,2)+';\n');
 console.log('All 106 puzzles verified in both modes.');

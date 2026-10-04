@@ -1,7 +1,5 @@
-import '../levels.js';
-import '../level-solutions.js';
-import '../puzzle-rules.js';
-import '../puzzle-solver.js';
-import '../tile-art.js';
-
-export const {CORE_LEVELS, LEVEL_SOLUTIONS, LEVEL_LIMIT_SOLUTIONS, PuzzleRules, PuzzleSolver, PuzzleArt}=window;
+export {CORE_LEVELS} from './data/levels.js';
+export {LEVEL_SOLUTIONS,LEVEL_LIMIT_SOLUTIONS} from './data/level-solutions.js';
+export {PuzzleRules} from './puzzle-rules.js';
+export {PuzzleSolver} from './puzzle-solver.js';
+export {PuzzleArt} from './tile-art.js';

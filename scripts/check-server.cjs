@@ -3,7 +3,7 @@ const http=require('node:http');
 const path=require('node:path');
 
 exports.createServer=()=>{
-  const root=path.resolve('dist');
+  const root=path.resolve(__dirname,'../dist');
   if(!fs.existsSync(path.join(root,'Puzzle.html')))throw new Error('Run npm run build before browser checks.');
   return http.createServer((req,res)=>{
     let file;

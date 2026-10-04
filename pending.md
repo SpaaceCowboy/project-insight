@@ -48,14 +48,14 @@ Tutorial descriptions, introductory explanations, and the explanation of passeng
 
 ## Maintainability — Completed
 
-- [x] Separate `Puzzle.html`, `styles.css`, `levels.js`, and `game.js`. Format level data, CSS, and complex control/rendering functions for review.
+- [x] Separate HTML entry points, React components and hooks, styles, and puzzle data. Keep app source in `src/`, checks in `scripts/`, sounds in `public/`, and generated previews in `artifacts/`.
 - [x] Remove unused extra mechanics, icons, metadata, and styles: portals, magnets, switches, dominoes, and other unused tile families.
-- [x] Keep the original plain JavaScript controllers and shared rules. The later user-requested React/Vite migration supersedes the original no-framework requirement.
+- [x] Migrate both screens and their state and interactions to React. Shared rules remain plain JavaScript modules. This supersedes the original no-framework requirement.
 - [x] Leave runnable Node checks and update `AGENTS.md` to match the structure and test commands.
 
 ## Verification & Progression Assessment
 
-`node check-levels.cjs` exhaustively solves the current puzzles and replays each solution against the game's actual rules. `level-checks.json` stores the shortest routes. `node check-browser.cjs` plays all 100 routes through keyboard controls and checks drag/cancel, undo, timer races, saved progress, preferences, blocked storage, focus management, and screen fit. The browser check uses an existing Playwright installation and Chrome; no dependency was added to the game.
+`node scripts/check-levels.cjs` exhaustively solves the current puzzles and replays each solution against the game's actual rules. `artifacts/level-checks.json` stores the shortest routes. `node scripts/check-browser.cjs` plays all 106 routes in both modes through keyboard controls and checks drag/cancel, undo, timer races, saved progress, preferences, blocked storage, focus management, and screen fit. The browser check uses an existing Playwright installation and Chrome; no dependency was added to the game.
 
 | World | Shortest route range | Average moves |
 | --- | --- | --- |
