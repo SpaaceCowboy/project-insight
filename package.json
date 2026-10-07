@@ -12,7 +12,8 @@
     "check:achievements": "node scripts/check-achievements.cjs",
     "check:menus": "node scripts/check-menus.cjs",
     "check:editor": "node scripts/check-editor.cjs",
-    "check:react": "node scripts/check-react.cjs"
+    "check:react": "node scripts/check-react.cjs",
+    "check:game2": "node scripts/check-game2.cjs"
   },
   "dependencies": {
     "react": "19.3.0",
