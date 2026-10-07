@@ -1,12 +1,14 @@
 // Generates the Game 2 campaign: designed targets, solver-selected starts.
 // Each slot fixes the target (pattern + colours + gaps), the tiles it teaches, a par band and a mood.
-// Starts are reverse-scrambled from the target, solved optimally, and scored. Seeds are fixed, so output is stable.
-// Run `node scripts/make-game2.cjs`, then `node scripts/check-levels.cjs --game 2 --update`.
-const fs=require('node:fs');
+// Starts are reverse-scrambled from the target, solved optimally, and scored. Seeds and state limits (no clock)
+// are fixed, so output is stable. Run `node scripts/make-game2.cjs`; it finishes with check-levels --game 2 --update.
+const fs=require('node:fs'),{execFileSync}=require('node:child_process');
 const {rootPath}=require('./check-paths.cjs');
 const {PuzzleRules:rules}=require('../src/puzzle-rules.js'),{PuzzleSolver:solver}=require('../src/puzzle-solver.js');
 const {CORE_LEVELS}=require('../src/data/levels.js');
-const LIMIT={maxStates:350000,timeout:8000};
+const LIMIT={maxStates:350000};
+// Search limits and unsolvable boards just reject a candidate; anything else is a bug and must stop the run.
+function rejected(error){if(/^(Search limit reached|Unsolvable)/.test(error.message))return true;throw error}
 
 const PATTERNS={
   rows:(r,c)=>r, cols:(r,c)=>c, checker:(r,c)=>r+c, slash:(r,c)=>r-c+99,
@@ -152,12 +154,12 @@ function scramble(target,steps,random){
 const without=Object.fromEntries('RBGYP'.split('').map(t=>{const r=rules.create();r.moves[t]=[];return [t,solver.create(r)]}));
 function needs(level,tile,par){
   try{return without[tile].solve(level,{maxStates:60000}).distance>par}
-  catch(error){return true} // ponytail: unsolvable or past 60k states both count as "needed"; exhaustive proof if a level ever looks skippable
+  catch(error){return rejected(error)} // ponytail: unsolvable or past 60k states both count as "needed"; exhaustive proof if a level ever looks skippable
 }
 
 const seen=new Set(CORE_LEVELS.map(l=>l.start.join('|')+'>'+l.target.join('|')));
 // Unchanged slots keep their previous start, so edits only re-search the slots that changed.
-let previous=[];try{previous=require('../src/data/levels-2.js').GAME2_LEVELS}catch{}
+let previous=[];try{previous=require('../src/data/levels-2.js').GAME2_LEVELS}catch(error){if(error.code!=='MODULE_NOT_FOUND')throw error}
 const levels=[],failures=[];
 WORLDS.forEach(([worldName,slots],w)=>slots.forEach(([name,size,pattern,colours,focus,[min,max],mood,gaps],i)=>{
   const dims=size.split('x').map(Number),target=makeTarget(dims,pattern,colours,gaps),random=rng((w+1)*1000+i);
@@ -165,13 +167,13 @@ WORLDS.forEach(([worldName,slots],w)=>slots.forEach(([name,size,pattern,colours,
   const tiles=new Set(target.join('').replace(/[.W]/g,''));
   if([...focus].some(t=>!tiles.has(t))){failures.push(`${name}: focus ${focus} not all in target ${target.join('|')}`);return}
   // Widen the par band one step at a time when a target cannot reach it; the log shows any slack used.
-  const kept=previous.find(l=>l.name===name && l.tag===mood && l.target.join('|')===target.join('|'));
-  if(kept){seen.add(kept.start.join('|')+'>'+target.join('|'));levels.push({name,start:kept.start,target,revision:kept.revision,world:w+1,tag:mood});console.log(String(levels.length).padStart(3)+' kept '+name);return}
+  const design={focus,band:[min,max]},kept=previous.find(l=>l.name===name && l.tag===mood && l.target.join('|')===target.join('|') && JSON.stringify(l.design)===JSON.stringify(design));
+  if(kept){seen.add(kept.start.join('|')+'>'+target.join('|'));levels.push({name,start:kept.start,target,world:w+1,tag:mood,design});console.log(String(levels.length).padStart(3)+' kept '+name);return}
   let best=null,slack=0;
   for(;!best && slack<=3;slack++)for(let attempt=0,found=0;attempt<200 && found<40;attempt++){
     const start=scramble(target,min+Math.floor(random()*(max-min+5)),random),key=start.join('|')+'>'+target.join('|');
     if(start.join('')===target.join('') || seen.has(key))continue;
-    let result;try{result=solver.solve({name,start,target},LIMIT)}catch{continue}
+    let result;try{result=solver.solve({name,start,target},LIMIT)}catch(error){if(rejected(error))continue}
     if(result.distance<min-slack || result.distance>max+slack)continue;
     const proof=solver.verify({name,start,target},result);if(!proof.fitsLimits)continue;
     const misplaced=[...start.join('')].filter((t,j)=>t!==target.join('')[j]).length,detour=result.distance-Math.ceil(misplaced/2);
@@ -182,11 +184,19 @@ WORLDS.forEach(([worldName,slots],w)=>slots.forEach(([name,size,pattern,colours,
   }
   if(!best){failures.push(`${worldName} ${i+1} ${name} ${target.join('|')}`);return}
   seen.add(best.key);
-  levels.push({name,start:best.start,target,revision:1,world:w+1,tag:mood});
+  levels.push({name,start:best.start,target,world:w+1,tag:mood,design});
   console.log(String(levels.length).padStart(3)+' '+worldName.padEnd(15)+name.padEnd(18)+best.par+(slack>1?' (band +'+(slack-1)+')':''));
 }));
 
+// A partial list would shift positions, so nothing is written unless every slot succeeded.
+if(failures.length)throw new Error('No level found for:\n'+failures.join('\n'));
+// Saved attempts and stars use positions; a changed board at a position gets the next revision so they cannot resume.
+levels.forEach((level,i)=>{
+  const before=previous[i],same=before && before.start.join('|')===level.start.join('|') && before.target.join('|')===level.target.join('|');
+  level.revision=!before?1:same?before.revision:before.revision+1;
+});
 const header='// Game 2 campaign, generated by scripts/make-game2.cjs; par fields come from check-levels --game 2 --update.\n';
 fs.writeFileSync(rootPath('src','data','levels-2.js'),header+'export const GAME2_WORLDS = '+JSON.stringify(Object.fromEntries(WORLDS.map(([n],i)=>[i+1,n])))+';\nexport const GAME2_LEVELS = '+JSON.stringify(levels,null,2)+';\n');
 console.log('Wrote '+levels.length+' levels.');
-if(failures.length)throw new Error('No level found for:\n'+failures.join('\n'));
+// Fill par, limitedPar and allowanceFloor, and write certificates; the game needs them before it can load.
+execFileSync(process.execPath,[rootPath('scripts','check-levels.cjs'),'--game','2','--update'],{stdio:'inherit'});

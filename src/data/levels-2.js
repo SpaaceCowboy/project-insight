@@ -11,9 +11,16 @@ export const GAME2_LEVELS = [
       "RR",
       "BB"
     ],
-    "revision": 1,
     "world": 1,
     "tag": "teach",
+    "design": {
+      "focus": "R",
+      "band": [
+        1,
+        1
+      ]
+    },
+    "revision": 1,
     "par": 1,
     "limitedPar": 1,
     "solution_len": 1,
@@ -40,9 +47,16 @@ export const GAME2_LEVELS = [
       "BB",
       "RR"
     ],
-    "revision": 1,
     "world": 1,
     "tag": "teach",
+    "design": {
+      "focus": "R",
+      "band": [
+        2,
+        3
+      ]
+    },
+    "revision": 1,
     "par": 2,
     "limitedPar": 2,
     "solution_len": 2,
@@ -71,9 +85,16 @@ export const GAME2_LEVELS = [
       "RB",
       "RB"
     ],
-    "revision": 1,
     "world": 1,
     "tag": "teach",
+    "design": {
+      "focus": "B",
+      "band": [
+        1,
+        2
+      ]
+    },
+    "revision": 1,
     "par": 2,
     "limitedPar": 2,
     "solution_len": 2,
@@ -98,9 +119,16 @@ export const GAME2_LEVELS = [
       "BRB",
       "BRB"
     ],
-    "revision": 1,
     "world": 1,
     "tag": "teach",
+    "design": {
+      "focus": "B",
+      "band": [
+        3,
+        3
+      ]
+    },
+    "revision": 1,
     "par": 3,
     "limitedPar": 3,
     "solution_len": 3,
@@ -129,9 +157,16 @@ export const GAME2_LEVELS = [
       "BRB",
       "RBR"
     ],
-    "revision": 1,
     "world": 1,
     "tag": "test",
+    "design": {
+      "focus": "RB",
+      "band": [
+        3,
+        4
+      ]
+    },
+    "revision": 1,
     "par": 4,
     "limitedPar": 4,
     "solution_len": 4,
@@ -163,9 +198,16 @@ export const GAME2_LEVELS = [
       "BRBR",
       "RBRB"
     ],
-    "revision": 1,
     "world": 1,
     "tag": "test",
+    "design": {
+      "focus": "RB",
+      "band": [
+        4,
+        5
+      ]
+    },
+    "revision": 1,
     "par": 4,
     "limitedPar": 4,
     "solution_len": 4,
@@ -198,9 +240,16 @@ export const GAME2_LEVELS = [
       "RR",
       "BB"
     ],
-    "revision": 1,
     "world": 1,
     "tag": "test",
+    "design": {
+      "focus": "RB",
+      "band": [
+        4,
+        5
+      ]
+    },
+    "revision": 1,
     "par": 5,
     "limitedPar": 5,
     "solution_len": 5,
@@ -235,9 +284,16 @@ export const GAME2_LEVELS = [
       "BBB",
       "RBR"
     ],
-    "revision": 1,
     "world": 1,
     "tag": "twist",
+    "design": {
+      "focus": "RB",
+      "band": [
+        5,
+        6
+      ]
+    },
+    "revision": 1,
     "par": 5,
     "limitedPar": 5,
     "solution_len": 5,
@@ -271,9 +327,16 @@ export const GAME2_LEVELS = [
       "WWW",
       "BBB"
     ],
-    "revision": 1,
     "world": 1,
     "tag": "teach",
+    "design": {
+      "focus": "RB",
+      "band": [
+        2,
+        4
+      ]
+    },
+    "revision": 1,
     "par": 4,
     "limitedPar": 4,
     "solution_len": 4,
@@ -307,9 +370,16 @@ export const GAME2_LEVELS = [
       "WWW",
       "RWR"
     ],
-    "revision": 1,
     "world": 1,
     "tag": "twist",
+    "design": {
+      "focus": "R",
+      "band": [
+        3,
+        4
+      ]
+    },
+    "revision": 1,
     "par": 2,
     "limitedPar": 2,
     "solution_len": 2,
@@ -343,9 +413,16 @@ export const GAME2_LEVELS = [
       "RWB",
       "WBR"
     ],
-    "revision": 1,
     "world": 1,
     "tag": "test",
+    "design": {
+      "focus": "RB",
+      "band": [
+        4,
+        5
+      ]
+    },
+    "revision": 1,
     "par": 5,
     "limitedPar": 5,
     "solution_len": 5,
@@ -377,9 +454,16 @@ export const GAME2_LEVELS = [
       "RRB",
       "RRB"
     ],
-    "revision": 1,
     "world": 1,
     "tag": "breather",
+    "design": {
+      "focus": "RB",
+      "band": [
+        2,
+        3
+      ]
+    },
+    "revision": 1,
     "par": 2,
     "limitedPar": 2,
     "solution_len": 2,
@@ -408,9 +492,16 @@ export const GAME2_LEVELS = [
       "B.B",
       "RRR"
     ],
-    "revision": 1,
     "world": 1,
     "tag": "teach",
+    "design": {
+      "focus": "RB",
+      "band": [
+        3,
+        4
+      ]
+    },
+    "revision": 1,
     "par": 3,
     "limitedPar": 3,
     "solution_len": 3,
@@ -442,9 +533,16 @@ export const GAME2_LEVELS = [
       ".BR.",
       "RBRB"
     ],
-    "revision": 1,
     "world": 1,
     "tag": "test",
+    "design": {
+      "focus": "RB",
+      "band": [
+        4,
+        5
+      ]
+    },
+    "revision": 1,
     "par": 3,
     "limitedPar": 3,
     "solution_len": 3,
@@ -475,9 +573,16 @@ export const GAME2_LEVELS = [
       "B.BR",
       "RBRB"
     ],
-    "revision": 1,
     "world": 1,
     "tag": "twist",
+    "design": {
+      "focus": "RB",
+      "band": [
+        5,
+        6
+      ]
+    },
+    "revision": 1,
     "par": 6,
     "limitedPar": 6,
     "solution_len": 6,
@@ -514,9 +619,16 @@ export const GAME2_LEVELS = [
       "BWRB",
       "BBB."
     ],
-    "revision": 1,
     "world": 1,
     "tag": "test",
+    "design": {
+      "focus": "RB",
+      "band": [
+        5,
+        6
+      ]
+    },
+    "revision": 1,
     "par": 6,
     "limitedPar": 6,
     "solution_len": 6,
@@ -553,9 +665,16 @@ export const GAME2_LEVELS = [
       "BBBB",
       "WWWW"
     ],
-    "revision": 1,
     "world": 1,
     "tag": "test",
+    "design": {
+      "focus": "RB",
+      "band": [
+        6,
+        7
+      ]
+    },
+    "revision": 1,
     "par": 7,
     "limitedPar": 7,
     "solution_len": 7,
@@ -592,9 +711,16 @@ export const GAME2_LEVELS = [
       "BBB",
       "RRR"
     ],
-    "revision": 1,
     "world": 1,
     "tag": "breather",
+    "design": {
+      "focus": "RB",
+      "band": [
+        3,
+        4
+      ]
+    },
+    "revision": 1,
     "par": 3,
     "limitedPar": 3,
     "solution_len": 3,
@@ -628,9 +754,16 @@ export const GAME2_LEVELS = [
       "RRBB",
       "BBRR"
     ],
-    "revision": 1,
     "world": 1,
     "tag": "twist",
+    "design": {
+      "focus": "RB",
+      "band": [
+        7,
+        8
+      ]
+    },
+    "revision": 1,
     "par": 8,
     "limitedPar": 8,
     "solution_len": 8,
@@ -669,9 +802,16 @@ export const GAME2_LEVELS = [
       "RRRR",
       "WWWW"
     ],
-    "revision": 1,
     "world": 1,
     "tag": "boss",
+    "design": {
+      "focus": "RB",
+      "band": [
+        8,
+        9
+      ]
+    },
+    "revision": 1,
     "par": 9,
     "limitedPar": 9,
     "solution_len": 9,
@@ -712,9 +852,16 @@ export const GAME2_LEVELS = [
       "GG",
       "RR"
     ],
-    "revision": 1,
     "world": 2,
     "tag": "teach",
+    "design": {
+      "focus": "G",
+      "band": [
+        1,
+        2
+      ]
+    },
+    "revision": 1,
     "par": 1,
     "limitedPar": 1,
     "solution_len": 1,
@@ -741,9 +888,16 @@ export const GAME2_LEVELS = [
       "WWW",
       "GGG"
     ],
-    "revision": 1,
     "world": 2,
     "tag": "teach",
+    "design": {
+      "focus": "G",
+      "band": [
+        2,
+        3
+      ]
+    },
+    "revision": 1,
     "par": 3,
     "limitedPar": 3,
     "solution_len": 3,
@@ -775,9 +929,16 @@ export const GAME2_LEVELS = [
       "YB",
       "YB"
     ],
-    "revision": 1,
     "world": 2,
     "tag": "teach",
+    "design": {
+      "focus": "Y",
+      "band": [
+        1,
+        2
+      ]
+    },
+    "revision": 1,
     "par": 1,
     "limitedPar": 1,
     "solution_len": 1,
@@ -804,9 +965,16 @@ export const GAME2_LEVELS = [
       "YWY",
       "YWY"
     ],
-    "revision": 1,
     "world": 2,
     "tag": "teach",
+    "design": {
+      "focus": "Y",
+      "band": [
+        2,
+        3
+      ]
+    },
+    "revision": 1,
     "par": 3,
     "limitedPar": 3,
     "solution_len": 3,
@@ -840,9 +1008,16 @@ export const GAME2_LEVELS = [
       "YYY",
       "GGG"
     ],
-    "revision": 1,
     "world": 2,
     "tag": "test",
+    "design": {
+      "focus": "GY",
+      "band": [
+        3,
+        4
+      ]
+    },
+    "revision": 1,
     "par": 2,
     "limitedPar": 2,
     "solution_len": 2,
@@ -876,9 +1051,16 @@ export const GAME2_LEVELS = [
       "YYY",
       "WWW"
     ],
-    "revision": 1,
     "world": 2,
     "tag": "test",
+    "design": {
+      "focus": "GY",
+      "band": [
+        4,
+        5
+      ]
+    },
+    "revision": 1,
     "par": 5,
     "limitedPar": 5,
     "solution_len": 5,
@@ -912,9 +1094,16 @@ export const GAME2_LEVELS = [
       "YGYG",
       "YGYG"
     ],
-    "revision": 1,
     "world": 2,
     "tag": "twist",
+    "design": {
+      "focus": "GY",
+      "band": [
+        5,
+        6
+      ]
+    },
+    "revision": 1,
     "par": 6,
     "limitedPar": 6,
     "solution_len": 6,
@@ -951,9 +1140,16 @@ export const GAME2_LEVELS = [
       "GGGG",
       "YYYY"
     ],
-    "revision": 1,
     "world": 2,
     "tag": "breather",
+    "design": {
+      "focus": "GY",
+      "band": [
+        2,
+        3
+      ]
+    },
+    "revision": 1,
     "par": 3,
     "limitedPar": 3,
     "solution_len": 3,
@@ -990,9 +1186,16 @@ export const GAME2_LEVELS = [
       "RRR",
       "GGG"
     ],
-    "revision": 1,
     "world": 2,
     "tag": "test",
+    "design": {
+      "focus": "GR",
+      "band": [
+        4,
+        5
+      ]
+    },
+    "revision": 1,
     "par": 5,
     "limitedPar": 5,
     "solution_len": 5,
@@ -1026,9 +1229,16 @@ export const GAME2_LEVELS = [
       "YBY",
       "YBY"
     ],
-    "revision": 1,
     "world": 2,
     "tag": "test",
+    "design": {
+      "focus": "YB",
+      "band": [
+        4,
+        5
+      ]
+    },
+    "revision": 1,
     "par": 5,
     "limitedPar": 5,
     "solution_len": 5,
@@ -1062,9 +1272,16 @@ export const GAME2_LEVELS = [
       "BYB",
       "GRG"
     ],
-    "revision": 1,
     "world": 2,
     "tag": "twist",
+    "design": {
+      "focus": "RBGY",
+      "band": [
+        5,
+        6
+      ]
+    },
+    "revision": 1,
     "par": 6,
     "limitedPar": 6,
     "solution_len": 6,
@@ -1096,9 +1313,16 @@ export const GAME2_LEVELS = [
       "RGBY",
       "RGBY"
     ],
-    "revision": 1,
     "world": 2,
     "tag": "test",
+    "design": {
+      "focus": "RBGY",
+      "band": [
+        5,
+        6
+      ]
+    },
+    "revision": 1,
     "par": 6,
     "limitedPar": 6,
     "solution_len": 6,
@@ -1129,9 +1353,16 @@ export const GAME2_LEVELS = [
       "GGG",
       "YYY"
     ],
-    "revision": 1,
     "world": 2,
     "tag": "breather",
+    "design": {
+      "focus": "GY",
+      "band": [
+        3,
+        4
+      ]
+    },
+    "revision": 1,
     "par": 4,
     "limitedPar": 4,
     "solution_len": 4,
@@ -1165,9 +1396,16 @@ export const GAME2_LEVELS = [
       "GGYY",
       "YYRR"
     ],
-    "revision": 1,
     "world": 2,
     "tag": "test",
+    "design": {
+      "focus": "RGY",
+      "band": [
+        6,
+        7
+      ]
+    },
+    "revision": 1,
     "par": 7,
     "limitedPar": 7,
     "solution_len": 7,
@@ -1204,9 +1442,16 @@ export const GAME2_LEVELS = [
       "BBGG",
       "GGYY"
     ],
-    "revision": 1,
     "world": 2,
     "tag": "twist",
+    "design": {
+      "focus": "BGY",
+      "band": [
+        6,
+        7
+      ]
+    },
+    "revision": 1,
     "par": 7,
     "limitedPar": 7,
     "solution_len": 7,
@@ -1245,9 +1490,16 @@ export const GAME2_LEVELS = [
       "GBY",
       "GBY"
     ],
-    "revision": 1,
     "world": 2,
     "tag": "test",
+    "design": {
+      "focus": "RBGY",
+      "band": [
+        7,
+        8
+      ]
+    },
+    "revision": 1,
     "par": 8,
     "limitedPar": 8,
     "solution_len": 8,
@@ -1286,9 +1538,16 @@ export const GAME2_LEVELS = [
       "RRBB",
       "GGYY"
     ],
-    "revision": 1,
     "world": 2,
     "tag": "test",
+    "design": {
+      "focus": "RBGY",
+      "band": [
+        7,
+        8
+      ]
+    },
+    "revision": 1,
     "par": 8,
     "limitedPar": 8,
     "solution_len": 8,
@@ -1325,9 +1584,16 @@ export const GAME2_LEVELS = [
       "GYYG",
       "GGG."
     ],
-    "revision": 1,
     "world": 2,
     "tag": "twist",
+    "design": {
+      "focus": "GY",
+      "band": [
+        4,
+        5
+      ]
+    },
+    "revision": 1,
     "par": 4,
     "limitedPar": 4,
     "solution_len": 4,
@@ -1364,9 +1630,16 @@ export const GAME2_LEVELS = [
       "G.BB",
       "BBYY"
     ],
-    "revision": 1,
     "world": 2,
     "tag": "twist",
+    "design": {
+      "focus": "RBGY",
+      "band": [
+        8,
+        9
+      ]
+    },
+    "revision": 1,
     "par": 9,
     "limitedPar": 9,
     "solution_len": 9,
@@ -1405,9 +1678,16 @@ export const GAME2_LEVELS = [
       "RRBB",
       "RRBB"
     ],
-    "revision": 1,
     "world": 2,
     "tag": "boss",
+    "design": {
+      "focus": "RBGY",
+      "band": [
+        9,
+        10
+      ]
+    },
+    "revision": 1,
     "par": 10,
     "limitedPar": 10,
     "solution_len": 10,
@@ -1446,9 +1726,16 @@ export const GAME2_LEVELS = [
     "target": [
       "PRB"
     ],
-    "revision": 1,
     "world": 3,
     "tag": "teach",
+    "design": {
+      "focus": "P",
+      "band": [
+        1,
+        1
+      ]
+    },
+    "revision": 1,
     "par": 1,
     "limitedPar": 1,
     "solution_len": 1,
@@ -1472,9 +1759,16 @@ export const GAME2_LEVELS = [
       "WW",
       "RR"
     ],
-    "revision": 1,
     "world": 3,
     "tag": "teach",
+    "design": {
+      "focus": "P",
+      "band": [
+        2,
+        3
+      ]
+    },
+    "revision": 1,
     "par": 3,
     "limitedPar": 3,
     "solution_len": 3,
@@ -1503,9 +1797,16 @@ export const GAME2_LEVELS = [
       "PPBB",
       "PPBB"
     ],
-    "revision": 1,
     "world": 3,
     "tag": "teach",
+    "design": {
+      "focus": "P",
+      "band": [
+        2,
+        3
+      ]
+    },
+    "revision": 1,
     "par": 3,
     "limitedPar": 3,
     "solution_len": 3,
@@ -1536,9 +1837,16 @@ export const GAME2_LEVELS = [
       ".P.",
       "PPR"
     ],
-    "revision": 1,
     "world": 3,
     "tag": "teach",
+    "design": {
+      "focus": "P",
+      "band": [
+        2,
+        3
+      ]
+    },
+    "revision": 1,
     "par": 2,
     "limitedPar": 2,
     "solution_len": 2,
@@ -1572,9 +1880,16 @@ export const GAME2_LEVELS = [
       "P.W",
       "PPW"
     ],
-    "revision": 1,
     "world": 3,
     "tag": "twist",
+    "design": {
+      "focus": "P",
+      "band": [
+        3,
+        4
+      ]
+    },
+    "revision": 1,
     "par": 3,
     "limitedPar": 3,
     "solution_len": 3,
@@ -1608,9 +1923,16 @@ export const GAME2_LEVELS = [
       "PPRR",
       "PPRR"
     ],
-    "revision": 1,
     "world": 3,
     "tag": "test",
+    "design": {
+      "focus": "PR",
+      "band": [
+        3,
+        4
+      ]
+    },
+    "revision": 1,
     "par": 4,
     "limitedPar": 4,
     "solution_len": 4,
@@ -1649,9 +1971,16 @@ export const GAME2_LEVELS = [
       "BB",
       "BB"
     ],
-    "revision": 1,
     "world": 3,
     "tag": "test",
+    "design": {
+      "focus": "PB",
+      "band": [
+        4,
+        5
+      ]
+    },
+    "revision": 1,
     "par": 4,
     "limitedPar": 4,
     "solution_len": 4,
@@ -1686,9 +2015,16 @@ export const GAME2_LEVELS = [
       "BPRB",
       "RBPR"
     ],
-    "revision": 1,
     "world": 3,
     "tag": "test",
+    "design": {
+      "focus": "PRB",
+      "band": [
+        5,
+        6
+      ]
+    },
+    "revision": 1,
     "par": 6,
     "limitedPar": 6,
     "solution_len": 6,
@@ -1725,9 +2061,16 @@ export const GAME2_LEVELS = [
       "RPB",
       "BRP"
     ],
-    "revision": 1,
     "world": 3,
     "tag": "twist",
+    "design": {
+      "focus": "PRB",
+      "band": [
+        5,
+        6
+      ]
+    },
+    "revision": 1,
     "par": 6,
     "limitedPar": 6,
     "solution_len": 6,
@@ -1759,9 +2102,16 @@ export const GAME2_LEVELS = [
       "PRBPR",
       "PRBPR"
     ],
-    "revision": 1,
     "world": 3,
     "tag": "test",
+    "design": {
+      "focus": "PRB",
+      "band": [
+        5,
+        6
+      ]
+    },
+    "revision": 1,
     "par": 6,
     "limitedPar": 6,
     "solution_len": 6,
@@ -1792,9 +2142,16 @@ export const GAME2_LEVELS = [
       "PPBB",
       "PPBB"
     ],
-    "revision": 1,
     "world": 3,
     "tag": "breather",
+    "design": {
+      "focus": "PB",
+      "band": [
+        2,
+        3
+      ]
+    },
+    "revision": 1,
     "par": 2,
     "limitedPar": 2,
     "solution_len": 2,
@@ -1825,9 +2182,16 @@ export const GAME2_LEVELS = [
       "PPP",
       "GGG"
     ],
-    "revision": 1,
     "world": 3,
     "tag": "test",
+    "design": {
+      "focus": "PG",
+      "band": [
+        4,
+        5
+      ]
+    },
+    "revision": 1,
     "par": 5,
     "limitedPar": 5,
     "solution_len": 5,
@@ -1861,9 +2225,16 @@ export const GAME2_LEVELS = [
       "PPY",
       "PPY"
     ],
-    "revision": 1,
     "world": 3,
     "tag": "test",
+    "design": {
+      "focus": "PY",
+      "band": [
+        4,
+        5
+      ]
+    },
+    "revision": 1,
     "par": 5,
     "limitedPar": 5,
     "solution_len": 5,
@@ -1897,9 +2268,16 @@ export const GAME2_LEVELS = [
       "GPYG",
       "YGPY"
     ],
-    "revision": 1,
     "world": 3,
     "tag": "twist",
+    "design": {
+      "focus": "PGY",
+      "band": [
+        6,
+        7
+      ]
+    },
+    "revision": 1,
     "par": 7,
     "limitedPar": 7,
     "solution_len": 7,
@@ -1938,9 +2316,16 @@ export const GAME2_LEVELS = [
       "YGP",
       "YGP"
     ],
-    "revision": 1,
     "world": 3,
     "tag": "test",
+    "design": {
+      "focus": "PGY",
+      "band": [
+        6,
+        7
+      ]
+    },
+    "revision": 1,
     "par": 7,
     "limitedPar": 7,
     "solution_len": 7,
@@ -1979,9 +2364,16 @@ export const GAME2_LEVELS = [
       "G..G",
       "RGPR"
     ],
-    "revision": 1,
     "world": 3,
     "tag": "twist",
+    "design": {
+      "focus": "PGR",
+      "band": [
+        6,
+        7
+      ]
+    },
+    "revision": 1,
     "par": 7,
     "limitedPar": 7,
     "solution_len": 7,
@@ -2018,9 +2410,16 @@ export const GAME2_LEVELS = [
       "PPP",
       "BBB"
     ],
-    "revision": 1,
     "world": 3,
     "tag": "breather",
+    "design": {
+      "focus": "PB",
+      "band": [
+        3,
+        4
+      ]
+    },
+    "revision": 1,
     "par": 3,
     "limitedPar": 3,
     "solution_len": 3,
@@ -2056,9 +2455,16 @@ export const GAME2_LEVELS = [
       "YBPR",
       "BPRY"
     ],
-    "revision": 1,
     "world": 3,
     "tag": "test",
+    "design": {
+      "focus": "PRYB",
+      "band": [
+        8,
+        9
+      ]
+    },
+    "revision": 1,
     "par": 9,
     "limitedPar": 9,
     "solution_len": 9,
@@ -2103,9 +2509,16 @@ export const GAME2_LEVELS = [
       "PGRB",
       "PGRB"
     ],
-    "revision": 1,
     "world": 3,
     "tag": "twist",
+    "design": {
+      "focus": "PGRB",
+      "band": [
+        8,
+        9
+      ]
+    },
+    "revision": 1,
     "par": 9,
     "limitedPar": 9,
     "solution_len": 9,
@@ -2150,9 +2563,16 @@ export const GAME2_LEVELS = [
       "GYPY",
       "GGYY"
     ],
-    "revision": 1,
     "world": 3,
     "tag": "boss",
+    "design": {
+      "focus": "PBGY",
+      "band": [
+        9,
+        11
+      ]
+    },
+    "revision": 1,
     "par": 11,
     "limitedPar": 11,
     "solution_len": 11,
@@ -2195,9 +2615,16 @@ export const GAME2_LEVELS = [
       "RRB",
       "GGY"
     ],
-    "revision": 1,
     "world": 4,
     "tag": "test",
+    "design": {
+      "focus": "RBGY",
+      "band": [
+        4,
+        5
+      ]
+    },
+    "revision": 1,
     "par": 5,
     "limitedPar": 5,
     "solution_len": 5,
@@ -2231,9 +2658,16 @@ export const GAME2_LEVELS = [
       "BGYP",
       "GYPW"
     ],
-    "revision": 1,
     "world": 4,
     "tag": "test",
+    "design": {
+      "focus": "RBGYP",
+      "band": [
+        5,
+        6
+      ]
+    },
+    "revision": 1,
     "par": 6,
     "limitedPar": 6,
     "solution_len": 6,
@@ -2272,9 +2706,16 @@ export const GAME2_LEVELS = [
       "RGGR",
       "RRRR"
     ],
-    "revision": 1,
     "world": 4,
     "tag": "test",
+    "design": {
+      "focus": "RG",
+      "band": [
+        6,
+        7
+      ]
+    },
+    "revision": 1,
     "par": 7,
     "limitedPar": 7,
     "solution_len": 7,
@@ -2319,9 +2760,16 @@ export const GAME2_LEVELS = [
       "PPRR",
       "PPRR"
     ],
-    "revision": 1,
     "world": 4,
     "tag": "twist",
+    "design": {
+      "focus": "BYPR",
+      "band": [
+        7,
+        8
+      ]
+    },
+    "revision": 1,
     "par": 7,
     "limitedPar": 7,
     "solution_len": 7,
@@ -2366,9 +2814,16 @@ export const GAME2_LEVELS = [
       "BBGG",
       "BBGG"
     ],
-    "revision": 1,
     "world": 4,
     "tag": "test",
+    "design": {
+      "focus": "RBG",
+      "band": [
+        7,
+        8
+      ]
+    },
+    "revision": 1,
     "par": 8,
     "limitedPar": 8,
     "solution_len": 8,
@@ -2413,9 +2868,16 @@ export const GAME2_LEVELS = [
       "WYPY",
       "WWYY"
     ],
-    "revision": 1,
     "world": 4,
     "tag": "twist",
+    "design": {
+      "focus": "YP",
+      "band": [
+        6,
+        7
+      ]
+    },
+    "revision": 1,
     "par": 7,
     "limitedPar": 7,
     "solution_len": 7,
@@ -2458,9 +2920,16 @@ export const GAME2_LEVELS = [
       "BRB",
       "BBB"
     ],
-    "revision": 1,
     "world": 4,
     "tag": "breather",
+    "design": {
+      "focus": "RB",
+      "band": [
+        3,
+        4
+      ]
+    },
+    "revision": 1,
     "par": 2,
     "limitedPar": 2,
     "solution_len": 2,
@@ -2496,9 +2965,16 @@ export const GAME2_LEVELS = [
       "YBGY",
       "GYBG"
     ],
-    "revision": 1,
     "world": 4,
     "tag": "test",
+    "design": {
+      "focus": "GBY",
+      "band": [
+        8,
+        9
+      ]
+    },
+    "revision": 1,
     "par": 9,
     "limitedPar": 9,
     "solution_len": 9,
@@ -2543,9 +3019,16 @@ export const GAME2_LEVELS = [
       "BGYR",
       "BGYR"
     ],
-    "revision": 1,
     "world": 4,
     "tag": "test",
+    "design": {
+      "focus": "RBGY",
+      "band": [
+        8,
+        9
+      ]
+    },
+    "revision": 1,
     "par": 8,
     "limitedPar": 8,
     "solution_len": 8,
@@ -2590,9 +3073,16 @@ export const GAME2_LEVELS = [
       "GYWR",
       "YWR."
     ],
-    "revision": 1,
     "world": 4,
     "tag": "twist",
+    "design": {
+      "focus": "RBGY",
+      "band": [
+        8,
+        9
+      ]
+    },
+    "revision": 1,
     "par": 9,
     "limitedPar": 9,
     "solution_len": 9,
@@ -2637,9 +3127,16 @@ export const GAME2_LEVELS = [
       "PYGY",
       "PPYY"
     ],
-    "revision": 1,
     "world": 4,
     "tag": "test",
+    "design": {
+      "focus": "YGP",
+      "band": [
+        8,
+        9
+      ]
+    },
+    "revision": 1,
     "par": 9,
     "limitedPar": 9,
     "solution_len": 9,
@@ -2682,9 +3179,16 @@ export const GAME2_LEVELS = [
       "GGYY",
       "GGYY"
     ],
-    "revision": 1,
     "world": 4,
     "tag": "breather",
+    "design": {
+      "focus": "GY",
+      "band": [
+        4,
+        5
+      ]
+    },
+    "revision": 1,
     "par": 4,
     "limitedPar": 4,
     "solution_len": 4,
@@ -2723,9 +3227,16 @@ export const GAME2_LEVELS = [
       "BBRR",
       "RRYY"
     ],
-    "revision": 1,
     "world": 4,
     "tag": "twist",
+    "design": {
+      "focus": "RYB",
+      "band": [
+        9,
+        10
+      ]
+    },
+    "revision": 1,
     "par": 10,
     "limitedPar": 10,
     "solution_len": 10,
@@ -2770,9 +3281,16 @@ export const GAME2_LEVELS = [
       "GBYR",
       "RGBY"
     ],
-    "revision": 1,
     "world": 4,
     "tag": "test",
+    "design": {
+      "focus": "RBGY",
+      "band": [
+        9,
+        10
+      ]
+    },
+    "revision": 1,
     "par": 10,
     "limitedPar": 10,
     "solution_len": 10,
@@ -2817,9 +3335,16 @@ export const GAME2_LEVELS = [
       "PWRW",
       "PP.W"
     ],
-    "revision": 1,
     "world": 4,
     "tag": "twist",
+    "design": {
+      "focus": "RBP",
+      "band": [
+        9,
+        10
+      ]
+    },
+    "revision": 1,
     "par": 10,
     "limitedPar": 10,
     "solution_len": 10,
@@ -2864,9 +3389,16 @@ export const GAME2_LEVELS = [
       "GRGR",
       "YBYB"
     ],
-    "revision": 1,
     "world": 4,
     "tag": "test",
+    "design": {
+      "focus": "RBGY",
+      "band": [
+        9,
+        10
+      ]
+    },
+    "revision": 1,
     "par": 9,
     "limitedPar": 9,
     "solution_len": 9,
@@ -2909,9 +3441,16 @@ export const GAME2_LEVELS = [
       "GBY",
       "BYG"
     ],
-    "revision": 1,
     "world": 4,
     "tag": "breather",
+    "design": {
+      "focus": "YGB",
+      "band": [
+        4,
+        5
+      ]
+    },
+    "revision": 1,
     "par": 5,
     "limitedPar": 5,
     "solution_len": 5,
@@ -2947,9 +3486,16 @@ export const GAME2_LEVELS = [
       "YGPG",
       "YYGG"
     ],
-    "revision": 1,
     "world": 4,
     "tag": "twist",
+    "design": {
+      "focus": "PBYG",
+      "band": [
+        10,
+        11
+      ]
+    },
+    "revision": 1,
     "par": 11,
     "limitedPar": 11,
     "solution_len": 11,
@@ -2994,9 +3540,16 @@ export const GAME2_LEVELS = [
       "GRGRG",
       "WBWBW"
     ],
-    "revision": 1,
     "world": 4,
     "tag": "test",
+    "design": {
+      "focus": "RBG",
+      "band": [
+        10,
+        11
+      ]
+    },
+    "revision": 1,
     "par": 11,
     "limitedPar": 11,
     "solution_len": 11,
@@ -3045,9 +3598,16 @@ export const GAME2_LEVELS = [
       "GPRG",
       "YWBY"
     ],
-    "revision": 1,
     "world": 4,
     "tag": "boss",
+    "design": {
+      "focus": "RBGYP",
+      "band": [
+        10,
+        12
+      ]
+    },
+    "revision": 1,
     "par": 12,
     "limitedPar": 12,
     "solution_len": 12,
@@ -3092,9 +3652,16 @@ export const GAME2_LEVELS = [
       "GYRB",
       "YRBG"
     ],
-    "revision": 1,
     "world": 5,
     "tag": "test",
+    "design": {
+      "focus": "RBGY",
+      "band": [
+        8,
+        9
+      ]
+    },
+    "revision": 1,
     "par": 9,
     "limitedPar": 9,
     "solution_len": 9,
@@ -3139,9 +3706,16 @@ export const GAME2_LEVELS = [
       "YPGP",
       "YYPP"
     ],
-    "revision": 1,
     "world": 5,
     "tag": "twist",
+    "design": {
+      "focus": "PGY",
+      "band": [
+        9,
+        10
+      ]
+    },
+    "revision": 1,
     "par": 10,
     "limitedPar": 10,
     "solution_len": 10,
@@ -3186,9 +3760,16 @@ export const GAME2_LEVELS = [
       "GPBY",
       "YRGP"
     ],
-    "revision": 1,
     "world": 5,
     "tag": "test",
+    "design": {
+      "focus": "RBGYP",
+      "band": [
+        10,
+        11
+      ]
+    },
+    "revision": 1,
     "par": 11,
     "limitedPar": 11,
     "solution_len": 11,
@@ -3233,9 +3814,16 @@ export const GAME2_LEVELS = [
       "GGGGG",
       "YYYYY"
     ],
-    "revision": 1,
     "world": 5,
     "tag": "twist",
+    "design": {
+      "focus": "RBGY",
+      "band": [
+        10,
+        11
+      ]
+    },
+    "revision": 1,
     "par": 11,
     "limitedPar": 11,
     "solution_len": 11,
@@ -3286,9 +3874,16 @@ export const GAME2_LEVELS = [
       "BYRW",
       "BYRW"
     ],
-    "revision": 1,
     "world": 5,
     "tag": "test",
+    "design": {
+      "focus": "BYR",
+      "band": [
+        10,
+        11
+      ]
+    },
+    "revision": 1,
     "par": 11,
     "limitedPar": 11,
     "solution_len": 11,
@@ -3337,9 +3932,16 @@ export const GAME2_LEVELS = [
       "RRBB",
       "RRBB"
     ],
-    "revision": 1,
     "world": 5,
     "tag": "breather",
+    "design": {
+      "focus": "RB",
+      "band": [
+        5,
+        6
+      ]
+    },
+    "revision": 1,
     "par": 5,
     "limitedPar": 5,
     "solution_len": 5,
@@ -3378,9 +3980,16 @@ export const GAME2_LEVELS = [
       "YRBG",
       "YRBG"
     ],
-    "revision": 1,
     "world": 5,
     "tag": "twist",
+    "design": {
+      "focus": "RBGY",
+      "band": [
+        10,
+        11
+      ]
+    },
+    "revision": 1,
     "par": 11,
     "limitedPar": 11,
     "solution_len": 11,
@@ -3425,9 +4034,16 @@ export const GAME2_LEVELS = [
       "BBGGY",
       ".BGG."
     ],
-    "revision": 1,
     "world": 5,
     "tag": "test",
+    "design": {
+      "focus": "RBGY",
+      "band": [
+        11,
+        12
+      ]
+    },
+    "revision": 1,
     "par": 12,
     "limitedPar": 12,
     "solution_len": 12,
@@ -3478,9 +4094,16 @@ export const GAME2_LEVELS = [
       "Y.YB",
       "PGPG"
     ],
-    "revision": 1,
     "world": 5,
     "tag": "twist",
+    "design": {
+      "focus": "PBGY",
+      "band": [
+        11,
+        12
+      ]
+    },
+    "revision": 1,
     "par": 11,
     "limitedPar": 11,
     "solution_len": 11,
@@ -3531,9 +4154,16 @@ export const GAME2_LEVELS = [
       "YPRP",
       "YYPP"
     ],
-    "revision": 1,
     "world": 5,
     "tag": "test",
+    "design": {
+      "focus": "RBYP",
+      "band": [
+        11,
+        12
+      ]
+    },
+    "revision": 1,
     "par": 12,
     "limitedPar": 12,
     "solution_len": 12,
@@ -3576,9 +4206,16 @@ export const GAME2_LEVELS = [
       "YYYY",
       "GGGG"
     ],
-    "revision": 1,
     "world": 5,
     "tag": "breather",
+    "design": {
+      "focus": "GY",
+      "band": [
+        4,
+        5
+      ]
+    },
+    "revision": 1,
     "par": 4,
     "limitedPar": 4,
     "solution_len": 4,
@@ -3617,9 +4254,16 @@ export const GAME2_LEVELS = [
       "GYPRB",
       "YPRB."
     ],
-    "revision": 1,
     "world": 5,
     "tag": "twist",
+    "design": {
+      "focus": "RBGYP",
+      "band": [
+        12,
+        13
+      ]
+    },
+    "revision": 1,
     "par": 11,
     "limitedPar": 11,
     "solution_len": 11,
@@ -3668,9 +4312,16 @@ export const GAME2_LEVELS = [
       "BBGG",
       "GGYY"
     ],
-    "revision": 1,
     "world": 5,
     "tag": "test",
+    "design": {
+      "focus": "PRBGY",
+      "band": [
+        12,
+        13
+      ]
+    },
+    "revision": 1,
     "par": 12,
     "limitedPar": 12,
     "solution_len": 12,
@@ -3717,9 +4368,16 @@ export const GAME2_LEVELS = [
       "WGWGW",
       ".BRB."
     ],
-    "revision": 1,
     "world": 5,
     "tag": "twist",
+    "design": {
+      "focus": "RGB",
+      "band": [
+        12,
+        13
+      ]
+    },
+    "revision": 1,
     "par": 12,
     "limitedPar": 12,
     "solution_len": 12,
@@ -3775,9 +4433,16 @@ export const GAME2_LEVELS = [
       "PPBB",
       "PPBB"
     ],
-    "revision": 1,
     "world": 5,
     "tag": "test",
+    "design": {
+      "focus": "YGPB",
+      "band": [
+        12,
+        13
+      ]
+    },
+    "revision": 1,
     "par": 12,
     "limitedPar": 12,
     "solution_len": 12,
@@ -3820,9 +4485,16 @@ export const GAME2_LEVELS = [
       "BRBR",
       "RBRB"
     ],
-    "revision": 1,
     "world": 5,
     "tag": "breather",
+    "design": {
+      "focus": "RB",
+      "band": [
+        5,
+        6
+      ]
+    },
+    "revision": 1,
     "par": 5,
     "limitedPar": 5,
     "solution_len": 5,
@@ -3863,9 +4535,16 @@ export const GAME2_LEVELS = [
       "G.Y.Y",
       ".GGY."
     ],
-    "revision": 1,
     "world": 5,
     "tag": "twist",
+    "design": {
+      "focus": "RBGY",
+      "band": [
+        13,
+        14
+      ]
+    },
+    "revision": 1,
     "par": 14,
     "limitedPar": 14,
     "solution_len": 14,
@@ -3921,9 +4600,16 @@ export const GAME2_LEVELS = [
       "BRPYG",
       "GB.PY"
     ],
-    "revision": 1,
     "world": 5,
     "tag": "test",
+    "design": {
+      "focus": "RBGYP",
+      "band": [
+        13,
+        15
+      ]
+    },
+    "revision": 1,
     "par": 11,
     "limitedPar": 11,
     "solution_len": 11,
@@ -3974,9 +4660,16 @@ export const GAME2_LEVELS = [
       "G.R.B",
       ".BGP."
     ],
-    "revision": 1,
     "world": 5,
     "tag": "twist",
+    "design": {
+      "focus": "PBRGY",
+      "band": [
+        14,
+        16
+      ]
+    },
+    "revision": 1,
     "par": 12,
     "limitedPar": 12,
     "solution_len": 12,
@@ -4034,9 +4727,16 @@ export const GAME2_LEVELS = [
       "Y.G.B",
       ".BYR."
     ],
-    "revision": 1,
     "world": 5,
     "tag": "boss",
+    "design": {
+      "focus": "RBGYP",
+      "band": [
+        14,
+        16
+      ]
+    },
+    "revision": 1,
     "par": 13,
     "limitedPar": 13,
     "solution_len": 13,
