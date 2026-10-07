@@ -82,7 +82,7 @@ export function useStrokes() {
     if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
     const bounds=shell.getBoundingClientRect(),x1=from.left+from.width/2,y1=from.top+from.height/2,x2=to.left+to.width/2,y2=to.top+to.height/2;
     const transform=`translate(-50%,-50%) rotate(${Math.atan2(y2-y1,x2-x1)}rad)`,id=++serial.current;
-    setStrokes(items=>[...items.slice(-11),{id,type,local:true,screen:true,transform,x:(x1+x2)/2,y:(y1+y2)/2,left:(x1+x2)/2-bounds.left,top:(y1+y2)/2-bounds.top,width:Math.max(36,Math.hypot(x2-x1,y2-y1))}]);
+    setStrokes(items=>[...items.slice(-2),{id,type,local:true,screen:true,transform,x:(x1+x2)/2,y:(y1+y2)/2,left:(x1+x2)/2-bounds.left,top:(y1+y2)/2-bounds.top,width:Math.max(36,Math.hypot(x2-x1,y2-y1))}]);
   }
   function remove(id,kind){setStrokes(items=>items.map(item=>item.id===id?{...item,[kind]:false}:item).filter(item=>item.local || item.screen))}
   return {strokes,add,remove,clear:()=>setStrokes([])};
@@ -97,19 +97,23 @@ export function ColorStrokes({ink}) {
 export function Particles({burst}) {
   const canvas=useRef(null);
   useEffect(()=>{
-    const node=canvas.current,context=node.getContext('2d');
-    node.width=innerWidth*devicePixelRatio;node.height=innerHeight*devicePixelRatio;
-    context.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+    const node=canvas.current;
+    node.width=1;node.height=1;
     if(!burst || matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    const context=node.getContext('2d');if(!context)return;
+    const width=innerWidth,height=innerHeight,ratio=Math.min(devicePixelRatio || 1,1.5);
+    node.width=Math.round(width*ratio);node.height=Math.round(height*ratio);
+    context.setTransform(ratio,0,0,ratio,0,0);
     const dots=burst.points.flatMap(({x,y,color,count=7})=>Array.from({length:count},(_,i)=>{const angle=i/count*Math.PI*2;return {x,y,color,vx:Math.cos(angle)*2.8,vy:Math.sin(angle)*2.8-1,r:1.7,life:1}}));
     let frame;
     function draw(){
-      context.clearRect(0,0,innerWidth,innerHeight);
+      context.clearRect(0,0,width,height);
       for(const p of dots){p.x+=p.vx;p.y+=p.vy;p.vy+=.045;p.vx*=.989;p.life-=.024;if(p.life<=0)continue;context.globalAlpha=p.life;context.beginPath();context.arc(p.x,p.y,p.r,0,Math.PI*2);context.fillStyle=p.color || '#d8f4dc';context.fill()}
       if(dots.some(p=>p.life>0))frame=requestAnimationFrame(draw);
+      else {node.width=1;node.height=1}
     }
     frame=requestAnimationFrame(draw);
-    return ()=>{cancelAnimationFrame(frame);context.clearRect(0,0,innerWidth,innerHeight)};
+    return ()=>{cancelAnimationFrame(frame);node.width=1;node.height=1};
   },[burst]);
   return <canvas id="fx" ref={canvas} aria-hidden="true" style={{width:'100vw',height:'100vh'}} />;
 }

@@ -11,20 +11,30 @@ export default function useGame() {
   const [ui,setUI]=useState({selected:null,drag:null,moving:null,rejected:null,arrived:[],announcement:'',burst:null});
   const [world,setWorld]=useState(state.config.levels[state.attempt.level].world),[settingsTab,setSettingsTab]=useState('play');
   const [collectionRequest,setCollectionRequest]=useState({tab:'collection'}),[notices,setNotices]=useState([]);
-  const boardRef=useRef(null),shellRef=useRef(null),tiles=useRef(new Map()),drag=useRef(null),pendingFocus=useRef(null);
+  const boardRef=useRef(null),shellRef=useRef(null),tiles=useRef(new Map()),tileRefs=useRef(new Map()),drag=useRef(null),dragFrame=useRef(null),pendingFocus=useRef(null);
+  const persisted=useRef(new Map()),savedAttempt=useRef(null);
   const moveTimer=useRef(null),winTimer=useRef(null),rejectTimer=useRef(null),animations=useRef([]),disposed=useRef(false);
   const sound=useAudio(state.sound,storageWarning);
   useAppearance({dark:state.dark,zen:state.zen,color:state.color});
   function commit(next){live.current=next;setState(next)}
   function changeUI(change){setUI(previous=>({...previous,...change}))}
   function storageWarning(){feedback.notify('Browser storage unavailable; changes last for this session.',{tone:'warning',title:'Progress is temporary',duration:0})}
-  function store(key,value){try{localStorage.setItem(key,value)}catch{storageWarning()}}
+  function store(key,value){try{localStorage.setItem(key,value);persisted.current.set(key,value);return true}catch{storageWarning();return false}}
+  function storeChanged(key,value){return persisted.current.get(key)===value || store(key,value)}
   function persist(current){
-    const attempts=stashAttempt(current),saved=attempts.entries[(current.config.custom?current.config.custom.id+':':'')+(current.limits?'limited:':'classic:')+current.attempt.level];
-    store(current.config.attemptsKey,JSON.stringify(attempts));store(current.config.sessionKey,JSON.stringify(saved));
-    if(!current.config.custom){store(KEYS.campaign,JSON.stringify({unlocked:current.unlocked}));store(current.limits?KEYS.limited:KEYS.classic,JSON.stringify(current.progress))}
+    if(current.config.error)return;
+    const previous=savedAttempt.current;
+    if(!previous || ['config','attempt','attempts','history','restart','limits'].some(key=>previous[key]!==current[key])){
+      const attempts=stashAttempt(current),saved=attempts.entries[(current.config.custom?current.config.custom.id+':':'')+(current.limits?'limited:':'classic:')+current.attempt.level];
+      const attemptsSaved=storeChanged(current.config.attemptsKey,JSON.stringify(attempts)),sessionSaved=storeChanged(current.config.sessionKey,JSON.stringify(saved));
+      if(attemptsSaved && sessionSaved)savedAttempt.current=current;
+    }
+    if(!current.config.custom){
+      storeChanged(KEYS.campaign,JSON.stringify({unlocked:current.unlocked}));
+      storeChanged(current.limits?KEYS.limited:KEYS.classic,JSON.stringify(current.progress));
+    }
   }
-  useLayoutEffect(()=>{
+  useEffect(()=>{
     if(state.config.error){try{sessionStorage.setItem('insight-editor-message-v1',state.config.error)}catch{}location.replace('Editor.html');return}
     persist(state);
   },[state]);
@@ -33,14 +43,30 @@ export default function useGame() {
     if(hasAchievementStorageWarning())storageWarning();
     return ()=>{window.removeEventListener('insight-storage-warning',warning)};
   },[]);
-  useEffect(()=>{disposed.current=false;return ()=>{disposed.current=true;clearTimeout(moveTimer.current);clearTimeout(winTimer.current);clearTimeout(rejectTimer.current);animations.current.forEach(animation=>animation.cancel())}},[]);
+  useEffect(()=>{
+    disposed.current=false;
+    const flush=()=>persist(live.current),visibility=()=>{if(document.hidden){cancelDrag();flush()}};
+    window.addEventListener('pagehide',flush);document.addEventListener('visibilitychange',visibility);
+    return ()=>{
+      disposed.current=true;window.removeEventListener('pagehide',flush);document.removeEventListener('visibilitychange',visibility);
+      flush();cancelDrag(false);clearTimeout(moveTimer.current);clearTimeout(winTimer.current);clearTimeout(rejectTimer.current);animations.current.forEach(animation=>animation.cancel());
+    };
+  },[]);
   useLayoutEffect(()=>{if(pendingFocus.current){const position=pendingFocus.current;pendingFocus.current=null;focusTile(position==='first'?null:position)}});
   function tileAt(pos){return pos?tiles.current.get(pos.join(':')):tiles.current.values().next().value}
   function focusTile(pos){tileAt(pos)?.focus({preventScroll:true})}
-  function cancelDrag(){
+  function tileRef(pos){
+    const key=pos.join(':');
+    if(!tileRefs.current.has(key))tileRefs.current.set(key,node=>{if(node)tiles.current.set(key,node);else tiles.current.delete(key)});
+    return tileRefs.current.get(key);
+  }
+  function cancelDrag(updateUI=true){
     const previous=drag.current;drag.current=null;
+    cancelAnimationFrame(dragFrame.current);dragFrame.current=null;
+    if(!previous)return null;
+    previous.node.style.removeProperty('transform');
     if(previous && boardRef.current?.hasPointerCapture(previous.pointerId))boardRef.current.releasePointerCapture(previous.pointerId);
-    changeUI({drag:null});return previous;
+    if(updateUI)changeUI({drag:null});return previous;
   }
   function cancelPending(){
     clearTimeout(moveTimer.current);moveTimer.current=null;clearTimeout(winTimer.current);animations.current.forEach(animation=>animation.cancel());animations.current=[];
@@ -75,7 +101,7 @@ export default function useGame() {
     if(moveTimer.current || ui.moving || !PuzzleRules.legalMoves(current.attempt.board,...a,current.attempt.remaining).some(pos=>pos[0]===b[0] && pos[1]===b[1]))return;
     const from=tileAt(a),to=tileAt(b),fromRect=from.parentElement.getBoundingClientRect(),toRect=to.parentElement.getBoundingClientRect();
     const dx=toRect.left-fromRect.left,dy=toRect.top-fromRect.top,duration=matchMedia('(prefers-reduced-motion: reduce)').matches?0:185;
-    changeUI({selected:null,drag:null,moving:[a,b],burst:{points:[{x:fromRect.left+fromRect.width/2,y:fromRect.top+fromRect.height/2,color:PuzzleArt.TILE_LIGHTS[current.attempt.board[a[0]][a[1]]]},{x:toRect.left+toRect.width/2,y:toRect.top+toRect.height/2,color:PuzzleArt.TILE_LIGHTS[current.attempt.board[b[0]][b[1]]]}]}});
+    changeUI({selected:null,drag:null,moving:[a,b],arrived:[]});
     const initial=offset?`translate(${offset[0]}px,${offset[1]}px) scale(1.045)`:'translate(0,0)';
     animations.current=[from.animate([{transform:initial},{transform:`translate(${dx}px,${dy}px)`}],{duration,fill:'forwards'}),to.animate([{transform:'translate(0,0)'},{transform:`translate(${-dx}px,${-dy}px)`}],{duration,fill:'forwards'})];
     sound.play('move',current.attempt.board[a[0]][a[1]]);
@@ -113,19 +139,32 @@ export default function useGame() {
   function pointerDown(event,position){
     if(event.button!==0 || ui.moving || drag.current || solved(live.current.attempt))return;
     event.preventDefault();event.currentTarget.focus({preventScroll:true});
-    drag.current={from:position,startX:event.clientX,startY:event.clientY,x:event.clientX,y:event.clientY,pointerId:event.pointerId,moved:false,moves:PuzzleRules.legalMoves(live.current.attempt.board,...position,live.current.attempt.remaining)};
+    const moves=PuzzleRules.legalMoves(live.current.attempt.board,...position,live.current.attempt.remaining);
+    // Geometry stays fixed for this gesture; resize and navigation cancel it.
+    const targets=moves.map(pos=>({pos,rect:tileAt(pos).parentElement.getBoundingClientRect()}));
+    drag.current={from:position,node:event.currentTarget,startX:event.clientX,startY:event.clientY,x:event.clientX,y:event.clientY,pointerId:event.pointerId,moved:false,hover:null,moves,targets};
     boardRef.current.setPointerCapture?.(event.pointerId);
+  }
+  function updateDrag(item){
+    if(!item.moved && Math.hypot(item.x-item.startX,item.y-item.startY)<8)return;
+    const started=!item.moved,previous=item.hover;
+    if(started && item.moves.length)sound.play('select',live.current.attempt.board[item.from[0]][item.from[1]]);
+    item.moved=true;
+    item.hover=item.targets.find(({rect})=>item.x>=rect.left && item.x<=rect.right && item.y>=rect.top && item.y<=rect.bottom)?.pos || null;
+    if(item.moves.length)item.node.style.transform=`translate3d(${item.x-item.startX}px,${item.y-item.startY}px,0) scale(1.045)`;
+    // React owns selection and destination feedback; only this tile moves each frame.
+    if(started || previous!==item.hover)changeUI({selected:null,drag:{from:item.from,moves:item.moves,hover:item.hover}});
   }
   function pointerMove(event){
     const item=drag.current;if(!item || item.pointerId!==event.pointerId)return;event.preventDefault();item.x=event.clientX;item.y=event.clientY;
-    if(!item.moved && Math.hypot(item.x-item.startX,item.y-item.startY)<8)return;
-    if(!item.moved && item.moves.length)sound.play('select',live.current.attempt.board[item.from[0]][item.from[1]]);
-    item.moved=true;item.hover=null;
-    for(const pos of item.moves){const rect=tileAt(pos)?.parentElement.getBoundingClientRect();if(rect && item.x>=rect.left && item.x<=rect.right && item.y>=rect.top && item.y<=rect.bottom)item.hover=pos}
-    changeUI({selected:null,drag:{...item}});
+    if(dragFrame.current!==null)return;
+    dragFrame.current=requestAnimationFrame(()=>{dragFrame.current=null;if(drag.current===item)updateDrag(item)});
   }
   function pointerUp(event){
-    if(!drag.current || drag.current.pointerId!==event.pointerId)return;event.preventDefault();const item=cancelDrag();
+    if(!drag.current || drag.current.pointerId!==event.pointerId)return;event.preventDefault();
+    // Release may arrive before the queued frame, so use its final coordinates.
+    drag.current.x=event.clientX;drag.current.y=event.clientY;updateDrag(drag.current);
+    const item=cancelDrag();
     if(!item.moved)choose(item.from);else if(item.hover)move(item.from,item.hover,[item.x-item.startX,item.y-item.startY]);else reject(item.from,'That swap is not allowed.');
   }
   function leaveEditor(){cancelPending();persist(live.current);location.href='Editor.html'}
@@ -167,5 +206,5 @@ export default function useGame() {
     document.addEventListener('keydown',keydown);window.addEventListener('resize',resize);
     return ()=>{document.removeEventListener('keydown',keydown);window.removeEventListener('resize',resize)};
   });
-  return {state,ui,dialogs,feedback,ink,sound,world,setWorld,settingsTab,setSettingsTab,collectionRequest,notices,dismissNotice:()=>setNotices(items=>items.slice(1)),boardRef,shellRef,tileRef:pos=>node=>{const key=pos.join(':');if(node)tiles.current.set(key,node);else tiles.current.delete(key)},pointerDown,pointerMove,pointerUp,cancelDrag,choose,start,restart,undo,next,showLevels,showAchievements,continuePlay,resume,toggle,toggleLimits,toggleDev,newGame,resetStars,leaveEditor,openDialog,clearSelection:()=>changeUI({selected:null}),clearArrival:pos=>changeUI({arrived:ui.arrived.filter(item=>item.join(':')!==pos.join(':'))})};
+  return {state,ui,dialogs,feedback,ink,sound,world,setWorld,settingsTab,setSettingsTab,collectionRequest,notices,dismissNotice:()=>setNotices(items=>items.slice(1)),boardRef,shellRef,tileRef,pointerDown,pointerMove,pointerUp,cancelDrag,choose,start,restart,undo,next,showLevels,showAchievements,continuePlay,resume,toggle,toggleLimits,toggleDev,newGame,resetStars,leaveEditor,openDialog,clearSelection:()=>changeUI({selected:null}),clearArrival:pos=>setUI(previous=>({...previous,arrived:previous.arrived.filter(item=>item.join(':')!==pos.join(':'))}))};
 }

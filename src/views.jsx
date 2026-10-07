@@ -12,7 +12,7 @@ export function Tile({type,children,...props}) {
 export function GameBoard({game}) {
   const {state,ui}=game,{board,remaining}=state.attempt,limits=state.limits;
   const same=(a,b)=>a?.join(':')===b?.join(':');
-  const revision=state.attempt.level+':'+limits+':'+state.attempt.moves;
+  const revision=state.attempt.level+':'+limits;
   return <React.Fragment key={revision}>{board.flatMap((row,r)=>row.map((type,c)=>{
     if(type==='.')return <div key={`${r}:${c}`} className="cell hole" data-r={r} data-c={c} />;
     const limited=limits && type!=='W', left=remaining?.[r]?.[c];
@@ -20,8 +20,8 @@ export function GameBoard({game}) {
     const label=`${META[type].name}, row ${r+1}, column ${c+1}${direction ? ', moves '+direction : ', carried only'}${limited ? ', '+left+' moves left' : ''}`;
     return <div key={`${r}:${c}`} className={'cell'+(same(ui.drag?.hover,[r,c])?' hover-target':'')} data-r={r} data-c={c}>
       <Tile type={type} ref={game.tileRef([r,c])} className={'tile '+META[type].cls+(limited && left===0?' spent':'')+(same(ui.selected,[r,c])?' selected':'')+(same(ui.drag?.from,[r,c]) && ui.drag.moves.length?' dragging':'')+(ui.moving?.some(pos=>same(pos,[r,c]))?' moving':'')+(same(ui.rejected,[r,c])?' rejected':'')+(ui.arrived.some(pos=>same(pos,[r,c]))?' arrived':'')}
-        style={{'--tile-order':r+c,transform:same(ui.drag?.from,[r,c]) && ui.drag.moves.length?'translate3d('+(ui.drag.x-ui.drag.startX)+'px,'+(ui.drag.y-ui.drag.startY)+'px,0) scale(1.045)':undefined}}
-        onPointerDown={event=>game.pointerDown(event,[r,c])} onClick={event=>{if(event.detail===0)game.choose([r,c])}} onAnimationEnd={()=>game.clearArrival([r,c])}
+        style={{'--tile-order':r+c}}
+        onPointerDown={event=>game.pointerDown(event,[r,c])} onClick={event=>{if(event.detail===0)game.choose([r,c])}} onAnimationEnd={event=>{if(event.target===event.currentTarget && event.animationName==='tileArrival')game.clearArrival([r,c])}}
         data-r={r} data-c={c} data-type={type} aria-label={label} aria-pressed={same(ui.selected,[r,c])}>
         {limited && <span className="tile-allowance" aria-hidden="true">{left}</span>}
       </Tile>

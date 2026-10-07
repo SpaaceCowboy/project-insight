@@ -31,6 +31,7 @@ const {home,play,settings,dismissMenus}=require('./check-ui-helpers.cjs');
     assert.equal(await page.locator('#settingsTab-sound').getAttribute('aria-selected'),'true');
     await page.keyboard.press('End');assert.equal(await page.locator('#settingsTab-appearance').getAttribute('aria-selected'),'true');
     await page.locator('#appearanceBtn').click();
+    await page.waitForFunction(()=>document.getElementById('achievementTab-appearance').getAttribute('aria-selected')==='true');
     assert.equal(await page.locator('#achievementTab-appearance').getAttribute('aria-selected'),'true','Appearance opens directly from settings');
     await page.keyboard.press('Escape');assert(await page.locator('#settingsOverlay').isVisible());
     assert.equal(await page.evaluate(()=>document.activeElement.id),'appearanceBtn');

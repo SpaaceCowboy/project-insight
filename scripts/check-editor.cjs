@@ -85,7 +85,8 @@ assert.equal(solver.verify(sample,{path:longRoute}).fitsLimits,false,'Routes nee
     const longStroke=page.locator('.screen-stroke').last();
     assert.equal(await longStroke.evaluate(el=>parseFloat(getComputedStyle(el).width)),page.viewportSize().width*.4,'Long stroke spans forty percent of the screen');
     assert.equal(await longStroke.evaluate(el=>getComputedStyle(el).position),'fixed','Long stroke extends beyond the board');
-    assert.equal(await longStroke.locator('span').evaluate(el=>getComputedStyle(el).animationDuration),'16s','Long stroke spreads slowly');
+    assert.equal(await longStroke.locator('span').evaluate(el=>getComputedStyle(el).animationDuration),'1.8s','Screen wash ends promptly');
+    assert.equal(await longStroke.locator('span').evaluate(el=>getComputedStyle(el).filter),'none','Wash avoids animated blur');
     assert.equal(await longStroke.evaluate(el=>el.style.transform),await page.locator('.studio-board-shell .color-stroke').last().evaluate(el=>el.style.transform),'Both strokes follow the same direction');
     assert.equal((await draft()).start[0],'R..');assert.equal((await draft()).target[0],'R..');
     await dragTile(cell(0,0),cell(0,1));

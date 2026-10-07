@@ -13,7 +13,8 @@ const {play,home,dismissMenus}=require('./check-ui-helpers.cjs');
         import GameApp from '/src/GameApp.jsx';import EditorApp from '/src/EditorApp.jsx';
         import '/src/styles.css';import '/src/editor.css';
         const root=createRoot(document.getElementById('root'));
-        window.mountScreen=screen=>root.render(screen ? React.createElement(React.StrictMode,null,React.createElement(screen==='editor'?EditorApp:GameApp)) : null);
+        window.screenCommits=0;
+        window.mountScreen=screen=>root.render(screen ? React.createElement(React.StrictMode,null,React.createElement(React.Profiler,{id:screen,onRender:()=>window.screenCommits++},React.createElement(screen==='editor'?EditorApp:GameApp))) : null);
         window.mountScreen('game');
       `},
     configureServer(server){server.middlewares.use('/__react-check.html',(_request,response)=>{
@@ -57,6 +58,22 @@ const {play,home,dismissMenus}=require('./check-ui-helpers.cjs');
     await page.keyboard.press('u');
     assert.equal(await page.locator('#moves').textContent(),'1','One key event undoes one restart after remount');
     await page.keyboard.press('r');
+    // Coordinates within the same destination move only the tile, without React commits.
+    const dragSource=page.locator('.tile[data-r="0"][data-c="1"]'),dragTarget=page.locator('.tile[data-r="1"][data-c="1"]');
+    const sourceBox=await dragSource.boundingBox(),targetBox=await dragTarget.boundingBox();
+    await page.mouse.move(sourceBox.x+sourceBox.width/2,sourceBox.y+sourceBox.height/2);await page.mouse.down();
+    await page.mouse.move(targetBox.x+targetBox.width/2,targetBox.y+targetBox.height/2);
+    await page.waitForFunction(()=>document.querySelector('.tile.dragging'));
+    const commits=await page.evaluate(async({x,y})=>{
+      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+      window.screenCommits=0;
+      for(let i=0;i<30;i++)document.getElementById('board').dispatchEvent(new PointerEvent('pointermove',{bubbles:true,cancelable:true,pointerId:1,clientX:x+i/10,clientY:y}));
+      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+      return window.screenCommits;
+    },{x:targetBox.x+targetBox.width/2,y:targetBox.y+targetBox.height/2});
+    assert.equal(commits,0,'Steady dragging must not rerender the game or its hidden menus');
+    await page.keyboard.press('Escape');await page.mouse.up();
+    assert.equal(await dragSource.evaluate(el=>el.style.transform),'','Cancel removes the imperative drag transform');
     // A preference changed during the animation must survive its completion.
     await move();await page.locator('#soundBtn').click();
     await page.waitForFunction(()=>document.querySelector('#moves').textContent==='1');
@@ -71,6 +88,17 @@ const {play,home,dismissMenus}=require('./check-ui-helpers.cjs');
     await page.waitForTimeout(1100);
     await page.evaluate(()=>window.mountScreen('game'));await ready();await play(page);
     assert.equal(await page.locator('#moves').textContent(),'0','A cancelled animation cannot save a stale move');
+    // Unmount must also cancel a drag frame that has not run yet.
+    const remountBox=await dragSource.boundingBox();
+    await page.mouse.move(remountBox.x+remountBox.width/2,remountBox.y+remountBox.height/2);await page.mouse.down();
+    await page.evaluate(()=>{
+      window.oldTile=document.querySelector('.tile[data-r="0"][data-c="1"]');
+      document.getElementById('board').dispatchEvent(new PointerEvent('pointermove',{bubbles:true,cancelable:true,pointerId:1,clientX:200,clientY:400}));
+      window.mountScreen(null);
+    });
+    await page.waitForFunction(()=>!document.documentElement.dataset.ready);await page.mouse.up();
+    assert.equal(await page.evaluate(()=>window.oldTile.style.transform),'','Unmount cancels pending drag work');
+    await page.evaluate(()=>window.mountScreen('game'));await ready();await play(page);
     await home(page);await page.locator('#newGameBtn').click();
     await mount('game');
     assert.equal(await page.locator('#confirmationOverlay').isVisible(),false,'An unmounted confirmation cannot remain pending');
