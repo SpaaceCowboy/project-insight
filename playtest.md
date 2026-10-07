@@ -36,6 +36,12 @@ Tell each person: “We are testing the game, not you. Please say what you expec
 | Sound after ten minutes: comfortable settings, fatigue | |
 | One thing they would change | |
 
+## Game 2 difficulty ratings
+
+This follows van Kreveld, Löffler & Mutser (2015); see `level-design.md`. Run a separate 20-minute session with the same five people, using Dev Mode so every Game 2 level is open. Each person first plays Game 2 levels 1–4 as a tutorial. They then play 12 levels in a shuffled order that differs per person, which avoids learning effects. Take one test level and one twist or boss level from each world, plus levels 12, 33 and 87 as breathers. After each solve, ask: "How hard was that, from 1 to 10?" For each level, record the rating, the solve time, moves against par, undos and restarts, and any abandonment.
+
+Afterwards, run `node scripts/check-levels.cjs --game 2 --audit` and compare its `par`, `ci` and `choices` columns with the mean ratings. Note which signal tracks the ratings best. Mark any level rated more than 2 points away from its neighbours at the same position in the curve. Change those levels' design rules in `scripts/make-game2.cjs`, never by hand; regeneration bumps their revisions. Five people are enough to find outliers, but not enough to fit difficulty weights.
+
 ## Acceptance and next decisions
 
 - At least four of five people solve the first puzzle within two minutes without coaching and understand whether an attempted move succeeded.

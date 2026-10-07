@@ -18,7 +18,8 @@ export const GAME2_LEVELS = [
       "band": [
         1,
         1
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 1,
@@ -54,7 +55,8 @@ export const GAME2_LEVELS = [
       "band": [
         2,
         3
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 2,
@@ -92,7 +94,8 @@ export const GAME2_LEVELS = [
       "band": [
         1,
         2
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 2,
@@ -126,7 +129,8 @@ export const GAME2_LEVELS = [
       "band": [
         3,
         3
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 3,
@@ -150,7 +154,7 @@ export const GAME2_LEVELS = [
     "start": [
       "RBB",
       "RRB",
-      "RRB"
+      "RBR"
     ],
     "target": [
       "RBR",
@@ -164,12 +168,13 @@ export const GAME2_LEVELS = [
       "band": [
         3,
         4
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 4,
-    "limitedPar": 4,
-    "solution_len": 4,
+    "revision": 2,
+    "par": 3,
+    "limitedPar": 3,
+    "solution_len": 3,
     "allowanceFloor": [
       [
         0,
@@ -184,7 +189,7 @@ export const GAME2_LEVELS = [
       [
         0,
         0,
-        1
+        0
       ]
     ]
   },
@@ -205,7 +210,8 @@ export const GAME2_LEVELS = [
       "band": [
         4,
         5
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 4,
@@ -247,7 +253,8 @@ export const GAME2_LEVELS = [
       "band": [
         4,
         5
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 5,
@@ -291,7 +298,8 @@ export const GAME2_LEVELS = [
       "band": [
         5,
         6
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 5,
@@ -334,7 +342,8 @@ export const GAME2_LEVELS = [
       "band": [
         2,
         4
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 4,
@@ -377,7 +386,8 @@ export const GAME2_LEVELS = [
       "band": [
         3,
         4
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 2,
@@ -420,7 +430,8 @@ export const GAME2_LEVELS = [
       "band": [
         4,
         5
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 5,
@@ -461,7 +472,8 @@ export const GAME2_LEVELS = [
       "band": [
         2,
         3
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 2,
@@ -499,7 +511,8 @@ export const GAME2_LEVELS = [
       "band": [
         3,
         4
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 3,
@@ -527,7 +540,7 @@ export const GAME2_LEVELS = [
     "name": "Broken Bridge",
     "start": [
       ".RR.",
-      "BRBB"
+      "BBBR"
     ],
     "target": [
       ".BR.",
@@ -540,17 +553,18 @@ export const GAME2_LEVELS = [
       "band": [
         4,
         5
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
+    "revision": 2,
     "par": 3,
     "limitedPar": 3,
     "solution_len": 3,
     "allowanceFloor": [
       [
         0,
-        0,
         1,
+        0,
         0
       ],
       [
@@ -564,9 +578,9 @@ export const GAME2_LEVELS = [
   {
     "name": "Island Hop",
     "start": [
-      "BR.R",
-      "B.BR",
-      "BBRB"
+      "BB.R",
+      "B.BB",
+      "RBRR"
     ],
     "target": [
       "RB.B",
@@ -580,28 +594,29 @@ export const GAME2_LEVELS = [
       "band": [
         5,
         6
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
+    "revision": 2,
     "par": 6,
     "limitedPar": 6,
     "solution_len": 6,
     "allowanceFloor": [
       [
-        1,
+        0,
         0,
         0,
         1
       ],
       [
-        0,
-        0,
         1,
-        1
+        0,
+        0,
+        0
       ],
       [
-        1,
-        1,
+        2,
+        2,
         0,
         0
       ]
@@ -610,8 +625,8 @@ export const GAME2_LEVELS = [
   {
     "name": "Stone and Hollow",
     "start": [
-      ".BBB",
-      "RBBW",
+      ".BWR",
+      "BBBB",
       "BBB."
     ],
     "target": [
@@ -626,29 +641,30 @@ export const GAME2_LEVELS = [
       "band": [
         5,
         6
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
+    "revision": 2,
+    "par": 5,
+    "limitedPar": 5,
+    "solution_len": 5,
     "allowanceFloor": [
       [
         0,
         0,
         0,
-        0
+        3
       ],
       [
-        2,
+        0,
         1,
         1,
         0
       ],
       [
         0,
-        1,
-        1,
+        0,
+        0,
         0
       ]
     ]
@@ -656,8 +672,8 @@ export const GAME2_LEVELS = [
   {
     "name": "Three Lanes",
     "start": [
-      "BBRR",
-      "BWBW",
+      "RBRW",
+      "BWBB",
       "WRWR"
     ],
     "target": [
@@ -672,24 +688,25 @@ export const GAME2_LEVELS = [
       "band": [
         6,
         7
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
+    "revision": 2,
+    "par": 8,
+    "limitedPar": 8,
+    "solution_len": 8,
     "allowanceFloor": [
       [
         0,
         0,
-        0,
+        2,
         0
       ],
       [
-        2,
         0,
-        1,
-        0
+        0,
+        0,
+        2
       ],
       [
         0,
@@ -718,7 +735,8 @@ export const GAME2_LEVELS = [
       "band": [
         3,
         4
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 3,
@@ -761,7 +779,8 @@ export const GAME2_LEVELS = [
       "band": [
         7,
         8
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 8,
@@ -791,10 +810,10 @@ export const GAME2_LEVELS = [
   {
     "name": "The Straight Path",
     "start": [
-      "RBRR",
-      "BBRW",
-      "RRWR",
-      "WBWR"
+      "BRBR",
+      "RWRR",
+      "RRBR",
+      "BWWW"
     ],
     "target": [
       "RRRR",
@@ -809,9 +828,10 @@ export const GAME2_LEVELS = [
       "band": [
         8,
         9
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
+    "revision": 2,
     "par": 9,
     "limitedPar": 9,
     "solution_len": 9,
@@ -823,22 +843,22 @@ export const GAME2_LEVELS = [
         0
       ],
       [
+        3,
         0,
         1,
+        1
+      ],
+      [
+        2,
+        0,
         1,
         0
       ],
       [
+        1,
         0,
-        2,
         0,
-        2
-      ],
-      [
-        0,
-        2,
-        0,
-        1
+        0
       ]
     ]
   },
@@ -859,7 +879,8 @@ export const GAME2_LEVELS = [
       "band": [
         1,
         2
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 1,
@@ -895,7 +916,8 @@ export const GAME2_LEVELS = [
       "band": [
         2,
         3
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 3,
@@ -936,7 +958,8 @@ export const GAME2_LEVELS = [
       "band": [
         1,
         2
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 1,
@@ -972,7 +995,8 @@ export const GAME2_LEVELS = [
       "band": [
         2,
         3
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 3,
@@ -1015,7 +1039,8 @@ export const GAME2_LEVELS = [
       "band": [
         3,
         4
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 2,
@@ -1042,9 +1067,9 @@ export const GAME2_LEVELS = [
   {
     "name": "Diagonal Dance",
     "start": [
-      "GGW",
-      "WYY",
-      "GYW"
+      "YGG",
+      "YWY",
+      "WWG"
     ],
     "target": [
       "GGG",
@@ -1058,27 +1083,28 @@ export const GAME2_LEVELS = [
       "band": [
         4,
         5
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
+    "revision": 2,
     "par": 5,
     "limitedPar": 5,
     "solution_len": 5,
     "allowanceFloor": [
       [
-        1,
+        3,
+        0,
+        1
+      ],
+      [
+        0,
         0,
         0
       ],
       [
         0,
-        2,
-        0
-      ],
-      [
-        1,
-        1,
-        0
+        0,
+        1
       ]
     ]
   },
@@ -1101,7 +1127,8 @@ export const GAME2_LEVELS = [
       "band": [
         5,
         6
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 6,
@@ -1147,7 +1174,8 @@ export const GAME2_LEVELS = [
       "band": [
         2,
         3
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 3,
@@ -1193,7 +1221,8 @@ export const GAME2_LEVELS = [
       "band": [
         4,
         5
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 5,
@@ -1236,7 +1265,8 @@ export const GAME2_LEVELS = [
       "band": [
         4,
         5
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 5,
@@ -1263,9 +1293,9 @@ export const GAME2_LEVELS = [
   {
     "name": "Compass Rose",
     "start": [
-      "YBR",
-      "RGR",
-      "BGG"
+      "GGR",
+      "YGB",
+      "BRR"
     ],
     "target": [
       "RGR",
@@ -1279,35 +1309,36 @@ export const GAME2_LEVELS = [
       "band": [
         5,
         6
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
+    "revision": 2,
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
     "allowanceFloor": [
       [
-        1,
-        1,
+        0,
+        0,
         0
       ],
       [
+        2,
         1,
-        1,
-        0
+        2
       ],
       [
         1,
-        1,
-        0
+        0,
+        1
       ]
     ]
   },
   {
     "name": "Four Winds",
     "start": [
-      "GRBY",
-      "RYGB"
+      "RRBY",
+      "YGGB"
     ],
     "target": [
       "RGBY",
@@ -1320,22 +1351,23 @@ export const GAME2_LEVELS = [
       "band": [
         5,
         6
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
+    "revision": 2,
     "par": 6,
     "limitedPar": 6,
     "solution_len": 6,
     "allowanceFloor": [
       [
-        1,
+        0,
         2,
         0,
         0
       ],
       [
         1,
-        1,
+        2,
         0,
         1
       ]
@@ -1360,7 +1392,8 @@ export const GAME2_LEVELS = [
       "band": [
         3,
         4
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 4,
@@ -1403,7 +1436,8 @@ export const GAME2_LEVELS = [
       "band": [
         6,
         7
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 7,
@@ -1433,9 +1467,9 @@ export const GAME2_LEVELS = [
   {
     "name": "Basket Weave",
     "start": [
-      "GBBG",
-      "YBGG",
-      "YGGB"
+      "BBGY",
+      "GBGG",
+      "GGBY"
     ],
     "target": [
       "BBGG",
@@ -1449,40 +1483,41 @@ export const GAME2_LEVELS = [
       "band": [
         6,
         7
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
+    "revision": 2,
+    "par": 5,
+    "limitedPar": 5,
+    "solution_len": 5,
     "allowanceFloor": [
       [
         0,
-        1,
-        1,
-        0
-      ],
-      [
-        1,
-        1,
         0,
-        0
-      ],
-      [
-        1,
         0,
-        1,
         1
+      ],
+      [
+        0,
+        2,
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        0
       ]
     ]
   },
   {
     "name": "Leaning Walls",
     "start": [
-      "YGB",
-      "RBB",
-      "GBG",
-      "YRG"
+      "GBB",
+      "RBY",
+      "RBG",
+      "GGY"
     ],
     "target": [
       "RGB",
@@ -1497,31 +1532,32 @@ export const GAME2_LEVELS = [
       "band": [
         7,
         8
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
+    "revision": 2,
     "par": 8,
     "limitedPar": 8,
     "solution_len": 8,
     "allowanceFloor": [
       [
+        0,
         2,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        0
-      ],
-      [
-        2,
-        0,
         0
       ],
       [
         1,
-        2,
+        1,
+        1
+      ],
+      [
+        1,
+        1,
+        0
+      ],
+      [
+        1,
+        0,
         0
       ]
     ]
@@ -1529,9 +1565,9 @@ export const GAME2_LEVELS = [
   {
     "name": "Slanted Garden",
     "start": [
-      "RRRG",
-      "BYBB",
-      "RBYG"
+      "RYYB",
+      "RRGB",
+      "RBGB"
     ],
     "target": [
       "RRBB",
@@ -1545,30 +1581,31 @@ export const GAME2_LEVELS = [
       "band": [
         7,
         8
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 8,
-    "limitedPar": 8,
-    "solution_len": 8,
+    "revision": 2,
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
     "allowanceFloor": [
       [
         0,
-        1,
-        0,
-        2
-      ],
-      [
-        1,
         2,
-        0,
+        1,
         0
       ],
       [
+        0,
         1,
+        1,
+        0
+      ],
+      [
         0,
-        0,
-        1
+        1,
+        1,
+        0
       ]
     ]
   },
@@ -1591,7 +1628,8 @@ export const GAME2_LEVELS = [
       "band": [
         4,
         5
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 4,
@@ -1621,9 +1659,9 @@ export const GAME2_LEVELS = [
   {
     "name": "Prism Gate",
     "start": [
-      "BRGY",
+      "BBGB",
       "G.GB",
-      "YBBR"
+      "RYRY"
     ],
     "target": [
       "RRGG",
@@ -1637,40 +1675,41 @@ export const GAME2_LEVELS = [
       "band": [
         8,
         9
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
+    "revision": 2,
     "par": 9,
     "limitedPar": 9,
     "solution_len": 9,
     "allowanceFloor": [
       [
-        3,
         0,
-        1,
-        1
+        2,
+        0,
+        0
       ],
       [
-        0,
+        2,
         0,
         1,
         0
       ],
       [
-        0,
         1,
+        2,
         1,
-        1
+        0
       ]
     ]
   },
   {
     "name": "Kaleidoscope",
     "start": [
-      "RGYY",
-      "GBRG",
-      "RGYB",
-      "BRBY"
+      "GGBY",
+      "GGBY",
+      "BRRY",
+      "YRRB"
     ],
     "target": [
       "GGYY",
@@ -1685,36 +1724,37 @@ export const GAME2_LEVELS = [
       "band": [
         9,
         10
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 10,
-    "limitedPar": 10,
-    "solution_len": 10,
+    "revision": 2,
+    "par": 11,
+    "limitedPar": 11,
+    "solution_len": 11,
     "allowanceFloor": [
       [
-        2,
         0,
-        1,
+        0,
+        0,
         0
       ],
       [
         0,
+        4,
         0,
+        0
+      ],
+      [
+        2,
         1,
+        0,
         1
       ],
       [
-        1,
-        0,
-        0,
-        0
-      ],
-      [
         2,
         0,
-        0,
-        2
+        1,
+        0
       ]
     ]
   },
@@ -1733,7 +1773,8 @@ export const GAME2_LEVELS = [
       "band": [
         1,
         1
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 1,
@@ -1766,7 +1807,8 @@ export const GAME2_LEVELS = [
       "band": [
         2,
         3
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 3,
@@ -1804,7 +1846,8 @@ export const GAME2_LEVELS = [
       "band": [
         2,
         3
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 3,
@@ -1844,7 +1887,8 @@ export const GAME2_LEVELS = [
       "band": [
         2,
         3
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 2,
@@ -1887,7 +1931,8 @@ export const GAME2_LEVELS = [
       "band": [
         3,
         4
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 3,
@@ -1914,9 +1959,9 @@ export const GAME2_LEVELS = [
   {
     "name": "Hop and Step",
     "start": [
-      "PPPR",
-      "RRRR",
-      "PPRP"
+      "RRPR",
+      "RPPP",
+      "PRRP"
     ],
     "target": [
       "PPRR",
@@ -1930,23 +1975,24 @@ export const GAME2_LEVELS = [
       "band": [
         3,
         4
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 4,
-    "limitedPar": 4,
-    "solution_len": 4,
+    "revision": 2,
+    "par": 5,
+    "limitedPar": 5,
+    "solution_len": 5,
     "allowanceFloor": [
       [
         0,
         0,
         1,
-        0
+        1
       ],
       [
+        0,
+        0,
         1,
-        0,
-        0,
         1
       ],
       [
@@ -1978,7 +2024,8 @@ export const GAME2_LEVELS = [
       "band": [
         4,
         5
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 4,
@@ -2006,9 +2053,9 @@ export const GAME2_LEVELS = [
   {
     "name": "Stepping Stones",
     "start": [
-      "PBPR",
-      "BRRP",
-      "PBBR"
+      "PRRB",
+      "BBRR",
+      "PBPP"
     ],
     "target": [
       "PRBP",
@@ -2022,30 +2069,31 @@ export const GAME2_LEVELS = [
       "band": [
         5,
         6
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
+    "revision": 2,
+    "par": 5,
+    "limitedPar": 5,
+    "solution_len": 5,
     "allowanceFloor": [
       [
-        0,
         1,
+        0,
         0,
         1
       ],
       [
         0,
-        1,
-        1,
-        0
+        0,
+        0,
+        1
       ],
       [
         1,
         0,
-        1,
-        0
+        0,
+        1
       ]
     ]
   },
@@ -2068,7 +2116,8 @@ export const GAME2_LEVELS = [
       "band": [
         5,
         6
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 6,
@@ -2095,8 +2144,8 @@ export const GAME2_LEVELS = [
   {
     "name": "Echo",
     "start": [
-      "BRPRP",
-      "PRRPB"
+      "PRBPP",
+      "BRPRR"
     ],
     "target": [
       "PRBPR",
@@ -2109,26 +2158,27 @@ export const GAME2_LEVELS = [
       "band": [
         5,
         6
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
+    "revision": 2,
+    "par": 5,
+    "limitedPar": 5,
+    "solution_len": 5,
     "allowanceFloor": [
       [
         0,
         0,
+        2,
         0,
-        1,
-        2
+        1
       ],
       [
         0,
         0,
         1,
-        0,
-        2
+        1,
+        0
       ]
     ]
   },
@@ -2149,7 +2199,8 @@ export const GAME2_LEVELS = [
       "band": [
         2,
         3
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 2,
@@ -2189,7 +2240,8 @@ export const GAME2_LEVELS = [
       "band": [
         4,
         5
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 5,
@@ -2232,7 +2284,8 @@ export const GAME2_LEVELS = [
       "band": [
         4,
         5
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 5,
@@ -2259,9 +2312,9 @@ export const GAME2_LEVELS = [
   {
     "name": "Over and Across",
     "start": [
-      "PGYP",
-      "YPYG",
-      "GYPG"
+      "GYGY",
+      "GPPP",
+      "YYPG"
     ],
     "target": [
       "PYGP",
@@ -2275,9 +2328,10 @@ export const GAME2_LEVELS = [
       "band": [
         6,
         7
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
+    "revision": 2,
     "par": 7,
     "limitedPar": 7,
     "solution_len": 7,
@@ -2291,24 +2345,24 @@ export const GAME2_LEVELS = [
       [
         0,
         1,
-        1,
-        0
+        3,
+        1
       ],
       [
-        2,
         0,
         0,
-        1
+        0,
+        0
       ]
     ]
   },
   {
     "name": "Skipping Stair",
     "start": [
-      "YGY",
-      "PPY",
+      "GYY",
       "PPG",
-      "GGY"
+      "YPG",
+      "YPG"
     ],
     "target": [
       "PYG",
@@ -2323,32 +2377,33 @@ export const GAME2_LEVELS = [
       "band": [
         6,
         7
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
+    "revision": 2,
+    "par": 6,
+    "limitedPar": 6,
+    "solution_len": 6,
     "allowanceFloor": [
       [
-        1,
         0,
-        0
+        0,
+        1
+      ],
+      [
+        0,
+        0,
+        1
+      ],
+      [
+        0,
+        1,
+        1
       ],
       [
         0,
         2,
-        1
-      ],
-      [
-        1,
-        0,
         0
-      ],
-      [
-        1,
-        0,
-        1
       ]
     ]
   },
@@ -2371,7 +2426,8 @@ export const GAME2_LEVELS = [
       "band": [
         6,
         7
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 7,
@@ -2417,7 +2473,8 @@ export const GAME2_LEVELS = [
       "band": [
         3,
         4
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 3,
@@ -2444,10 +2501,10 @@ export const GAME2_LEVELS = [
   {
     "name": "Grasshopper",
     "start": [
-      "YRBY",
-      "BBYB",
-      "RYPP",
-      "PPRR"
+      "RYPB",
+      "BYBP",
+      "PYRR",
+      "YBRP"
     ],
     "target": [
       "PRYB",
@@ -2462,12 +2519,13 @@ export const GAME2_LEVELS = [
       "band": [
         8,
         9
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 9,
-    "limitedPar": 9,
-    "solution_len": 9,
+    "revision": 2,
+    "par": 8,
+    "limitedPar": 8,
+    "solution_len": 8,
     "allowanceFloor": [
       [
         1,
@@ -2478,18 +2536,18 @@ export const GAME2_LEVELS = [
       [
         0,
         1,
-        1,
-        1
-      ],
-      [
-        1,
-        0,
         0,
         0
       ],
       [
-        2,
+        1,
+        1,
+        1,
+        0
+      ],
+      [
         0,
+        1,
         0,
         1
       ]
@@ -2498,10 +2556,10 @@ export const GAME2_LEVELS = [
   {
     "name": "Across the Chasm",
     "start": [
-      "PRRB",
-      ".GG.",
-      "BGRR",
-      "BPPG"
+      "PBGR",
+      ".PR.",
+      "BGBR",
+      "GGRP"
     ],
     "target": [
       "PGRB",
@@ -2516,46 +2574,47 @@ export const GAME2_LEVELS = [
       "band": [
         8,
         9
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
+    "revision": 2,
     "par": 9,
     "limitedPar": 9,
     "solution_len": 9,
     "allowanceFloor": [
       [
         0,
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        0
-      ],
-      [
-        1,
-        0,
-        1,
-        0
-      ],
-      [
-        1,
         2,
-        1,
+        0,
         0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        1,
+        1,
+        1
+      ],
+      [
+        1,
+        0,
+        1,
+        1
       ]
     ]
   },
   {
     "name": "The Great Leap",
     "start": [
-      "PBYG",
-      "BBGP",
-      "PYGB",
-      "YPYG"
+      "GBBB",
+      "YPYY",
+      "GYPG",
+      "PPBG"
     ],
     "target": [
       "PPBB",
@@ -2570,45 +2629,46 @@ export const GAME2_LEVELS = [
       "band": [
         9,
         11
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 11,
-    "limitedPar": 11,
-    "solution_len": 11,
+    "revision": 2,
+    "par": 12,
+    "limitedPar": 12,
+    "solution_len": 12,
     "allowanceFloor": [
       [
         0,
         1,
+        0,
+        0
+      ],
+      [
+        1,
+        1,
+        1,
+        2
+      ],
+      [
+        1,
+        1,
+        1,
+        0
+      ],
+      [
+        1,
+        0,
         1,
         1
-      ],
-      [
-        1,
-        0,
-        2,
-        0
-      ],
-      [
-        1,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        3,
-        0,
-        0
       ]
     ]
   },
   {
     "name": "Tile Floor",
     "start": [
-      "RRB",
-      "BGR",
-      "YRG"
+      "BRB",
+      "YRG",
+      "GRR"
     ],
     "target": [
       "RRB",
@@ -2622,27 +2682,28 @@ export const GAME2_LEVELS = [
       "band": [
         4,
         5
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
+    "revision": 2,
+    "par": 6,
+    "limitedPar": 6,
+    "solution_len": 6,
     "allowanceFloor": [
       [
-        0,
-        0,
-        0
-      ],
-      [
         2,
-        1,
+        0,
         0
       ],
       [
         1,
-        1,
-        0
+        0,
+        1
+      ],
+      [
+        0,
+        0,
+        2
       ]
     ]
   },
@@ -2665,7 +2726,8 @@ export const GAME2_LEVELS = [
       "band": [
         5,
         6
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 6,
@@ -2713,7 +2775,8 @@ export const GAME2_LEVELS = [
       "band": [
         6,
         7
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 7,
@@ -2749,10 +2812,10 @@ export const GAME2_LEVELS = [
   {
     "name": "Patchwork",
     "start": [
-      "BPYY",
-      "PBRY",
-      "RRBY",
-      "PBPR"
+      "YBYP",
+      "BRBY",
+      "PPRR",
+      "RBPY"
     ],
     "target": [
       "BBYY",
@@ -2767,34 +2830,35 @@ export const GAME2_LEVELS = [
       "band": [
         7,
         8
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
+    "revision": 2,
+    "par": 8,
+    "limitedPar": 8,
+    "solution_len": 8,
     "allowanceFloor": [
       [
+        1,
+        1,
+        0,
+        2
+      ],
+      [
         0,
         1,
         0,
         0
       ],
       [
-        1,
-        0,
-        0,
-        0
-      ],
-      [
         0,
         1,
-        1,
+        0,
         1
       ],
       [
         0,
-        1,
+        0,
         1,
         0
       ]
@@ -2803,10 +2867,10 @@ export const GAME2_LEVELS = [
   {
     "name": "Weaver",
     "start": [
-      "RBRG",
+      "RBGB",
       "BRBB",
-      "BBGB",
-      "BRGG"
+      "RRGG",
+      "BBBG"
     ],
     "target": [
       "RRBB",
@@ -2821,35 +2885,36 @@ export const GAME2_LEVELS = [
       "band": [
         7,
         8
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 8,
-    "limitedPar": 8,
-    "solution_len": 8,
+    "revision": 2,
+    "par": 7,
+    "limitedPar": 7,
+    "solution_len": 7,
     "allowanceFloor": [
       [
         0,
-        2,
-        0,
-        1
-      ],
-      [
         1,
-        0,
-        0,
+        1,
         0
       ],
       [
         0,
         0,
         0,
-        2
+        0
+      ],
+      [
+        1,
+        1,
+        1,
+        0
       ],
       [
         0,
-        2,
-        0,
+        1,
+        1,
         0
       ]
     ]
@@ -2857,10 +2922,10 @@ export const GAME2_LEVELS = [
   {
     "name": "Inlay",
     "start": [
+      "WYPW",
       "YYPW",
-      "YPYP",
-      "WPWY",
-      "WYYP"
+      "PYYY",
+      "WPYP"
     ],
     "target": [
       "YYPP",
@@ -2875,36 +2940,37 @@ export const GAME2_LEVELS = [
       "band": [
         6,
         7
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
+    "revision": 2,
+    "par": 8,
+    "limitedPar": 8,
+    "solution_len": 8,
     "allowanceFloor": [
       [
         0,
-        0,
+        2,
         0,
         0
       ],
       [
         0,
-        2,
+        1,
+        1,
+        0
+      ],
+      [
+        1,
+        0,
         1,
         0
       ],
       [
         0,
-        2,
+        1,
         0,
-        0
-      ],
-      [
-        0,
-        2,
-        0,
-        0
+        1
       ]
     ]
   },
@@ -2927,7 +2993,8 @@ export const GAME2_LEVELS = [
       "band": [
         3,
         4
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 2,
@@ -2972,7 +3039,8 @@ export const GAME2_LEVELS = [
       "band": [
         8,
         9
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 9,
@@ -3008,10 +3076,10 @@ export const GAME2_LEVELS = [
   {
     "name": "Terraces",
     "start": [
-      "RGGB",
-      "RBGY",
-      "BYRG",
-      "BYYR"
+      "RGBY",
+      "GBRB",
+      "RYGR",
+      "BYGY"
     ],
     "target": [
       "RBGY",
@@ -3026,45 +3094,46 @@ export const GAME2_LEVELS = [
       "band": [
         8,
         9
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 8,
-    "limitedPar": 8,
-    "solution_len": 8,
+    "revision": 2,
+    "par": 9,
+    "limitedPar": 9,
+    "solution_len": 9,
     "allowanceFloor": [
       [
         0,
         0,
         1,
+        0
+      ],
+      [
+        0,
+        1,
+        1,
         2
       ],
       [
-        0,
-        0,
+        1,
+        1,
         1,
         0
       ],
       [
         0,
-        2,
-        1,
+        0,
+        0,
         1
-      ],
-      [
-        0,
-        0,
-        0,
-        0
       ]
     ]
   },
   {
     "name": "Labyrinth Tile",
     "start": [
-      ".GYR",
-      "GGYB",
-      "WYWB",
+      ".BBR",
+      "GGYW",
+      "GWYY",
       "YWR."
     ],
     "target": [
@@ -3080,9 +3149,10 @@ export const GAME2_LEVELS = [
       "band": [
         8,
         9
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
+    "revision": 2,
     "par": 9,
     "limitedPar": 9,
     "solution_len": 9,
@@ -3090,25 +3160,25 @@ export const GAME2_LEVELS = [
       [
         0,
         0,
-        0,
-        2
+        3,
+        1
       ],
       [
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
         0,
         1,
+        1
+      ],
+      [
+        0,
+        0,
         2,
-        2
-      ],
-      [
-        0,
-        0,
-        0,
-        2
-      ],
-      [
-        0,
-        0,
-        0,
         0
       ]
     ]
@@ -3116,10 +3186,10 @@ export const GAME2_LEVELS = [
   {
     "name": "Rosette",
     "start": [
-      "YYPY",
-      "YGYG",
-      "PPYP",
-      "YGGG"
+      "GPGP",
+      "YYGY",
+      "GYPY",
+      "YGYP"
     ],
     "target": [
       "YYGG",
@@ -3134,9 +3204,10 @@ export const GAME2_LEVELS = [
       "band": [
         8,
         9
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
+    "revision": 2,
     "par": 9,
     "limitedPar": 9,
     "solution_len": 9,
@@ -3144,19 +3215,7 @@ export const GAME2_LEVELS = [
       [
         0,
         0,
-        1,
-        1
-      ],
-      [
         0,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        1,
         2
       ],
       [
@@ -3164,6 +3223,18 @@ export const GAME2_LEVELS = [
         1,
         1,
         0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        2,
+        1,
+        2
       ]
     ]
   },
@@ -3186,7 +3257,8 @@ export const GAME2_LEVELS = [
       "band": [
         4,
         5
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 4,
@@ -3217,9 +3289,9 @@ export const GAME2_LEVELS = [
     "name": "Chevron",
     "start": [
       "RBYY",
-      "YRRR",
-      "YBYR",
-      "BRBY"
+      "RRYY",
+      "YYBR",
+      "BRBR"
     ],
     "target": [
       "RRYY",
@@ -3234,24 +3306,25 @@ export const GAME2_LEVELS = [
       "band": [
         9,
         10
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 10,
-    "limitedPar": 10,
-    "solution_len": 10,
+    "revision": 2,
+    "par": 9,
+    "limitedPar": 9,
+    "solution_len": 9,
     "allowanceFloor": [
       [
-        3,
+        0,
         1,
         2,
         0
       ],
       [
+        2,
         1,
         0,
-        1,
-        0
+        1
       ],
       [
         0,
@@ -3270,10 +3343,10 @@ export const GAME2_LEVELS = [
   {
     "name": "Tessellate",
     "start": [
-      "BBBY",
-      "GYGG",
-      "RGYR",
-      "RRBY"
+      "YBRR",
+      "YRBG",
+      "BGYG",
+      "RBYG"
     ],
     "target": [
       "YRGB",
@@ -3288,36 +3361,37 @@ export const GAME2_LEVELS = [
       "band": [
         9,
         10
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
+    "revision": 2,
     "par": 10,
     "limitedPar": 10,
     "solution_len": 10,
     "allowanceFloor": [
       [
         0,
-        1,
-        1,
-        1
-      ],
-      [
-        0,
-        1,
-        1,
-        0
-      ],
-      [
         2,
         0,
+        2
+      ],
+      [
         0,
+        0,
+        2,
+        0
+      ],
+      [
+        1,
+        0,
+        1,
         0
       ],
       [
         0,
-        3,
+        1,
         0,
-        0
+        1
       ]
     ]
   },
@@ -3325,9 +3399,9 @@ export const GAME2_LEVELS = [
     "name": "Cloister",
     "start": [
       "RBBP",
-      "R.BR",
-      "WWRP",
-      "PW.P"
+      "R.PR",
+      "BWPW",
+      "RW.P"
     ],
     "target": [
       "RRBB",
@@ -3342,12 +3416,13 @@ export const GAME2_LEVELS = [
       "band": [
         9,
         10
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 10,
-    "limitedPar": 10,
-    "solution_len": 10,
+    "revision": 2,
+    "par": 9,
+    "limitedPar": 9,
+    "solution_len": 9,
     "allowanceFloor": [
       [
         0,
@@ -3356,16 +3431,16 @@ export const GAME2_LEVELS = [
         0
       ],
       [
-        0,
-        0,
-        3,
-        1
-      ],
-      [
-        0,
+        1,
         0,
         2,
         1
+      ],
+      [
+        1,
+        0,
+        1,
+        0
       ],
       [
         0,
@@ -3396,7 +3471,8 @@ export const GAME2_LEVELS = [
       "band": [
         9,
         10
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 9,
@@ -3448,7 +3524,8 @@ export const GAME2_LEVELS = [
       "band": [
         4,
         5
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 5,
@@ -3475,10 +3552,10 @@ export const GAME2_LEVELS = [
   {
     "name": "Fresco",
     "start": [
-      "YBGP",
-      "BBPB",
-      "YGYG",
-      "YGPP"
+      "PPYY",
+      "BBBG",
+      "YGPG",
+      "BYGP"
     ],
     "target": [
       "PPBB",
@@ -3493,21 +3570,28 @@ export const GAME2_LEVELS = [
       "band": [
         10,
         11
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
+    "revision": 2,
     "par": 11,
     "limitedPar": 11,
     "solution_len": 11,
     "allowanceFloor": [
       [
         0,
+        4,
         0,
-        1,
         1
       ],
       [
         1,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
         2,
         0,
         0
@@ -3515,13 +3599,7 @@ export const GAME2_LEVELS = [
       [
         1,
         0,
-        1,
-        0
-      ],
-      [
         0,
-        0,
-        2,
         2
       ]
     ]
@@ -3529,10 +3607,10 @@ export const GAME2_LEVELS = [
   {
     "name": "Cathedral Floor",
     "start": [
-      "BGRGB",
+      "RBBGB",
       "G.R.B",
-      "RWWGB",
-      "GBRRW"
+      "GWRBG",
+      "GRWRW"
     ],
     "target": [
       "RGRGR",
@@ -3547,20 +3625,14 @@ export const GAME2_LEVELS = [
       "band": [
         10,
         11
-      ]
-    },
-    "revision": 1,
-    "par": 11,
-    "limitedPar": 11,
-    "solution_len": 11,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0,
-        2,
-        1
       ],
+      "scoring": 2
+    },
+    "revision": 2,
+    "par": 10,
+    "limitedPar": 10,
+    "solution_len": 10,
+    "allowanceFloor": [
       [
         0,
         0,
@@ -3569,17 +3641,24 @@ export const GAME2_LEVELS = [
         0
       ],
       [
-        2,
+        1,
         0,
+        1,
         0,
-        0,
-        1
+        0
       ],
       [
-        2,
+        0,
+        0,
         0,
         2,
+        2
+      ],
+      [
         1,
+        1,
+        0,
+        2,
         0
       ]
     ]
@@ -3587,10 +3666,10 @@ export const GAME2_LEVELS = [
   {
     "name": "Grand Mosaic",
     "start": [
-      "GWGB",
-      "RYRR",
-      "BPYP",
-      "YWGB"
+      "GYBR",
+      "RPWG",
+      "GPWR",
+      "YBBY"
     ],
     "target": [
       "RGPR",
@@ -3605,46 +3684,47 @@ export const GAME2_LEVELS = [
       "band": [
         10,
         12
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 12,
-    "limitedPar": 12,
-    "solution_len": 12,
+    "revision": 2,
+    "par": 11,
+    "limitedPar": 11,
+    "solution_len": 11,
     "allowanceFloor": [
       [
-        0,
-        0,
+        1,
+        2,
         1,
         0
       ],
       [
         1,
+        3,
         0,
-        1,
-        1
-      ],
-      [
-        2,
-        2,
-        1,
-        1
+        0
       ],
       [
         0,
         0,
+        0,
+        2
+      ],
+      [
+        0,
         1,
-        1
+        0,
+        0
       ]
     ]
   },
   {
     "name": "Prelude",
     "start": [
-      "YBBY",
-      "RGYB",
+      "BBRY",
+      "GGYB",
       "GGYR",
-      "BRRG"
+      "YRBR"
     ],
     "target": [
       "RBGY",
@@ -3659,16 +3739,17 @@ export const GAME2_LEVELS = [
       "band": [
         8,
         9
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
+    "revision": 2,
     "par": 9,
     "limitedPar": 9,
     "solution_len": 9,
     "allowanceFloor": [
       [
-        1,
         0,
+        2,
         1,
         0
       ],
@@ -3680,14 +3761,14 @@ export const GAME2_LEVELS = [
       ],
       [
         0,
-        3,
         0,
+        2,
         1
       ],
       [
-        1,
         0,
-        1,
+        0,
+        2,
         0
       ]
     ]
@@ -3695,10 +3776,10 @@ export const GAME2_LEVELS = [
   {
     "name": "Overture",
     "start": [
-      "GYGP",
-      "GPPY",
-      "GPGY",
-      "PPPY"
+      "YPYP",
+      "PGPP",
+      "GYPG",
+      "YGPG"
     ],
     "target": [
       "PPGG",
@@ -3713,33 +3794,34 @@ export const GAME2_LEVELS = [
       "band": [
         9,
         10
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 10,
-    "limitedPar": 10,
-    "solution_len": 10,
+    "revision": 2,
+    "par": 9,
+    "limitedPar": 9,
+    "solution_len": 9,
     "allowanceFloor": [
       [
+        1,
+        1,
+        0,
+        1
+      ],
+      [
         0,
         0,
+        0,
+        1
+      ],
+      [
+        1,
+        1,
         2,
-        1
+        0
       ],
       [
-        1,
-        1,
         0,
-        1
-      ],
-      [
-        1,
-        0,
-        0,
-        1
-      ],
-      [
-        1,
         1,
         0,
         0
@@ -3749,10 +3831,10 @@ export const GAME2_LEVELS = [
   {
     "name": "Counterpoint",
     "start": [
-      "GYGB",
-      "YRRB",
-      "BGPG",
-      "YPRP"
+      "BPYY",
+      "BBRG",
+      "GRPG",
+      "YGRP"
     ],
     "target": [
       "RGPB",
@@ -3767,28 +3849,17 @@ export const GAME2_LEVELS = [
       "band": [
         10,
         11
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 11,
-    "limitedPar": 11,
-    "solution_len": 11,
+    "revision": 2,
+    "par": 10,
+    "limitedPar": 10,
+    "solution_len": 10,
     "allowanceFloor": [
       [
-        0,
-        2,
         1,
-        0
-      ],
-      [
-        2,
-        2,
-        0,
-        0
-      ],
-      [
         1,
-        0,
         1,
         1
       ],
@@ -3797,16 +3868,28 @@ export const GAME2_LEVELS = [
         0,
         1,
         0
+      ],
+      [
+        0,
+        1,
+        3,
+        1
+      ],
+      [
+        0,
+        0,
+        0,
+        0
       ]
     ]
   },
   {
     "name": "Fugue",
     "start": [
-      "RRBRY",
-      "BB.BR",
-      "YGGYR",
-      "YYGGG"
+      "BRRRG",
+      "RB.GR",
+      "BYYGY",
+      "YBGGY"
     ],
     "target": [
       "RRRRR",
@@ -3821,9 +3904,10 @@ export const GAME2_LEVELS = [
       "band": [
         10,
         11
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
+    "revision": 2,
     "par": 11,
     "limitedPar": 11,
     "solution_len": 11,
@@ -3831,41 +3915,41 @@ export const GAME2_LEVELS = [
       [
         0,
         0,
-        2,
         0,
+        0,
+        2
+      ],
+      [
+        1,
+        0,
+        0,
+        2,
         1
       ],
       [
-        0,
-        0,
-        0,
+        2,
+        1,
+        1,
         0,
         0
       ],
       [
-        1,
+        0,
+        0,
         0,
         1,
-        1,
-        2
-      ],
-      [
-        0,
-        1,
-        1,
-        0,
-        1
+        0
       ]
     ]
   },
   {
     "name": "Nocturne",
     "start": [
-      "BYRW",
-      "R..W",
-      "BYYW",
+      "RBRW",
+      "Y..W",
       "RYBW",
-      "BRBW"
+      "BBYW",
+      "YBRW"
     ],
     "target": [
       "BYRW",
@@ -3881,41 +3965,42 @@ export const GAME2_LEVELS = [
       "band": [
         10,
         11
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 11,
-    "limitedPar": 11,
-    "solution_len": 11,
+    "revision": 2,
+    "par": 10,
+    "limitedPar": 10,
+    "solution_len": 10,
     "allowanceFloor": [
       [
+        1,
+        1,
         0,
+        0
+      ],
+      [
+        1,
         0,
         0,
         0
       ],
       [
-        2,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        2,
+        1,
+        1,
         1,
         0
       ],
       [
+        0,
+        0,
         3,
-        0,
-        1,
         0
       ],
       [
         0,
+        1,
         0,
-        2,
         0
       ]
     ]
@@ -3939,7 +4024,8 @@ export const GAME2_LEVELS = [
       "band": [
         5,
         6
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 5,
@@ -3969,10 +4055,10 @@ export const GAME2_LEVELS = [
   {
     "name": "Canon",
     "start": [
-      "GGBB",
-      "YRYR",
-      "YBGR",
-      "RBYG"
+      "YBBR",
+      "GYBR",
+      "YGBG",
+      "YRGR"
     ],
     "target": [
       "GYRB",
@@ -3987,46 +4073,47 @@ export const GAME2_LEVELS = [
       "band": [
         10,
         11
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
+    "revision": 2,
     "par": 11,
     "limitedPar": 11,
     "solution_len": 11,
     "allowanceFloor": [
       [
-        0,
         1,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
+        2,
         1,
         2
       ],
       [
-        1,
-        1,
+        0,
+        0,
+        0,
+        1
+      ],
+      [
+        0,
+        0,
         1,
         0
+      ],
+      [
+        0,
+        0,
+        1,
+        2
       ]
     ]
   },
   {
     "name": "Sonata",
     "start": [
-      ".BGB.",
-      "RBGGG",
-      "BYRBG",
-      ".RBB."
+      ".BBB.",
+      "BBBGB",
+      "RRRGG",
+      ".YGG."
     ],
     "target": [
       ".RBB.",
@@ -4041,39 +4128,40 @@ export const GAME2_LEVELS = [
       "band": [
         11,
         12
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 12,
-    "limitedPar": 12,
-    "solution_len": 12,
+    "revision": 2,
+    "par": 11,
+    "limitedPar": 11,
+    "solution_len": 11,
     "allowanceFloor": [
       [
         0,
         1,
-        1,
+        0,
         0,
         0
       ],
       [
         0,
-        0,
+        2,
         0,
         0,
         1
       ],
       [
-        0,
         1,
         2,
+        1,
         0,
         1
       ],
       [
         0,
         2,
-        1,
-        2,
+        0,
+        0,
         0
       ]
     ]
@@ -4081,11 +4169,11 @@ export const GAME2_LEVELS = [
   {
     "name": "Requiem",
     "start": [
-      "BBPG",
-      "P.PY",
-      "PG.P",
-      "Y.GG",
-      "PGBY"
+      "PBPG",
+      "Y.BG",
+      "PB.P",
+      "G.YY",
+      "PPGG"
     ],
     "target": [
       "PGPG",
@@ -4101,52 +4189,53 @@ export const GAME2_LEVELS = [
       "band": [
         11,
         12
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
+    "revision": 2,
     "par": 11,
     "limitedPar": 11,
     "solution_len": 11,
     "allowanceFloor": [
       [
-        1,
         0,
-        0,
-        2
-      ],
-      [
-        2,
         0,
         0,
         0
       ],
       [
         1,
+        0,
         2,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
         1
       ],
       [
         1,
+        1,
         0,
+        0
+      ],
+      [
+        2,
         0,
-        1
+        1,
+        0
+      ],
+      [
+        1,
+        1,
+        0,
+        0
       ]
     ]
   },
   {
     "name": "Etude",
     "start": [
-      "BBYR",
-      "RPBR",
-      "YYPP",
-      "YPRB"
+      "RBPR",
+      "BYPP",
+      "YBRR",
+      "YBYP"
     ],
     "target": [
       "RRBB",
@@ -4161,24 +4250,25 @@ export const GAME2_LEVELS = [
       "band": [
         11,
         12
-      ]
-    },
-    "revision": 1,
-    "par": 12,
-    "limitedPar": 12,
-    "solution_len": 12,
-    "allowanceFloor": [
-      [
-        2,
-        2,
-        1,
-        0
       ],
+      "scoring": 2
+    },
+    "revision": 2,
+    "par": 11,
+    "limitedPar": 11,
+    "solution_len": 11,
+    "allowanceFloor": [
       [
         0,
         2,
-        1,
+        2,
         0
+      ],
+      [
+        1,
+        0,
+        1,
+        1
       ],
       [
         0,
@@ -4188,9 +4278,9 @@ export const GAME2_LEVELS = [
       ],
       [
         0,
-        1,
-        1,
-        0
+        0,
+        0,
+        2
       ]
     ]
   },
@@ -4213,7 +4303,8 @@ export const GAME2_LEVELS = [
       "band": [
         4,
         5
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 4,
@@ -4243,10 +4334,10 @@ export const GAME2_LEVELS = [
   {
     "name": "Rhapsody",
     "start": [
-      ".YGRB",
-      "PBYPR",
-      "GYGRB",
-      "PBYP."
+      ".GYPR",
+      "BPBPB",
+      "GBYYR",
+      "YGRP."
     ],
     "target": [
       ".BGYP",
@@ -4261,9 +4352,10 @@ export const GAME2_LEVELS = [
       "band": [
         12,
         13
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
+    "revision": 2,
     "par": 11,
     "limitedPar": 11,
     "solution_len": 11,
@@ -4276,22 +4368,22 @@ export const GAME2_LEVELS = [
         1
       ],
       [
-        1,
-        1,
         0,
-        2,
+        1,
+        1,
+        1,
+        1
+      ],
+      [
+        0,
+        3,
+        0,
+        0,
         0
       ],
       [
         0,
         0,
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        2,
         0,
         1,
         0
@@ -4301,10 +4393,10 @@ export const GAME2_LEVELS = [
   {
     "name": "Toccata",
     "start": [
-      "RYBB",
-      "YRRG",
-      "BPGG",
-      "BGRP"
+      "BBYR",
+      "BRRR",
+      "PGGP",
+      "GYGB"
     ],
     "target": [
       "PPRR",
@@ -4319,16 +4411,17 @@ export const GAME2_LEVELS = [
       "band": [
         12,
         13
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
+    "revision": 2,
     "par": 12,
     "limitedPar": 12,
     "solution_len": 12,
     "allowanceFloor": [
       [
         0,
-        1,
+        0,
         1,
         0
       ],
@@ -4336,18 +4429,18 @@ export const GAME2_LEVELS = [
         2,
         0,
         1,
-        1
-      ],
-      [
-        0,
-        1,
-        1,
         0
       ],
       [
-        2,
+        1,
         0,
+        1,
+        2
+      ],
+      [
         0,
+        1,
+        1,
         2
       ]
     ]
@@ -4355,11 +4448,11 @@ export const GAME2_LEVELS = [
   {
     "name": "Cadenza",
     "start": [
-      ".BWG.",
-      "GRGRB",
-      "BRRGB",
-      "WGWWW",
-      ".BWB."
+      ".GGB.",
+      "RRWWR",
+      "BBGGR",
+      "WWWGW",
+      ".BBB."
     ],
     "target": [
       ".BRB.",
@@ -4375,16 +4468,24 @@ export const GAME2_LEVELS = [
       "band": [
         12,
         13
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
+    "revision": 2,
     "par": 12,
     "limitedPar": 12,
     "solution_len": 12,
     "allowanceFloor": [
       [
         0,
+        1,
+        1,
         2,
+        0
+      ],
+      [
+        0,
+        1,
         0,
         0,
         0
@@ -4392,28 +4493,21 @@ export const GAME2_LEVELS = [
       [
         0,
         1,
-        0,
-        3,
+        1,
+        1,
         1
       ],
       [
         0,
         0,
+        0,
         2,
-        1,
-        2
-      ],
-      [
-        0,
-        0,
-        0,
-        0,
         0
       ],
       [
         0,
         0,
-        0,
+        1,
         0,
         0
       ]
@@ -4422,10 +4516,10 @@ export const GAME2_LEVELS = [
   {
     "name": "Serenade",
     "start": [
-      "YPYB",
-      "YPGP",
-      "YPBG",
-      "GBBG"
+      "PGYP",
+      "GYGP",
+      "BYPB",
+      "BBYG"
     ],
     "target": [
       "YYGG",
@@ -4440,35 +4534,36 @@ export const GAME2_LEVELS = [
       "band": [
         12,
         13
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
+    "revision": 2,
     "par": 12,
     "limitedPar": 12,
     "solution_len": 12,
     "allowanceFloor": [
       [
         1,
-        3,
+        0,
         0,
         2
       ],
       [
-        0,
+        1,
         1,
         1,
         2
       ],
       [
-        0,
-        0,
+        2,
+        1,
         0,
         0
       ],
       [
-        2,
         0,
         0,
+        1,
         0
       ]
     ]
@@ -4492,7 +4587,8 @@ export const GAME2_LEVELS = [
       "band": [
         5,
         6
-      ]
+      ],
+      "scoring": 2
     },
     "revision": 1,
     "par": 5,
@@ -4522,11 +4618,11 @@ export const GAME2_LEVELS = [
   {
     "name": "Symphony",
     "start": [
-      ".BRR.",
-      "Y.B.B",
-      "GBYGG",
-      "R.G.G",
-      ".RYB."
+      ".BBR.",
+      "R.G.B",
+      "YBGYG",
+      "G.B.R",
+      ".RGY."
     ],
     "target": [
       ".RRB.",
@@ -4542,46 +4638,47 @@ export const GAME2_LEVELS = [
       "band": [
         13,
         14
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 14,
-    "limitedPar": 14,
-    "solution_len": 14,
+    "revision": 2,
+    "par": 13,
+    "limitedPar": 13,
+    "solution_len": 13,
     "allowanceFloor": [
       [
         0,
-        2,
-        0,
-        0,
-        0
-      ],
-      [
-        2,
-        0,
-        0,
+        1,
+        1,
         0,
         0
       ],
       [
+        0,
+        0,
+        2,
+        0,
+        0
+      ],
+      [
+        1,
+        2,
         0,
         3,
-        2,
-        0,
         0
       ],
       [
-        1,
+        0,
         0,
         1,
         0,
-        1
+        2
       ],
       [
         0,
         0,
         0,
-        2,
+        0,
         0
       ]
     ]
@@ -4589,10 +4686,10 @@ export const GAME2_LEVELS = [
   {
     "name": "Opus",
     "start": [
-      "PYGPR",
-      "BP.GB",
-      "GBRYB",
-      "GR.PY"
+      "RYGGB",
+      "GP.PB",
+      "GRPYB",
+      "RB.PY"
     ],
     "target": [
       "PYGBR",
@@ -4607,37 +4704,38 @@ export const GAME2_LEVELS = [
       "band": [
         13,
         15
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 11,
-    "limitedPar": 11,
-    "solution_len": 11,
+    "revision": 2,
+    "par": 12,
+    "limitedPar": 12,
+    "solution_len": 12,
     "allowanceFloor": [
       [
-        4,
         0,
         0,
-        2,
-        2
-      ],
-      [
-        0,
-        0,
-        0,
+        1,
         0,
         1
       ],
       [
         0,
+        3,
         0,
         1,
-        0,
         0
       ],
       [
         0,
-        1,
+        0,
+        4,
+        0,
+        0
+      ],
+      [
+        2,
+        0,
         0,
         0,
         0
@@ -4647,11 +4745,11 @@ export const GAME2_LEVELS = [
   {
     "name": "Crescendo",
     "start": [
-      ".YPY.",
-      "B.R.P",
-      "RRBGG",
-      "G.B.Y",
-      ".BBP."
+      ".RPB.",
+      "B.B.Y",
+      "YGPPG",
+      "R.G.B",
+      ".RBY."
     ],
     "target": [
       ".RYB.",
@@ -4667,29 +4765,37 @@ export const GAME2_LEVELS = [
       "band": [
         14,
         16
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
+    "revision": 2,
     "par": 12,
     "limitedPar": 12,
     "solution_len": 12,
     "allowanceFloor": [
       [
         0,
-        2,
-        4,
         0,
+        1,
+        2,
         0
       ],
       [
         0,
         0,
+        1,
         0,
-        0,
-        3
+        1
       ],
       [
         0,
+        1,
+        1,
+        1,
+        0
+      ],
+      [
+        1,
         0,
         1,
         0,
@@ -4698,15 +4804,8 @@ export const GAME2_LEVELS = [
       [
         0,
         0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        2,
-        0,
+        1,
+        1,
         0
       ]
     ]
@@ -4714,11 +4813,11 @@ export const GAME2_LEVELS = [
   {
     "name": "Magnum Opus",
     "start": [
-      ".BBP.",
-      "Y.G.R",
-      "GYGRP",
-      "B.B.B",
-      ".YPR."
+      ".PRB.",
+      "B.B.P",
+      "BYGPR",
+      "B.G.R",
+      ".YYG."
     ],
     "target": [
       ".GPB.",
@@ -4734,36 +4833,37 @@ export const GAME2_LEVELS = [
       "band": [
         14,
         16
-      ]
+      ],
+      "scoring": 2
     },
-    "revision": 1,
-    "par": 13,
-    "limitedPar": 13,
-    "solution_len": 13,
+    "revision": 2,
+    "par": 12,
+    "limitedPar": 12,
+    "solution_len": 12,
     "allowanceFloor": [
       [
         0,
-        0,
+        1,
         1,
         0,
         0
       ],
       [
-        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        3,
+        2,
         0,
         3,
-        0,
-        1
-      ],
-      [
-        0,
-        1,
-        1,
-        0,
         0
       ],
       [
-        3,
+        0,
         0,
         0,
         0,
@@ -4772,8 +4872,8 @@ export const GAME2_LEVELS = [
       [
         0,
         1,
-        1,
         0,
+        1,
         0
       ]
     ]

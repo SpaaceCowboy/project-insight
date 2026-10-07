@@ -6,6 +6,7 @@ const game2=process.argv.includes('--game') && process.argv[process.argv.indexOf
 const data=require('../src/data/levels'+suffix+'.js'),count=game2?100:106;
 const levels=JSON.parse(JSON.stringify(game2?data.GAME2_LEVELS:data.CORE_LEVELS));
 assert.equal(levels.length,count);
+if(process.argv.includes('--audit')){audit();return}
 const results=[];
 for(const [index,level] of levels.entries()){
   rules.validate(level);
@@ -29,3 +30,15 @@ fs.writeFileSync(rootPath('artifacts','level-checks'+suffix+'.json'),JSON.string
 fs.writeFileSync(rootPath('src','data','level-solutions'+suffix+'.js'),'// Generated optimal routes for both campaign modes.\nexport const LEVEL_SOLUTIONS = '+JSON.stringify(results.map(r=>r.path))+';\nexport const LEVEL_LIMIT_SOLUTIONS = '+JSON.stringify(results.map(r=>r.limitedPath))+';\n');
 if(process.argv.includes('--update'))fs.writeFileSync(rootPath('src','data','levels'+suffix+'.js'),game2?fs.readFileSync(rootPath('src','data','levels-2.js'),'utf8').replace(/export const GAME2_LEVELS = [\s\S]*$/,'export const GAME2_LEVELS = '+JSON.stringify(levels,null,2)+';\n'):'// Stable campaign positions; changed boards have individual revisions.\nexport const CORE_LEVELS = '+JSON.stringify(levels,null,2)+';\n');
 console.log('All '+count+' puzzles verified in both modes.');
+
+// `--audit` is read-only: difficulty signals from scripts/level-metrics.cjs (sources in level-design.md).
+function audit(){
+  const {counterintuitive,openingChoices,focusNeed}=require('./level-metrics.cjs'),cap={maxStates:350000},first={};
+  console.log(['lvl','world','tag','par','ci','neutral','choices','movers','new','focus','name'].join('\t'));
+  for(const [index,level] of levels.entries()){
+    const {path}=solver.solve(level,cap),{ci,neutral,movers}=counterintuitive(level,path),{good,legal}=openingChoices(level,path.length,cap);
+    const fresh=[...movers].filter(t=>!first[t]);fresh.forEach(t=>first[t]=index+1);
+    const focus=[...(level.design?.focus || '')].map(t=>t+':'+(focusNeed(level,t,path.length,cap) || 'no')).join(' ');
+    console.log([index+1,level.world,level.tag || '',path.length,ci,neutral,good+'/'+legal,[...movers].sort().join(''),fresh.sort().join('') || '-',focus || '-',level.name].join('\t'));
+  }
+}

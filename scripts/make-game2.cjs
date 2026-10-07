@@ -6,6 +6,7 @@ const fs=require('node:fs'),{execFileSync}=require('node:child_process');
 const {rootPath}=require('./check-paths.cjs');
 const {PuzzleRules:rules}=require('../src/puzzle-rules.js'),{PuzzleSolver:solver}=require('../src/puzzle-solver.js');
 const {CORE_LEVELS}=require('../src/data/levels.js');
+const {counterintuitive,openingChoices,focusNeed}=require('./level-metrics.cjs');
 const LIMIT={maxStates:350000};
 // Search limits and unsolvable boards just reject a candidate; anything else is a bug and must stop the run.
 function rejected(error){if(/^(Search limit reached|Unsolvable)/.test(error.message))return true;throw error}
@@ -20,7 +21,8 @@ const PATTERNS={
   bands:(r,c)=>r+2*c, rose:(r,c,h,w)=>Math.min(r,c,h-1-r,w-1-c)+(r>=h/2)*2+(c>=w/2)
 };
 // [name, size, pattern, colours (class i -> colours[i % n]), focus tiles, [min,max] par, mood, gaps]
-// Moods: teach = cleanest route (no detours); breather = easy; test/twist/boss = most detour within the band.
+// Moods: teach = cleanest route (no detours); breather = easy; test/twist/boss = counterintuitive moves and a catch
+// on a focus tile, with few optimal openings (see HARD and level-design.md).
 const WORLDS=[
   ['STRAIGHT LINES',[
     ['First Light','2x2','rows','RB','R',[1,1],'teach'],
@@ -150,12 +152,10 @@ function scramble(target,steps,random){
   }
   return g.map(row=>row.join(''));
 }
-// Solving without a focus tile's moves must fail or take longer, so the level genuinely needs that tile.
-const without=Object.fromEntries('RBGYP'.split('').map(t=>{const r=rules.create();r.moves[t]=[];return [t,solver.create(r)]}));
-function needs(level,tile,par){
-  try{return without[tile].solve(level,{maxStates:60000}).distance>par}
-  catch(error){return rejected(error)} // ponytail: unsolvable or past 60k states both count as "needed"; exhaustive proof if a level ever looks skippable
-}
+// Harder moods need counterintuitive moves (ci), some made by a focus tile (focusCi), and at most this share of
+// opening moves staying optimal. Each slack step widens the par band and relaxes these by one notch; the log shows it.
+const HARD={test:{ci:1,focusCi:0,choices:.5},twist:{ci:2,focusCi:1,choices:.5},boss:{ci:3,focusCi:1,choices:.5}};
+const SCORING=2; // bump to re-search every slot after a scoring change
 
 const seen=new Set(CORE_LEVELS.map(l=>l.start.join('|')+'>'+l.target.join('|')));
 // Unchanged slots keep their previous start, so edits only re-search the slots that changed.
@@ -167,25 +167,45 @@ WORLDS.forEach(([worldName,slots],w)=>slots.forEach(([name,size,pattern,colours,
   const tiles=new Set(target.join('').replace(/[.W]/g,''));
   if([...focus].some(t=>!tiles.has(t))){failures.push(`${name}: focus ${focus} not all in target ${target.join('|')}`);return}
   // Widen the par band one step at a time when a target cannot reach it; the log shows any slack used.
-  const design={focus,band:[min,max]},kept=previous.find(l=>l.name===name && l.tag===mood && l.target.join('|')===target.join('|') && JSON.stringify(l.design)===JSON.stringify(design));
+  const design={focus,band:[min,max],scoring:SCORING},kept=previous.find(l=>l.name===name && l.tag===mood && l.target.join('|')===target.join('|') && JSON.stringify(l.design)===JSON.stringify(design));
   if(kept){seen.add(kept.start.join('|')+'>'+target.join('|'));levels.push({name,start:kept.start,target,world:w+1,tag:mood,design});console.log(String(levels.length).padStart(3)+' kept '+name);return}
+  const hard=HARD[mood],[attempts,enough]=hard?[300,60]:[200,40];
   let best=null,slack=0;
-  for(;!best && slack<=3;slack++)for(let attempt=0,found=0;attempt<200 && found<40;attempt++){
+  for(;!best && slack<=3;slack++)for(let attempt=0,found=0;attempt<attempts && found<enough;attempt++){
     const start=scramble(target,min+Math.floor(random()*(max-min+5)),random),key=start.join('|')+'>'+target.join('|');
     if(start.join('')===target.join('') || seen.has(key))continue;
     let result;try{result=solver.solve({name,start,target},LIMIT)}catch(error){if(rejected(error))continue}
     if(result.distance<min-slack || result.distance>max+slack)continue;
     const proof=solver.verify({name,start,target},result);if(!proof.fitsLimits)continue;
-    const misplaced=[...start.join('')].filter((t,j)=>t!==target.join('')[j]).length,detour=result.distance-Math.ceil(misplaced/2);
-    const score=mood==='teach'||mood==='breather'?-detour*10+result.distance:detour*10+result.distance;
-    found++;if(best && score<=best.score)continue;
-    if(![...focus].every(t=>needs({name,start,target},t,result.distance)))continue;
-    best={start,score,key,par:result.distance};
+    const level={name,start,target},par=result.distance,metrics=counterintuitive(level,result.path,focus);
+    found++;
+    // Every focus tile must be needed: no solution without it, or only a longer one ('?' = past the 60k cap, accepted).
+    const need=t=>focusNeed(level,t,par,{maxStates:60000});
+    if(!hard){
+      const misplaced=[...start.join('')].filter((t,j)=>t!==target.join('')[j]).length,score=-(par-Math.ceil(misplaced/2))*10+par;
+      if(best && score<=best.score)continue;
+      if(metrics.ci || ![...focus].every(need))continue;
+      best={start,score,key,par,ci:0};continue;
+    }
+    if(metrics.ci<Math.max(0,hard.ci-slack) || metrics.focusCi<(slack?0:hard.focusCi))continue;
+    // Prefer more counterintuitive moves, then focus tiles that every solution needs, then length.
+    if(best && metrics.ci*1000+focus.length*100+par<=best.score)continue;
+    const needed=[...focus].map(need);if(!needed.every(Boolean))continue;
+    const score=metrics.ci*1000+needed.filter(n=>n==='all').length*100+par;
+    if(best && score<=best.score)continue;
+    const {good,legal}=openingChoices(level,par,LIMIT);if(good>legal*(hard.choices+slack*.1))continue;
+    best={start,score,key,par,ci:metrics.ci};
   }
   if(!best){failures.push(`${worldName} ${i+1} ${name} ${target.join('|')}`);return}
+  // A relaxed pick must not be worse than this slot's previous board (fewer ci, or equal ci and shorter); keep that board instead.
+  const before=previous[levels.length];
+  if(hard && slack>1 && before && before.target.join('|')===target.join('|')){
+    const old=solver.solve(before,LIMIT),oldCi=counterintuitive(before,old.path).ci;
+    if(oldCi>best.ci || oldCi===best.ci && old.distance>best.par)best={start:before.start,key:before.start.join('|')+'>'+target.join('|'),par:old.distance,ci:oldCi,previous:true};
+  }
   seen.add(best.key);
   levels.push({name,start:best.start,target,world:w+1,tag:mood,design});
-  console.log(String(levels.length).padStart(3)+' '+worldName.padEnd(15)+name.padEnd(18)+best.par+(slack>1?' (band +'+(slack-1)+')':''));
+  console.log(String(levels.length).padStart(3)+' '+worldName.padEnd(15)+name.padEnd(18)+'par '+String(best.par).padEnd(3)+'ci '+best.ci+(slack>1?' (relaxed +'+(slack-1)+')':'')+(best.previous?' kept previous board':''));
 }));
 
 // A partial list would shift positions, so nothing is written unless every slot succeeded.
