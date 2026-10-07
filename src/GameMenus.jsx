@@ -13,12 +13,12 @@ export default function GameMenus({game}) {
       <div className="menu-card home-card">
         <div className="menu-logo" id="menuTitle">INSIGHT</div><div className="menu-tagline">A little order. A little wonder.</div>
         <div className="menu-hero" id="menuHero" aria-hidden="true"><Hero /></div>
-        <div className="menu-progress" id="menuProgress">{custom?'Custom puzzle · Progress kept separate':state.dev?'Developer Mode · All '+count+' levels unlocked':'Campaign · Level '+state.unlocked+' / '+count}</div>
+        <div className="menu-progress" id="menuProgress">{custom?'Custom puzzle · Progress kept separate':state.dev?'Developer Mode · All '+count+' levels unlocked':'Game '+state.config.game+' · Level '+state.unlocked+' / '+count}</div>
         <div className="menu-actions">
           <button className="menu-main-btn primary" id="playBtn" onClick={game.continuePlay}>{playLabel}</button>
-          <button className="menu-main-btn" id="newGameBtn" hidden={!!custom} onClick={game.newGame}>New Game</button><button className="menu-main-btn" id="menuLevelsBtn" onClick={game.showLevels}>{custom?'Back to editor':'Levels'}</button>
+          <button className="menu-main-btn" id="newGameBtn" hidden={!!custom} onClick={()=>game.newGame(1)}>New Game 1</button><button className="menu-main-btn" id="newGame2Btn" hidden={!!custom} onClick={()=>game.newGame(2)}>New Game 2</button><button className="menu-main-btn" id="menuLevelsBtn" onClick={game.showLevels}>{custom?'Back to editor':'Levels'}</button>
           <button className="menu-main-btn" id="editorBtn" hidden={!!custom} onClick={game.leaveEditor}>My Puzzles · Editor</button><button className="menu-main-btn" id="achievementsBtn" onClick={()=>game.showAchievements()}>Achievements</button>
-          <button className="menu-main-btn menu-wide" id="homeSettingsBtn" onClick={()=>game.openDialog('settingsOverlay',true)}>Settings</button>
+          <button className={"menu-main-btn"+(custom?" menu-wide":"")} id="homeSettingsBtn" onClick={()=>game.openDialog('settingsOverlay',true)}>Settings</button>
         </div>
       </div>
     </Dialog>

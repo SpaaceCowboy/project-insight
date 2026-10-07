@@ -1,13 +1,18 @@
-import {CORE_LEVELS,PuzzleRules,PuzzleSolver,PuzzleArt} from './data.js';
+import {CORE_LEVELS,GAME2_LEVELS,GAME2_WORLDS,PuzzleRules,PuzzleSolver,PuzzleArt} from './data.js';
 import {newAttempt,restoreAttempt} from './achievements.mjs';
 
 export const WORLD_NAMES={1:'FIRST CONNECTIONS',2:'BORROWED PATHS',3:'LAST CHARGE',4:'CONVERGENCE',5:'COMPLEX MAPS'};
-export const KEYS={classic:'insight-campaign-r2-classic',limited:'insight-campaign-r2-limits',campaign:'insight-campaign-v2',dev:'insight-dev-mode-v1',limits:'insight-tile-limits-v1',zen:'insight-mode-v1',dark:'insight-theme-v1',sound:'insight-sound-v1'};
+export const KEYS={classic:'insight-campaign-r2-classic',limited:'insight-campaign-r2-limits',campaign:'insight-campaign-v2',dev:'insight-dev-mode-v1',limits:'insight-tile-limits-v1',zen:'insight-mode-v1',dark:'insight-theme-v1',sound:'insight-sound-v1',game:'insight-active-game-v1'};
+// Each campaign keeps its own stars, access and attempts; Game 1 keys predate this table.
+export const GAMES={
+  1:{levels:CORE_LEVELS,worldNames:WORLD_NAMES,classicKey:KEYS.classic,limitedKey:KEYS.limited,campaignKey:KEYS.campaign,sessionKey:'insight-session-r2',attemptsKey:'insight-attempts-r2'},
+  2:{levels:GAME2_LEVELS,worldNames:GAME2_WORLDS,classicKey:'insight-game2-classic',limitedKey:'insight-game2-limits',campaignKey:'insight-game2-campaign',sessionKey:'insight-game2-session',attemptsKey:'insight-game2-attempts'}
+};
 export function readPreference(key,fallback=null){try{return localStorage.getItem(key) ?? fallback}catch{return fallback}}
 function readJSON(key){try{return JSON.parse(localStorage.getItem(key))}catch{return null}}
 export function readProgress(config,limited) {
   const done={};
-  if(!config.custom)for(const [id,stars] of Object.entries(readJSON(limited?KEYS.limited:KEYS.classic)?.done || {}))
+  if(!config.custom)for(const [id,stars] of Object.entries(readJSON(limited?config.limitedKey:config.classicKey)?.done || {}))
     if(/^[1-9]\d*$/.test(id) && +id<=config.levels.length && Number.isInteger(stars) && stars>=1 && stars<=3)done[id]=stars;
   return {done};
 }
@@ -62,7 +67,7 @@ export function starText(stars){return '★'.repeat(stars)+'☆'.repeat(3-stars)
 export function startPuzzle(state,index,{restart=false,limited=state.limits}={}) {
   if(!state.config.levels[index] || !canAccess(state,index))return state;
   const attempts=state.attempt?stashAttempt(state):state.attempts,config=state.config,spec=config.levels[index];
-  const saved=attempts.entries[attemptKey(config,index,limited)],eligible=!config.custom && !state.dev;
+  const saved=attempts.entries[attemptKey(config,index,limited)],eligible=config.game===1 && !state.dev;
   const restored=restart?null:restoreSession(config,saved,limited,eligible),resume=restored && !solved(restored.attempt);
   const previous=state.attempt?.level===index && state.attempt.limits===limited?state.attempt.allowances:restored?.attempt.allowances;
   const allowances=limited?previous || spec.start.map((row,r)=>[...row].map((type,c)=>{if('.W'.includes(type))return 0;const floor=Math.max(3,spec.allowanceFloor[r][c]);return floor+Math.floor(Math.random()*(7-floor))})):null;
@@ -80,10 +85,12 @@ export function initializeGame() {
     custom={...verified,id:preview.id,world:1};
   }catch{error='Playtest unavailable. Open the editor and validate your puzzle again.'}
   const spec=custom?PuzzleRules.validate(custom):null;if(spec)delete spec.name;
-  const config={custom,error,levels:custom?[custom]:CORE_LEVELS,sessionKey:custom?'insight-editor-session-v1':'insight-session-r2',attemptsKey:custom?'insight-editor-attempts-v1':'insight-attempts-r2',stamp:custom?JSON.stringify([custom.id,spec]):null,legacyStamp:custom?JSON.stringify([custom.id,custom.start,custom.target]):null};
+  const gameId=readPreference(KEYS.game)==='2'?2:1;
+  // Achievements index Game 1 levels, so only Game 1 (config.game 1) can earn them; playtests use game 0.
+  const config={...GAMES[gameId],game:custom?0:gameId,custom,error,...(custom?{levels:[custom],sessionKey:'insight-editor-session-v1',attemptsKey:'insight-editor-attempts-v1'}:{}),stamp:custom?JSON.stringify([custom.id,spec]):null,legacyStamp:custom?JSON.stringify([custom.id,custom.start,custom.target]):null};
   const limits=custom && !custom.fitsLimits?false:readPreference(KEYS.limits)!=='off',dev=!custom && readPreference(KEYS.dev)==='on';
   const attempts=readAttempts(config),progress=readProgress(config,limits);
-  let unlocked=1;const saved=readJSON(KEYS.campaign);
+  let unlocked=1;const saved=readJSON(config.campaignKey);
   if(!custom && Number.isInteger(saved?.unlocked) && saved.unlocked>=1 && saved.unlocked<=config.levels.length)unlocked=saved.unlocked;
   else if(!custom){
     for(const mode of [false,true])for(const id of Object.keys(readProgress(config,mode).done))unlocked=Math.max(unlocked,+id+1);
@@ -91,7 +98,7 @@ export function initializeGame() {
     unlocked=Math.min(unlocked,config.levels.length);
   }
   const state={config,limits,dev,unlocked,attempts,progress,attempt:null,history:[],restart:null,color:PuzzleArt.TILE_LIGHTS.B,badges:[],zen:readPreference(KEYS.zen)!=='star',dark:readPreference(KEYS.dark)!=='light',sound:readPreference(KEYS.sound)!=='off'};
-  const restored=restoreSession(config,attempts.entries[attemptKey(config,attempts.last,limits)],limits,!custom && !dev),unfinished=config.levels.findIndex((level,i)=>!progress.done[i+1]);
+  const restored=restoreSession(config,attempts.entries[attemptKey(config,attempts.last,limits)],limits,config.game===1 && !dev),unfinished=config.levels.findIndex((level,i)=>!progress.done[i+1]);
   const initial=restored && !solved(restored.attempt)?restored.attempt.level:Math.max(0,unfinished);
   return startPuzzle(state,canAccess(state,initial)?initial:unlocked-1);
 }

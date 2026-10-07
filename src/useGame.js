@@ -1,7 +1,7 @@
 import {useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {PuzzleRules,PuzzleArt} from './data.js';
 import {achievements,hasAchievementStorageWarning} from './achievement-store.js';
-import {initializeGame,startPuzzle,stashAttempt,solved,exhausted,canAccess,parFor,starsFor,KEYS} from './game-state.js';
+import {initializeGame,startPuzzle,stashAttempt,solved,exhausted,canAccess,parFor,starsFor,KEYS,GAMES} from './game-state.js';
 import {useDialogs,useFeedback,useAppearance,useStrokes} from './react-ui.jsx';
 import useAudio from './useAudio.js';
 
@@ -22,7 +22,7 @@ export default function useGame() {
   function persist(current){
     const attempts=stashAttempt(current),saved=attempts.entries[(current.config.custom?current.config.custom.id+':':'')+(current.limits?'limited:':'classic:')+current.attempt.level];
     store(current.config.attemptsKey,JSON.stringify(attempts));store(current.config.sessionKey,JSON.stringify(saved));
-    if(!current.config.custom){store(KEYS.campaign,JSON.stringify({unlocked:current.unlocked}));store(current.limits?KEYS.limited:KEYS.classic,JSON.stringify(current.progress))}
+    if(!current.config.custom){store(current.config.campaignKey,JSON.stringify({unlocked:current.unlocked}));store(current.limits?current.config.limitedKey:current.config.classicKey,JSON.stringify(current.progress))}
   }
   useLayoutEffect(()=>{
     if(state.config.error){try{sessionStorage.setItem('insight-editor-message-v1',state.config.error)}catch{}location.replace('Editor.html');return}
@@ -90,7 +90,7 @@ export default function useGame() {
       const arrived=[a,b].filter(([r,c])=>attempt.board[r][c]===attempt.target[r][c] && previous.board[r][c]!==attempt.board[r][c]);
       if(solved(attempt)){
         const stars=starsFor(attempt.moves,parFor(next)),index=attempt.level;
-        const badges=achievements.record({level:index,stars,limited:next.limits,custom:!!next.config.custom,developer:next.dev,attempt:attempt.achievementAttempt});
+        const badges=achievements.record({level:index,stars,limited:next.limits,custom:next.config.game!==1,developer:next.dev,attempt:attempt.achievementAttempt});
         if(badges.length)setNotices(items=>[...items,...badges]);
         next={...next,badges,progress:{done:{...next.progress.done,[index+1]:Math.max(stars,next.progress.done[index+1] || 0)}},unlocked:!next.config.custom && index===next.unlocked-1?Math.min(next.config.levels.length,next.unlocked+1):next.unlocked};
         if(!activeDialog.current)winTimer.current=setTimeout(()=>{
@@ -143,11 +143,13 @@ export default function useGame() {
     if(!canAccess(next,next.attempt.level))next=startPuzzle(next,next.unlocked-1);
     enter(next,{keepDialogs:true});
   }
-  async function newGame(){
-    if(state.config.custom || !await feedback.confirm({title:'Start a new game?',message:'Campaign stars and saved attempts in both modes will be cleared. Achievements and cosmetics remain unlocked. Your custom puzzles and settings will stay.',accept:'Start new game',danger:true}))return;
-    const current=live.current,empty={done:{}};store(KEYS.classic,JSON.stringify(empty));store(KEYS.limited,JSON.stringify(empty));store(KEYS.dev,'off');
+  // Game 2 is a development campaign; each New Game clears only its own campaign and makes it the active one.
+  async function newGame(id=1){
+    if(state.config.custom || !await feedback.confirm({title:'Start New Game '+id+'?',message:'Game '+id+' stars and saved attempts in both modes will be cleared. Achievements and cosmetics remain unlocked. Your custom puzzles, settings and the other game\'s progress will stay.',accept:'Start new game',danger:true}))return;
+    const empty={done:{}};store(GAMES[id].classicKey,JSON.stringify(empty));store(GAMES[id].limitedKey,JSON.stringify(empty));store(KEYS.dev,'off');store(KEYS.game,String(id));
+    const current=live.current.config.game===id?live.current:initializeGame();
     enter(startPuzzle({...current,attempt:null,attempts:{last:0,entries:{}},progress:empty,history:[],restart:null,dev:false,unlocked:1},0,{restart:true}));
-    feedback.notify('Your campaign starts again at Level 1. Achievements and cosmetics are kept.',{title:'New game started',tone:'success'});changeUI({announcement:'New game started. Level 1.'});
+    feedback.notify('Game '+id+' starts again at Level 1. Achievements and cosmetics are kept.',{title:'New game started',tone:'success'});changeUI({announcement:'New game '+id+' started. Level 1.'});
   }
   async function resetStars(){
     if(state.config.custom || !await feedback.confirm({title:'Reset saved stars?',message:'Stars in '+(state.limits?'Tile Limits':'Classic')+' will be cleared. Campaign access, saved attempts, achievements, and cosmetics stay saved.',accept:'Reset stars',danger:true}))return;
