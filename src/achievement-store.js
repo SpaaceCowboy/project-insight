@@ -6,7 +6,7 @@ const storage={
   getItem:key=>localStorage.getItem(key),
   setItem:(key,value)=>localStorage.setItem(key,value)
 };
-export const achievements=createAchievements({levels:CORE_LEVELS,storage,progressKeys:['insight-campaign-r2-classic','insight-campaign-r2-limits'],onStorageError:()=>{
+export const achievements=createAchievements({levels:CORE_LEVELS,storage,progressKeys:['insight-campaign-r3'],onStorageError:()=>{
   storageUnavailable=true;
   window.dispatchEvent(new Event('insight-storage-warning'));
 }});

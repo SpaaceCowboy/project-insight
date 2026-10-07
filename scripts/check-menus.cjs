@@ -1,7 +1,7 @@
 const {rootPath,screenshotPath}=require('./check-paths.cjs');
 const assert=require('node:assert/strict');
 const {chromium}=require(process.env.PLAYWRIGHT_PATH||'playwright');
-const {home,play,settings,dismissMenus}=require('./check-ui-helpers.cjs');
+const {home,play,settings,dismissMenus,movesIs}=require('./check-ui-helpers.cjs');
 
 (async()=>{
   const server=require('./check-server.cjs').createServer();await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
@@ -57,22 +57,12 @@ const {home,play,settings,dismissMenus}=require('./check-ui-helpers.cjs');
       await page.locator('#closeSettings').click();await play(page);await page.locator('#menuBtn').click();await fits('.pause-card');await page.screenshot({path:screenshotPath(`pause-${viewport.width}.png`)});
     }
     await page.setViewportSize({width:375,height:667});await settings(page,'play');
-    await page.locator('#limitsBtn').click();assert(await page.locator('#settingsOverlay').isVisible(),'Mode changes keep settings open');
     await page.locator('#devModeBtn').click();assert(await page.locator('#settingsOverlay').isVisible(),'Developer toggle keeps settings open');
     await page.locator('#devModeBtn').click();
-    await page.evaluate(()=>localStorage.setItem('insight-campaign-r2-classic',JSON.stringify({done:{1:3}})));
-    await page.reload();await page.waitForFunction(()=>document.documentElement.dataset.ready==='true');
-    await settings(page);const lifetimeBefore=await page.evaluate(()=>localStorage.getItem('insight-achievements-v1'));
-    await page.locator('#resetProgress').click();assert.match(await page.locator('#confirmationMessage').textContent(),/Classic/);await page.locator('#confirmCancel').click();
-    assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('insight-campaign-r2-classic')).done),{1:3});
-    await page.locator('#resetProgress').click();await page.locator('#confirmAccept').click();
-    assert(await page.locator('#settingsOverlay').isVisible(),'Reset returns to settings');
-    assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('insight-campaign-r2-classic')).done),{});
-    assert.equal(await page.evaluate(()=>localStorage.getItem('insight-achievements-v1')),lifetimeBefore);
-    assert(await page.locator('.system-notice.notice-success').isVisible());
+    assert.equal(await page.locator('#modeBtn,#limitsBtn,#resetProgress').count(),0,'Stars and Tile Limits controls are gone');
     await home(page);await page.locator('#newGameBtn').click();await page.locator('#confirmAccept').click();
     assert.equal(await page.locator('.overlay.open').count(),0,'Accepting New Game enters gameplay');
-    assert.equal(await page.locator('#moves').textContent(),'0');
+    await movesIs(page,0);
     // Editor confirmations use the same keyboard and cancellation behavior.
     await page.goto(base+'/Editor.html');await page.waitForFunction(()=>document.documentElement.dataset.ready==='true');
     await page.locator('#puzzlesTab').click();const editorBefore=await page.evaluate(()=>localStorage.getItem('insight-editor-drafts-v1'));

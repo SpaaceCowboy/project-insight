@@ -60,16 +60,15 @@ export function useFeedback(dialogs) {
   return {confirmation,notice,confirm,notify,finish};
 }
 
-export function useAppearance({dark=false,zen=false,color=PuzzleArt.TILE_LIGHTS.B}={}) {
+export function useAppearance({dark=false,color=PuzzleArt.TILE_LIGHTS.B}={}) {
   const {appearance}=useSyncExternalStore(achievements.subscribe,achievements.getSnapshot);
   useLayoutEffect(()=>{
     document.body.classList.toggle('light-mode',!dark);
-    document.body.classList.toggle('zen-mode',zen);
     document.body.style.setProperty('--light-color',color);
     document.body.dataset.background=appearance.background;
     document.body.dataset.finish=appearance.finish;
     document.querySelector('meta[name=theme-color]')?.setAttribute('content',dark?'#0c252e':'#d9e9dc');
-  },[dark,zen,color,appearance.background,appearance.finish]);
+  },[dark,color,appearance.background,appearance.finish]);
   useEffect(()=>{
     const frame=requestAnimationFrame(()=>{document.documentElement.dataset.ready='true';document.getElementById('root').inert=false});
     return ()=>{cancelAnimationFrame(frame);delete document.documentElement.dataset.ready};

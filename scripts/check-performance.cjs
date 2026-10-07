@@ -2,7 +2,7 @@ const assert=require('node:assert/strict');
 const path=require('node:path');
 const {chromium}=require(process.env.PLAYWRIGHT_PATH || 'playwright');
 const {screenshotPath}=require('./check-paths.cjs');
-const {play}=require('./check-ui-helpers.cjs');
+const {play,movesIs}=require('./check-ui-helpers.cjs');
 const baseline=process.env.PERFORMANCE_BASELINE_ROOT;
 
 (async()=>{
@@ -16,8 +16,8 @@ const baseline=process.env.PERFORMANCE_BASELINE_ROOT;
     page.on('pageerror',error=>errors.push(error.message));
     await page.addInitScript(()=>{
       if(!sessionStorage.getItem('performance-seeded')){
-        localStorage.setItem('insight-sound-v1','off');localStorage.setItem('insight-tile-limits-v1','off');localStorage.setItem('insight-dev-mode-v1','on');
-        localStorage.setItem('insight-session-r2',JSON.stringify({revision:2,level:1,limits:false,allowances:null,path:[]}));
+        localStorage.setItem('insight-sound-v1','off');localStorage.setItem('insight-dev-mode-v1','on');
+        localStorage.setItem('insight-session-r3',JSON.stringify({revision:2,level:1,path:[]}));
         sessionStorage.setItem('performance-seeded','true');
       }
       window.performanceChecks={rects:0,writes:[]};
@@ -37,10 +37,10 @@ const baseline=process.env.PERFORMANCE_BASELINE_ROOT;
     await page.evaluate(()=>{window.performanceChecks.rects=0;window.performanceChecks.writes=[]});
     await page.mouse.move(b.x+b.width/2,b.y+b.height/2,{steps:30});
     const dragRects=await page.evaluate(()=>window.performanceChecks.rects);
-    await page.mouse.up();await page.waitForFunction(()=>document.getElementById('moves').textContent==='1');
-    await page.waitForFunction(()=>JSON.parse(localStorage.getItem('insight-session-r2')).path.length===1);
+    await page.mouse.up();await movesIs(page,1);
+    await page.waitForFunction(()=>JSON.parse(localStorage.getItem('insight-session-r3')).path.length===1);
     const retainedTiles=await page.evaluate(()=>window.initialTiles.every((node,i)=>document.querySelectorAll('#board .tile')[i]===node));
-    const moveWrites=await page.evaluate(()=>window.performanceChecks.writes.filter(key=>/^insight-(attempts-r2|session-r2|campaign)/.test(key)));
+    const moveWrites=await page.evaluate(()=>window.performanceChecks.writes.filter(key=>/^insight-(attempts-r3|session-r3|campaign)/.test(key)));
     const swapCanvas=await canvasSize();
     const trail=await page.locator('.screen-stroke span').last().evaluate(node=>({duration:getComputedStyle(node).animationDuration,filter:getComputedStyle(node).filter}));
     await page.screenshot({path:screenshotPath(`performance-${baseline?'before':'after'}-swap.png`)});
@@ -48,14 +48,14 @@ const baseline=process.env.PERFORMANCE_BASELINE_ROOT;
     if(baseline)return;
     assert.equal(dragRects,0,'Dragging must not read layout after pointerdown');
     assert(retainedTiles,'Swaps retain every board tile node');
-    assert.deepEqual(moveWrites,['insight-attempts-r2','insight-session-r2'],'Non-winning moves write only changed attempts');
+    assert.deepEqual(moveWrites,['insight-attempts-r3','insight-session-r3'],'Non-winning moves write only changed attempts');
     assert.deepEqual(idleCanvas,[1,1]);assert.deepEqual(swapCanvas,[1,1],'Ordinary swaps do not run fullscreen particles');
     assert.equal(trail.filter,'none');assert(parseFloat(trail.duration)<=2,'Trails finish within two seconds');
     assert.equal(await page.evaluate(()=>document.activeElement.dataset.r+':'+document.activeElement.dataset.c),'1:1');
     await page.reload();await page.waitForFunction(()=>document.documentElement.dataset.ready==='true');await play(page);
-    assert.equal(await page.locator('#moves').textContent(),'1','Completed move survives immediate reload');
+    await movesIs(page,1);
     await page.locator('#undoBtn').click();
-    await page.waitForFunction(()=>document.getElementById('moves').textContent==='0');
+    await movesIs(page,0);
 
     // A queued frame cannot move a tile after Escape, resize, menu entry, or hidden-tab cancellation.
     async function cancelGesture(kind){
@@ -75,7 +75,7 @@ const baseline=process.env.PERFORMANCE_BASELINE_ROOT;
       await page.mouse.up();
       await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
       assert.equal(await source.evaluate(node=>node.style.transform),'',kind+' clears pending drag transform');
-      assert.equal(await page.locator('#moves').textContent(),'0',kind+' preserves the attempt');
+      await movesIs(page,0);
       await play(page);
     }
     for(const kind of ['escape','resize','menu','hidden'])await cancelGesture(kind);
@@ -84,7 +84,7 @@ const baseline=process.env.PERFORMANCE_BASELINE_ROOT;
     for(let i=0;i<6;i++){
       const from=tile(i%2?1:0,1),to=tile(i%2?0:1,1);
       await from.focus();await page.keyboard.press('Enter');await to.focus();await page.keyboard.press('Enter');
-      await page.waitForFunction(count=>document.getElementById('moves').textContent===String(count),i+1);
+      await movesIs(page,i+1);
       assert(await page.locator('.color-stroke').count()<=6,'Rapid moves cap overlapping trail layers');
     }
     await page.keyboard.press('r');
@@ -92,13 +92,13 @@ const baseline=process.env.PERFORMANCE_BASELINE_ROOT;
     // A partial storage failure stays visible and is retried when the page is hidden.
     await page.evaluate(()=>{
       window.recoverableSet=Storage.prototype.setItem;
-      Storage.prototype.setItem=function(key,value){if(key==='insight-attempts-r2')throw new DOMException('Blocked','SecurityError');return window.recoverableSet.call(this,key,value)};
+      Storage.prototype.setItem=function(key,value){if(key==='insight-attempts-r3')throw new DOMException('Blocked','SecurityError');return window.recoverableSet.call(this,key,value)};
     });
     await source.focus();await page.keyboard.press('Enter');await target.focus();await page.keyboard.press('Enter');
-    await page.waitForFunction(()=>document.getElementById('moves').textContent==='1');
+    await movesIs(page,1);
     await page.locator('.system-notice.notice-warning').waitFor();
     await page.evaluate(()=>{Storage.prototype.setItem=window.recoverableSet;window.dispatchEvent(new Event('pagehide'))});
-    assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('insight-attempts-r2')).entries['classic:1'].path.length),1,'Lifecycle flush retries failed writes');
+    assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('insight-attempts-r3')).entries['1'].path.length),1,'Lifecycle flush retries failed writes');
     await page.keyboard.press('r');
 
     // Drop before the next frame still uses the release coordinates.
@@ -108,7 +108,7 @@ const baseline=process.env.PERFORMANCE_BASELINE_ROOT;
       const board=document.getElementById('board');
       for(const type of ['pointermove','pointerup'])board.dispatchEvent(new PointerEvent(type,{bubbles:true,cancelable:true,pointerId:1,clientX:x,clientY:y}));
     },{x:to.x+to.width/2,y:to.y+to.height/2});
-    await page.mouse.up();await page.waitForFunction(()=>document.getElementById('moves').textContent==='1');
+    await page.mouse.up();await movesIs(page,1);
     await tile(0,1).focus();await page.keyboard.press('Enter');await tile(0,0).focus();await page.keyboard.press('Enter');
     await page.locator('#winOverlay').waitFor({state:'visible'});
     assert.deepEqual(await canvasSize(),[585,1266],'Win particles cap DPR at 1.5 on a DPR 3 display');

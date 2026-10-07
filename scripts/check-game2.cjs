@@ -20,7 +20,8 @@ const {LEVEL_SOLUTIONS}=require('../src/data/level-solutions-2.js');
     const chunks=[];page.on('request',request=>{if(/levels-2/.test(request.url()))chunks.push(request.url())});
     await page.goto(base+'/Puzzle.html');await ready();
     assert.deepEqual(chunks,[],'Game 1 does not download Game 2 levels');
-    await page.evaluate(()=>{localStorage.setItem('insight-campaign-r2-classic',JSON.stringify({done:{1:3,2:2}}));localStorage.setItem('insight-campaign-v2',JSON.stringify({unlocked:3}));localStorage.setItem('insight-tile-limits-v1','off')});
+    // Revision 3 starts fresh: older star records (r2) are ignored and left untouched.
+    await page.evaluate(()=>{localStorage.setItem('insight-campaign-r2-classic',JSON.stringify({done:{1:3,2:2,3:3}}));localStorage.setItem('insight-campaign-v2',JSON.stringify({unlocked:10}));localStorage.setItem('insight-campaign-r3',JSON.stringify({done:{1:true,2:true}}));localStorage.setItem('insight-campaign-v3',JSON.stringify({unlocked:3}))});
     await page.reload();await ready();
     const game1=Object.fromEntries(Object.entries(await data()).filter(([key])=>/^insight-(campaign|attempts|session|achievements)/.test(key)));
 
@@ -43,8 +44,8 @@ const {LEVEL_SOLUTIONS}=require('../src/data/level-solutions-2.js');
     for(const [a,b] of LEVEL_SOLUTIONS[0])for(const n of [a,b]){await page.locator(`.tile[data-r="${Math.floor(n/width)}"][data-c="${n%width}"]`).focus();await page.keyboard.press('Enter')}
     await page.locator('#winOverlay').waitFor({state:'visible'});
     const after=await data();
-    assert.deepEqual(JSON.parse(after['insight-game2-classic']).done,{1:3});
-    assert.equal(JSON.parse(after['insight-game2-campaign']).unlocked,2,'Winning unlocks the next Game 2 level');
+    assert.deepEqual(JSON.parse(after['insight-game2-progress-v2']).done,{1:true});
+    assert.equal(JSON.parse(after['insight-game2-campaign-v2']).unlocked,2,'Winning unlocks the next Game 2 level');
     for(const [key,value] of Object.entries(game1))assert.equal(after[key],value,'Game 2 leaves '+key+' untouched');
     assert.equal(after['insight-achievements-v1'],achievementsBefore,'Game 2 wins earn no achievement credit');
 
@@ -58,7 +59,8 @@ const {LEVEL_SOLUTIONS}=require('../src/data/level-solutions-2.js');
     await dismissMenus(page);await page.locator('#menuBtn').click();await page.locator('#homeBtn').click();
     assert.match(await page.locator('#menuProgress').textContent(),/^Game 1 · Level 1 \/ 106$/,'New Game 1 restarts Game 1');
     const final=await data();
-    assert.deepEqual(JSON.parse(final['insight-game2-classic']).done,{1:3},'New Game 1 keeps Game 2 progress');
+    assert.deepEqual(JSON.parse(final['insight-game2-progress-v2']).done,{1:true},'New Game 1 keeps Game 2 progress');
+    assert.equal(final['insight-campaign-r2-classic'],JSON.stringify({done:{1:3,2:2,3:3}}),'Older star records stay untouched');
     assert.equal(final['insight-active-game-v1'],'1');
     // Blocked storage: New Game 2 still switches this session instead of resetting Game 1.
     const blocked=await browser.newPage({viewport:{width:375,height:667},reducedMotion:'reduce'});blocked.on('pageerror',error=>errors.push(error.message));

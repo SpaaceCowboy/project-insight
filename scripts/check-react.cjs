@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict');
 const {chromium}=require(process.env.PLAYWRIGHT_PATH || 'playwright');
 const {rootPath}=require('./check-paths.cjs');
-const {play,home,dismissMenus}=require('./check-ui-helpers.cjs');
+const {play,home,dismissMenus,movesIs}=require('./check-ui-helpers.cjs');
 
 (async()=>{
   // An isolated development fixture exercises Strict Mode and real unmounts.
@@ -49,14 +49,14 @@ const {play,home,dismissMenus}=require('./check-ui-helpers.cjs');
       await page.locator(`.tile[data-r="${a[0]}"][data-c="${a[1]}"]`).focus();await page.keyboard.press('Enter');
       await page.locator(`.tile[data-r="${b[0]}"][data-c="${b[1]}"]`).focus();await page.keyboard.press('Enter');
     };
-    await move([0,0],[0,1]);await page.waitForFunction(()=>document.querySelector('#moves').textContent==='1');
+    await move([0,0],[0,1]);await movesIs(page,1);
     await mount('game');await play(page);
-    await move();await page.waitForFunction(()=>document.querySelector('#moves').textContent==='1');
+    await move();await movesIs(page,1);
     await mount('game');await play(page);
     await page.keyboard.press('r');
-    assert.equal(await page.locator('#moves').textContent(),'0');
+    await movesIs(page,0);
     await page.keyboard.press('u');
-    assert.equal(await page.locator('#moves').textContent(),'1','One key event undoes one restart after remount');
+    await movesIs(page,1);
     await page.keyboard.press('r');
     // Coordinates within the same destination move only the tile, without React commits.
     const dragSource=page.locator('.tile[data-r="0"][data-c="1"]'),dragTarget=page.locator('.tile[data-r="1"][data-c="1"]');
@@ -76,7 +76,7 @@ const {play,home,dismissMenus}=require('./check-ui-helpers.cjs');
     assert.equal(await dragSource.evaluate(el=>el.style.transform),'','Cancel removes the imperative drag transform');
     // A preference changed during the animation must survive its completion.
     await move();await page.locator('#soundBtn').click();
-    await page.waitForFunction(()=>document.querySelector('#moves').textContent==='1');
+    await movesIs(page,1);
     assert.equal(await page.locator('#soundBtn').getAttribute('aria-pressed'),'false');
     assert.equal(await page.evaluate(()=>localStorage.getItem('insight-sound-v1')),'off');
     await dismissMenus(page);await page.keyboard.press('r');
@@ -87,7 +87,7 @@ const {play,home,dismissMenus}=require('./check-ui-helpers.cjs');
     assert.equal(await page.evaluate(()=>window.InsightAudio===undefined && window.oldAudio.ringingNotes.size===0 && window.oldAudio.ambientSound.paused),true,'Unmount releases audio');
     await page.waitForTimeout(1100);
     await page.evaluate(()=>window.mountScreen('game'));await ready();await play(page);
-    assert.equal(await page.locator('#moves').textContent(),'0','A cancelled animation cannot save a stale move');
+    await movesIs(page,0);
     // Unmount must also cancel a drag frame that has not run yet.
     const remountBox=await dragSource.boundingBox();
     await page.mouse.move(remountBox.x+remountBox.width/2,remountBox.y+remountBox.height/2);await page.mouse.down();

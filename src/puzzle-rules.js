@@ -7,19 +7,17 @@ function create() {
   function active(g, r, c) {
     return r >= 0 && r < g.length && c >= 0 && c < g[r].length && g[r][c] !== '.';
   }
-  function legalMoves(g, r, c, remaining = null) {
-    if (!active(g, r, c) || remaining?.[r]?.[c] === 0) return [];
+  function legalMoves(g, r, c) {
+    if (!active(g, r, c)) return [];
     return MOVES[g[r][c]].map(([dr,dc])=>[r+dr,c+dc]).filter(([nr,nc])=>active(g,nr,nc));
   }
   function swapCells(g,a,b){const h=clone(g);[h[a[0]][a[1]],h[b[0]][b[1]]]=[h[b[0]][b[1]],h[a[0]][a[1]]];return h}
-  function initialState(level, remaining = null) {
-    return {board:parse(level.start),remaining:remaining ? clone(remaining) : null};
+  function initialState(level) {
+    return {board:parse(level.start)};
   }
   function transition(state, a, b) {
-    if (!legalMoves(state.board,...a,state.remaining).some(([r,c])=>r===b[0] && c===b[1])) throw new Error('Invalid solution move.');
-    let remaining=state.remaining ? clone(state.remaining) : null;
-    if(remaining){remaining[a[0]][a[1]]--;remaining=swapCells(remaining,a,b)}
-    return {board:swapCells(state.board,a,b),remaining};
+    if (!legalMoves(state.board,...a).some(([r,c])=>r===b[0] && c===b[1])) throw new Error('Invalid solution move.');
+    return {board:swapCells(state.board,a,b)};
   }
 
   function validate(level,matchCounts=true) {

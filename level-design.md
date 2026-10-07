@@ -29,7 +29,7 @@ This file covers the sources Game 2's design draws on, the rules each one suppor
 - **Introduce one mover per world, then combine** (kishōtenketsu, Butler prerequisites). The audit confirms the first appearances: R at level 1, B at 3, G at 21, Y at 23, P at 41.
 - **Teaching levels are greedy-solvable.** Every teaching and breather level has 0 counterintuitive moves (Schell: easy to get started).
 - **Breathers after peaks** (Schell: parallelism lets the player rest; sawtooth pacing).
-- **Generated, then verified by the solver** (Taylor & Parberry; Kartal et al.). Every level has a verified optimal route and fits Tile Limits.
+- **Generated, then verified by the solver** (Taylor & Parberry; Kartal et al.). Every level has a verified optimal route.
 
 ## Audit of Game 2 (2026-10-07)
 

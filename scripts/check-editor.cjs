@@ -1,5 +1,5 @@
 const {rootPath,screenshotPath}=require('./check-paths.cjs');
-const {dismissMenus,home,play,settings,settingClick,collection}=require('./check-ui-helpers.cjs');
+const {dismissMenus,home,play,settings,settingClick,collection,movesIs}=require('./check-ui-helpers.cjs');
 const fs=require('node:fs');
 const assert=require('node:assert/strict');
 const {PuzzleRules:rules}=require('../src/puzzle-rules.js');
@@ -14,9 +14,8 @@ assert.equal(solver.solve(sample).distance,1);
 const legacyBoard={name:'Legacy board',start:['BR'],target:['RB'],rotators:[[0,0]],switches:[{cell:[0,0],color:'R',group:1}],gates:[{from:[0,0],to:[0,1],group:1}],allowances:[[1,1]]};
 assert.deepEqual(rules.validate(legacyBoard),{name:'Legacy board',start:['BR'],target:['RB']},'Old mechanic imports retain board data only');
 assert.equal(solver.solve(legacyBoard).distance,1,'Removed gates and rotations cannot affect moves');
-const before=rules.initialState(legacyBoard,[[3,4]]),after=rules.transition(before,[0,0],[0,1]);
-assert.deepEqual(after.remaining,[[4,2]],'Only initiator pays and allowances follow tiles');
-assert.deepEqual(before.remaining,[[3,4]],'Transition preserves the state needed for undo');
+const before=rules.initialState(legacyBoard),after=rules.transition(before,[0,0],[0,1]);
+assert.deepEqual(before.board,[['B','R']],'Transition preserves the state needed for undo');
 assert.deepEqual(rules.legalMoves(after.board,0,0),[],'Red retains vertical movement');
 assert.deepEqual(rules.legalMoves(after.board,0,1),[[0,0]],'Blue retains horizontal movement');
 assert.equal(solver.solve(levels[1]).distance,2);
@@ -32,17 +31,9 @@ assert.throws(()=>solver.verify(sample,{path:[[0,20]]}),/route/);
 assert.throws(()=>solver.verify(sample,{path:[[1,0]]}),/move/);
 assert.throws(()=>solver.verify(sample,{path:[]}),/does not solve/);
 const verified=solver.verify(sample,solver.solve(sample));
-assert.equal(verified.par,1); assert.equal(verified.fitsLimits,true);
-assert.deepEqual(verified.allowanceFloor,[[1,0],[0,0]]);
-const cappedBoard=JSON.parse(JSON.stringify(levels[34]));
-const capped=solver.solve(cappedBoard,{remaining:cappedBoard.start.map(row=>[...row].map(t=>'.W'.includes(t)?0:6)),maxStates:350000,timeout:8000});
-assert.equal(solver.solve(cappedBoard).distance,20);
-assert.equal(capped.distance,21,'Limited route repairs the certificate without changing the board');
-assert(solver.verify(cappedBoard,{path:certificates[34],limitedPath:capped.path}).fitsLimits);
-assert.throws(()=>solver.solve(sample,{remaining:[[3]],maxStates:350000}),/allowances/);
-assert.throws(()=>solver.solve(sample,{remaining:[[6,6],[6,6]],maxStates:0}),/not verified/);
-const longRoute=[[1,3],...Array.from({length:7},()=>[[0,1],[1,0]]).flat(),[3,1],[0,1]];
-assert.equal(solver.verify(sample,{path:longRoute}).fitsLimits,false,'Routes needing more than six moves per tile are restricted to Classic');
+assert.equal(verified.par,1);
+for(const field of ['limitedPar','allowanceFloor','fitsLimits','limitedPath'])assert.equal(verified[field],undefined,'Tile Limits fields are gone: '+field);
+assert.equal(solver.solve(levels[34]).distance,20);
 
 (async()=>{
   const {chromium}=require(process.env.PLAYWRIGHT_PATH||'playwright');
@@ -57,15 +48,14 @@ assert.equal(solver.verify(sample,{path:longRoute}).fitsLimits,false,'Routes nee
     page.on('dialog',dialog=>dialog.accept());
     await page.goto(base+'/Editor.html');await page.waitForFunction(()=>document.documentElement.dataset.ready==='true');
     await page.evaluate(()=>{
-      localStorage.setItem('insight-campaign-r2-classic',JSON.stringify({done:{1:3,10:2}}));
-      localStorage.setItem('insight-campaign-r2-limits',JSON.stringify({done:{2:1}}));
-      localStorage.setItem('insight-attempts-r2',JSON.stringify({last:0,entries:{}}));
-      localStorage.setItem('insight-session-r2',JSON.stringify({level:0,limits:false,allowances:null,path:[]}));
+      localStorage.setItem('insight-campaign-r3',JSON.stringify({done:{1:true,10:true}}));
+      localStorage.setItem('insight-attempts-r3',JSON.stringify({last:0,entries:{}}));
+      localStorage.setItem('insight-session-r3',JSON.stringify({level:0,path:[]}));
       localStorage.setItem('insight-sound-v1','off');
-      localStorage.setItem('insight-campaign-v2',JSON.stringify({unlocked:11}));
+      localStorage.setItem('insight-campaign-v3',JSON.stringify({unlocked:11}));
       localStorage.setItem('insight-dev-mode-v1','off');
     });
-    const coreKeys=['insight-campaign-r2-classic','insight-campaign-r2-limits','insight-attempts-r2','insight-session-r2','insight-campaign-v2','insight-dev-mode-v1','insight-achievements-v1','insight-appearance-v1'];
+    const coreKeys=['insight-campaign-r3','insight-attempts-r3','insight-session-r3','insight-campaign-v3','insight-dev-mode-v1','insight-achievements-v1','insight-appearance-v1'];
     const coreBefore=await page.evaluate(keys=>keys.map(key=>localStorage.getItem(key)),coreKeys);
     const draft=()=>page.evaluate(()=>{const data=JSON.parse(localStorage.getItem('insight-editor-drafts-v1'));return data.drafts.find(item=>item.id===data.active)});
     const cell=(r,c)=>page.locator(`.edit-cell[data-r="${r}"][data-c="${c}"]`);
@@ -122,7 +112,7 @@ assert.equal(solver.verify(sample,{path:longRoute}).fitsLimits,false,'Routes nee
     assert.equal(await page.locator('.drag-preview').count(),1);await page.keyboard.press('Escape');await page.mouse.up();
     assert.equal(await page.locator('.drag-preview').count(),0);assert.deepEqual((await draft()).start,placementBefore.start);
     await page.locator('#puzzlesTab').click();await page.locator('#copyLevel').click();await page.locator('#paintTab').click();
-    await validate(); assert.match(await page.locator('#validationStatus').textContent(),/optimal par 1.*Limits ready/);
+    await validate(); assert.match(await page.locator('#validationStatus').textContent(),/solvable in 1 move\b/);
     const initial=await draft();
     await dragTile(page.locator('[data-type="P"]'),cell(0,0));
     assert.equal((await draft()).start[0],'PR');
@@ -178,7 +168,7 @@ assert.equal(solver.verify(sample,{path:longRoute}).fitsLimits,false,'Routes nee
     assert.match(await page.locator('#validationStatus').textContent(),/version/);
     await page.locator('#fileInput').setInputFiles({name:'sample.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(sample))});
     await page.waitForFunction(()=>document.getElementById('validationStatus').textContent.includes('imported'));
-    await validate();assert.match(await page.locator('#validationStatus').textContent(),/optimal par 1/);
+    await validate();assert.match(await page.locator('#validationStatus').textContent(),/solvable in 1 move\b/);
     const downloadPromise=page.waitForEvent('download');await page.locator('#exportFile').click();
     const download=await downloadPromise,exported=JSON.parse(fs.readFileSync(await download.path(),'utf8'));
     assert.equal(exported.version,1);assert.deepEqual(exported.puzzles[0].start,sample.start);
@@ -188,13 +178,13 @@ assert.equal(solver.verify(sample,{path:longRoute}).fitsLimits,false,'Routes nee
     const allDownload=await allDownloadPromise, collection=JSON.parse(fs.readFileSync(await allDownload.path(),'utf8'));
     assert.equal(collection.puzzles.length,await page.locator('#draftSelect option').count());
     await page.locator('#puzzlesTab').click();await page.locator('#seedLevel').selectOption('25');await page.locator('#copyLevel').click();
-    await validate();assert.match(await page.locator('#validationStatus').textContent(),new RegExp('optimal par '+levels[25].par));
+    await validate();assert.match(await page.locator('#validationStatus').textContent(),new RegExp('solvable in '+levels[25].par+' move'));
     const custom=await draft();
     async function playMove(from,to,width) {
-      const count=+(await page.locator('#moves').textContent());
+      const count=await page.evaluate(()=>JSON.parse(localStorage.getItem('insight-editor-session-v2'))?.path.length ?? 0);
       await page.locator(`.tile[data-r="${Math.floor(from/width)}"][data-c="${from%width}"]`).focus();await page.keyboard.press('Enter');
       await page.locator(`.tile[data-r="${Math.floor(to/width)}"][data-c="${to%width}"]`).focus();await page.keyboard.press('Enter');
-      await page.waitForFunction(expected=>+document.getElementById('moves').textContent===expected,count+1);
+      await movesIs(page,count+1,'insight-editor-session-v2');
     }
     await page.locator('#playtestPuzzle').click();await page.waitForURL('**/Puzzle.html?editor=1');
     assert.match(await page.locator('#levelNo').textContent(),/PLAYTEST/);
@@ -204,22 +194,16 @@ assert.equal(solver.verify(sample,{path:longRoute}).fitsLimits,false,'Routes nee
     await play(page);
     const width=custom.start[0].length;
     await playMove(...custom.proof.path[0],width);
-    const partial=await page.locator('.tile').evaluateAll(els=>els.map(el=>[el.dataset.type,el.querySelector('.tile-allowance')?.textContent||null]));
+    const partial=await page.locator('.tile').evaluateAll(els=>els.map(el=>el.dataset.type));
     await page.locator('#nextBtn').click();await page.waitForURL('**/Editor.html');
     await page.locator('#puzzlesTab').click();await page.locator('#duplicateDraft').click();
     await page.locator('#playtestPuzzle').click();await page.waitForURL('**/Puzzle.html?editor=1');
-    assert.equal(await page.locator('#moves').textContent(),'0','Another custom puzzle starts independently');
+    assert.deepEqual(await page.locator('.tile').evaluateAll(els=>els.map(el=>el.dataset.type)),[...custom.start.join('')].filter(t=>t!=='.'),'Another custom puzzle starts independently');
     await play(page);await page.locator('#nextBtn').click();await page.waitForURL('**/Editor.html');
     await page.locator('#puzzlesTab').click();await page.locator('#draftSelect').selectOption(custom.id);
     await page.locator('#playtestPuzzle').click();await page.waitForURL('**/Puzzle.html?editor=1');
-    assert.equal(await page.locator('#moves').textContent(),'1','Returning restores the custom attempt');
-    assert.deepEqual(await page.locator('.tile').evaluateAll(els=>els.map(el=>[el.dataset.type,el.querySelector('.tile-allowance')?.textContent||null])),partial);
-    await play(page);await home(page);await settingClick(page,'limitsBtn');
-    assert.equal(await page.locator('#moves').textContent(),'0','Classic custom attempt is independent');
-    await playMove(...custom.proof.path[0],width);
-    await home(page);await settingClick(page,'limitsBtn');
-    assert.equal(await page.locator('#moves').textContent(),'1');
-    assert.deepEqual(await page.locator('.tile').evaluateAll(els=>els.map(el=>[el.dataset.type,el.querySelector('.tile-allowance')?.textContent||null])),partial);
+    assert.deepEqual(await page.locator('.tile').evaluateAll(els=>els.map(el=>el.dataset.type)),partial,'Returning restores the custom attempt');
+    await play(page);
     for(const [from,to] of custom.proof.path.slice(1))await playMove(from,to,width);
     await page.locator('#winOverlay').waitFor({state:'visible'});assert.equal(await page.locator('#winNextBtn').textContent(),'Back to editor');
     assert.deepEqual(await page.evaluate(keys=>keys.map(key=>localStorage.getItem(key)),coreKeys),coreBefore,'Custom puzzles never overwrite campaign progress');
@@ -227,7 +211,7 @@ assert.equal(solver.verify(sample,{path:longRoute}).fitsLimits,false,'Routes nee
     assert.equal((await draft()).id,custom.id,'Playtesting returns to the same draft');
     await page.locator('#puzzlesTab').click();await page.locator('#deleteDraft').click();await page.locator('#confirmAccept').click();assert.notEqual((await draft()).id,custom.id);
     await page.locator('#seedLevel').selectOption('99');await page.locator('#copyLevel').click();
-    await validate();assert.match(await page.locator('#validationStatus').textContent(),new RegExp('optimal par '+levels[99].par),'Hard campaign copies use verified routes');
+    await validate();assert.match(await page.locator('#validationStatus').textContent(),new RegExp('solvable in '+levels[99].par+' move'),'Hard campaign copies use verified routes');
     await page.locator('#filesTab').click();
     await page.locator('#importText').fill(JSON.stringify({name:'Worker test',start:['BW','WW'],target:['WB','WW']}));await page.locator('#importPaste').click();
     await page.evaluate(()=>{const button=document.getElementById('validatePuzzle');button.click();button.click()});
@@ -247,7 +231,7 @@ assert.equal(solver.verify(sample,{path:longRoute}).fitsLimits,false,'Routes nee
     await filePage.locator('#filesTab').click();
     await filePage.locator('#importText').fill(JSON.stringify({name:'Production worker',start:['BW','WW'],target:['WB','WW']}));await filePage.locator('#importPaste').click();
     await filePage.locator('#validatePuzzle').click();await filePage.waitForFunction(()=>document.getElementById('validatePuzzle').textContent==='Validate');
-    assert.match(await filePage.locator('#validationStatus').textContent(),/optimal par 1/,'The editor worker validates custom puzzles from the production bundle');
+    assert.match(await filePage.locator('#validationStatus').textContent(),/solvable in 1 move\b/,'The editor worker validates custom puzzles from the production bundle');
     await filePage.close();
     // Keep native touch injection separate from the desktop browser's mouse input.
     touchBrowser=await chromium.launch({executablePath:process.env.CHROME_PATH||`${process.env.ProgramFiles}/Google/Chrome/Application/chrome.exe`,headless:true});

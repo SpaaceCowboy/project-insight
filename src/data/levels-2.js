@@ -22,19 +22,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 1,
-    "limitedPar": 1,
-    "solution_len": 1,
-    "allowanceFloor": [
-      [
-        0,
-        0
-      ],
-      [
-        0,
-        1
-      ]
-    ]
+    "par": 1
   },
   {
     "name": "Rising Column",
@@ -59,23 +47,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 2,
-    "limitedPar": 2,
-    "solution_len": 2,
-    "allowanceFloor": [
-      [
-        0,
-        0
-      ],
-      [
-        1,
-        1
-      ],
-      [
-        0,
-        0
-      ]
-    ]
+    "par": 2
   },
   {
     "name": "Side Step",
@@ -98,19 +70,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 2,
-    "limitedPar": 2,
-    "solution_len": 2,
-    "allowanceFloor": [
-      [
-        1,
-        0
-      ],
-      [
-        1,
-        0
-      ]
-    ]
+    "par": 2
   },
   {
     "name": "Long Hallway",
@@ -133,21 +93,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 3,
-    "limitedPar": 3,
-    "solution_len": 3,
-    "allowanceFloor": [
-      [
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 3
   },
   {
     "name": "Two Directions",
@@ -172,26 +118,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 3,
-    "limitedPar": 3,
-    "solution_len": 3,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        1
-      ],
-      [
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 3
   },
   {
     "name": "Woven Pair",
@@ -214,23 +141,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 4,
-    "limitedPar": 4,
-    "solution_len": 4,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0,
-        1
-      ],
-      [
-        0,
-        1,
-        1,
-        0
-      ]
-    ]
+    "par": 4
   },
   {
     "name": "Ladder",
@@ -257,27 +168,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        0,
-        1
-      ],
-      [
-        0,
-        0
-      ],
-      [
-        2,
-        0
-      ],
-      [
-        1,
-        1
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "Crossing Threads",
@@ -302,26 +193,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        1,
-        1,
-        0
-      ],
-      [
-        1,
-        1,
-        1
-      ],
-      [
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "Still Stone",
@@ -346,26 +218,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 4,
-    "limitedPar": 4,
-    "solution_len": 4,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        0,
-        1
-      ],
-      [
-        0,
-        2,
-        0
-      ]
-    ]
+    "par": 4
   },
   {
     "name": "Around the Stone",
@@ -390,26 +243,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 2,
-    "limitedPar": 2,
-    "solution_len": 2,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 2
   },
   {
     "name": "Pillar Garden",
@@ -434,26 +268,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        2,
-        0,
-        1
-      ],
-      [
-        2,
-        0,
-        0
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "Easy Breeze",
@@ -476,21 +291,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 2,
-    "limitedPar": 2,
-    "solution_len": 2,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        1
-      ]
-    ]
+    "par": 2
   },
   {
     "name": "First Gap",
@@ -515,26 +316,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 3,
-    "limitedPar": 3,
-    "solution_len": 3,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0
-      ],
-      [
-        1,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 3
   },
   {
     "name": "Broken Bridge",
@@ -557,23 +339,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 3,
-    "limitedPar": 3,
-    "solution_len": 3,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        1,
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 3
   },
   {
     "name": "Island Hop",
@@ -598,29 +364,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0,
-        1
-      ],
-      [
-        1,
-        0,
-        0,
-        0
-      ],
-      [
-        2,
-        2,
-        0,
-        0
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "Stone and Hollow",
@@ -645,29 +389,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0,
-        3
-      ],
-      [
-        0,
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "Three Lanes",
@@ -692,29 +414,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 8,
-    "limitedPar": 8,
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        2,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        2
-      ],
-      [
-        0,
-        2,
-        0,
-        2
-      ]
-    ]
+    "par": 8
   },
   {
     "name": "Quiet Tide",
@@ -739,26 +439,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 3,
-    "limitedPar": 3,
-    "solution_len": 3,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        1
-      ]
-    ]
+    "par": 3
   },
   {
     "name": "Knotted Rope",
@@ -783,29 +464,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 8,
-    "limitedPar": 8,
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        2,
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        2,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 8
   },
   {
     "name": "The Straight Path",
@@ -832,35 +491,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 9,
-    "limitedPar": 9,
-    "solution_len": 9,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        3,
-        0,
-        1,
-        1
-      ],
-      [
-        2,
-        0,
-        1,
-        0
-      ],
-      [
-        1,
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 9
   },
   {
     "name": "Green Lean",
@@ -883,19 +514,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 1,
-    "limitedPar": 1,
-    "solution_len": 1,
-    "allowanceFloor": [
-      [
-        0,
-        0
-      ],
-      [
-        1,
-        0
-      ]
-    ]
+    "par": 1
   },
   {
     "name": "Leaning Tower",
@@ -920,26 +539,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 3,
-    "limitedPar": 3,
-    "solution_len": 3,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        1,
-        1
-      ],
-      [
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 3
   },
   {
     "name": "Gold Lean",
@@ -962,19 +562,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 1,
-    "limitedPar": 1,
-    "solution_len": 1,
-    "allowanceFloor": [
-      [
-        0,
-        0
-      ],
-      [
-        0,
-        1
-      ]
-    ]
+    "par": 1
   },
   {
     "name": "Gilded Stair",
@@ -999,26 +587,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 3,
-    "limitedPar": 3,
-    "solution_len": 3,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 3
   },
   {
     "name": "Crossed Beams",
@@ -1043,26 +612,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 2,
-    "limitedPar": 2,
-    "solution_len": 2,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 2
   },
   {
     "name": "Diagonal Dance",
@@ -1087,26 +637,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        3,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        1
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "Lattice",
@@ -1131,29 +662,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        1,
-        1,
-        1,
-        1
-      ],
-      [
-        1,
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "Open Window",
@@ -1178,29 +687,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 3,
-    "limitedPar": 3,
-    "solution_len": 3,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 3
   },
   {
     "name": "Green and Red",
@@ -1225,26 +712,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0
-      ],
-      [
-        1,
-        1,
-        1
-      ],
-      [
-        0,
-        0,
-        1
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "Gold and Blue",
@@ -1269,26 +737,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        1
-      ],
-      [
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "Compass Rose",
@@ -1313,26 +762,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        2,
-        1,
-        2
-      ],
-      [
-        1,
-        0,
-        1
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "Four Winds",
@@ -1355,23 +785,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        0,
-        2,
-        0,
-        0
-      ],
-      [
-        1,
-        2,
-        0,
-        1
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "Mirror Lake",
@@ -1396,26 +810,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 4,
-    "limitedPar": 4,
-    "solution_len": 4,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        1,
-        0
-      ],
-      [
-        1,
-        0,
-        1
-      ]
-    ]
+    "par": 4
   },
   {
     "name": "Herringbone",
@@ -1440,29 +835,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        1,
-        1,
-        1,
-        0
-      ],
-      [
-        2,
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "Basket Weave",
@@ -1487,29 +860,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0,
-        1
-      ],
-      [
-        0,
-        2,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "Leaning Walls",
@@ -1536,31 +887,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 8,
-    "limitedPar": 8,
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        0,
-        2,
-        0
-      ],
-      [
-        1,
-        1,
-        1
-      ],
-      [
-        1,
-        1,
-        0
-      ],
-      [
-        1,
-        0,
-        0
-      ]
-    ]
+    "par": 8
   },
   {
     "name": "Slanted Garden",
@@ -1585,29 +912,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        0,
-        2,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        1,
-        0
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "Shadowed Corners",
@@ -1632,29 +937,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 4,
-    "limitedPar": 4,
-    "solution_len": 4,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        1,
-        1,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 4
   },
   {
     "name": "Prism Gate",
@@ -1679,29 +962,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 9,
-    "limitedPar": 9,
-    "solution_len": 9,
-    "allowanceFloor": [
-      [
-        0,
-        2,
-        0,
-        0
-      ],
-      [
-        2,
-        0,
-        1,
-        0
-      ],
-      [
-        1,
-        2,
-        1,
-        0
-      ]
-    ]
+    "par": 9
   },
   {
     "name": "Kaleidoscope",
@@ -1728,35 +989,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 11,
-    "limitedPar": 11,
-    "solution_len": 11,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        4,
-        0,
-        0
-      ],
-      [
-        2,
-        1,
-        0,
-        1
-      ],
-      [
-        2,
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 11
   },
   {
     "name": "First Leap",
@@ -1777,16 +1010,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 1,
-    "limitedPar": 1,
-    "solution_len": 1,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        1
-      ]
-    ]
+    "par": 1
   },
   {
     "name": "Over the Stone",
@@ -1811,23 +1035,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 3,
-    "limitedPar": 3,
-    "solution_len": 3,
-    "allowanceFloor": [
-      [
-        0,
-        0
-      ],
-      [
-        1,
-        0
-      ],
-      [
-        1,
-        1
-      ]
-    ]
+    "par": 3
   },
   {
     "name": "Leapfrog",
@@ -1850,23 +1058,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 3,
-    "limitedPar": 3,
-    "solution_len": 3,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        1
-      ]
-    ]
+    "par": 3
   },
   {
     "name": "Jump the Gap",
@@ -1891,26 +1083,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 2,
-    "limitedPar": 2,
-    "solution_len": 2,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        1
-      ]
-    ]
+    "par": 2
   },
   {
     "name": "Moat",
@@ -1935,26 +1108,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 3,
-    "limitedPar": 3,
-    "solution_len": 3,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        1
-      ],
-      [
-        1,
-        0,
-        1
-      ]
-    ]
+    "par": 3
   },
   {
     "name": "Hop and Step",
@@ -1979,29 +1133,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        1,
-        1
-      ],
-      [
-        0,
-        0,
-        1,
-        1
-      ],
-      [
-        0,
-        0,
-        0,
-        1
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "Purple Rain",
@@ -2028,27 +1160,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 4,
-    "limitedPar": 4,
-    "solution_len": 4,
-    "allowanceFloor": [
-      [
-        0,
-        0
-      ],
-      [
-        0,
-        0
-      ],
-      [
-        1,
-        1
-      ],
-      [
-        1,
-        1
-      ]
-    ]
+    "par": 4
   },
   {
     "name": "Stepping Stones",
@@ -2073,29 +1185,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        0,
-        1
-      ],
-      [
-        1,
-        0,
-        0,
-        1
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "Long and Short",
@@ -2120,26 +1210,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        2,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        1
-      ],
-      [
-        0,
-        2,
-        0
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "Echo",
@@ -2162,25 +1233,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        2,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        1,
-        1,
-        0
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "Soft Landing",
@@ -2203,23 +1256,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 2,
-    "limitedPar": 2,
-    "solution_len": 2,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        1
-      ]
-    ]
+    "par": 2
   },
   {
     "name": "Jumping Light",
@@ -2244,26 +1281,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        1
-      ],
-      [
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        1
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "Leap of Gold",
@@ -2288,26 +1306,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        1,
-        1,
-        1
-      ],
-      [
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "Over and Across",
@@ -2332,29 +1331,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        3,
-        1
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "Skipping Stair",
@@ -2381,31 +1358,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        1
-      ],
-      [
-        0,
-        1,
-        1
-      ],
-      [
-        0,
-        2,
-        0
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "Hollow Leap",
@@ -2430,29 +1383,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        2,
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        2
-      ],
-      [
-        0,
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "Rest Stop",
@@ -2477,26 +1408,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 3,
-    "limitedPar": 3,
-    "solution_len": 3,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        1,
-        0
-      ]
-    ]
+    "par": 3
   },
   {
     "name": "Grasshopper",
@@ -2523,35 +1435,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 8,
-    "limitedPar": 8,
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        1,
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        1
-      ]
-    ]
+    "par": 8
   },
   {
     "name": "Across the Chasm",
@@ -2578,35 +1462,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 9,
-    "limitedPar": 9,
-    "solution_len": 9,
-    "allowanceFloor": [
-      [
-        0,
-        2,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        1,
-        1,
-        1
-      ],
-      [
-        1,
-        0,
-        1,
-        1
-      ]
-    ]
+    "par": 9
   },
   {
     "name": "The Great Leap",
@@ -2633,35 +1489,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 12,
-    "limitedPar": 12,
-    "solution_len": 12,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        1,
-        1,
-        1,
-        2
-      ],
-      [
-        1,
-        1,
-        1,
-        0
-      ],
-      [
-        1,
-        0,
-        1,
-        1
-      ]
-    ]
+    "par": 12
   },
   {
     "name": "Tile Floor",
@@ -2686,26 +1514,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        2,
-        0,
-        0
-      ],
-      [
-        1,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        2
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "Six Colours",
@@ -2730,29 +1539,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        1,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        1,
-        0
-      ],
-      [
-        2,
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "Stained Glass",
@@ -2779,35 +1566,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        2,
-        2
-      ],
-      [
-        0,
-        0,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        0,
-        1
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "Patchwork",
@@ -2834,35 +1593,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 8,
-    "limitedPar": 8,
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        1,
-        1,
-        0,
-        2
-      ],
-      [
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 8
   },
   {
     "name": "Weaver",
@@ -2889,35 +1620,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        1,
-        0
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "Inlay",
@@ -2944,35 +1647,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 8,
-    "limitedPar": 8,
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        0,
-        2,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        1,
-        0
-      ],
-      [
-        1,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        1
-      ]
-    ]
+    "par": 8
   },
   {
     "name": "Calm Courtyard",
@@ -2997,26 +1672,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 2,
-    "limitedPar": 2,
-    "solution_len": 2,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        1
-      ]
-    ]
+    "par": 2
   },
   {
     "name": "Herald",
@@ -3043,35 +1699,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 9,
-    "limitedPar": 9,
-    "solution_len": 9,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0,
-        3
-      ],
-      [
-        0,
-        0,
-        1,
-        1
-      ],
-      [
-        0,
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        1
-      ]
-    ]
+    "par": 9
   },
   {
     "name": "Terraces",
@@ -3098,35 +1726,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 9,
-    "limitedPar": 9,
-    "solution_len": 9,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        1,
-        2
-      ],
-      [
-        1,
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        1
-      ]
-    ]
+    "par": 9
   },
   {
     "name": "Labyrinth Tile",
@@ -3153,35 +1753,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 9,
-    "limitedPar": 9,
-    "solution_len": 9,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        3,
-        1
-      ],
-      [
-        1,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        1
-      ],
-      [
-        0,
-        0,
-        2,
-        0
-      ]
-    ]
+    "par": 9
   },
   {
     "name": "Rosette",
@@ -3208,35 +1780,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 9,
-    "limitedPar": 9,
-    "solution_len": 9,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0,
-        2
-      ],
-      [
-        0,
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        2,
-        1,
-        2
-      ]
-    ]
+    "par": 9
   },
   {
     "name": "Breathing Room",
@@ -3261,29 +1805,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 4,
-    "limitedPar": 4,
-    "solution_len": 4,
-    "allowanceFloor": [
-      [
-        0,
-        2,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        1
-      ]
-    ]
+    "par": 4
   },
   {
     "name": "Chevron",
@@ -3310,35 +1832,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 9,
-    "limitedPar": 9,
-    "solution_len": 9,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        2,
-        0
-      ],
-      [
-        2,
-        1,
-        0,
-        1
-      ],
-      [
-        0,
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 9
   },
   {
     "name": "Tessellate",
@@ -3365,35 +1859,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 10,
-    "limitedPar": 10,
-    "solution_len": 10,
-    "allowanceFloor": [
-      [
-        0,
-        2,
-        0,
-        2
-      ],
-      [
-        0,
-        0,
-        2,
-        0
-      ],
-      [
-        1,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        1
-      ]
-    ]
+    "par": 10
   },
   {
     "name": "Cloister",
@@ -3420,35 +1886,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 9,
-    "limitedPar": 9,
-    "solution_len": 9,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        1,
-        0
-      ],
-      [
-        1,
-        0,
-        2,
-        1
-      ],
-      [
-        1,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        1
-      ]
-    ]
+    "par": 9
   },
   {
     "name": "Parquet",
@@ -3475,35 +1913,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 9,
-    "limitedPar": 9,
-    "solution_len": 9,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0,
-        1
-      ],
-      [
-        0,
-        1,
-        0,
-        2
-      ],
-      [
-        1,
-        1,
-        0,
-        0
-      ],
-      [
-        1,
-        1,
-        1,
-        0
-      ]
-    ]
+    "par": 9
   },
   {
     "name": "Gentle Mosaic",
@@ -3528,26 +1938,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0
-      ],
-      [
-        1,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        2
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "Fresco",
@@ -3574,35 +1965,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 11,
-    "limitedPar": 11,
-    "solution_len": 11,
-    "allowanceFloor": [
-      [
-        0,
-        4,
-        0,
-        1
-      ],
-      [
-        1,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        2,
-        0,
-        0
-      ],
-      [
-        1,
-        0,
-        0,
-        2
-      ]
-    ]
+    "par": 11
   },
   {
     "name": "Cathedral Floor",
@@ -3629,39 +1992,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 10,
-    "limitedPar": 10,
-    "solution_len": 10,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        2,
-        2
-      ],
-      [
-        1,
-        1,
-        0,
-        2,
-        0
-      ]
-    ]
+    "par": 10
   },
   {
     "name": "Grand Mosaic",
@@ -3688,35 +2019,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 11,
-    "limitedPar": 11,
-    "solution_len": 11,
-    "allowanceFloor": [
-      [
-        1,
-        2,
-        1,
-        0
-      ],
-      [
-        1,
-        3,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        2
-      ],
-      [
-        0,
-        1,
-        0,
-        0
-      ]
-    ]
+    "par": 11
   },
   {
     "name": "Prelude",
@@ -3743,35 +2046,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 9,
-    "limitedPar": 9,
-    "solution_len": 9,
-    "allowanceFloor": [
-      [
-        0,
-        2,
-        1,
-        0
-      ],
-      [
-        1,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        2,
-        1
-      ],
-      [
-        0,
-        0,
-        2,
-        0
-      ]
-    ]
+    "par": 9
   },
   {
     "name": "Overture",
@@ -3798,35 +2073,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 9,
-    "limitedPar": 9,
-    "solution_len": 9,
-    "allowanceFloor": [
-      [
-        1,
-        1,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        0,
-        1
-      ],
-      [
-        1,
-        1,
-        2,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        0
-      ]
-    ]
+    "par": 9
   },
   {
     "name": "Counterpoint",
@@ -3853,35 +2100,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 10,
-    "limitedPar": 10,
-    "solution_len": 10,
-    "allowanceFloor": [
-      [
-        1,
-        1,
-        1,
-        1
-      ],
-      [
-        0,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        3,
-        1
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 10
   },
   {
     "name": "Fugue",
@@ -3908,39 +2127,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 11,
-    "limitedPar": 11,
-    "solution_len": 11,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0,
-        0,
-        2
-      ],
-      [
-        1,
-        0,
-        0,
-        2,
-        1
-      ],
-      [
-        2,
-        1,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 11
   },
   {
     "name": "Nocturne",
@@ -3969,41 +2156,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 10,
-    "limitedPar": 10,
-    "solution_len": 10,
-    "allowanceFloor": [
-      [
-        1,
-        1,
-        0,
-        0
-      ],
-      [
-        1,
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        3,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        0
-      ]
-    ]
+    "par": 10
   },
   {
     "name": "Interlude",
@@ -4028,29 +2181,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        2,
-        0,
-        1
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "Canon",
@@ -4077,35 +2208,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 11,
-    "limitedPar": 11,
-    "solution_len": 11,
-    "allowanceFloor": [
-      [
-        1,
-        2,
-        1,
-        2
-      ],
-      [
-        0,
-        0,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        2
-      ]
-    ]
+    "par": 11
   },
   {
     "name": "Sonata",
@@ -4132,39 +2235,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 11,
-    "limitedPar": 11,
-    "solution_len": 11,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        2,
-        0,
-        0,
-        1
-      ],
-      [
-        1,
-        2,
-        1,
-        0,
-        1
-      ],
-      [
-        0,
-        2,
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 11
   },
   {
     "name": "Requiem",
@@ -4193,41 +2264,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 11,
-    "limitedPar": 11,
-    "solution_len": 11,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        0,
-        2,
-        1
-      ],
-      [
-        1,
-        1,
-        0,
-        0
-      ],
-      [
-        2,
-        0,
-        1,
-        0
-      ],
-      [
-        1,
-        1,
-        0,
-        0
-      ]
-    ]
+    "par": 11
   },
   {
     "name": "Etude",
@@ -4254,35 +2291,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 11,
-    "limitedPar": 11,
-    "solution_len": 11,
-    "allowanceFloor": [
-      [
-        0,
-        2,
-        2,
-        0
-      ],
-      [
-        1,
-        0,
-        1,
-        1
-      ],
-      [
-        0,
-        1,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        0,
-        2
-      ]
-    ]
+    "par": 11
   },
   {
     "name": "Lullaby",
@@ -4307,29 +2316,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 4,
-    "limitedPar": 4,
-    "solution_len": 4,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        1,
-        1
-      ],
-      [
-        0,
-        1,
-        0,
-        0
-      ]
-    ]
+    "par": 4
   },
   {
     "name": "Rhapsody",
@@ -4356,39 +2343,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 11,
-    "limitedPar": 11,
-    "solution_len": 11,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        1,
-        1,
-        1
-      ],
-      [
-        0,
-        1,
-        1,
-        1,
-        1
-      ],
-      [
-        0,
-        3,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 11
   },
   {
     "name": "Toccata",
@@ -4415,35 +2370,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 12,
-    "limitedPar": 12,
-    "solution_len": 12,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        1,
-        0
-      ],
-      [
-        2,
-        0,
-        1,
-        0
-      ],
-      [
-        1,
-        0,
-        1,
-        2
-      ],
-      [
-        0,
-        1,
-        1,
-        2
-      ]
-    ]
+    "par": 12
   },
   {
     "name": "Cadenza",
@@ -4472,46 +2399,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 12,
-    "limitedPar": 12,
-    "solution_len": 12,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        1,
-        2,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        1,
-        1,
-        1
-      ],
-      [
-        0,
-        0,
-        0,
-        2,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        0,
-        0
-      ]
-    ]
+    "par": 12
   },
   {
     "name": "Serenade",
@@ -4538,35 +2426,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 12,
-    "limitedPar": 12,
-    "solution_len": 12,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        0,
-        2
-      ],
-      [
-        1,
-        1,
-        1,
-        2
-      ],
-      [
-        2,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 12
   },
   {
     "name": "Coda Rest",
@@ -4591,29 +2451,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 1,
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        1,
-        0
-      ],
-      [
-        1,
-        0,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "Symphony",
@@ -4642,46 +2480,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 13,
-    "limitedPar": 13,
-    "solution_len": 13,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        2,
-        0,
-        0
-      ],
-      [
-        1,
-        2,
-        0,
-        3,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        0,
-        2
-      ],
-      [
-        0,
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 13
   },
   {
     "name": "Opus",
@@ -4708,39 +2507,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 12,
-    "limitedPar": 12,
-    "solution_len": 12,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        1,
-        0,
-        1
-      ],
-      [
-        0,
-        3,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        4,
-        0,
-        0
-      ],
-      [
-        2,
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 12
   },
   {
     "name": "Crescendo",
@@ -4769,46 +2536,7 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 12,
-    "limitedPar": 12,
-    "solution_len": 12,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        1,
-        2,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        0,
-        1
-      ],
-      [
-        0,
-        1,
-        1,
-        1,
-        0
-      ],
-      [
-        1,
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        1,
-        0
-      ]
-    ]
+    "par": 12
   },
   {
     "name": "Magnum Opus",
@@ -4837,45 +2565,6 @@ export const GAME2_LEVELS = [
       "scoring": 2
     },
     "revision": 2,
-    "par": 12,
-    "limitedPar": 12,
-    "solution_len": 12,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        3,
-        2,
-        0,
-        3,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 12
   }
 ];

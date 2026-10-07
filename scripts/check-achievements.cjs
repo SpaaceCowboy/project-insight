@@ -1,5 +1,5 @@
 const {rootPath,screenshotPath}=require('./check-paths.cjs');
-const {dismissMenus,home,play,settings,settingClick,collection}=require('./check-ui-helpers.cjs');
+const {dismissMenus,home,play,settings,settingClick,collection,movesIs}=require('./check-ui-helpers.cjs');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const {CORE_LEVELS:levels}=require('../src/data/levels.js');
@@ -10,72 +10,77 @@ const {CORE_LEVELS:levels}=require('../src/data/levels.js');
     const values=new Map(Object.entries(initial));
     return {getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value),values};
   }
-  const fresh=(storage=memory())=>createAchievements({levels,storage});
-  const result=(service,level,extras={})=>service.record({level,stars:3,limited:false,attempt:newAttempt(),...extras});
+  const fresh=(storage=memory(),progressKeys=[])=>createAchievements({levels,storage,progressKeys});
+  const result=(service,level,extras={})=>service.record({level,attempt:newAttempt(),...extras});
   const badge=(service,id)=>service.getSnapshot().badges.find(b=>b.id===id);
   assert.equal(fresh().getSnapshot().badges.length,15);
-  // Every badge crosses its threshold once, using distinct levels in either mode.
-  for(const target of fresh().getSnapshot().badges) {
+  // Every count badge crosses its threshold once, using distinct levels.
+  for(const target of fresh().getSnapshot().badges.filter(b=>b.metric!=='cleanWorld')) {
     const service=fresh();
     const ids=levels.map((level,i)=>i).filter(i=>!target.world || levels[i].world===target.world);
     for(let n=0;n<target.goal;n++) {
       assert.equal(badge(service,target.id).earned,false,target.id+' before threshold');
-      result(service,ids[n],{limited:target.id==='limits' || n%2===1});
+      result(service,ids[n]);
       assert.equal(badge(service,target.id).progress,n+1,target.id+' distinct progress');
     }
     assert.equal(badge(service,target.id).earned,true,target.id+' threshold');
     assert(!result(service,ids[0]).some(b=>b.id===target.id),target.id+' is awarded once');
   }
+  // Clean Sweep needs every level of one world without undo; one undo in the world withholds it.
+  const sweep=fresh(),world1=levels.map((level,i)=>i).filter(i=>levels[i].world===1);
+  for(const i of world1.slice(0,-1))result(sweep,i);
+  result(sweep,world1.at(-1),{attempt:{...newAttempt(),undoUsed:true}});
+  assert.equal(badge(sweep,'clean-sweep').earned,false);
+  assert.deepEqual(result(sweep,world1.at(-1)).map(b=>b.id),['unbroken','clean-sweep'],'Clean Sweep unlocks on the last clean level (World 1 has 25 levels, so Unbroken arrives too)');
   const repeated=fresh();
-  assert.deepEqual(result(repeated,0).map(b=>b.id),['first','perfect-1'],'Simultaneous unlocks');
-  for(let i=0;i<20;i++)result(repeated,0,{limited:i%2===0});
+  assert.deepEqual(result(repeated,0).map(b=>b.id),['first','first-clean'],'Simultaneous unlocks');
+  for(let i=0;i<20;i++)result(repeated,0);
   assert.equal(badge(repeated,'flow').progress,1);
-  assert.equal(badge(repeated,'perfect-10').progress,1);
   assert.equal(badge(repeated,'steady').progress,1);
-  assert.equal(badge(repeated,'limits').progress,1);
   const excluded=fresh();
   for(let i=0;i<10;i++) {
     assert.deepEqual(result(excluded,i,{custom:true}),[]);
+    assert.deepEqual(result(excluded,i,{developer:true}),[]);
     assert.deepEqual(result(excluded,i,{attempt:newAttempt(false)}),[]);
   }
   assert.equal(excluded.getSnapshot().earnedCount,0);
   const skills=fresh();
   for(let i=0;i<10;i++)result(skills,i,{attempt:{...newAttempt(),undoUsed:true}});
   assert.equal(badge(skills,'steady').progress,0);
-  assert.equal(badge(skills,'clean').progress,0);
+  assert.equal(badge(skills,'first-clean').earned,false);
   result(skills,10,{attempt:restoreAttempt(null)});
   assert.equal(badge(skills,'steady').progress,0,'Unknown legacy undo history gets no skill credit');
-  result(skills,10,{limited:true});
+  result(skills,10);
   assert.equal(badge(skills,'steady').progress,1);
-  assert.equal(badge(skills,'clean').progress,1);
+  assert.equal(badge(skills,'first-clean').earned,true);
   assert.equal(restoreAttempt(newAttempt(),false).eligible,false);
   assert.equal(restoreAttempt(newAttempt(false),true).eligible,false);
-  const legacy=memory({
-    'insight-100-fixed-v4':JSON.stringify({done:Object.fromEntries(Array.from({length:25},(_,i)=>[i+1,3]))}),
-    'insight-limit-stars-v1':JSON.stringify({done:{1:3,26:2,107:3,0:3,27:4,28:'3'}})
-  });
-  const migrated=fresh(legacy);
+  // With no saved collection, solved levels in the campaign key credit completion once, never skills.
+  const legacy=memory({'insight-campaign-r3':JSON.stringify({done:{...Object.fromEntries(Array.from({length:25},(_,i)=>[i+1,true])),26:true,107:true,0:true,27:4,28:'3'}})});
+  const migrated=fresh(legacy,['insight-campaign-r3']);
   assert.equal(badge(migrated,'flow').progress,10);
   assert.equal(badge(migrated,'world-1').earned,true);
-  assert.equal(badge(migrated,'precision').earned,true);
   assert.equal(badge(migrated,'halfway').progress,26);
-  for(const id of ['steady','clean','limits'])assert.equal(badge(migrated,id).progress,0,'Old stars do not backfill skills');
+  for(const id of ['first-clean','steady','clean-sweep'])assert.equal(badge(migrated,id).progress,0,'Solved levels do not backfill skills');
   assert.equal(migrated.equip('background','mist'),true);
-  assert.equal(migrated.equip('finish','frosted'),true);
+  assert.equal(migrated.equip('finish','frosted'),false);
   assert.equal(migrated.equip('background','aurora'),false);
   assert.equal(migrated.equip('finish','metal'),false);
-  legacy.setItem('insight-100-fixed-v4',JSON.stringify({done:{106:3}}));
-  assert.equal(badge(fresh(legacy),'halfway').progress,26,'Migration runs once');
-  assert.deepEqual(fresh(legacy).getSnapshot().appearance,{background:'mist',finish:'frosted'});
-  legacy.setItem('insight-100-fixed-v4','{}');legacy.setItem('insight-limit-stars-v1','{}');
+  legacy.setItem('insight-campaign-r3',JSON.stringify({done:{106:true}}));
+  assert.equal(badge(fresh(legacy,['insight-campaign-r3']),'halfway').progress,26,'Migration runs once');
+  assert.deepEqual(fresh(legacy).getSnapshot().appearance,{background:'mist',finish:'original'});
+  legacy.setItem('insight-campaign-r3','{}');
   assert.equal(badge(fresh(legacy),'world-1').earned,true,'Campaign reset leaves lifetime results');
-  const damaged=memory({[ACHIEVEMENTS_KEY]:JSON.stringify({version:1,migrated:true,results:{1:{classic:3,noUndo:'yes'},2:{limited:2,clean:true,limitedPerfect:true},3:{classic:8},107:{classic:3}},earned:{complete:10,first:-1}}),[APPEARANCE_KEY]:JSON.stringify({version:1,background:'aurora',finish:'missing'})});
+  // Version 1 collections (stars per mode) migrate: solved levels and undo-free flags stay; retired badges keep their cosmetics.
+  const damaged=memory({[ACHIEVEMENTS_KEY]:JSON.stringify({version:1,migrated:true,results:{1:{classic:3,noUndo:'yes'},2:{limited:2,noUndo:true,clean:true,limitedPerfect:true},3:{classic:8},107:{classic:3}},earned:{complete:10,first:-1,'perfect-1':5,limits:'x'}}),[APPEARANCE_KEY]:JSON.stringify({version:1,background:'aurora',finish:'frosted'})});
   const repaired=fresh(damaged);
   assert.equal(badge(repaired,'halfway').progress,2);
-  assert.equal(badge(repaired,'steady').progress,0);
-  assert.equal(badge(repaired,'clean').progress,0);
-  assert.equal(badge(repaired,'limits').progress,0);
-  assert.deepEqual(repaired.getSnapshot().appearance,{background:'forest',finish:'original'});
+  assert.equal(badge(repaired,'steady').progress,1);
+  assert.equal(badge(repaired,'complete').earned,false,'Unearned thresholds are not restored');
+  assert.deepEqual(repaired.getSnapshot().appearance,{background:'forest',finish:'frosted'},'First Perfect keeps Frosted');
+  assert.equal(repaired.equip('finish','metal'),false,'Invalid legacy timestamps grant nothing');
+  assert.equal(JSON.parse(damaged.getItem(ACHIEVEMENTS_KEY)).version,2);
+  assert.equal(fresh(damaged).getSnapshot().cosmetics.find(c=>c.id==='frosted').owned,true,'Legacy ownership survives the version 2 save');
   assert.doesNotThrow(()=>fresh(memory({[ACHIEVEMENTS_KEY]:'{broken'})));
   let warnings=0;
   const blocked=createAchievements({levels,storage:{getItem(){throw Error('Blocked')},setItem(){throw Error('Blocked')}},onStorageError:()=>warnings++});
@@ -94,14 +99,14 @@ const {CORE_LEVELS:levels}=require('../src/data/levels.js');
     const ready=async()=>page.waitForFunction(()=>document.documentElement.dataset.ready==='true');
     const reload=async()=>{await page.reload();await ready()};
     const read=key=>page.evaluate(key=>JSON.parse(localStorage.getItem(key)),key);
-    const flags=async()=>{const saved=await read('insight-session-r2');return saved.achievementAttempt};
+    const flags=async()=>{const saved=await read('insight-session-r3');return saved.achievementAttempt};
     async function move(from,to,width) {
       for(const index of [from,to]){await page.locator(`.tile[data-r="${Math.floor(index/width)}"][data-c="${index%width}"]`).focus();await page.keyboard.press('Enter')}
     }
     const routes=JSON.parse(fs.readFileSync(rootPath('artifacts','level-checks.json'),'utf8'));
     async function solve(index) {
       const route=routes[index];
-      for(const [i,[a,b]] of route.path.entries()){await move(a,b,route.width);await page.waitForFunction(n=>document.querySelector('#moves').textContent===String(n),i+1)}
+      for(const [i,[a,b]] of route.path.entries()){await move(a,b,route.width);await movesIs(page,i+1)}
       await page.locator('#winOverlay').waitFor({state:'visible'});
     }
     await page.goto(base+'/Puzzle.html');await ready();
@@ -117,7 +122,6 @@ const {CORE_LEVELS:levels}=require('../src/data/levels.js');
     assert(await page.locator('[data-cosmetic=frosted]').isDisabled());
     assert(await page.locator('[data-cosmetic=mist]').isDisabled());
     await page.keyboard.press('Escape');assert.equal(await page.evaluate(()=>document.activeElement.id),'achievementsBtn');
-    await settingClick(page,'modeBtn');
     await play(page);await solve(0);
     assert.match(await page.locator('#winAchievementSummary').textContent(),/2 achievements earned/);
     assert.match(await page.locator('#winAchievementSummary').textContent(),/Frosted/);
@@ -138,14 +142,14 @@ const {CORE_LEVELS:levels}=require('../src/data/levels.js');
       }),'Corner popup fits '+viewport.width+'×'+viewport.height);
       if(viewport.width===320 || viewport.width===1280)await page.screenshot({path:screenshotPath(`achievement-popup-${viewport.width}.png`)});
     }
-    await page.waitForFunction(()=>document.querySelector('.achievement-notice')?.dataset.achievement==='perfect-1',null,{timeout:7000});
-    assert.match(await page.locator('.achievement-notice').textContent(),/First Perfect.*Frosted unlocked/,'Multiple unlocks appear in sequence');
+    await page.waitForFunction(()=>document.querySelector('.achievement-notice')?.dataset.achievement==='first-clean',null,{timeout:7000});
+    assert.match(await page.locator('.achievement-notice').textContent(),/First Clean Solve.*Frosted unlocked/,'Multiple unlocks appear in sequence');
     // Hidden tabs retain a pending announcement until the player returns.
     await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'))});
     await page.locator('.achievement-notice').waitFor({state:'detached'});
     await page.waitForTimeout(5200);
     await page.evaluate(()=>{delete document.hidden;document.dispatchEvent(new Event('visibilitychange'))});
-    await page.locator('.achievement-notice[data-achievement=perfect-1]').waitFor();
+    await page.locator('.achievement-notice[data-achievement=first-clean]').waitFor();
     await page.emulateMedia({reducedMotion:'no-preference'});
     assert.match(await page.locator('.achievement-notice').evaluate(el=>getComputedStyle(el).animationName),/achievementNoticeEnter/,'Default animation uses a gentle entrance');
     await page.screenshot({path:screenshotPath('achievement-popup-reward.png')});
@@ -167,9 +171,9 @@ const {CORE_LEVELS:levels}=require('../src/data/levels.js');
     assert(await page.locator('#undoBtn').isDisabled(),'A zero-move restart has no recovery');
     // The undone one-move victory leaves zero moves, so use a longer level for restart recovery.
     await page.locator('#nextBtn').click();await move(...routes[1].path[0],routes[1].width);
-    await page.waitForFunction(()=>document.querySelector('#moves').textContent==='1');
+    await movesIs(page,1);
     await page.keyboard.press('u');await move(...routes[1].path[0],routes[1].width);
-    await page.waitForFunction(()=>document.querySelector('#moves').textContent==='1');
+    await movesIs(page,1);
     assert.equal((await flags()).undoUsed,true);
     await page.locator('#restartBtn').click();assert.equal((await flags()).undoUsed,false);
     await reload();await play(page);await page.locator('#undoBtn').click();
@@ -189,7 +193,6 @@ const {CORE_LEVELS:levels}=require('../src/data/levels.js');
     assert.equal(await page.locator('.achievement-notice').count(),0,'Disqualified wins have no corner popup');
     await page.locator('#replayBtn').click();await solve(1);
     assert.equal((await read(ACHIEVEMENTS_KEY)).results[2].noUndo,true);
-    assert.equal((await read(ACHIEVEMENTS_KEY)).results[2].limitedPerfect,true);
     await page.keyboard.press('Escape');await home(page);
     const lifetime=await read(ACHIEVEMENTS_KEY);
     await page.locator('#newGameBtn').click();
@@ -202,16 +205,13 @@ const {CORE_LEVELS:levels}=require('../src/data/levels.js');
     // Credit legacy milestones silently; skill records begin with new solves only.
     await page.evaluate(()=>{
       localStorage.removeItem('insight-achievements-v1');
-      localStorage.setItem('insight-campaign-r2-classic',JSON.stringify({done:Object.fromEntries(Array.from({length:25},(_,i)=>[i+1,3]))}));
-      localStorage.setItem('insight-campaign-r2-limits',JSON.stringify({done:{}}));
-      localStorage.setItem('insight-campaign-v2',JSON.stringify({unlocked:106}));
-      localStorage.setItem('insight-tile-limits-v1','off');
-      localStorage.setItem('insight-attempts-r2',JSON.stringify({last:1,entries:{'classic:1':{revision:2,level:1,limits:false,allowances:null,path:[[[0,1],[0,0]]]}}}));
+      localStorage.setItem('insight-campaign-r3',JSON.stringify({done:Object.fromEntries(Array.from({length:25},(_,i)=>[i+1,true]))}));
+      localStorage.setItem('insight-campaign-v3',JSON.stringify({unlocked:106}));
     });
     // Use the verified first move, rather than relying on a manually written legacy route.
     await page.evaluate(route=>{
-      const entry={revision:2,level:1,limits:false,allowances:null,path:[route.path[0].map(n=>[Math.floor(n/route.width),n%route.width])]};
-      localStorage.setItem('insight-attempts-r2',JSON.stringify({last:1,entries:{'classic:1':entry}}));
+      const entry={revision:2,level:1,path:[route.path[0].map(n=>[Math.floor(n/route.width),n%route.width])]};
+      localStorage.setItem('insight-attempts-r3',JSON.stringify({last:1,entries:{1:entry}}));
     },routes[1]);
     await reload();assert.equal((await flags()).noUndoKnown,false);
     assert.equal(await page.locator('#winAchievementsBtn').count(),0,'Migration has no celebration');
@@ -226,7 +226,7 @@ const {CORE_LEVELS:levels}=require('../src/data/levels.js');
     assert.equal(await page.locator('body').getAttribute('data-background'),'mist');
     // All backgrounds and finishes are available after a complete lifetime result set.
     const completeStore=memory();const completed=fresh(completeStore);
-    for(let i=0;i<levels.length;i++)result(completed,i,{limited:true});
+    for(let i=0;i<levels.length;i++)result(completed,i);
     assert.equal(completed.getSnapshot().earnedCount,15);
     await page.evaluate(({record,appearance})=>{
       localStorage.setItem('insight-achievements-v1',record);localStorage.setItem('insight-appearance-v1',appearance);
@@ -266,12 +266,13 @@ const {CORE_LEVELS:levels}=require('../src/data/levels.js');
     await home(page);
     await page.evaluate(()=>{
       localStorage.setItem('insight-achievements-v1','broken');localStorage.setItem('insight-appearance-v1',JSON.stringify({version:1,background:'invalid',finish:'metal'}));
-      localStorage.setItem('insight-campaign-r2-classic','{}');localStorage.setItem('insight-campaign-r2-limits','{}');
+      localStorage.setItem('insight-campaign-r3','{}');
     });
     await reload();assert.equal(await page.locator('body').getAttribute('data-finish'),'original');
     await play(page);await page.locator('#levelsBtn').click();await page.locator('#worldTab1').click();await page.locator('.level-card').first().click();
     await page.evaluate(()=>{Storage.prototype.setItem=()=>{throw new DOMException('Blocked','SecurityError')}});
-    await solve(0);await page.locator('#winAchievementsBtn').click();await page.locator('#achievementTab-appearance').click();await page.locator('[data-cosmetic=frosted]').click();
+    // Storage is blocked, so wait for the win rather than the saved move path.
+    await move(...routes[0].path[0],routes[0].width);await page.locator('#winOverlay').waitFor({state:'visible'});await page.locator('#winAchievementsBtn').click();await page.locator('#achievementTab-appearance').click();await page.locator('[data-cosmetic=frosted]').click();
     assert.equal(await page.locator('body').getAttribute('data-finish'),'frosted','Blocked storage still supports rewards in memory');
     assert.match(await page.locator('#toast').textContent(),/storage unavailable/);
     // The development reset leaves campaign data untouched and has an explicit restore.
@@ -281,13 +282,13 @@ const {CORE_LEVELS:levels}=require('../src/data/levels.js');
     const resetBefore={badges:completeStore.getItem(ACHIEVEMENTS_KEY),appearance:JSON.stringify({version:1,background:'aurora',finish:'metal'})};
     await resetPage.evaluate(saved=>{
       localStorage.setItem('insight-achievements-v1',saved.badges);localStorage.setItem('insight-appearance-v1',saved.appearance);
-      localStorage.setItem('insight-campaign-r2-classic',JSON.stringify({done:{1:3}}));
+      localStorage.setItem('insight-campaign-r3',JSON.stringify({done:{1:true}}));
     },resetBefore);
     await resetPage.goto(base+'/tools/achievement-progress.html');await resetPage.locator('#reset').click();
     assert.match(await resetPage.locator('#status').textContent(),/0 \/ 15/);
     await resetPage.getByRole('link',{name:'Return to game'}).click();await resetPage.waitForFunction(()=>document.documentElement.dataset.ready==='true');
     await collection(resetPage);assert.match(await resetPage.locator('#achievementsOverlay .modal-head').textContent(),/0 \/ 15/);
-    assert.deepEqual(await resetPage.evaluate(()=>JSON.parse(localStorage.getItem('insight-campaign-r2-classic'))),{done:{1:3}},'Reset keeps campaign stars without crediting them again');
+    assert.deepEqual(await resetPage.evaluate(()=>JSON.parse(localStorage.getItem('insight-campaign-r3'))),{done:{1:true}},'Reset keeps campaign progress without crediting it again');
     await resetPage.goto(base+'/tools/achievement-progress.html');await resetPage.locator('#restore').click();
     assert.deepEqual(await resetPage.evaluate(()=>({badges:localStorage.getItem('insight-achievements-v1'),appearance:localStorage.getItem('insight-appearance-v1')})),resetBefore,'Reset backup restores all rewards and appearance');
     await resetPage.close();

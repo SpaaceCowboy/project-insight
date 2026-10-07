@@ -23,8 +23,11 @@ async function settings(page,tab='play') {
 }
 async function settingClick(page,id) {
   await settings(page,id==='themeBtn'?'appearance':'play');await page.locator('#'+id).click();
-  if(id==='limitsBtn')await dismissMenus(page);
   if(id==='devModeBtn')await home(page);
+}
+// The move counter is no longer shown; the saved Game 1 attempt holds the move path.
+function movesIs(page,count,key='insight-session-r3') {
+  return page.waitForFunction(([count,key])=>(JSON.parse(localStorage.getItem(key))?.path.length ?? 0)===count,[count,key]);
 }
 async function collection(page) {
   if(await page.locator('#settingsOverlay').isVisible())await page.locator('#closeSettings').click();
@@ -32,4 +35,4 @@ async function collection(page) {
   else if(await page.locator('#pauseOverlay').isVisible())await page.locator('#pauseAchievementsBtn').click();
   else {await home(page);await page.locator('#achievementsBtn').click()}
 }
-module.exports={dismissMenus,home,play,settings,settingClick,collection};
+module.exports={dismissMenus,home,play,settings,settingClick,collection,movesIs};

@@ -1,7 +1,7 @@
 import {useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {PuzzleRules,PuzzleArt} from './data.js';
 import {achievements,hasAchievementStorageWarning} from './achievement-store.js';
-import {initializeGame,startPuzzle,stashAttempt,solved,exhausted,canAccess,parFor,starsFor,KEYS,GAMES,loadGame} from './game-state.js';
+import {initializeGame,startPuzzle,stashAttempt,solved,canAccess,attemptKey,KEYS,GAMES,loadGame} from './game-state.js';
 import {useDialogs,useFeedback,useAppearance,useStrokes} from './react-ui.jsx';
 import useAudio from './useAudio.js';
 
@@ -15,7 +15,7 @@ export default function useGame() {
   const persisted=useRef(new Map()),savedAttempt=useRef(null);
   const moveTimer=useRef(null),winTimer=useRef(null),rejectTimer=useRef(null),animations=useRef([]),disposed=useRef(false);
   const sound=useAudio(state.sound,storageWarning);
-  useAppearance({dark:state.dark,zen:state.zen,color:state.color});
+  useAppearance({dark:state.dark,color:state.color});
   function commit(next){live.current=next;setState(next)}
   function changeUI(change){setUI(previous=>({...previous,...change}))}
   function storageWarning(){feedback.notify('Browser storage unavailable; changes last for this session.',{tone:'warning',title:'Progress is temporary',duration:0})}
@@ -24,14 +24,14 @@ export default function useGame() {
   function persist(current){
     if(current.config.error)return;
     const previous=savedAttempt.current;
-    if(!previous || ['config','attempt','attempts','history','restart','limits'].some(key=>previous[key]!==current[key])){
-      const attempts=stashAttempt(current),saved=attempts.entries[(current.config.custom?current.config.custom.id+':':'')+(current.limits?'limited:':'classic:')+current.attempt.level];
+    if(!previous || ['config','attempt','attempts','history','restart'].some(key=>previous[key]!==current[key])){
+      const attempts=stashAttempt(current),saved=attempts.entries[attemptKey(current.config,current.attempt.level)];
       const attemptsSaved=storeChanged(current.config.attemptsKey,JSON.stringify(attempts)),sessionSaved=storeChanged(current.config.sessionKey,JSON.stringify(saved));
       if(attemptsSaved && sessionSaved)savedAttempt.current=current;
     }
     if(!current.config.custom){
       storeChanged(current.config.campaignKey,JSON.stringify({unlocked:current.unlocked}));
-      storeChanged(current.limits?current.config.limitedKey:current.config.classicKey,JSON.stringify(current.progress));
+      storeChanged(current.config.progressKey,JSON.stringify(current.progress));
     }
   }
   useEffect(()=>{
@@ -77,7 +77,7 @@ export default function useGame() {
   }
   function enter(next,{keepDialogs=false}={}){
     cancelPending();ink.clear();commit(next);setWorld(next.config.levels[next.attempt.level].world);
-    if(!keepDialogs){dialogs.close(true);pendingFocus.current='first';if(exhausted(next.attempt))dialogs.open('emptyOverlay')}
+    if(!keepDialogs){dialogs.close(true);pendingFocus.current='first'}
   }
   function start(index,restart=false){const current=live.current;const next=startPuzzle(current,index,{restart});if(next!==current)enter(next)}
   function restart(){
@@ -88,7 +88,7 @@ export default function useGame() {
     const current=live.current;if(!current.history.length && !current.restart)return;
     if(current.restart){const previous=current.restart;enter({...current,...previous,restart:null});pendingFocus.current=previous.history.at(-1)?.move[1] || 'first';changeUI({announcement:'Restart undone. '+previous.attempt.moves+' moves.'})}
     else {
-      const previous=current.history.at(-1),attempt={...current.attempt,board:previous.board,remaining:previous.remaining,moves:previous.moves,achievementAttempt:{...current.attempt.achievementAttempt,undoUsed:true}};
+      const previous=current.history.at(-1),attempt={...current.attempt,board:previous.board,moves:previous.moves,achievementAttempt:{...current.attempt.achievementAttempt,undoUsed:true}};
       enter({...current,attempt,history:current.history.slice(0,-1),color:previous.color});pendingFocus.current=previous.move[0];changeUI({announcement:'Move undone. '+attempt.moves+' moves.'});
     }
     sound.play('undo');
@@ -98,7 +98,7 @@ export default function useGame() {
   }
   function move(a,b,offset=null){
     const current=live.current;
-    if(moveTimer.current || ui.moving || !PuzzleRules.legalMoves(current.attempt.board,...a,current.attempt.remaining).some(pos=>pos[0]===b[0] && pos[1]===b[1]))return;
+    if(moveTimer.current || ui.moving || !PuzzleRules.legalMoves(current.attempt.board,...a).some(pos=>pos[0]===b[0] && pos[1]===b[1]))return;
     const from=tileAt(a),to=tileAt(b),fromRect=from.parentElement.getBoundingClientRect(),toRect=to.parentElement.getBoundingClientRect();
     const dx=toRect.left-fromRect.left,dy=toRect.top-fromRect.top,duration=matchMedia('(prefers-reduced-motion: reduce)').matches?0:185;
     changeUI({selected:null,drag:null,moving:[a,b],arrived:[]});
@@ -108,38 +108,38 @@ export default function useGame() {
     moveTimer.current=setTimeout(()=>{
       moveTimer.current=null;
       if(disposed.current || live.current.attempt!==current.attempt)return;
-      const previous={board:current.attempt.board,remaining:current.attempt.remaining,moves:current.attempt.moves,color:current.color,move:[a,b]};
+      const previous={board:current.attempt.board,moves:current.attempt.moves,color:current.color,move:[a,b]};
       const attempt={...current.attempt,...PuzzleRules.transition(current.attempt,a,b),moves:current.attempt.moves+1};
       let next={...live.current,attempt,history:[...current.history,previous],restart:null,color:PuzzleArt.TILE_LIGHTS[current.attempt.board[a[0]][a[1]]]};
       ink.add(shellRef.current,fromRect,toRect,current.attempt.board[a[0]][a[1]]);
       animations.current.forEach(animation=>animation.cancel());animations.current=[];
       const arrived=[a,b].filter(([r,c])=>attempt.board[r][c]===attempt.target[r][c] && previous.board[r][c]!==attempt.board[r][c]);
       if(solved(attempt)){
-        const stars=starsFor(attempt.moves,parFor(next)),index=attempt.level;
-        const badges=achievements.record({level:index,stars,limited:next.limits,custom:!next.config.achievements,developer:next.dev,attempt:attempt.achievementAttempt});
+        const index=attempt.level;
+        const badges=achievements.record({level:index,custom:!next.config.achievements,developer:next.dev,attempt:attempt.achievementAttempt});
         if(badges.length)setNotices(items=>[...items,...badges]);
-        next={...next,badges,progress:{done:{...next.progress.done,[index+1]:Math.max(stars,next.progress.done[index+1] || 0)}},unlocked:!next.config.custom && index===next.unlocked-1?Math.min(next.config.levels.length,next.unlocked+1):next.unlocked};
+        next={...next,badges,progress:{done:{...next.progress.done,[index+1]:true}},unlocked:!next.config.custom && index===next.unlocked-1?Math.min(next.config.levels.length,next.unlocked+1):next.unlocked};
         if(!activeDialog.current)winTimer.current=setTimeout(()=>{
           if(disposed.current || live.current.attempt!==attempt || activeDialog.current)return;
-          dialogs.open('winOverlay');changeUI({announcement:'Puzzle solved.',burst:{points:[{x:innerWidth/2,y:innerHeight*.48,count:stars===3?28:18}]}});sound.play('win');
+          dialogs.open('winOverlay');changeUI({announcement:'Puzzle solved.',burst:{points:[{x:innerWidth/2,y:innerHeight*.48,count:24}]}});sound.play('win');
         },matchMedia('(prefers-reduced-motion: reduce)').matches?100:850);
-      }else if(exhausted(attempt)){dialogs.open('emptyOverlay');sound.play('deny')}
+      }
       pendingFocus.current=b;changeUI({moving:null,arrived,announcement:`Move ${attempt.moves}. ${PuzzleArt.META[attempt.board[b[0]][b[1]]].name} moved to row ${b[0]+1}, column ${b[1]+1}.`});commit(next);
     },duration+8);
   }
   function choose(position){
     const current=live.current;if(ui.moving || drag.current || solved(current.attempt))return;
-    if(ui.selected && PuzzleRules.legalMoves(current.attempt.board,...ui.selected,current.attempt.remaining).some(pos=>pos[0]===position[0] && pos[1]===position[1])){move(ui.selected,position);return}
+    if(ui.selected && PuzzleRules.legalMoves(current.attempt.board,...ui.selected).some(pos=>pos[0]===position[0] && pos[1]===position[1])){move(ui.selected,position);return}
     if(ui.selected && ui.selected.join(':')!==position.join(':')){reject(ui.selected,'That swap is not allowed.');return}
-    const moves=PuzzleRules.legalMoves(current.attempt.board,...position,current.attempt.remaining),selected=moves.length && ui.selected?.join(':')!==position.join(':')?position:null;
+    const moves=PuzzleRules.legalMoves(current.attempt.board,...position),selected=moves.length && ui.selected?.join(':')!==position.join(':')?position:null;
     changeUI({selected});
-    if(!moves.length){reject(position,current.attempt.remaining?.[position[0]][position[1]]===0 && current.attempt.board[position[0]][position[1]]!=='W'?'No moves left on this tile.':'Tile not selected.');return}
+    if(!moves.length){reject(position,'Tile not selected.');return}
     sound.play('select',current.attempt.board[position[0]][position[1]]);changeUI({announcement:selected?'Selected '+PuzzleArt.META[current.attempt.board[position[0]][position[1]]].name+'.':'Tile not selected.'});
   }
   function pointerDown(event,position){
     if(event.button!==0 || ui.moving || drag.current || solved(live.current.attempt))return;
     event.preventDefault();event.currentTarget.focus({preventScroll:true});
-    const moves=PuzzleRules.legalMoves(live.current.attempt.board,...position,live.current.attempt.remaining);
+    const moves=PuzzleRules.legalMoves(live.current.attempt.board,...position);
     // Geometry stays fixed for this gesture; resize and navigation cancel it.
     const targets=moves.map(pos=>({pos,rect:tileAt(pos).parentElement.getBoundingClientRect()}));
     drag.current={from:position,node:event.currentTarget,startX:event.clientX,startY:event.clientY,x:event.clientX,y:event.clientY,pointerId:event.pointerId,moved:false,hover:null,moves,targets};
@@ -171,10 +171,9 @@ export default function useGame() {
   function next(){if(state.config.custom)leaveEditor();else if(state.attempt.level<state.config.levels.length-1)start(state.attempt.level+1);else restart()}
   function showLevels(){if(state.config.custom){leaveEditor();return}setWorld(state.config.levels[state.attempt.level].world);openDialog('levelsOverlay',!!dialogs.active)}
   function showAchievements(tab='collection'){setCollectionRequest({tab});openDialog('achievementsOverlay',true)}
-  function continuePlay(){if(solved(state.attempt))next();else{dialogs.close(true);if(exhausted(state.attempt))dialogs.open('emptyOverlay');else pendingFocus.current='first'}sound.play('select')}
-  function resume(){if(solved(state.attempt))openDialog('winOverlay');else{dialogs.close(true);if(exhausted(state.attempt))dialogs.open('emptyOverlay')}}
-  function toggle(kind){const next={...live.current,[kind]:!live.current[kind]};store(KEYS[kind],kind==='zen'?(next.zen?'zen':'star'):kind==='dark'?(next.dark?'dark':'light'):(next[kind]?'on':'off'));commit(next);if(kind!=='sound' || next.sound)sound.play('select',undefined,kind==='sound' && next.sound)}
-  function toggleLimits(){const current=live.current;if(current.config.custom && !current.config.custom.fitsLimits)return;store(KEYS.limits,current.limits?'off':'on');enter(startPuzzle(current,current.attempt.level,{limited:!current.limits}),{keepDialogs:true});sound.play('select')}
+  function continuePlay(){if(solved(state.attempt))next();else{dialogs.close(true);pendingFocus.current='first'}sound.play('select')}
+  function resume(){if(solved(state.attempt))openDialog('winOverlay');else dialogs.close(true)}
+  function toggle(kind){const next={...live.current,[kind]:!live.current[kind]};store(KEYS[kind],kind==='dark'?(next.dark?'dark':'light'):(next[kind]?'on':'off'));commit(next);if(kind!=='sound' || next.sound)sound.play('select',undefined,kind==='sound' && next.sound)}
   function toggleDev(){
     const current=live.current;if(current.config.custom)return;
     let next={...current,dev:!current.dev};store(KEYS.dev,next.dev?'on':'off');
@@ -184,16 +183,12 @@ export default function useGame() {
   }
   // Game 2 is a development campaign; each New Game clears only its own campaign and makes it the active one.
   async function newGame(id=1){
-    if(state.config.custom || !await feedback.confirm({title:'Start New Game '+id+'?',message:'Game '+id+' stars and saved attempts in both modes will be cleared. Achievements and cosmetics remain unlocked. Your custom puzzles, settings and the other game\'s progress will stay.',accept:'Start new game',danger:true}))return;
+    if(state.config.custom || !await feedback.confirm({title:'Start New Game '+id+'?',message:'Game '+id+' solved levels and saved attempts will be cleared. Achievements and cosmetics remain unlocked. Your custom puzzles, settings and the other game\'s progress will stay.',accept:'Start new game',danger:true}))return;
     try{await loadGame(id)}catch(error){console.error(error);feedback.notify('Game '+id+' could not load. Your progress is unchanged.',{title:'New game not started',tone:'error'});return}
-    const empty={done:{}};store(GAMES[id].classicKey,JSON.stringify(empty));store(GAMES[id].limitedKey,JSON.stringify(empty));store(KEYS.dev,'off');store(KEYS.game,String(id));
+    const empty={done:{}};store(GAMES[id].progressKey,JSON.stringify(empty));store(KEYS.dev,'off');store(KEYS.game,String(id));
     const current=live.current.config.game===id?live.current:initializeGame(id);
     enter(startPuzzle({...current,attempt:null,attempts:{last:0,entries:{}},progress:empty,history:[],restart:null,dev:false,unlocked:1},0,{restart:true}));
     feedback.notify('Game '+id+' starts again at Level 1. Achievements and cosmetics are kept.',{title:'New game started',tone:'success'});changeUI({announcement:'New game '+id+' started. Level 1.'});
-  }
-  async function resetStars(){
-    if(state.config.custom || !await feedback.confirm({title:'Reset saved stars?',message:'Stars in '+(state.limits?'Tile Limits':'Classic')+' will be cleared. Campaign access, saved attempts, achievements, and cosmetics stay saved.',accept:'Reset stars',danger:true}))return;
-    commit({...live.current,progress:{done:{}}});feedback.notify('Your '+(state.limits?'Tile Limits':'Classic')+' stars have been reset. Campaign access and achievements are kept.',{title:'Stars reset',tone:'success'});
   }
   useEffect(()=>{
     function keydown(event){
@@ -209,5 +204,5 @@ export default function useGame() {
     document.addEventListener('keydown',keydown);window.addEventListener('resize',resize);
     return ()=>{document.removeEventListener('keydown',keydown);window.removeEventListener('resize',resize)};
   });
-  return {state,ui,dialogs,feedback,ink,sound,world,setWorld,settingsTab,setSettingsTab,collectionRequest,notices,dismissNotice:()=>setNotices(items=>items.slice(1)),boardRef,shellRef,tileRef,pointerDown,pointerMove,pointerUp,cancelDrag,choose,start,restart,undo,next,showLevels,showAchievements,continuePlay,resume,toggle,toggleLimits,toggleDev,newGame,resetStars,leaveEditor,openDialog,clearSelection:()=>changeUI({selected:null}),clearArrival:pos=>setUI(previous=>({...previous,arrived:previous.arrived.filter(item=>item.join(':')!==pos.join(':'))}))};
+  return {state,ui,dialogs,feedback,ink,sound,world,setWorld,settingsTab,setSettingsTab,collectionRequest,notices,dismissNotice:()=>setNotices(items=>items.slice(1)),boardRef,shellRef,tileRef,pointerDown,pointerMove,pointerUp,cancelDrag,choose,start,restart,undo,next,showLevels,showAchievements,continuePlay,resume,toggle,toggleDev,newGame,leaveEditor,openDialog,clearSelection:()=>changeUI({selected:null}),clearArrival:pos=>setUI(previous=>({...previous,arrived:previous.arrived.filter(item=>item.join(':')!==pos.join(':'))}))};
 }

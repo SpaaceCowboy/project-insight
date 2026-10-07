@@ -1,8 +1,8 @@
 # INSIGHT
 
-A React tile-swapping puzzle game with 106 levels, sound, Classic and Tile Limits modes, and a drag-and-drop level editor.
+A React tile-swapping puzzle game with 106 levels, sound, and a drag-and-drop level editor.
 
-Tiles use their original color-specific movement directions. Tile Limits assigns 3–6 moves per movable tile, with a verified solution floor. Only the initiating tile pays, its allowance follows it, and undo restores it.
+Tiles use their original color-specific movement directions. There is no move limit and no star rating: a level is solved or not.
 
 ## Play
 
@@ -23,17 +23,17 @@ The **Home** screen holds Continue, New Game, Levels, Achievements, the Editor, 
 
 Destructive actions use styled in-game confirmations with Cancel focused first. Escape and the backdrop cancel safely. Notifications show success, warning, and error states in a corner of the game or editor; storage warnings remain available while progress is temporary. Editor validation messages also remain beside its action buttons. Browser alerts and confirmations are not used.
 
-Campaign play starts at level 1. Solving a level unlocks the next, and unlocked levels remain available in both Classic and Tile Limits. Revision 2 starts fresh because its puzzle content changed. Original local records remain untouched; editor drafts, preferences, lifetime achievements, and cosmetics remain available. Refreshed stars use `insight-campaign-r2-classic` and `insight-campaign-r2-limits`; attempts use `insight-attempts-r2` and `insight-session-r2`; shared access uses `insight-campaign-v2`. Saved attempts include a puzzle revision and restore boards and remaining allowances by replaying verified moves.
+Campaign play starts at level 1. Solving a level unlocks the next. Revision 3 removed stars and Tile Limits and starts campaign progress fresh; older local records remain untouched, and editor drafts, preferences, lifetime achievements and cosmetics remain available. Solved levels use `insight-campaign-r3`, access `insight-campaign-v3`, and attempts `insight-attempts-r3` and `insight-session-r3`. Saved attempts include a puzzle revision and restore boards by replaying verified moves.
 
-**New Game** asks before clearing campaign stars and attempts in both modes, then returns to level 1 with Dev Mode off. Custom puzzles, playtests, sound, theme settings, lifetime achievements, and cosmetics remain saved. **Dev Mode** unlocks all 106 levels and persists across reloads; solving a level ahead of the campaign does not advance its unlock progress. Turning it off returns to an unlocked campaign level.
+**New Game** asks before clearing solved levels and attempts, then returns to level 1 with Dev Mode off. Custom puzzles, playtests, sound, theme settings, lifetime achievements, and cosmetics remain saved. **Dev Mode** unlocks all 106 levels and persists across reloads; solving a level ahead of the campaign does not advance its unlock progress. Turning it off returns to an unlocked campaign level.
 
-**Achievements** opens a permanent collection of 15 campaign and skill badges, plus background and tile-finish rewards. Distinct levels count once across both modes. Existing lifetime achievements are preserved, but original campaign stars do not credit changed puzzles. Refreshed stars can silently recover completion milestones when rebuilding a missing collection. Custom playtests and attempts played in Dev Mode earn no achievements; switch Dev Mode off and restart to qualify again. Restart begins a fresh attempt; undoing the restart restores its previous eligibility and undo history. Older resumed attempts need a restart before earning no-undo credit.
+**Achievements** opens a permanent collection of 15 campaign and skill badges, plus background and tile-finish rewards. Badges reward completing levels, worlds and the campaign, and completing levels without undo (First Clean Solve, Steady Hand, Unbroken, Flawless, Clean Sweep, Pristine). Existing lifetime achievements are preserved; players who earned the retired star or Tile Limits badges keep their Frosted and Brushed Metal finishes. Solved levels can silently recover completion milestones when rebuilding a missing collection. Custom playtests and attempts played in Dev Mode earn no achievements; switch Dev Mode off and restart to qualify again. Restart begins a fresh attempt; undoing the restart restores its previous eligibility and undo history. Older resumed attempts need a restart before earning no-undo credit.
 
 New badges appear in a styled top-right announcement for five seconds each. Multiple unlocks play in sequence, with cosmetic reward names. Announcements do not take focus or block controls, wait while the tab is hidden, and respect reduced motion. The victory card keeps its collection summary; existing awards and migration do not replay popups.
 
-Appearance rewards are equipped explicitly and apply to both the game and editor, with light/dark and reduced-motion support. `insight-achievements-v1` stores lifetime results and badges independently of campaign stars; `insight-appearance-v1` stores cosmetic choices. When browser storage is unavailable, rewards and choices work for the current page session.
+Appearance rewards are equipped explicitly and apply to both the game and editor, with light/dark and reduced-motion support. `insight-achievements-v1` stores lifetime results and badges independently of campaign progress; `insight-appearance-v1` stores cosmetic choices. When browser storage is unavailable, rewards and choices work for the current page session.
 
-For deliberate development resets, the Vite server serves `/tools/achievement-progress.html`. Its reset clears only the achievement collection and appearance, prevents old stars being credited again, and keeps a restorable backup. This utility is excluded from the production build.
+For deliberate development resets, the Vite server serves `/tools/achievement-progress.html`. Its reset clears only the achievement collection and appearance, prevents old progress being credited again, and keeps a restorable backup. This utility is excluded from the production build.
 
 ## Checks
 
@@ -48,7 +48,7 @@ Run `npm run build` before the browser checks; they test the production bundle.
 
 Browser checks require Playwright and Chrome. Set `PLAYWRIGHT_PATH` and `CHROME_PATH` if they are not found automatically.
 
-The campaign retains its 106 level positions, names, targets, and shapes. After removing the added mechanics, every Start and Target remains unchanged. Levels 35 and 99 use newly verified routes within the six-move allowance cap; level 35 has Classic par 20 and Tile Limits par 21. Par values and certificates follow the original rules. See `playtest.md` for remaining human validation.
+The campaign retains its 106 level positions, names, targets, and shapes. After removing the added mechanics, every Start and Target remains unchanged. Par values (used only for design and verification) and certificates follow the original rules. See `playtest.md` for remaining human validation.
 
 ## Production
 

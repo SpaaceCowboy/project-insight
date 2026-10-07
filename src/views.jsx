@@ -10,21 +10,17 @@ export function Tile({type,children,...props}) {
   return <button type="button" {...props}><Symbol type={type} />{children}</button>;
 }
 export function GameBoard({game}) {
-  const {state,ui}=game,{board,remaining}=state.attempt,limits=state.limits;
+  const {state,ui}=game,{board}=state.attempt;
   const same=(a,b)=>a?.join(':')===b?.join(':');
-  const revision=state.attempt.level+':'+limits;
-  return <React.Fragment key={revision}>{board.flatMap((row,r)=>row.map((type,c)=>{
+  return <React.Fragment key={state.attempt.level}>{board.flatMap((row,r)=>row.map((type,c)=>{
     if(type==='.')return <div key={`${r}:${c}`} className="cell hole" data-r={r} data-c={c} />;
-    const limited=limits && type!=='W', left=remaining?.[r]?.[c];
     const direction=PuzzleRules.moves[type].map(([dr,dc])=>`${dr<0?'up':dr>0?'down':''}${dc ? (dr?' ':'')+(dc<0?'left':'right') : ''}`).join(' or ');
-    const label=`${META[type].name}, row ${r+1}, column ${c+1}${direction ? ', moves '+direction : ', carried only'}${limited ? ', '+left+' moves left' : ''}`;
+    const label=`${META[type].name}, row ${r+1}, column ${c+1}${direction ? ', moves '+direction : ', carried only'}`;
     return <div key={`${r}:${c}`} className={'cell'+(same(ui.drag?.hover,[r,c])?' hover-target':'')} data-r={r} data-c={c}>
-      <Tile type={type} ref={game.tileRef([r,c])} className={'tile '+META[type].cls+(limited && left===0?' spent':'')+(same(ui.selected,[r,c])?' selected':'')+(same(ui.drag?.from,[r,c]) && ui.drag.moves.length?' dragging':'')+(ui.moving?.some(pos=>same(pos,[r,c]))?' moving':'')+(same(ui.rejected,[r,c])?' rejected':'')+(ui.arrived.some(pos=>same(pos,[r,c]))?' arrived':'')}
+      <Tile type={type} ref={game.tileRef([r,c])} className={'tile '+META[type].cls+(same(ui.selected,[r,c])?' selected':'')+(same(ui.drag?.from,[r,c]) && ui.drag.moves.length?' dragging':'')+(ui.moving?.some(pos=>same(pos,[r,c]))?' moving':'')+(same(ui.rejected,[r,c])?' rejected':'')+(ui.arrived.some(pos=>same(pos,[r,c]))?' arrived':'')}
         style={{'--tile-order':r+c}}
         onPointerDown={event=>game.pointerDown(event,[r,c])} onClick={event=>{if(event.detail===0)game.choose([r,c])}} onAnimationEnd={event=>{if(event.target===event.currentTarget && event.animationName==='tileArrival')game.clearArrival([r,c])}}
-        data-r={r} data-c={c} data-type={type} aria-label={label} aria-pressed={same(ui.selected,[r,c])}>
-        {limited && <span className="tile-allowance" aria-hidden="true">{left}</span>}
-      </Tile>
+        data-r={r} data-c={c} data-type={type} aria-label={label} aria-pressed={same(ui.selected,[r,c])} />
     </div>;
   }))}</React.Fragment>;
 }
@@ -42,17 +38,17 @@ export function WorldTabs({selected,onSelect}) {
       onSelect(next);document.getElementById('worldTab'+next).focus();
     }}>World {w}</button>);
 }
-export function Levels({world,name,levels,progress,current,zen,unlocked,onSelect}) {
+export function Levels({world,name,levels,progress,current,unlocked,onSelect}) {
   const entries=levels.map((level,i)=>({level,i})).filter(({level})=>level.world===world);
   return <section className="world-block"><div className="world-head"><div className="world-title">WORLD {world} · {name}</div>
     <div className="world-sub">{entries.filter(({i})=>progress[i+1]).length} / {entries.length} solved</div></div>
     <div className="level-grid">{entries.map(({level,i})=>{
-      const best=progress[i+1]||0;
+      const done=!!progress[i+1];
       const locked=i>=unlocked;
-      return <button key={i} className={'level-card '+(i===current?'current ':'')+(best?'done':'')}
-        disabled={locked} aria-label={`Level ${i+1}, ${level.name}${locked?', locked':!zen && best?', best '+best+' stars':''}`} onClick={()=>onSelect(i)}>
+      return <button key={i} className={'level-card '+(i===current?'current ':'')+(done?'done':'')}
+        disabled={locked} aria-label={`Level ${i+1}, ${level.name}${locked?', locked':done?', solved':''}`} onClick={()=>onSelect(i)}>
         <div className="lvl-num">{String(i+1).padStart(3,'0')}</div><div className="lvl-name">{level.name}</div>
-        <div className={'lvl-stars'+(locked?' locked-label':'')}>{locked?'Locked':best?'★'.repeat(best)+'☆'.repeat(3-best):''}</div>
+        <div className={'lvl-status'+(locked?' locked-label':'')}>{locked?'Locked':done?'✓ Solved':''}</div>
       </button>;
     })}</div></section>;
 }

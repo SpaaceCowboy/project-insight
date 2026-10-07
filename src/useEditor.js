@@ -1,5 +1,5 @@
 import {useEffect,useLayoutEffect,useRef,useState} from 'react';
-import {CORE_LEVELS,LEVEL_SOLUTIONS,LEVEL_LIMIT_SOLUTIONS,PuzzleRules,PuzzleSolver,PuzzleArt} from './data.js';
+import {CORE_LEVELS,LEVEL_SOLUTIONS,PuzzleRules,PuzzleSolver,PuzzleArt} from './data.js';
 import {useDialogs,useFeedback,useAppearance,useStrokes} from './react-ui.jsx';
 import {readPreference} from './game-state.js';
 
@@ -27,8 +27,8 @@ function loadLibrary(){
   return {library:{version:1,active:first.id,drafts:[first]},warning,recovery:raw};
 }
 function readyMessage(draft){
-  if(draft.proof)return 'Verified · optimal par '+draft.proof.par+' · '+(draft.proof.fitsLimits?'Tile Limits ready · par '+draft.proof.limitedPar:'Classic only: no verified Tile Limits route');
-  try{PuzzleRules.validate(draft);return 'Validate to check solvability and optimal par.'}catch(error){return error.message}
+  if(draft.proof)return 'Verified · solvable in '+draft.proof.par+(draft.proof.par===1?' move':' moves');
+  try{PuzzleRules.validate(draft);return 'Validate to check solvability.'}catch(error){return error.message}
 }
 
 export default function useEditor() {
@@ -142,7 +142,7 @@ export default function useEditor() {
     const current=getDraft(live.current);let spec;
     try{spec=PuzzleRules.validate(current);if(spec.start.join('|')===spec.target.join('|'))throw new Error('Start and Target are already identical. Change one board.')}catch(error){message(error.message,'error');return}
     const known=CORE_LEVELS.findIndex(level=>puzzleKey(level)===puzzleKey(spec));
-    if(known>=0){replaceDraft({...current,proof:PuzzleSolver.verify(current,{path:LEVEL_SOLUTIONS[known],limitedPath:LEVEL_LIMIT_SOLUTIONS[known]})});setStatus(null);return}
+    if(known>=0){replaceDraft({...current,proof:PuzzleSolver.verify(current,{path:LEVEL_SOLUTIONS[known]})});setStatus(null);return}
     const pending={...current};delete pending.proof;replaceDraft(pending);
     const source=`const PuzzleRules=(${PuzzleRules.create.toString()})();const PuzzleSolver=(${PuzzleSolver.create.toString()})(PuzzleRules);onmessage=event=>{try{const result=PuzzleSolver.solve(event.data,{maxStates:350000,timeout:8000,progress:count=>postMessage({count})});postMessage({result:PuzzleSolver.verify(event.data,result)})}catch(error){postMessage({error:error.message})}};`;
     try{

@@ -1,5 +1,5 @@
 const {rootPath,screenshotPath}=require('./check-paths.cjs');
-const {dismissMenus,home,play,settings,settingClick,collection}=require('./check-ui-helpers.cjs');
+const {dismissMenus,home,play,settings,settingClick,collection,movesIs}=require('./check-ui-helpers.cjs');
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const {chromium} = require(process.env.PLAYWRIGHT_PATH || 'playwright');
@@ -19,9 +19,7 @@ const {PuzzleRules}=require('../src/puzzle-rules.js');
     await page.goto(`http://127.0.0.1:${server.address().port}/Puzzle.html`);await page.waitForFunction(()=>document.documentElement.dataset.ready==='true');
     assert.equal(await page.locator('#menuOverlay').isVisible(),true);
     await settingClick(page,'devModeBtn');
-    await settingClick(page,'limitsBtn');
     await home(page);
-    await settingClick(page,'modeBtn');
     await settingClick(page,'themeBtn');
     await settings(page,'sound');
     await page.locator('#volumeSlider').focus();
@@ -49,14 +47,14 @@ const {PuzzleRules}=require('../src/puzzle-rules.js');
     assert.equal(await page.locator('#ambienceSlider').inputValue(),'80');
     assert.equal(await page.locator('#voiceToggle').isChecked(),false);
     assert.equal(await page.locator('body.light-mode').count(),1);
-    assert.equal(await page.locator('body.zen-mode').count(),0);
+    assert.equal(await page.locator('#modeBtn,#limitsBtn,#resetProgress').count(),0,'No star or Tile Limits controls');
     await play(page);
     await page.locator('#soundBtn').click();
     const tile=(r,c)=>page.locator(`.tile[data-r="${r}"][data-c="${c}"]`);
     const state=(target=page)=>target.locator('.tile').evaluateAll(els=>els.map(el=>el.dataset.type).join(''));
-    const snapshot=(target=page)=>target.evaluate(()=>({moves:document.querySelector('#moves').textContent,
+    const snapshot=(target=page)=>target.evaluate(()=>({moves:JSON.parse(localStorage.getItem('insight-session-r3'))?.path.length ?? 0,
       color:document.body.style.getPropertyValue('--light-color'),
-      tiles:[...document.querySelectorAll('.tile')].map(el=>[el.dataset.type,el.querySelector('.tile-allowance')?.textContent||null])}));
+      tiles:[...document.querySelectorAll('.tile')].map(el=>el.dataset.type)}));
     async function move(a,b,width,target=page) {
       await target.locator(`.tile[data-r="${Math.floor(a/width)}"][data-c="${a%width}"]`).focus();
       await target.keyboard.press('Enter');
@@ -82,19 +80,19 @@ const {PuzzleRules}=require('../src/puzzle-rules.js');
     await play(campaign);
     assert(await campaign.locator('#nextBtn').isDisabled(),'Next cannot skip an unsolved campaign level');
     await move(0,1,2,campaign);await campaign.locator('#winOverlay').waitFor({state:'visible'});
-    assert.equal(await campaign.evaluate(()=>JSON.parse(localStorage.getItem('insight-campaign-v2')).unlocked),2,'Winning unlocks exactly the next level');
+    assert.equal(await campaign.evaluate(()=>JSON.parse(localStorage.getItem('insight-campaign-v3')).unlocked),2,'Winning unlocks exactly the next level');
     await campaign.locator('#winNextBtn').click();
     assert.match(await campaign.locator('#levelNo').textContent(),/002/);
     assert(await campaign.locator('#nextBtn').isDisabled());
     const routeTwo=JSON.parse(fs.readFileSync(rootPath('artifacts','level-checks.json'),'utf8'))[1];
     await move(...routeTwo.path[0],routeTwo.width,campaign);
-    await campaign.waitForFunction(()=>document.querySelector('#moves').textContent==='1');
+    await movesIs(campaign,1);
     const campaignAttempt=await snapshot(campaign);
     await campaign.reload();await campaign.waitForFunction(()=>document.documentElement.dataset.ready==='true');await play(campaign);
     assert.deepEqual(await snapshot(campaign),campaignAttempt,'Continue resumes a campaign attempt');
-    await home(campaign);await settingClick(campaign,'limitsBtn');
     await campaign.locator('#levelsBtn').click();
-    assert.equal(await campaign.locator('.level-card:not(:disabled)').count(),2,'Unlocks carry across Classic and Tile Limits');
+    assert.equal(await campaign.locator('.level-card:not(:disabled)').count(),2,'Unlocks persist after reload');
+    assert.match(await campaign.locator('.level-card').first().textContent(),/Solved/,'Solved levels are marked without stars');
     await campaign.keyboard.press('Escape');await home(campaign);await settingClick(campaign,'devModeBtn');
     await campaign.reload();await campaign.waitForFunction(()=>document.documentElement.dataset.ready==='true');
     assert.equal(await campaign.locator('#devModeBtn').getAttribute('aria-pressed'),'true','Developer mode persists');
@@ -103,47 +101,48 @@ const {PuzzleRules}=require('../src/puzzle-rules.js');
     const finalRoute=JSON.parse(fs.readFileSync(rootPath('artifacts','level-checks.json'),'utf8'))[105];
     for(const [i,[from,to]] of finalRoute.path.entries()){
       await move(from,to,finalRoute.width,campaign);
-      await campaign.waitForFunction(n=>document.querySelector('#moves').textContent===String(n),i+1);
+      await movesIs(campaign,i+1);
     }
     await campaign.locator('#winOverlay').waitFor({state:'visible'});await campaign.keyboard.press('Escape');
-    assert.equal(await campaign.evaluate(()=>JSON.parse(localStorage.getItem('insight-campaign-v2')).unlocked),2,'Developer wins ahead do not skip campaign progress');
+    assert.equal(await campaign.evaluate(()=>JSON.parse(localStorage.getItem('insight-campaign-v3')).unlocked),2,'Developer wins ahead do not skip campaign progress');
     await home(campaign);await settingClick(campaign,'devModeBtn');
     assert.match(await campaign.locator('#levelNo').textContent(),/002/,'Leaving developer mode returns to the campaign');
-    const resetBefore=await campaign.evaluate(()=>['insight-campaign-v2','insight-attempts-r2','insight-campaign-r2-limits'].map(key=>localStorage.getItem(key)));
+    const resetBefore=await campaign.evaluate(()=>['insight-campaign-v3','insight-attempts-r3','insight-campaign-r3'].map(key=>localStorage.getItem(key)));
     await campaign.locator('#newGameBtn').click();
     await campaign.locator('#confirmCancel').click();
-    assert.deepEqual(await campaign.evaluate(()=>['insight-campaign-v2','insight-attempts-r2','insight-campaign-r2-limits'].map(key=>localStorage.getItem(key))),resetBefore,'Cancelling New Game preserves progress');
+    assert.deepEqual(await campaign.evaluate(()=>['insight-campaign-v3','insight-attempts-r3','insight-campaign-r3'].map(key=>localStorage.getItem(key))),resetBefore,'Cancelling New Game preserves progress');
     await campaign.evaluate(()=>{
       localStorage.setItem('insight-editor-drafts-v1','keep my drafts');
-      localStorage.setItem('insight-editor-attempts-v1','keep my playtests');
+      localStorage.setItem('insight-editor-attempts-v2','keep my playtests');
     });
-    const preferencesBefore=await campaign.evaluate(()=>['insight-tile-limits-v1','insight-theme-v1','insight-volume-v1'].map(key=>localStorage.getItem(key)));
+    const preferencesBefore=await campaign.evaluate(()=>['insight-theme-v1','insight-volume-v1'].map(key=>localStorage.getItem(key)));
     await campaign.locator('#newGameBtn').click();await campaign.locator('#confirmAccept').click();
     assert.match(await campaign.locator('#levelNo').textContent(),/001/);
-    assert.equal(await campaign.locator('#moves').textContent(),'0');
-    assert.deepEqual(await campaign.evaluate(()=>JSON.parse(localStorage.getItem('insight-campaign-r2-classic')).done),{});
-    assert.deepEqual(await campaign.evaluate(()=>JSON.parse(localStorage.getItem('insight-campaign-r2-limits')).done),{});
-    assert.equal(await campaign.evaluate(()=>Object.keys(JSON.parse(localStorage.getItem('insight-attempts-r2')).entries).length),1,'New Game removes old attempts');
+    await movesIs(campaign,0);
+    assert.deepEqual(await campaign.evaluate(()=>JSON.parse(localStorage.getItem('insight-campaign-r3')).done),{});
+    assert.equal(await campaign.evaluate(()=>Object.keys(JSON.parse(localStorage.getItem('insight-attempts-r3')).entries).length),1,'New Game removes old attempts');
     assert.equal(await campaign.evaluate(()=>localStorage.getItem('insight-editor-drafts-v1')),'keep my drafts');
-    assert.equal(await campaign.evaluate(()=>localStorage.getItem('insight-editor-attempts-v1')),'keep my playtests');
-    assert.deepEqual(await campaign.evaluate(()=>['insight-tile-limits-v1','insight-theme-v1','insight-volume-v1'].map(key=>localStorage.getItem(key))),preferencesBefore);
+    assert.equal(await campaign.evaluate(()=>localStorage.getItem('insight-editor-attempts-v2')),'keep my playtests');
+    assert.deepEqual(await campaign.evaluate(()=>['insight-theme-v1','insight-volume-v1'].map(key=>localStorage.getItem(key))),preferencesBefore);
     await campaign.reload();await campaign.waitForFunction(()=>document.documentElement.dataset.ready==='true');
     await campaign.locator('#menuLevelsBtn').click();assert.equal(await campaign.locator('.level-card:not(:disabled)').count(),1,'New Game persists');
-    // Existing stars migrate once without changing their IDs or values.
+    // Missing access is rebuilt from solved levels; revision 2 star records are ignored and left untouched.
     await campaign.evaluate(()=>{
-      localStorage.removeItem('insight-campaign-v2');
-      localStorage.setItem('insight-campaign-r2-classic',JSON.stringify({done:{10:2}}));
+      localStorage.removeItem('insight-campaign-v3');
+      localStorage.setItem('insight-campaign-r3',JSON.stringify({done:{10:true}}));
+      localStorage.setItem('insight-campaign-r2-classic',JSON.stringify({done:{50:3}}));
     });
     await campaign.reload();await campaign.waitForFunction(()=>document.documentElement.dataset.ready==='true');
-    assert.equal(await campaign.evaluate(()=>JSON.parse(localStorage.getItem('insight-campaign-v2')).unlocked),11);
-    assert.deepEqual(await campaign.evaluate(()=>JSON.parse(localStorage.getItem('insight-campaign-r2-classic')).done),{10:2});
+    assert.equal(await campaign.evaluate(()=>JSON.parse(localStorage.getItem('insight-campaign-v3')).unlocked),11);
+    assert.deepEqual(await campaign.evaluate(()=>JSON.parse(localStorage.getItem('insight-campaign-r2-classic')).done),{50:3});
     await campaign.close();
     // Keyboard solve, focus trap/return, progress, undo, and preference persistence.
     const resultsForShape=CORE_LEVELS;
     const first=await state();
     await move(0,1,2);
     await page.locator('#winOverlay').waitFor({state:'visible'});
-    assert.equal(await page.locator('#winStars').textContent(),'★★★');
+    assert.equal(await page.locator('#winTitle').textContent(),'Beautifully solved.');
+    assert.equal(await page.locator('#winStars,#winMeta').count(),0,'No stars or move count on the win card');
     await page.keyboard.press('Shift+Tab');
     assert.equal(await page.evaluate(()=>document.activeElement.id),'winNextBtn');
     await page.keyboard.press('Tab');
@@ -152,8 +151,8 @@ const {PuzzleRules}=require('../src/puzzle-rules.js');
     assert.equal(await page.evaluate(()=>document.activeElement.dataset.c),'1');
     await page.locator('#undoBtn').click();
     assert.equal(await state(),first);
-    assert.equal(await page.locator('#moves').textContent(),'0');
-    assert.equal(await page.locator('#starsTop').textContent(),'★★★');
+    await movesIs(page,0);
+    assert.equal(await page.locator('#moves,#par,#starsTop').count(),0,'No move counter, par or stars while playing');
     // Real pointer dragging and cancellation.
     const a=await tile(0,0).boundingBox(), b=await tile(0,1).boundingBox();
     await page.mouse.move(a.x+a.width/2,a.y+a.height/2);
@@ -180,8 +179,8 @@ const {PuzzleRules}=require('../src/puzzle-rules.js');
     await page.keyboard.press('Escape');
     await page.locator('#undoBtn').click();
     // A white tile can receive a tap swap although it cannot initiate one.
-    const passengerFixture=(()=>{for(let i=0;i<CORE_LEVELS.length;i++){const l=CORE_LEVELS[i],state=PuzzleRules.initialState(l);for(let r=0;r<state.board.length;r++)for(let c=0;c<state.board[r].length;c++)for(const to of PuzzleRules.legalMoves(state.board,r,c,null))if(state.board[to[0]][to[1]]==='W')return {i,from:[r,c],to}}})();
-    await choose(passengerFixture.i);await tile(...passengerFixture.from).click();await tile(...passengerFixture.to).click();await page.waitForFunction(()=>document.querySelector('#moves').textContent==='1');assert.equal(await tile(...passengerFixture.from).getAttribute('data-type'),'W');
+    const passengerFixture=(()=>{for(let i=0;i<CORE_LEVELS.length;i++){const l=CORE_LEVELS[i],state=PuzzleRules.initialState(l);for(let r=0;r<state.board.length;r++)for(let c=0;c<state.board[r].length;c++)for(const to of PuzzleRules.legalMoves(state.board,r,c))if(state.board[to[0]][to[1]]==='W')return {i,from:[r,c],to}}})();
+    await choose(passengerFixture.i);await tile(...passengerFixture.from).click();await tile(...passengerFixture.to).click();await movesIs(page,1);assert.equal(await tile(...passengerFixture.from).getAttribute('data-type'),'W');
     await choose(0);
     // Restart and level switch while a move is still animating.
     await page.emulateMedia({reducedMotion:'no-preference'});
@@ -193,13 +192,13 @@ const {PuzzleRules}=require('../src/puzzle-rules.js');
     await move(0,1,2);
     await choose(25);
     await page.waitForTimeout(400);
-    assert.equal(await page.locator('#moves').textContent(),'0');
+    await movesIs(page,0);
     assert.equal(await page.locator('#winOverlay').isVisible(),false);
     assert.equal(await page.locator('.cell').count(),resultsForShape[25].start.length*resultsForShape[25].start[0].length);
     // Switch after the board commits but before the win dialog timer fires.
     await choose(0);
     await move(0,1,2);
-    await page.waitForFunction(()=>document.querySelector('#moves').textContent==='1');
+    await movesIs(page,1);
     await choose(1);
     await page.waitForTimeout(400);
     assert.equal(await page.locator('#winOverlay').isVisible(),false);
@@ -213,40 +212,31 @@ const {PuzzleRules}=require('../src/puzzle-rules.js');
     await ux.evaluate(({level,route})=>{
       localStorage.clear();
       localStorage.setItem('insight-dev-mode-v1','on');
-      localStorage.setItem('insight-tile-limits-v1','off');
       localStorage.setItem('insight-sound-v1','off');
       localStorage.setItem('insight-volume-v1','.5');
       localStorage.setItem('insight-voice-v1','off');
-      const w=level.start[0].length;localStorage.setItem('insight-session-r2',JSON.stringify({revision:2,level:1,limits:false,allowances:null,path:[route[0].map(n=>[Math.floor(n/w),n%w])]}));
+      const w=level.start[0].length;localStorage.setItem('insight-session-r3',JSON.stringify({revision:2,level:1,path:[route[0].map(n=>[Math.floor(n/w),n%w])]}));
     },{level:CORE_LEVELS[1],route:LEVEL_SOLUTIONS[1]});
     await ux.reload();await ux.waitForFunction(()=>document.documentElement.dataset.ready==='true');
     await play(ux);
-    assert.equal(await ux.locator('#moves').textContent(),'1','Legacy route restored');
+    await movesIs(ux,1);
     assert.equal(await ux.locator('#ambienceSlider').inputValue(),'50','Old volume initializes ambience');
     assert.equal(await ux.locator('#voiceToggle').isChecked(),false);
     const classicAttempt=await snapshot(ux);
+    assert.equal(classicAttempt.moves,1,'Legacy single-session save restores its route');
     await choose(1,ux); await choose(1,ux);
     assert.deepEqual(await snapshot(ux),classicAttempt,'Switching levels preserves an attempt');
-    await home(ux); await settingClick(ux,'limitsBtn');
-    assert.equal(await ux.locator('#moves').textContent(),'0');
-    await move(...results[1].path[0],results[1].width,ux);
-    await ux.waitForFunction(()=>document.querySelector('#moves').textContent==='1');
-    const limitedAttempt=await snapshot(ux);
-    await home(ux); await settingClick(ux,'limitsBtn');
-    assert.deepEqual(await snapshot(ux),classicAttempt,'Classic attempt survives mode switching');
-    await home(ux); await settingClick(ux,'limitsBtn');
-    assert.deepEqual(await snapshot(ux),limitedAttempt,'Limited budgets survive mode switching');
     await ux.locator('#restartBtn').click();
     assert.match(await ux.locator('#undoBtn').textContent(),/Undo restart/);
     await ux.reload();await ux.waitForFunction(()=>document.documentElement.dataset.ready==='true'); await play(ux);
     await ux.locator('#undoBtn').click();
-    assert.deepEqual(await snapshot(ux),limitedAttempt,'Undo restart survives reload');
+    assert.deepEqual(await snapshot(ux),classicAttempt,'Undo restart survives reload');
     assert.equal(await ux.evaluate(()=>document.activeElement.dataset.r),String(Math.floor(results[1].path[0][1]/results[1].width)),'Undo restores board focus');
     await ux.locator('#restartBtn').click(); await move(...results[1].path[0],results[1].width,ux);
-    await ux.waitForFunction(()=>document.querySelector('#moves').textContent==='1');
+    await movesIs(ux,1);
     assert(!/restart/.test(await ux.locator('#undoBtn').textContent()),'Next move clears restart recovery');
     await ux.locator('#undoBtn').click();
-    assert.equal(await ux.locator('#moves').textContent(),'0');
+    await movesIs(ux,0);
     await choose(0,ux);
     const untouched=await snapshot(ux);
     const uxTile=(r,c)=>ux.locator(`.tile[data-r="${r}"][data-c="${c}"]`);
@@ -259,7 +249,7 @@ const {PuzzleRules}=require('../src/puzzle-rules.js');
     await choose(1,ux); await ux.locator('#restartBtn').click();
     await ux.emulateMedia({reducedMotion:'no-preference'});
     await move(...results[1].path[0],results[1].width,ux);
-    await ux.waitForFunction(()=>document.querySelector('#moves').textContent==='1');
+    await movesIs(ux,1);
     assert.equal(await ux.locator('.tile.arrived').count(),1,'Only the newly correct tile glows');
     assert.equal(await ux.locator('.tile.arrived').evaluate(el=>getComputedStyle(el).animationName),'tileArrival');
     await ux.screenshot({path:screenshotPath('game-arrival.png')});
@@ -294,15 +284,14 @@ const {PuzzleRules}=require('../src/puzzle-rules.js');
       await page.locator('#restartBtn').click();
       for(const [i,[from,to]] of level.path.entries()) {
         await move(from,to,level.width);
-        await page.waitForFunction(n=>document.querySelector('#moves').textContent===String(n),i+1);
+        await movesIs(page,i+1);
       }
       await page.locator('#winOverlay').waitFor({state:'visible'});
-      assert.equal(await page.locator('#winStars').textContent(),'★★★',`Level ${level.level}`);
       await page.keyboard.press('Escape');
       if(level.level%25===0) console.log(`Browser solved levels 1–${level.level}.`);
     }
     await page.reload();await page.waitForFunction(()=>document.documentElement.dataset.ready==='true');
-    const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('insight-campaign-r2-classic')).done);
+    const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('insight-campaign-r3')).done);
     assert.equal(Object.keys(saved).length,playthroughs.length);
     await play(page);
     for(const viewport of [{width:320,height:568},{width:375,height:667},{width:768,height:600},{width:1280,height:720},{width:844,height:390}]) {
@@ -344,45 +333,20 @@ const {PuzzleRules}=require('../src/puzzle-rules.js');
     await page.setViewportSize({width:1280,height:960});
     await choose(99);
     await page.screenshot({path:screenshotPath('game-desktop.png'),fullPage:true});
-    // Limited-mode stars remain separate; counters follow tiles and undo restores them.
-    await home(page);
-    await settingClick(page,'limitsBtn');
-    assert.equal(await page.locator('.tile-allowance').count(),await page.locator('.tile:not(.white)').count());
-    for (const level of playthroughs) {
-      await choose(level.level-1);
-      await page.locator('#restartBtn').click();
-      const initial=await page.locator('.tile').evaluateAll(els=>els.map(el=>[el.dataset.type,el.querySelector('.tile-allowance')?.textContent]));
-      assert(initial.every(([type,count])=>type==='W'||(+count>=3&&+count<=6)));
-      for(const [i,[from,to]] of level.limitedPath.entries()) {
-        await move(from,to,level.width);
-        await page.waitForFunction(n=>document.querySelector('#moves').textContent===String(n),i+1);
-      }
-      await page.locator('#winOverlay').waitFor({state:'visible'});
-      await page.keyboard.press('Escape');
-      await page.locator('#restartBtn').click();
-      assert.deepEqual(await page.locator('.tile').evaluateAll(els=>els.map(el=>[el.dataset.type,el.querySelector('.tile-allowance')?.textContent])),initial);
-      if(level.level%25===0)console.log(`Limited mode solved levels 1–${level.level}.`);
-    }
+    // The moving tile's colour lights the scene.
     await choose(0);
-    const before=await tile(0,0).locator('.tile-allowance').textContent();
-    const passenger=await tile(0,1).locator('.tile-allowance').textContent();
     await move(0,1,2);
     await page.locator('#winOverlay').waitFor({state:'visible'});
     await page.keyboard.press('Escape');
-    assert.equal(await tile(0,1).locator('.tile-allowance').textContent(),String(+before-1));
-    assert.equal(await tile(0,0).locator('.tile-allowance').textContent(),passenger);
     assert.equal(await page.evaluate(()=>document.body.style.getPropertyValue('--light-color')),'#88cedd');
     await page.locator('#undoBtn').click();
-    assert.equal(await tile(0,0).locator('.tile-allowance').textContent(),before);
-    // Resume preserves the actual route, tile budgets, light color and undo history.
+    // Resume preserves the actual route, light color and undo history.
     await choose(25);
     const resumeStart=await state();
-    const resumeBudget=await page.locator('.tile-allowance').allTextContents();
     const resumeLevel=results[25];
     await move(...resumeLevel.path[0],resumeLevel.width);
-    await page.waitForFunction(()=>document.querySelector('#moves').textContent==='1');
+    await movesIs(page,1);
     const resumeBoard=await state();
-    const resumeRemaining=await page.locator('.tile-allowance').allTextContents();
     const resumeColor=await page.evaluate(()=>document.body.style.getPropertyValue('--light-color'));
     await home(page);
     await play(page);
@@ -391,26 +355,23 @@ const {PuzzleRules}=require('../src/puzzle-rules.js');
     assert.match(await page.locator('#playBtn').textContent(),/Resume/);
     await play(page);
     assert.equal(await state(),resumeBoard);
-    assert.deepEqual(await page.locator('.tile-allowance').allTextContents(),resumeRemaining);
     assert.equal(await page.evaluate(()=>document.body.style.getPropertyValue('--light-color')),resumeColor);
     assert.equal(await page.locator('#soundBtn').getAttribute('aria-label'),'Enable sound','Mute survives reload');
     await page.locator('#undoBtn').click();
     assert.equal(await state(),resumeStart);
-    assert.deepEqual(await page.locator('.tile-allowance').allTextContents(),resumeBudget);
-    assert.equal(await page.locator('#moves').textContent(),'0');
-    // Malformed saved routes and budgets cannot enter the live game state.
-    for (const change of [{revision:1},{path:[[[99,0],[0,0]]]},{allowances:[[999]]},{path:[[[0,0],null]]}]) {
+    await movesIs(page,0);
+    // Malformed saved routes cannot enter the live game state.
+    for (const change of [{revision:1},{path:[[[99,0],[0,0]]]},{path:[[[0,0],null]]}]) {
       await page.evaluate(change=>{
-        const saved=JSON.parse(localStorage.getItem('insight-session-r2'));
-        localStorage.setItem('insight-session-r2',JSON.stringify({...saved,...change}));
-        const attempts=JSON.parse(localStorage.getItem('insight-attempts-r2'));
-        const key=(saved.limits ? 'limited:' : 'classic:')+saved.level;
-        attempts.entries[key]={...saved,...change};
-        localStorage.setItem('insight-attempts-r2',JSON.stringify(attempts));
+        const saved=JSON.parse(localStorage.getItem('insight-session-r3'));
+        localStorage.setItem('insight-session-r3',JSON.stringify({...saved,...change}));
+        const attempts=JSON.parse(localStorage.getItem('insight-attempts-r3'));
+        attempts.entries[saved.level]={...saved,...change};
+        localStorage.setItem('insight-attempts-r3',JSON.stringify(attempts));
       },change);
       await page.reload();await page.waitForFunction(()=>document.documentElement.dataset.ready==='true');
       await play(page);
-      assert.equal(await page.locator('#moves').textContent(),'0');
+      await movesIs(page,0);
       assert.equal(await page.locator('#undoBtn').isDisabled(),true);
     }
     const touch=await browser.newPage({viewport:{width:375,height:667},hasTouch:true,reducedMotion:'reduce'});
@@ -419,38 +380,8 @@ const {PuzzleRules}=require('../src/puzzle-rules.js');
     await touch.locator('.tile[data-r="0"][data-c="0"]').tap();
     await touch.locator('.tile[data-r="0"][data-c="1"]').tap();
     await touch.locator('#winOverlay').waitFor({state:'visible'});
-    assert.equal(await touch.locator('#moves').textContent(),'1','Touch tap completes a swap');
+    await movesIs(touch,1);
     await touch.close();
-    // Spending all allowances cannot soft-lock recovery controls.
-    await choose(2);await page.locator('#restartBtn').click();
-    for(let i=0;i<60;i++) {
-      if(await page.locator('#emptyOverlay').isVisible())break;
-      const tiles=await page.locator('#board .tile').evaluateAll(tiles=>tiles.map(tile=>({r:+tile.dataset.r,c:+tile.dataset.c,type:tile.dataset.type,remaining:tile.classList.contains('white')?0:+tile.querySelector('.tile-allowance').textContent})));
-      const pair=(()=>{
-        const level=CORE_LEVELS[2],state=PuzzleRules.initialState(level,level.start.map(row=>[...row].map(t=>t==='W'||t==='.'?0:6))),width=level.start[0].length;
-        for(const {r,c,type,remaining} of tiles){state.board[r][c]=type;state.remaining[r][c]=remaining;}
-        for(let r=0;r<state.board.length;r++)for(let c=0;c<width;c++)for(const b of PuzzleRules.legalMoves(state.board,r,c,state.remaining)){const next=PuzzleRules.transition(state,[r,c],b,level);if(PuzzleRules.key(next.board)!==level.target.join('|'))return [r*width+c,b[0]*width+b[1],width];}
-      })();
-      if(!pair)break;
-      const count=+(await page.locator('#moves').textContent());await move(...pair);await page.waitForFunction(n=>document.querySelector('#moves').textContent===String(n),count+1);
-    }
-    await page.locator('#emptyOverlay').waitFor({state:'visible'});
-    const emptyCount=+(await page.locator('#moves').textContent());
-    const exhausted=await snapshot();
-    await page.locator('#emptyLevelsBtn').click();
-    await page.locator('.level-card').first().click();
-    await choose(2);
-    assert.equal(await page.locator('#emptyOverlay').isVisible(),true,'Returning restores exhaustion');
-    assert.deepEqual(await snapshot(),exhausted);
-    await page.reload();await page.waitForFunction(()=>document.documentElement.dataset.ready==='true'); await play(page);
-    assert.equal(await page.locator('#emptyOverlay').isVisible(),true,'Reload offers recovery');
-    await page.locator('#emptyRestartBtn').click();
-    await page.locator('#undoBtn').click();
-    assert.deepEqual(await snapshot(),exhausted,'Undo restart restores an exhausted attempt');
-    assert.equal(await page.locator('#emptyOverlay').isVisible(),true);
-    await page.locator('#emptyUndoBtn').click();
-    assert.equal(+(await page.locator('#moves').textContent()),emptyCount-1);
-    assert.equal(await page.locator('#emptyOverlay').isVisible(),false);
     assert.equal(await page.evaluate(()=>[window.InsightAudio.ambientSound,window.InsightAudio.voiceSound,...Object.values(window.InsightAudio.soundEffects)].every(sound=>sound.readyState===4&&sound.duration>0&&!sound.error)),true,'All native audio assets loaded');
     const audioInfo=await page.evaluate(async assets=>{
       const context=new AudioContext();
@@ -487,7 +418,6 @@ const {PuzzleRules}=require('../src/puzzle-rules.js');
     await page.setViewportSize({width:320,height:568});
     await page.waitForFunction(()=>[...document.querySelectorAll('.tile')].every(el=>el.offsetWidth>=44 && el.getBoundingClientRect().width>=43.99));
     assert(await page.locator('.tile').evaluateAll(els=>els.every(el=>el.getBoundingClientRect().width>=44)),'Five-row mobile tiles retain a 44px touch target');
-    assert(await page.locator('.tile-allowance').evaluateAll(els=>els.every(el=>{const r=el.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.bottom<=innerHeight;})),'Limited map fits narrow screen');
     await page.screenshot({path:screenshotPath('game-mobile.png'),fullPage:true});
     await page.setViewportSize({width:1280,height:720});
     await page.screenshot({path:screenshotPath('game-desktop.png'),fullPage:true});
@@ -495,13 +425,9 @@ const {PuzzleRules}=require('../src/puzzle-rules.js');
     await page.screenshot({path:screenshotPath('game-menu.png'),fullPage:true});
     await page.keyboard.press('Escape');
     assert.match(await page.locator('#nextBtn').textContent(),/Replay final/);
-    // Back to classic mode for the blocked-storage regression.
-    if(await page.locator('#emptyOverlay').isVisible())await page.keyboard.press('Escape');
-    await home(page);
-    await settingClick(page,'limitsBtn');
     // Storage writes may fail without preventing play, undo, or opening win dialogs.
     await page.evaluate(()=>{
-      localStorage.setItem('insight-campaign-r2-classic',JSON.stringify({done:{}}));
+      localStorage.setItem('insight-campaign-r3',JSON.stringify({done:{}}));
     });
     await page.reload();await page.waitForFunction(()=>document.documentElement.dataset.ready==='true');
     await play(page);
@@ -512,7 +438,7 @@ const {PuzzleRules}=require('../src/puzzle-rules.js');
     await page.locator('#winOverlay').waitFor({state:'visible'});
     assert.match(await page.locator('#toast').textContent(),/storage unavailable/);
     assert.deepEqual(errors,[]);
-    console.log(`Browser checks passed: ${playthroughs.length} classic and ${playthroughs.length} limited playthroughs, sounds, budgets, lights, drag, undo, storage, focus and layouts.`);
+    console.log(`Browser checks passed: ${playthroughs.length} playthroughs, sounds, lights, drag, undo, storage, focus and layouts.`);
   } finally {
     await browser?.close();
     await new Promise(resolve=>server.close(resolve));

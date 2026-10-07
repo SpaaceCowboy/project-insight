@@ -5,8 +5,9 @@ export const COSMETICS=[
   {id:'mist',kind:'background',name:'Northern Mist',badge:'world-1',description:'Cool blue skies and teal light.'},
   {id:'aurora',kind:'background',name:'Aurora',badge:'complete',description:'Blue twilight with violet light.'},
   {id:'original',kind:'finish',name:'Original',description:'The familiar warm tile surface.'},
-  {id:'frosted',kind:'finish',name:'Frosted',badge:'perfect-1',description:'A soft, luminous glass surface.'},
-  {id:'metal',kind:'finish',name:'Brushed Metal',badge:'limits',description:'Fine brushing and a gentle satin shine.'}
+  // legacy: badges retired with stars and Tile Limits still grant the cosmetic to players who earned them.
+  {id:'frosted',kind:'finish',name:'Frosted',badge:'first-clean',legacy:'perfect-1',description:'A soft, luminous glass surface.'},
+  {id:'metal',kind:'finish',name:'Brushed Metal',badge:'clean-sweep',legacy:'limits',description:'Fine brushing and a gentle satin shine.'}
 ];
 
 export function newAttempt(eligible=true) {
@@ -19,21 +20,23 @@ export function restoreAttempt(saved,eligible=true) {
   return {version:1,eligible:eligible && saved.eligible,undoUsed:saved.undoUsed,noUndoKnown:saved.noUndoKnown};
 }
 
-export function createAchievements({levels,storage,onStorageError=()=>{},progressKeys=['insight-100-fixed-v4','insight-limit-stars-v1']}) {
+const LEGACY_BADGES=['perfect-1','perfect-10','precision','clean','limits'];
+
+export function createAchievements({levels,storage,onStorageError=()=>{},progressKeys=[]}) {
   const catalog=[
     {id:'first',name:'First Step',requirement:'Complete 1 campaign level.',goal:1,metric:'completed',mark:'Ⅰ'},
     {id:'flow',name:'Finding Flow',requirement:'Complete 10 distinct campaign levels.',goal:10,metric:'completed',mark:'≈'},
     {id:'halfway',name:'Halfway Home',requirement:'Complete 50 distinct campaign levels.',goal:50,metric:'completed',mark:'◐'},
     {id:'complete',name:'INSIGHT Complete',requirement:'Complete all '+levels.length+' campaign levels.',goal:levels.length,metric:'completed',mark:'✦'},
     ...[1,2,3,4,5].map(world=>({id:'world-'+world,name:'World '+world+' Master',requirement:'Complete every level in World '+world+'.',goal:levels.filter(level=>level.world===world).length,world,metric:'world',mark:String(world)})),
-    {id:'perfect-1',name:'First Perfect',requirement:'Earn a three-star campaign solve.',goal:1,metric:'perfect',mark:'★'},
-    {id:'perfect-10',name:'Perfect Ten',requirement:'Earn three stars on 10 distinct levels.',goal:10,metric:'perfect',mark:'✧'},
-    {id:'precision',name:'Precision',requirement:'Earn three stars on 25 distinct levels.',goal:25,metric:'perfect',mark:'◇'},
+    {id:'first-clean',name:'First Clean Solve',requirement:'Complete 1 campaign level without undo.',goal:1,metric:'noUndo',mark:'★'},
     {id:'steady',name:'Steady Hand',requirement:'Complete 10 distinct levels without undo.',goal:10,metric:'noUndo',mark:'⌁'},
-    {id:'clean',name:'Clean Cut',requirement:'Earn three stars on 5 distinct levels without undo.',goal:5,metric:'clean',mark:'⋈'},
-    {id:'limits',name:'Limits Master',requirement:'Earn three stars on 10 distinct levels in Tile Limits.',goal:10,metric:'limitedPerfect',mark:'⊞'}
+    {id:'unbroken',name:'Unbroken',requirement:'Complete 25 distinct levels without undo.',goal:25,metric:'noUndo',mark:'✧'},
+    {id:'flawless',name:'Flawless',requirement:'Complete 50 distinct levels without undo.',goal:50,metric:'noUndo',mark:'◇'},
+    {id:'clean-sweep',name:'Clean Sweep',requirement:'Complete every level in one world without undo.',goal:1,metric:'cleanWorld',mark:'⋈'},
+    {id:'pristine',name:'Pristine',requirement:'Complete all '+levels.length+' campaign levels without undo.',goal:levels.length,metric:'noUndo',mark:'⊞'}
   ];
-  let results={},earned={},appearance={background:'forest',finish:'original'},snapshot;
+  let results={},earned={},legacy={},appearance={background:'forest',finish:'original'},snapshot;
   const listeners=new Set();
   function read(key) {
     let raw;
@@ -44,44 +47,36 @@ export function createAchievements({levels,storage,onStorageError=()=>{},progres
   function validStars(value) {return Number.isInteger(value) && value>=1 && value<=3}
   function validId(id) {return /^[1-9]\d*$/.test(id) && +id<=levels.length}
   function count(badge) {
-    return Object.entries(results).filter(([id,result])=>{
-      const best=Math.max(result.classic||0,result.limited||0);
-      if(badge.metric==='completed')return best>0;
-      if(badge.metric==='perfect')return best===3;
-      if(badge.metric==='world')return best>0 && levels[+id-1].world===badge.world;
-      return result[badge.metric]===true;
-    }).length;
+    if(badge.metric==='cleanWorld')return [...new Set(levels.map(level=>level.world))].filter(world=>levels.every((level,i)=>level.world!==world || results[i+1]?.noUndo===true)).length;
+    return Object.entries(results).filter(([id,result])=>badge.metric==='completed' || (badge.metric==='world'?levels[+id-1].world===badge.world:result[badge.metric]===true)).length;
   }
   function award() {
     const unlocked=[];
     for(const badge of catalog)if(!earned[badge.id] && count(badge)>=badge.goal){earned[badge.id]=Date.now();unlocked.push({...badge,reward:COSMETICS.find(c=>c.badge===badge.id)?.name})}
     return unlocked;
   }
-  function owns(cosmetic) {return !cosmetic.badge || !!earned[cosmetic.badge]}
+  function owns(cosmetic) {return !cosmetic.badge || !!earned[cosmetic.badge] || !!legacy[cosmetic.legacy]}
   function publish() {
     snapshot={badges:catalog.map(badge=>({...badge,progress:Math.min(badge.goal,count(badge)),earned:!!earned[badge.id],reward:COSMETICS.find(c=>c.badge===badge.id)?.name})),
       cosmetics:COSMETICS.map(c=>({...c,owned:owns(c),requirement:catalog.find(b=>b.id===c.badge)?.requirement})),appearance:{...appearance},earnedCount:Object.keys(earned).length};
     listeners.forEach(listener=>listener());
   }
-  function persist() {write(ACHIEVEMENTS_KEY,{version:1,migrated:true,results,earned})}
+  function persist() {write(ACHIEVEMENTS_KEY,{version:2,migrated:true,results,earned,legacy})}
+  // Version 2 stores solved levels ({noUndo}) without stars; version 1 results (stars per mode) migrate here.
   const saved=read(ACHIEVEMENTS_KEY);
-  if(saved?.version===1 && saved.migrated===true) {
+  if((saved?.version===1 || saved?.version===2) && saved.migrated===true) {
     if(saved.results && typeof saved.results==='object' && !Array.isArray(saved.results))for(const [id,result] of Object.entries(saved.results)) {
       if(!validId(id) || !result || typeof result!=='object' || Array.isArray(result))continue;
-      const clean={};
-      for(const mode of ['classic','limited'])if(validStars(result[mode]))clean[mode]=result[mode];
-      if(!Object.keys(clean).length)continue;
-      for(const flag of ['noUndo','clean','limitedPerfect'])if(result[flag]===true &&
-        (flag!=='clean' || result.noUndo===true && Math.max(clean.classic||0,clean.limited||0)===3) && (flag!=='limitedPerfect' || clean.limited===3))clean[flag]=true;
-      results[id]=clean;
+      if(saved.version===1 && !validStars(result.classic) && !validStars(result.limited))continue;
+      results[id]=result.noUndo===true?{noUndo:true}:{};
     }
     for(const badge of catalog)if(count(badge)>=badge.goal && Number.isSafeInteger(saved.earned?.[badge.id]) && saved.earned[badge.id]>0)earned[badge.id]=saved.earned[badge.id];
+    const retired=saved.version===1?saved.earned:saved.legacy;
+    for(const id of LEGACY_BADGES)if(Number.isSafeInteger(retired?.[id]) && retired[id]>0)legacy[id]=retired[id];
   } else {
-    for(const [key,mode] of [[progressKeys[0],'classic'],[progressKeys[1],'limited']]) {
+    for(const key of progressKeys) {
       const old=read(key);
-      if(old?.done && typeof old.done==='object' && !Array.isArray(old.done))for(const [id,stars] of Object.entries(old.done))if(validId(id) && validStars(stars)) {
-        results[id]??={};results[id][mode]=stars;
-      }
+      if(old?.done && typeof old.done==='object' && !Array.isArray(old.done))for(const [id,value] of Object.entries(old.done))if(validId(id) && (value===true || validStars(value)))results[id]??={};
     }
   }
   award();persist();
@@ -94,13 +89,10 @@ export function createAchievements({levels,storage,onStorageError=()=>{},progres
   return {
     getSnapshot:()=>snapshot,
     subscribe(listener){listeners.add(listener);return ()=>listeners.delete(listener)},
-    record({level,stars,limited,custom=false,developer=false,attempt}) {
-      if(custom || developer || !Number.isInteger(level) || !levels[level] || !validStars(stars) || typeof limited!=='boolean' || attempt?.eligible!==true)return [];
-      const id=level+1,mode=limited?'limited':'classic';
-      results[id]??={};const result=results[id];
-      result[mode]=Math.max(result[mode]||0,stars);
-      if(attempt.noUndoKnown===true && attempt.undoUsed===false){result.noUndo=true;if(stars===3)result.clean=true}
-      if(limited && stars===3)result.limitedPerfect=true;
+    record({level,custom=false,developer=false,attempt}) {
+      if(custom || developer || !Number.isInteger(level) || !levels[level] || attempt?.eligible!==true)return [];
+      const result=results[level+1]??={};
+      if(attempt.noUndoKnown===true && attempt.undoUsed===false)result.noUndo=true;
       const unlocked=award();persist();publish();return unlocked;
     },
     equip(kind,id) {

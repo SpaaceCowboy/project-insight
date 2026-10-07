@@ -13,19 +13,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 1,
     "tag": "basics",
-    "par": 1,
-    "limitedPar": 1,
-    "solution_len": 1,
-    "allowanceFloor": [
-      [
-        1,
-        0
-      ],
-      [
-        0,
-        0
-      ]
-    ]
+    "par": 1
   },
   {
     "name": "Opposite Corners",
@@ -40,19 +28,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 1,
     "tag": "basics",
-    "par": 2,
-    "limitedPar": 2,
-    "solution_len": 2,
-    "allowanceFloor": [
-      [
-        0,
-        1
-      ],
-      [
-        0,
-        1
-      ]
-    ]
+    "par": 2
   },
   {
     "name": "The Long Pair",
@@ -67,23 +43,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 1,
     "tag": "basics",
-    "par": 4,
-    "limitedPar": 4,
-    "solution_len": 4,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        2,
-        0,
-        0
-      ]
-    ]
+    "par": 4
   },
   {
     "name": "Vertical Trap",
@@ -100,23 +60,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 1,
     "tag": "basics",
-    "par": 4,
-    "limitedPar": 4,
-    "solution_len": 4,
-    "allowanceFloor": [
-      [
-        1,
-        0
-      ],
-      [
-        1,
-        1
-      ],
-      [
-        1,
-        0
-      ]
-    ]
+    "par": 4
   },
   {
     "name": "Hold the Light",
@@ -131,23 +75,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 1,
     "tag": "gates",
-    "par": 4,
-    "limitedPar": 4,
-    "solution_len": 4,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0,
-        1
-      ],
-      [
-        0,
-        1,
-        0,
-        1
-      ]
-    ]
+    "par": 4
   },
   {
     "name": "Borrowed Passage",
@@ -164,26 +92,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 1,
     "tag": "gates",
-    "par": 4,
-    "limitedPar": 4,
-    "solution_len": 4,
-    "allowanceFloor": [
-      [
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        1
-      ],
-      [
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 4
   },
   {
     "name": "Leave It Open",
@@ -200,26 +109,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 1,
     "tag": "gates",
-    "par": 4,
-    "limitedPar": 4,
-    "solution_len": 4,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        0
-      ],
-      [
-        1,
-        1,
-        1
-      ],
-      [
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 4
   },
   {
     "name": "First Connection",
@@ -236,26 +126,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 1,
     "tag": "gates",
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        2,
-        0,
-        0
-      ],
-      [
-        1,
-        0,
-        1
-      ],
-      [
-        1,
-        1,
-        0
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "Quarter Turn",
@@ -270,23 +141,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 1,
     "tag": "rotation",
-    "par": 2,
-    "limitedPar": 2,
-    "solution_len": 2,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        1,
-        0,
-        0
-      ]
-    ]
+    "par": 2
   },
   {
     "name": "A New Direction",
@@ -303,26 +158,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 1,
     "tag": "rotation",
-    "par": 2,
-    "limitedPar": 2,
-    "solution_len": 2,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 2
   },
   {
     "name": "Turn Twice",
@@ -339,29 +175,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 1,
     "tag": "rotation",
-    "par": 11,
-    "limitedPar": 11,
-    "solution_len": 11,
-    "allowanceFloor": [
-      [
-        4,
-        2,
-        0,
-        0
-      ],
-      [
-        2,
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        2,
-        0,
-        0
-      ]
-    ]
+    "par": 11
   },
   {
     "name": "Return Angle",
@@ -378,26 +192,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 1,
     "tag": "rotation",
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        0,
-        2,
-        1
-      ],
-      [
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "The Spare Step",
@@ -414,26 +209,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 1,
     "tag": "circuits",
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        0
-      ],
-      [
-        1,
-        1,
-        1
-      ],
-      [
-        1,
-        0,
-        2
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "Shared Ground",
@@ -450,26 +226,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 1,
     "tag": "circuits",
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0
-      ],
-      [
-        1,
-        2,
-        1
-      ],
-      [
-        0,
-        1,
-        1
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "Return Journey",
@@ -486,26 +243,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 1,
     "tag": "circuits",
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        1
-      ],
-      [
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "The Waiting Tile",
@@ -522,26 +260,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 1,
     "tag": "circuits",
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        1
-      ],
-      [
-        2,
-        0,
-        0
-      ],
-      [
-        2,
-        1,
-        1
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "Crossed Intentions",
@@ -558,26 +277,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 1,
     "tag": "circuits",
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        0,
-        2,
-        0
-      ],
-      [
-        0,
-        1,
-        0
-      ],
-      [
-        2,
-        0,
-        0
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "Two Responsibilities",
@@ -594,29 +294,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 1,
     "tag": "circuits",
-    "par": 8,
-    "limitedPar": 8,
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        2,
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        2,
-        2,
-        0
-      ]
-    ]
+    "par": 8
   },
   {
     "name": "Narrow Opportunity",
@@ -631,23 +309,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 1,
     "tag": "circuits",
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        0,
-        3,
-        1,
-        0
-      ],
-      [
-        1,
-        0,
-        0,
-        1
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "The Long Exchange",
@@ -662,21 +324,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 1,
     "tag": "circuits",
-    "par": 4,
-    "limitedPar": 4,
-    "solution_len": 4,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        2
-      ],
-      [
-        0,
-        1,
-        1
-      ]
-    ]
+    "par": 4
   },
   {
     "name": "Bring It Back",
@@ -693,29 +341,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 1,
     "tag": "circuits",
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        0,
-        0
-      ],
-      [
-        2,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        3,
-        1
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "Careful Timing",
@@ -730,21 +356,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 1,
     "tag": "circuits",
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        0,
-        2,
-        3
-      ],
-      [
-        1,
-        0,
-        1
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "Another Way Through",
@@ -761,26 +373,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 1,
     "tag": "circuits",
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        1,
-        2,
-        2
-      ],
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        1
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "The Final Charge",
@@ -795,21 +388,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 1,
     "tag": "circuits",
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        2,
-        0,
-        1
-      ],
-      [
-        1,
-        0,
-        1
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "A Small Sacrifice",
@@ -824,21 +403,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 1,
     "tag": "circuits",
-    "par": 3,
-    "limitedPar": 3,
-    "solution_len": 3,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        0
-      ],
-      [
-        2,
-        0,
-        0
-      ]
-    ]
+    "par": 3
   },
   {
     "name": "Borrowed Light II",
@@ -855,26 +420,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 2,
     "tag": "circuits",
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        2,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        1,
-        0
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "The Handoff II",
@@ -891,26 +437,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 2,
     "tag": "circuits",
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        1
-      ],
-      [
-        0,
-        0,
-        1
-      ],
-      [
-        2,
-        1,
-        0
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "Across the Fold II",
@@ -927,26 +454,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 2,
     "tag": "circuits",
-    "par": 9,
-    "limitedPar": 9,
-    "solution_len": 9,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        2
-      ],
-      [
-        0,
-        2,
-        3
-      ],
-      [
-        0,
-        0,
-        1
-      ]
-    ]
+    "par": 9
   },
   {
     "name": "A Place to Wait II",
@@ -963,26 +471,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 2,
     "tag": "circuits",
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        3,
-        1,
-        0
-      ],
-      [
-        2,
-        1,
-        0
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "Turn and Return II",
@@ -997,23 +486,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 2,
     "tag": "circuits",
-    "par": 4,
-    "limitedPar": 4,
-    "solution_len": 4,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        1,
-        1
-      ],
-      [
-        0,
-        0,
-        0,
-        1
-      ]
-    ]
+    "par": 4
   },
   {
     "name": "The Quiet Detour II",
@@ -1030,26 +503,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 2,
     "tag": "circuits",
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        2
-      ],
-      [
-        0,
-        2,
-        0
-      ],
-      [
-        0,
-        0,
-        1
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "Hold the Crossing II",
@@ -1066,26 +520,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 2,
     "tag": "circuits",
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        1
-      ],
-      [
-        1,
-        1,
-        0
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "Moving Anchor II",
@@ -1100,23 +535,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 2,
     "tag": "circuits",
-    "par": 9,
-    "limitedPar": 9,
-    "solution_len": 9,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        2,
-        1
-      ],
-      [
-        0,
-        2,
-        0,
-        3
-      ]
-    ]
+    "par": 9
   },
   {
     "name": "Second Passage II",
@@ -1133,26 +552,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 2,
     "tag": "circuits",
-    "par": 8,
-    "limitedPar": 8,
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0
-      ],
-      [
-        3,
-        1,
-        0
-      ],
-      [
-        0,
-        3,
-        0
-      ]
-    ]
+    "par": 8
   },
   {
     "name": "A Different Angle II",
@@ -1169,29 +569,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 2,
     "tag": "circuits",
-    "par": 20,
-    "limitedPar": 21,
-    "solution_len": 20,
-    "allowanceFloor": [
-      [
-        5,
-        6,
-        0,
-        0
-      ],
-      [
-        6,
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        1,
-        0,
-        2
-      ]
-    ]
+    "par": 20
   },
   {
     "name": "Before the Last Turn II",
@@ -1208,26 +586,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 2,
     "tag": "circuits",
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        2,
-        1,
-        2
-      ],
-      [
-        0,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "Open Circuit II",
@@ -1242,23 +601,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 2,
     "tag": "circuits",
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        0,
-        2
-      ],
-      [
-        0,
-        2,
-        2,
-        0
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "The Spare Step II",
@@ -1275,26 +618,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 2,
     "tag": "circuits",
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        1
-      ],
-      [
-        1,
-        1,
-        0
-      ],
-      [
-        1,
-        0,
-        3
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "Shared Ground II",
@@ -1311,29 +635,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 2,
     "tag": "circuits",
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        0,
-        2,
-        0,
-        0
-      ],
-      [
-        1,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        0
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "Return Journey II",
@@ -1350,26 +652,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 2,
     "tag": "circuits",
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        0
-      ],
-      [
-        2,
-        1,
-        0
-      ],
-      [
-        2,
-        1,
-        0
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "The Waiting Tile II",
@@ -1386,26 +669,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 2,
     "tag": "circuits",
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        3
-      ],
-      [
-        1,
-        0,
-        0
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "Crossed Intentions II",
@@ -1422,26 +686,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 2,
     "tag": "circuits",
-    "par": 4,
-    "limitedPar": 4,
-    "solution_len": 4,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        0,
-        0
-      ],
-      [
-        1,
-        2,
-        0
-      ]
-    ]
+    "par": 4
   },
   {
     "name": "Two Responsibilities II",
@@ -1458,26 +703,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 2,
     "tag": "circuits",
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        2
-      ],
-      [
-        2,
-        0,
-        0
-      ],
-      [
-        0,
-        2,
-        0
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "Narrow Opportunity II",
@@ -1494,29 +720,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 2,
     "tag": "circuits",
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        2,
-        0,
-        2,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        2
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "The Long Exchange II",
@@ -1533,26 +737,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 2,
     "tag": "circuits",
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0
-      ],
-      [
-        2,
-        3,
-        0
-      ],
-      [
-        0,
-        0,
-        1
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "Bring It Back II",
@@ -1569,26 +754,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 2,
     "tag": "circuits",
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        3,
-        0
-      ],
-      [
-        0,
-        2,
-        0
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "Careful Timing II",
@@ -1605,26 +771,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 2,
     "tag": "circuits",
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        0
-      ],
-      [
-        1,
-        0,
-        0
-      ],
-      [
-        1,
-        3,
-        0
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "Another Way Through II",
@@ -1641,26 +788,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 2,
     "tag": "circuits",
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        1
-      ],
-      [
-        1,
-        2,
-        1
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "The Final Charge II",
@@ -1675,23 +803,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 2,
     "tag": "circuits",
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        1,
-        3,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "A Small Sacrifice II",
@@ -1708,26 +820,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 2,
     "tag": "circuits",
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        1
-      ],
-      [
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        2,
-        0
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "Borrowed Light III",
@@ -1744,26 +837,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 3,
     "tag": "circuits",
-    "par": 9,
-    "limitedPar": 9,
-    "solution_len": 9,
-    "allowanceFloor": [
-      [
-        2,
-        0,
-        1
-      ],
-      [
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        2,
-        3
-      ]
-    ]
+    "par": 9
   },
   {
     "name": "The Handoff III",
@@ -1780,29 +854,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 3,
     "tag": "circuits",
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        0,
-        3,
-        0,
-        0
-      ],
-      [
-        0,
-        2,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "Across the Fold III",
@@ -1817,23 +869,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 3,
     "tag": "circuits",
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        0,
-        2,
-        1,
-        0
-      ],
-      [
-        1,
-        2,
-        1,
-        0
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "A Place to Wait III",
@@ -1848,23 +884,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 3,
     "tag": "circuits",
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        2,
-        0,
-        0,
-        3
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "Turn and Return III",
@@ -1881,26 +901,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 3,
     "tag": "circuits",
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        2
-      ],
-      [
-        2,
-        0,
-        0
-      ],
-      [
-        1,
-        0,
-        0
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "The Quiet Detour III",
@@ -1917,26 +918,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 3,
     "tag": "circuits",
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        2
-      ],
-      [
-        2,
-        1,
-        0
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "Hold the Crossing III",
@@ -1953,26 +935,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 3,
     "tag": "circuits",
-    "par": 8,
-    "limitedPar": 8,
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        0,
-        3,
-        0
-      ],
-      [
-        1,
-        2,
-        2
-      ],
-      [
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 8
   },
   {
     "name": "Moving Anchor III",
@@ -1989,26 +952,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 3,
     "tag": "circuits",
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        0
-      ],
-      [
-        1,
-        1,
-        0
-      ],
-      [
-        2,
-        2,
-        0
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "Second Passage III",
@@ -2025,26 +969,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 3,
     "tag": "circuits",
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        1,
-        1,
-        0
-      ],
-      [
-        1,
-        0,
-        0
-      ],
-      [
-        2,
-        1,
-        0
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "A Different Angle III",
@@ -2061,29 +986,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 3,
     "tag": "circuits",
-    "par": 8,
-    "limitedPar": 8,
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        0,
-        3,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        2
-      ],
-      [
-        0,
-        1,
-        0,
-        0
-      ]
-    ]
+    "par": 8
   },
   {
     "name": "Before the Last Turn III",
@@ -2100,29 +1003,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 3,
     "tag": "circuits",
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        2,
-        0
-      ],
-      [
-        1,
-        0,
-        2,
-        1
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "Open Circuit III",
@@ -2139,26 +1020,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 3,
     "tag": "circuits",
-    "par": 11,
-    "limitedPar": 11,
-    "solution_len": 11,
-    "allowanceFloor": [
-      [
-        2,
-        1,
-        1
-      ],
-      [
-        0,
-        2,
-        0
-      ],
-      [
-        2,
-        2,
-        1
-      ]
-    ]
+    "par": 11
   },
   {
     "name": "The Spare Step III",
@@ -2175,26 +1037,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 3,
     "tag": "circuits",
-    "par": 8,
-    "limitedPar": 8,
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        1,
-        1,
-        1
-      ],
-      [
-        0,
-        3,
-        0
-      ],
-      [
-        0,
-        2,
-        0
-      ]
-    ]
+    "par": 8
   },
   {
     "name": "Shared Ground III",
@@ -2209,23 +1052,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 3,
     "tag": "circuits",
-    "par": 8,
-    "limitedPar": 8,
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        1,
-        1,
-        2,
-        1
-      ],
-      [
-        1,
-        1,
-        0,
-        1
-      ]
-    ]
+    "par": 8
   },
   {
     "name": "Return Journey III",
@@ -2242,26 +1069,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 3,
     "tag": "circuits",
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        2
-      ],
-      [
-        0,
-        1,
-        1
-      ],
-      [
-        1,
-        0,
-        2
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "The Waiting Tile III",
@@ -2278,29 +1086,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 3,
     "tag": "circuits",
-    "par": 8,
-    "limitedPar": 8,
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        2,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        2,
-        3
-      ]
-    ]
+    "par": 8
   },
   {
     "name": "Crossed Intentions III",
@@ -2317,29 +1103,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 3,
     "tag": "circuits",
-    "par": 9,
-    "limitedPar": 9,
-    "solution_len": 9,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        0,
-        0
-      ],
-      [
-        2,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        4
-      ]
-    ]
+    "par": 9
   },
   {
     "name": "Two Responsibilities III",
@@ -2354,23 +1118,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 3,
     "tag": "circuits",
-    "par": 9,
-    "limitedPar": 9,
-    "solution_len": 9,
-    "allowanceFloor": [
-      [
-        2,
-        3,
-        0,
-        0
-      ],
-      [
-        1,
-        0,
-        0,
-        3
-      ]
-    ]
+    "par": 9
   },
   {
     "name": "Narrow Opportunity III",
@@ -2387,26 +1135,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 3,
     "tag": "circuits",
-    "par": 8,
-    "limitedPar": 8,
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        2
-      ],
-      [
-        1,
-        3,
-        0
-      ],
-      [
-        1,
-        0,
-        1
-      ]
-    ]
+    "par": 8
   },
   {
     "name": "The Long Exchange III",
@@ -2423,26 +1152,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 3,
     "tag": "circuits",
-    "par": 9,
-    "limitedPar": 9,
-    "solution_len": 9,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        1
-      ],
-      [
-        3,
-        1,
-        3
-      ],
-      [
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 9
   },
   {
     "name": "Bring It Back III",
@@ -2459,29 +1169,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 3,
     "tag": "circuits",
-    "par": 15,
-    "limitedPar": 15,
-    "solution_len": 15,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        0,
-        0
-      ],
-      [
-        6,
-        0,
-        0,
-        0
-      ],
-      [
-        3,
-        0,
-        3,
-        2
-      ]
-    ]
+    "par": 15
   },
   {
     "name": "Careful Timing III",
@@ -2498,29 +1186,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 3,
     "tag": "circuits",
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        2,
-        0,
-        3
-      ],
-      [
-        0,
-        1,
-        0,
-        0
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "Another Way Through III",
@@ -2535,23 +1201,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 3,
     "tag": "circuits",
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        3,
-        0,
-        0,
-        0
-      ],
-      [
-        3,
-        0,
-        0,
-        1
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "The Final Charge III",
@@ -2568,29 +1218,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 3,
     "tag": "circuits",
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        1,
-        1,
-        0,
-        0
-      ],
-      [
-        2,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        1
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "A Small Sacrifice III",
@@ -2607,29 +1235,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 3,
     "tag": "circuits",
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        2,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "Borrowed Light IV",
@@ -2646,26 +1252,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 4,
     "tag": "circuits",
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        2,
-        2,
-        1
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "The Handoff IV",
@@ -2680,23 +1267,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 4,
     "tag": "circuits",
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        2,
-        2,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        1,
-        0
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "Across the Fold IV",
@@ -2713,26 +1284,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 4,
     "tag": "circuits",
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        1,
-        1,
-        0
-      ],
-      [
-        2,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        2
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "A Place to Wait IV",
@@ -2749,26 +1301,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 4,
     "tag": "circuits",
-    "par": 8,
-    "limitedPar": 8,
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        4,
-        1,
-        0
-      ],
-      [
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 8
   },
   {
     "name": "Turn and Return IV",
@@ -2785,26 +1318,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 4,
     "tag": "circuits",
-    "par": 8,
-    "limitedPar": 8,
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        2,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        1
-      ],
-      [
-        1,
-        1,
-        1
-      ]
-    ]
+    "par": 8
   },
   {
     "name": "The Quiet Detour IV",
@@ -2821,29 +1335,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 4,
     "tag": "circuits",
-    "par": 8,
-    "limitedPar": 8,
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        1,
-        2,
-        0,
-        0
-      ],
-      [
-        1,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        2,
-        1,
-        0
-      ]
-    ]
+    "par": 8
   },
   {
     "name": "Hold the Crossing IV",
@@ -2858,23 +1350,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 4,
     "tag": "circuits",
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        1,
-        1,
-        0,
-        1
-      ],
-      [
-        1,
-        1,
-        1,
-        1
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "Moving Anchor IV",
@@ -2891,26 +1367,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 4,
     "tag": "circuits",
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        1
-      ],
-      [
-        0,
-        1,
-        2
-      ],
-      [
-        1,
-        1,
-        0
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "Second Passage IV",
@@ -2927,29 +1384,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 4,
     "tag": "circuits",
-    "par": 8,
-    "limitedPar": 8,
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        1,
-        0
-      ],
-      [
-        2,
-        0,
-        2,
-        1
-      ],
-      [
-        0,
-        0,
-        2,
-        0
-      ]
-    ]
+    "par": 8
   },
   {
     "name": "A Different Angle IV",
@@ -2966,26 +1401,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 4,
     "tag": "circuits",
-    "par": 8,
-    "limitedPar": 8,
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        4,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        2
-      ],
-      [
-        1,
-        0,
-        0
-      ]
-    ]
+    "par": 8
   },
   {
     "name": "Before the Last Turn IV",
@@ -3000,21 +1416,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 4,
     "tag": "circuits",
-    "par": 3,
-    "limitedPar": 3,
-    "solution_len": 3,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        2
-      ],
-      [
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 3
   },
   {
     "name": "Open Circuit IV",
@@ -3031,29 +1433,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 4,
     "tag": "circuits",
-    "par": 8,
-    "limitedPar": 8,
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        3,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        2
-      ]
-    ]
+    "par": 8
   },
   {
     "name": "The Spare Step IV",
@@ -3070,26 +1450,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 4,
     "tag": "circuits",
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        3,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        2
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "Shared Ground IV",
@@ -3104,23 +1465,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 4,
     "tag": "circuits",
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        1,
-        2,
-        0,
-        0
-      ],
-      [
-        2,
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "Return Journey IV",
@@ -3137,26 +1482,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 4,
     "tag": "circuits",
-    "par": 5,
-    "limitedPar": 5,
-    "solution_len": 5,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        1,
-        0
-      ],
-      [
-        2,
-        1,
-        0
-      ]
-    ]
+    "par": 5
   },
   {
     "name": "The Waiting Tile IV",
@@ -3173,29 +1499,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 4,
     "tag": "circuits",
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        2,
-        1,
-        0,
-        0
-      ],
-      [
-        3,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        0
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "Crossed Intentions IV",
@@ -3212,26 +1516,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 4,
     "tag": "circuits",
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        2,
-        0,
-        1
-      ],
-      [
-        1,
-        0,
-        1
-      ],
-      [
-        1,
-        0,
-        1
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "Two Responsibilities IV",
@@ -3248,29 +1533,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 4,
     "tag": "circuits",
-    "par": 8,
-    "limitedPar": 8,
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        1,
-        0
-      ],
-      [
-        2,
-        2,
-        0,
-        0
-      ],
-      [
-        0,
-        2,
-        0,
-        0
-      ]
-    ]
+    "par": 8
   },
   {
     "name": "Narrow Opportunity IV",
@@ -3287,29 +1550,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 4,
     "tag": "circuits",
-    "par": 9,
-    "limitedPar": 9,
-    "solution_len": 9,
-    "allowanceFloor": [
-      [
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        1,
-        0,
-        0,
-        0
-      ],
-      [
-        2,
-        2,
-        3,
-        0
-      ]
-    ]
+    "par": 9
   },
   {
     "name": "The Long Exchange IV",
@@ -3326,26 +1567,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 4,
     "tag": "circuits",
-    "par": 6,
-    "limitedPar": 6,
-    "solution_len": 6,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        3,
-        0
-      ],
-      [
-        1,
-        1,
-        0
-      ]
-    ]
+    "par": 6
   },
   {
     "name": "Bring It Back IV",
@@ -3360,23 +1582,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 4,
     "tag": "circuits",
-    "par": 8,
-    "limitedPar": 8,
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        1,
-        2,
-        1,
-        2
-      ],
-      [
-        0,
-        1,
-        1,
-        0
-      ]
-    ]
+    "par": 8
   },
   {
     "name": "Careful Timing IV",
@@ -3393,26 +1599,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 4,
     "tag": "circuits",
-    "par": 12,
-    "limitedPar": 12,
-    "solution_len": 12,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        2
-      ],
-      [
-        1,
-        0,
-        2
-      ],
-      [
-        5,
-        0,
-        2
-      ]
-    ]
+    "par": 12
   },
   {
     "name": "Another Way Through IV",
@@ -3429,26 +1616,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 4,
     "tag": "circuits",
-    "par": 8,
-    "limitedPar": 8,
-    "solution_len": 8,
-    "allowanceFloor": [
-      [
-        2,
-        0,
-        0
-      ],
-      [
-        2,
-        0,
-        3
-      ],
-      [
-        0,
-        0,
-        1
-      ]
-    ]
+    "par": 8
   },
   {
     "name": "The Final Charge IV",
@@ -3465,29 +1633,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 4,
     "tag": "circuits",
-    "par": 22,
-    "limitedPar": 22,
-    "solution_len": 22,
-    "allowanceFloor": [
-      [
-        5,
-        4,
-        0,
-        0
-      ],
-      [
-        6,
-        0,
-        0,
-        0
-      ],
-      [
-        4,
-        2,
-        1,
-        0
-      ]
-    ]
+    "par": 22
   },
   {
     "name": "A Small Sacrifice IV",
@@ -3504,29 +1650,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 4,
     "tag": "circuits",
-    "par": 7,
-    "limitedPar": 7,
-    "solution_len": 7,
-    "allowanceFloor": [
-      [
-        1,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        3,
-        0
-      ],
-      [
-        0,
-        1,
-        1,
-        1
-      ]
-    ]
+    "par": 7
   },
   {
     "name": "Twin Responsibilities",
@@ -3547,46 +1671,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 5,
     "tag": "circuits",
-    "par": 12,
-    "limitedPar": 12,
-    "solution_len": 12,
-    "allowanceFloor": [
-      [
-        1,
-        2,
-        0,
-        0,
-        0
-      ],
-      [
-        1,
-        2,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        3,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        2,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 12
   },
   {
     "name": "Hourglass Exchange",
@@ -3607,46 +1692,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 5,
     "tag": "circuits",
-    "par": 10,
-    "limitedPar": 10,
-    "solution_len": 10,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        3,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        2,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        0,
-        2
-      ],
-      [
-        0,
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 10
   },
   {
     "name": "The Winding Circuit",
@@ -3667,46 +1713,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 5,
     "tag": "circuits",
-    "par": 12,
-    "limitedPar": 12,
-    "solution_len": 12,
-    "allowanceFloor": [
-      [
-        2,
-        3,
-        0,
-        0,
-        0
-      ],
-      [
-        2,
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        2,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        3,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 12
   },
   {
     "name": "Three Holders",
@@ -3727,46 +1734,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 5,
     "tag": "circuits",
-    "par": 12,
-    "limitedPar": 12,
-    "solution_len": 12,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        2,
-        3,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        2,
-        2,
-        2,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 12
   },
   {
     "name": "Last Crossing",
@@ -3787,46 +1755,7 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 5,
     "tag": "circuits",
-    "par": 17,
-    "limitedPar": 17,
-    "solution_len": 17,
-    "allowanceFloor": [
-      [
-        0,
-        0,
-        3,
-        0,
-        0
-      ],
-      [
-        0,
-        4,
-        0,
-        5,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        4,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 17
   },
   {
     "name": "Everything Returns",
@@ -3847,45 +1776,6 @@ export const CORE_LEVELS = [
     "revision": 2,
     "world": 5,
     "tag": "circuits",
-    "par": 9,
-    "limitedPar": 9,
-    "solution_len": 9,
-    "allowanceFloor": [
-      [
-        0,
-        2,
-        2,
-        0,
-        0
-      ],
-      [
-        1,
-        2,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0,
-        0
-      ]
-    ]
+    "par": 9
   }
 ];

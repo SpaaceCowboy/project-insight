@@ -12,7 +12,7 @@
   button:focus-visible,a:focus-visible { outline:3px solid #edf5e9;outline-offset:4px; }
   #status { min-height:48px;color:#edf5e9; }
 </style></head>
-<body><main><h1>Achievement progress</h1><p>Reset badges, cosmetic rewards, and equipped appearance. Campaign levels, stars, and custom puzzles stay saved. A backup lets you restore the previous collection here.</p>
+<body><main><h1>Achievement progress</h1><p>Reset badges, cosmetic rewards, and equipped appearance. Campaign progress and custom puzzles stay saved. A backup lets you restore the previous collection here.</p>
 <button id="reset">Reset achievements</button><button id="restore" disabled>Restore previous achievements</button><a href="../Puzzle.html">Return to game</a><p id="status" role="status" aria-live="polite"></p></main>
 <script type="module">
   const badgeKey='insight-achievements-v1',appearanceKey='insight-appearance-v1',backupKey='insight-achievements-reset-backup-v1';
@@ -29,7 +29,7 @@
       const badges=localStorage.getItem(badgeKey),appearance=localStorage.getItem(appearanceKey);
       let parsed=null;try{parsed=JSON.parse(badges||'null')}catch{}
       if(Object.keys(parsed?.results||{}).length || (badges!==null && parsed===null) || !backup())localStorage.setItem(backupKey,JSON.stringify({version:1,badges,appearance}));
-      localStorage.setItem(badgeKey,JSON.stringify({version:1,migrated:true,results:{},earned:{}}));
+      localStorage.setItem(badgeKey,JSON.stringify({version:2,migrated:true,results:{},earned:{},legacy:{}}));
       localStorage.setItem(appearanceKey,JSON.stringify({version:1,background:'forest',finish:'original'}));
       restore.disabled=!backup();status.textContent='Achievements reset to 0 / 15. Default appearance equipped. Your previous collection is backed up.';
     } catch {status.textContent='Browser storage is unavailable. Achievement progress could not be reset.'}
