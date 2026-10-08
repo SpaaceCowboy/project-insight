@@ -1,6 +1,7 @@
 const fs=require('node:fs'),assert=require('node:assert/strict');
 const {rootPath}=require('./check-paths.cjs');
 const {PuzzleRules:rules}=require('../src/puzzle-rules.js'),{PuzzleSolver:solver}=require('../src/puzzle-solver.js');
+const {greedyRate}=require('./level-metrics.cjs');
 // `--game 2` checks the Game 2 campaign and writes its own certificates.
 const game2=process.argv.includes('--game') && process.argv[process.argv.indexOf('--game')+1]==='2',suffix=game2?'-2':'';
 const data=require('../src/data/levels'+suffix+'.js'),count=game2?100:106;
@@ -14,6 +15,8 @@ for(const [index,level] of levels.entries()){
   const classic=solver.solve(level,{maxStates:350000,timeout:8000});solver.verify(level,classic);
   if(process.argv.includes('--update'))level.par=classic.distance;
   assert.equal(classic.distance,level.par,'Optimal par '+(index+1));
+  // Harder Game 2 levels must not be no-brainers: a greedy player may win at most 60% of the time (level-design.md).
+  if(game2 && ['test','twist','boss'].includes(level.tag))assert(greedyRate(level,level.par)<=.6,'Level '+(index+1)+' is solvable without thinking');
   results.push({level:index+1,name:level.name,world:level.world,par:level.par,width:level.start[0].length,...classic});
   console.log((index+1)+': '+classic.distance+' moves '+level.name);
 }
@@ -26,11 +29,11 @@ console.log('All '+count+' puzzles verified.');
 // `--audit` is read-only: difficulty signals from scripts/level-metrics.cjs (sources in level-design.md).
 function audit(){
   const {counterintuitive,openingChoices,focusNeed}=require('./level-metrics.cjs'),cap={maxStates:350000},first={};
-  console.log(['lvl','world','tag','par','ci','neutral','choices','movers','new','focus','name'].join('\t'));
+  console.log(['lvl','world','tag','par','ci','neutral','choices','greedy','movers','new','focus','name'].join('\t'));
   for(const [index,level] of levels.entries()){
     const {path}=solver.solve(level,cap),{ci,neutral,movers}=counterintuitive(level,path),{good,legal}=openingChoices(level,path.length,cap);
     const fresh=[...movers].filter(t=>!first[t]);fresh.forEach(t=>first[t]=index+1);
     const focus=[...(level.design?.focus || '')].map(t=>t+':'+(focusNeed(level,t,path.length,cap) || 'no')).join(' ');
-    console.log([index+1,level.world,level.tag || '',path.length,ci,neutral,good+'/'+legal,[...movers].sort().join(''),fresh.sort().join('') || '-',focus || '-',level.name].join('\t'));
+    console.log([index+1,level.world,level.tag || '',path.length,ci,neutral,good+'/'+legal,greedyRate(level,path.length).toFixed(2),[...movers].sort().join(''),fresh.sort().join('') || '-',focus || '-',level.name].join('\t'));
   }
 }

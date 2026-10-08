@@ -33,51 +33,64 @@ This file covers the sources Game 2's design draws on, the rules each one suppor
 
 ## Audit of Game 2 (2026-10-07)
 
-**Columns:**
+**Columns** (`node scripts/check-levels.cjs --game 2 --audit`):
 - `ci`: moves on the optimal route that increase the number of misplaced tiles. This adapts van Kreveld's "distance to goal" for tiles of the same colour.
 - `choices`: optimal opening moves out of all legal opening moves.
+- `greedy`: the "no-brainer" test. A player who always makes the move that fixes the most misplaced tiles, breaking ties at random, plays 50 seeded games. This is the share of those games won within 3× par. 1.0 means the level can be solved without thinking.
 - `focus`: `all` if the board cannot be solved without that tile's moves, `longer` if a solution exists without it but is longer than par, `no` if it can be skipped at no cost, `?` if the search limit was reached.
 
-**Before and after the scoring change**, where *before* is the first generation and *after* is scoring 2:
+### Difficulty pass (scoring 3)
 
-| World | Mean `ci` before → after | Levels with `ci` > 0 | Boss `ci` |
+Playtesting reported that many levels felt like no-brainers, and the greedy test confirmed it. The pass applied to Game 2 only; Game 1's boards are unchanged by request.
+
+| Game 2 | Before | After |
+| --- | --- | --- |
+| No-brainers (greedy ≥ 0.8) | 38 | 11 |
+| Greedy ≥ 0.5 | 51 | 14 |
+| No counterintuitive move | 38 | 14 |
+| Test, twist or boss levels with greedy ≥ 0.5 | 25 | 1 (Open Window, at its 0.5 limit) |
+
+| World | Mean greedy, before → after | No-brainers | Mean `ci` after |
 | --- | --- | --- | --- |
-| 1 Straight Lines | 0.50 → 0.60 | 7 → 9 of 20 | 2 → 2 |
-| 2 Slanted Light | 0.55 → 1.00 | 7 → 12 | 0 → 2 |
-| 3 Long Jumps | 0.40 → 0.60 | 6 → 9 | 1 → 2 |
-| 4 Mosaics | 0.90 → 1.35 | 13 → 16 | 1 → 2 |
-| 5 Masterworks | 0.75 → 1.50 | 10 → 16 | 1 → 3 |
+| 1 Straight Lines | 0.64 → 0.28 | 11 → 4 | 1.15 |
+| 2 Slanted Light | 0.53 → 0.23 | 8 → 3 | 1.25 |
+| 3 Long Jumps | 0.69 → 0.21 | 12 → 3 | 1.10 |
+| 4 Mosaics | 0.41 → 0.17 | 6 → 1 | 1.65 |
+| 5 Masterworks | 0.18 → 0.07 | 1 → 0 | 1.70 |
 
-**Overall results:**
-- **More levels have a catch.** 62 of 100 levels now need at least one counterintuitive move, up from 43, and every boss needs at least 2.
-- **The curve now rises in difficulty, not just length.** Mean `ci` climbs from Worlds 3 to 5 instead of staying flat.
-- **52 boards changed**, and each changed board went to revision 2. Teaching and breather levels are unchanged and still have no counterintuitive moves.
-- **Fewer focus tiles can be skipped.** In the 74 test, twist and boss levels, only 8 of 235 focus-tile checks can be skipped at no cost. The rest are needed by every solution, or skipping them costs extra moves.
+**What changed:**
+- **Fewer easy slots.** 13 teaching and breather slots became test levels. Each world keeps one breather, plus the first teaching level for each new tile.
+- **Redesigned targets.** 33 targets that could not meet the limits were redesigned by searching over patterns, an extra row or column, and gap layouts. The common fix is a single White "stone" or a gap near the centre, which forces a detour (Brown's "catch"). Moat gained Red tiles, because a Purple-and-White board cannot need a detour.
+- **Unchanged and still greedy-solvable:** the 8 first-introduction teaching levels and the 5 breathers, which is intended (Schell: easy to get started; parallelism lets the player rest).
+- **Board changes:** every changed board moved to the next revision.
 
-## Generator rules (scoring 2, `scripts/make-game2.cjs`)
+Game 1 for comparison: 15 levels with greedy ≥ 0.8. Ten of them come after level 10: 17, 20, 25, 43, 55, 56, 65, 74, 82 and 86.
 
-- **Teaching and breather levels:** take the cleanest route, with `ci = 0`, and every focus tile must be needed.
+## Generator rules (scoring 3, `scripts/make-game2.cjs`)
+
+- **Teaching and breather levels:** take the cleanest route, with `ci = 0`, and every focus tile must be needed. Their boards are kept across scoring changes.
 - **Minimums for harder levels:**
 
-  | Mood | Counterintuitive moves | Made by a focus tile | Optimal opening moves |
-  | --- | --- | --- | --- |
-  | Test | at least 1 | — | at most 50% |
-  | Twist | at least 2 | at least 1 | at most 50% |
-  | Boss | at least 3 | at least 1 | at most 50% |
+  | Mood | Counterintuitive moves | Made by a focus tile | Optimal opening moves | Greedy win rate |
+  | --- | --- | --- | --- | --- |
+  | Test | at least 1 | — | at most 50% | at most 0.5 |
+  | Twist | at least 2 | at least 1 | at most 50% | at most 0.3 |
+  | Boss | at least 3 | at least 1 | at most 50% | at most 0.1 |
 
-- **Candidate ranking:** more counterintuitive moves first, then more focus tiles needed by every solution, then length.
-- **Relaxation:** when a target can't meet its minimums, each relaxation step widens the par band by 1, lowers the `ci` minimum by 1, drops the focus-tile minimum, and allows 10 points more optimal openings. The log shows every relaxed slot.
-- **No regression:** a relaxed pick that is worse than the slot's previous board (fewer `ci`, or equal `ci` and shorter) keeps the previous board.
-- **Shared measurements:** the generator and the audit both use `scripts/level-metrics.cjs`.
+- **Relaxation:** when a target can't meet its minimums, each relaxation step widens the par band by 1, lowers the `ci` minimum by 1, drops the focus-tile minimum, and allows 10 points more optimal openings and 0.1 more greedy wins. The log shows every relaxed slot.
+- **No regression:** a relaxed pick that scores lower than the slot's previous board on `ci`, then greedy rate, then length keeps the previous board.
+- **Check-time guard:** `check-levels --game 2` fails if any test, twist or boss level has a greedy rate above 0.6.
+- **Shared measurements:** the generator, the audit and the check all use `scripts/level-metrics.cjs`.
 
 ## Open issues
 
-1. **12 test or twist levels still have `ci = 0`, even after relaxing.** They are 10, 14, 19, 25, 38, 45, 46, 47, 52, 53, 61 and 95. Most are small single-mover targets, such as *Around the Stone* (Red only, with a White cross), where no counterintuitive move exists. The fix is to redesign these targets with bigger boards, gaps or a second mover. Scoring can't add a catch the target doesn't allow.
-2. **`ci` is measured on the one optimal route the solver returns.** Another optimal route could avoid the catch. Requiring the minimum over all optimal routes would be stricter.
-3. **No player data has been collected yet.** Run the Game 2 difficulty-rating session in `playtest.md` before tuning further.
+1. **`ci` is measured on the one optimal route the solver returns.** Another optimal route could avoid the catch.
+2. **Many fixes reuse one device,** a central White stone or gap. Playtesting should check whether that becomes repetitive.
+3. **No player data has been collected yet.** Run the Game 2 difficulty-rating session in `playtest.md`, and compare ratings with `greedy` as well as `par`, `ci` and `choices`.
 
 ## Limits of this audit
 
 - `ci` uses misplaced-tile count, not distance to the nearest matching goal.
+- The greedy player is one simple strategy. A level it cannot solve may still be easy for a person who spots the catch quickly.
 - `?` means the 350k-state search limit was reached, not that the answer is proven.
 - Every difficulty claim here comes from the research above, not from INSIGHT players.

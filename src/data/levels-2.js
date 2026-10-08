@@ -27,27 +27,27 @@ export const GAME2_LEVELS = [
   {
     "name": "Rising Column",
     "start": [
-      "BB",
       "RR",
-      "RR"
+      "WR",
+      "BB"
     ],
     "target": [
       "RR",
-      "BB",
-      "RR"
+      "RW",
+      "BB"
     ],
     "world": 1,
-    "tag": "teach",
+    "tag": "test",
     "design": {
       "focus": "R",
       "band": [
         2,
-        3
+        4
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
-    "par": 2
+    "revision": 2,
+    "par": 4
   },
   {
     "name": "Side Step",
@@ -75,36 +75,36 @@ export const GAME2_LEVELS = [
   {
     "name": "Long Hallway",
     "start": [
-      "RBR",
-      "BBB"
+      "BBW",
+      "RBR"
     ],
     "target": [
-      "BRB",
-      "BRB"
+      "BBR",
+      "BWR"
     ],
     "world": 1,
-    "tag": "teach",
+    "tag": "test",
     "design": {
       "focus": "B",
       "band": [
         3,
-        3
+        4
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
-    "par": 3
+    "revision": 2,
+    "par": 4
   },
   {
     "name": "Two Directions",
     "start": [
-      "RBB",
-      "RRB",
-      "RBR"
+      "RBR",
+      "B.R",
+      "BBR"
     ],
     "target": [
       "RBR",
-      "BRB",
+      "B.B",
       "RBR"
     ],
     "world": 1,
@@ -115,20 +115,20 @@ export const GAME2_LEVELS = [
         3,
         4
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 2,
+    "revision": 3,
     "par": 3
   },
   {
     "name": "Woven Pair",
     "start": [
       "RRRB",
-      "RBBB"
+      "BR.B"
     ],
     "target": [
       "BRBR",
-      "RBRB"
+      "BR.R"
     ],
     "world": 1,
     "tag": "test",
@@ -138,23 +138,23 @@ export const GAME2_LEVELS = [
         4,
         5
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
-    "par": 4
+    "revision": 2,
+    "par": 5
   },
   {
     "name": "Ladder",
     "start": [
       "RB",
       "BB",
-      "RB",
-      "RR"
+      "R.",
+      "RB"
     ],
     "target": [
       "RR",
       "BB",
-      "RR",
+      "R.",
       "BB"
     ],
     "world": 1,
@@ -165,22 +165,24 @@ export const GAME2_LEVELS = [
         4,
         5
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
-    "par": 5
+    "revision": 2,
+    "par": 4
   },
   {
     "name": "Crossing Threads",
     "start": [
-      "BBR",
-      "BRR",
-      "BBR"
+      "BWB",
+      "BRB",
+      "BBB",
+      "BBB"
     ],
     "target": [
-      "RBR",
       "BBB",
-      "RBR"
+      "BRB",
+      "BWB",
+      "BBB"
     ],
     "world": 1,
     "tag": "twist",
@@ -190,10 +192,10 @@ export const GAME2_LEVELS = [
         5,
         6
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
-    "par": 5
+    "revision": 2,
+    "par": 6
   },
   {
     "name": "Still Stone",
@@ -223,27 +225,29 @@ export const GAME2_LEVELS = [
   {
     "name": "Around the Stone",
     "start": [
-      "WWR",
-      "RWR",
-      "RWW"
+      "WRRW",
+      "RRRW",
+      "WWWR",
+      "RWWR"
     ],
     "target": [
-      "RWR",
-      "WWW",
-      "RWR"
+      "WRWR",
+      "RWRW",
+      "WRWR",
+      "RWRW"
     ],
     "world": 1,
     "tag": "twist",
     "design": {
       "focus": "R",
       "band": [
-        3,
-        4
+        4,
+        7
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
-    "par": 2
+    "revision": 2,
+    "par": 7
   },
   {
     "name": "Pillar Garden",
@@ -265,7 +269,7 @@ export const GAME2_LEVELS = [
         4,
         5
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 1,
     "par": 5
@@ -321,12 +325,12 @@ export const GAME2_LEVELS = [
   {
     "name": "Broken Bridge",
     "start": [
-      ".RR.",
-      "BBBR"
+      "BBRB",
+      "RB.R"
     ],
     "target": [
-      ".BR.",
-      "RBRB"
+      "RBRB",
+      "RB.B"
     ],
     "world": 1,
     "tag": "test",
@@ -336,10 +340,10 @@ export const GAME2_LEVELS = [
         4,
         5
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 2,
-    "par": 3
+    "revision": 3,
+    "par": 4
   },
   {
     "name": "Island Hop",
@@ -361,7 +365,7 @@ export const GAME2_LEVELS = [
         5,
         6
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 6
@@ -386,7 +390,7 @@ export const GAME2_LEVELS = [
         5,
         6
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 5
@@ -411,7 +415,7 @@ export const GAME2_LEVELS = [
         6,
         7
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 8
@@ -419,39 +423,39 @@ export const GAME2_LEVELS = [
   {
     "name": "Quiet Tide",
     "start": [
-      "BBB",
-      "RRB",
-      "BRB"
+      "BWB",
+      "RRR",
+      "BBB"
     ],
     "target": [
-      "BBB",
-      "BBB",
-      "RRR"
+      "BBR",
+      "BWR",
+      "BBR"
     ],
     "world": 1,
-    "tag": "breather",
+    "tag": "test",
     "design": {
       "focus": "RB",
       "band": [
-        3,
-        4
+        4,
+        5
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
-    "par": 3
+    "revision": 2,
+    "par": 5
   },
   {
     "name": "Knotted Rope",
     "start": [
-      "BBBR",
-      "RBRR",
-      "BRBR"
+      "BRBB",
+      "WBRB",
+      "RRRB"
     ],
     "target": [
       "RRBB",
-      "RRBB",
-      "BBRR"
+      "RBWB",
+      "RRBB"
     ],
     "world": 1,
     "tag": "twist",
@@ -461,9 +465,9 @@ export const GAME2_LEVELS = [
         7,
         8
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
+    "revision": 2,
     "par": 8
   },
   {
@@ -488,7 +492,7 @@ export const GAME2_LEVELS = [
         8,
         9
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 9
@@ -519,27 +523,29 @@ export const GAME2_LEVELS = [
   {
     "name": "Leaning Tower",
     "start": [
-      "GWW",
-      "GGG",
-      "GWG"
+      "GGWW",
+      "WGWW",
+      "GGGG",
+      "GWWW"
     ],
     "target": [
-      "GGG",
-      "WWW",
-      "GGG"
+      "GGGG",
+      "WWWW",
+      "GGGG",
+      "WWWW"
     ],
     "world": 2,
-    "tag": "teach",
+    "tag": "test",
     "design": {
       "focus": "G",
       "band": [
         2,
-        3
+        4
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
-    "par": 3
+    "revision": 2,
+    "par": 4
   },
   {
     "name": "Gold Lean",
@@ -567,39 +573,41 @@ export const GAME2_LEVELS = [
   {
     "name": "Gilded Stair",
     "start": [
-      "WYY",
-      "WYW",
-      "YYY"
+      "WWWW",
+      "WWYY",
+      "YYYW",
+      "YWYY"
     ],
     "target": [
-      "YWY",
-      "YWY",
-      "YWY"
+      "YWYW",
+      "YWYW",
+      "YWYW",
+      "YWYW"
     ],
     "world": 2,
-    "tag": "teach",
+    "tag": "test",
     "design": {
       "focus": "Y",
       "band": [
         2,
-        3
+        6
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
-    "par": 3
+    "revision": 2,
+    "par": 5
   },
   {
     "name": "Crossed Beams",
     "start": [
-      "GGY",
-      "GGY",
-      "GYG"
+      "YGG",
+      "GWG",
+      "GYY"
     ],
     "target": [
       "GGG",
-      "YYY",
-      "GGG"
+      "GWG",
+      "YYY"
     ],
     "world": 2,
     "tag": "test",
@@ -609,10 +617,10 @@ export const GAME2_LEVELS = [
         3,
         4
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
-    "par": 2
+    "revision": 2,
+    "par": 4
   },
   {
     "name": "Diagonal Dance",
@@ -634,7 +642,7 @@ export const GAME2_LEVELS = [
         4,
         5
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 5
@@ -642,14 +650,14 @@ export const GAME2_LEVELS = [
   {
     "name": "Lattice",
     "start": [
-      "YGYY",
-      "GGYY",
-      "GGYG"
+      "YYYG",
+      "YGGG",
+      "YYGW"
     ],
     "target": [
-      "YGYG",
-      "YGYG",
-      "YGYG"
+      "YYGG",
+      "YYWG",
+      "YYGG"
     ],
     "world": 2,
     "tag": "twist",
@@ -657,49 +665,49 @@ export const GAME2_LEVELS = [
       "focus": "GY",
       "band": [
         5,
-        6
+        8
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
-    "par": 6
+    "revision": 2,
+    "par": 7
   },
   {
     "name": "Open Window",
     "start": [
-      "GGGG",
-      "YGYY",
-      "YGGG"
+      "GYGY",
+      "YYGG",
+      "GYYG"
     ],
     "target": [
-      "GGGG",
-      "GGGG",
-      "YYYY"
+      "GYGY",
+      "GYGY",
+      "GYGY"
     ],
     "world": 2,
-    "tag": "breather",
+    "tag": "test",
     "design": {
       "focus": "GY",
       "band": [
-        2,
-        3
+        3,
+        4
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
-    "par": 3
+    "revision": 2,
+    "par": 4
   },
   {
     "name": "Green and Red",
     "start": [
-      "GGG",
-      "GRR",
-      "GGR"
+      "RRG",
+      "RGR",
+      "GGG"
     ],
     "target": [
-      "GGG",
-      "RRR",
-      "GGG"
+      "GRG",
+      "RGR",
+      "GRG"
     ],
     "world": 2,
     "tag": "test",
@@ -709,21 +717,21 @@ export const GAME2_LEVELS = [
         4,
         5
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
-    "par": 5
+    "revision": 2,
+    "par": 4
   },
   {
     "name": "Gold and Blue",
     "start": [
       "YBB",
-      "YBY",
-      "YYY"
+      "YYB",
+      "YBY"
     ],
     "target": [
       "YBY",
-      "YBY",
+      "BYB",
       "YBY"
     ],
     "world": 2,
@@ -734,10 +742,10 @@ export const GAME2_LEVELS = [
         4,
         5
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
-    "par": 5
+    "revision": 2,
+    "par": 4
   },
   {
     "name": "Compass Rose",
@@ -759,7 +767,7 @@ export const GAME2_LEVELS = [
         5,
         6
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 7
@@ -782,7 +790,7 @@ export const GAME2_LEVELS = [
         5,
         6
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 6
@@ -832,7 +840,7 @@ export const GAME2_LEVELS = [
         6,
         7
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 1,
     "par": 7
@@ -840,9 +848,9 @@ export const GAME2_LEVELS = [
   {
     "name": "Basket Weave",
     "start": [
-      "BBGY",
-      "GBGG",
-      "GGBY"
+      "BBYG",
+      "BGGG",
+      "BGYG"
     ],
     "target": [
       "BBGG",
@@ -857,9 +865,9 @@ export const GAME2_LEVELS = [
         6,
         7
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 2,
+    "revision": 3,
     "par": 5
   },
   {
@@ -884,7 +892,7 @@ export const GAME2_LEVELS = [
         7,
         8
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 8
@@ -892,9 +900,9 @@ export const GAME2_LEVELS = [
   {
     "name": "Slanted Garden",
     "start": [
-      "RYYB",
-      "RRGB",
-      "RBGB"
+      "RBBG",
+      "YRGR",
+      "RBBY"
     ],
     "target": [
       "RRBB",
@@ -909,22 +917,22 @@ export const GAME2_LEVELS = [
         7,
         8
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 2,
-    "par": 7
+    "revision": 3,
+    "par": 9
   },
   {
     "name": "Shadowed Corners",
     "start": [
-      ".GGG",
-      "YGGY",
-      "GGG."
+      "GYGG",
+      "YYWG",
+      "YGGY"
     ],
     "target": [
-      ".GGG",
-      "GYYG",
-      "GGG."
+      "GYGG",
+      "YYWY",
+      "GYGG"
     ],
     "world": 2,
     "tag": "twist",
@@ -932,12 +940,12 @@ export const GAME2_LEVELS = [
       "focus": "GY",
       "band": [
         4,
-        5
+        7
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
-    "par": 4
+    "revision": 2,
+    "par": 7
   },
   {
     "name": "Prism Gate",
@@ -959,7 +967,7 @@ export const GAME2_LEVELS = [
         8,
         9
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 9
@@ -986,7 +994,7 @@ export const GAME2_LEVELS = [
         9,
         10
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 11
@@ -1015,50 +1023,50 @@ export const GAME2_LEVELS = [
   {
     "name": "Over the Stone",
     "start": [
-      "WR",
-      "RW",
-      "PP"
+      "PPW",
+      "WRP",
+      "RWR"
     ],
     "target": [
-      "PP",
-      "WW",
-      "RR"
+      "PPP",
+      "WWW",
+      "RRR"
     ],
     "world": 3,
-    "tag": "teach",
+    "tag": "test",
     "design": {
       "focus": "P",
       "band": [
         2,
-        3
+        4
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
-    "par": 3
+    "revision": 2,
+    "par": 4
   },
   {
     "name": "Leapfrog",
     "start": [
-      "PBPB",
-      "BBPP"
+      "BPPB",
+      "BWPP"
     ],
     "target": [
-      "PPBB",
-      "PPBB"
+      "PBPB",
+      "BPWP"
     ],
     "world": 3,
-    "tag": "teach",
+    "tag": "test",
     "design": {
       "focus": "P",
       "band": [
-        2,
-        3
+        3,
+        4
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
-    "par": 3
+    "revision": 2,
+    "par": 4
   },
   {
     "name": "Jump the Gap",
@@ -1088,14 +1096,16 @@ export const GAME2_LEVELS = [
   {
     "name": "Moat",
     "start": [
-      "WPW",
+      "PRW",
       "W.P",
-      "PPP"
+      "WPR",
+      "PRR"
     ],
     "target": [
-      "PPW",
-      "P.W",
-      "PPW"
+      "PRW",
+      "R.P",
+      "WPR",
+      "PRW"
     ],
     "world": 3,
     "tag": "twist",
@@ -1103,24 +1113,24 @@ export const GAME2_LEVELS = [
       "focus": "P",
       "band": [
         3,
-        4
+        6
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
-    "par": 3
+    "revision": 2,
+    "par": 4
   },
   {
     "name": "Hop and Step",
     "start": [
-      "RRPR",
-      "RPPP",
-      "PRRP"
+      "WRPP",
+      "RPPR",
+      "PRPR"
     ],
     "target": [
-      "PPRR",
-      "PPRR",
-      "PPRR"
+      "PRPR",
+      "RPWP",
+      "PRPR"
     ],
     "world": 3,
     "tag": "test",
@@ -1130,24 +1140,24 @@ export const GAME2_LEVELS = [
         3,
         4
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 2,
-    "par": 5
+    "revision": 3,
+    "par": 4
   },
   {
     "name": "Purple Rain",
     "start": [
-      "BP",
-      "BP",
-      "BP",
+      "PB",
+      "PB",
+      "WP",
       "BP"
     ],
     "target": [
-      "PP",
-      "PP",
-      "BB",
-      "BB"
+      "PB",
+      "BP",
+      "PW",
+      "BP"
     ],
     "world": 3,
     "tag": "test",
@@ -1157,17 +1167,17 @@ export const GAME2_LEVELS = [
         4,
         5
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
-    "par": 4
+    "revision": 2,
+    "par": 5
   },
   {
     "name": "Stepping Stones",
     "start": [
-      "PRRB",
-      "BBRR",
-      "PBPP"
+      "RRPB",
+      "BPPP",
+      "BBRR"
     ],
     "target": [
       "PRBP",
@@ -1182,21 +1192,21 @@ export const GAME2_LEVELS = [
         5,
         6
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 2,
-    "par": 5
+    "revision": 3,
+    "par": 6
   },
   {
     "name": "Long and Short",
     "start": [
-      "PRR",
-      "BPP",
-      "BBR"
+      "PPW",
+      "RBB",
+      "BRR"
     ],
     "target": [
       "PBR",
-      "RPB",
+      "RWB",
       "BRP"
     ],
     "world": 3,
@@ -1204,12 +1214,12 @@ export const GAME2_LEVELS = [
     "design": {
       "focus": "PRB",
       "band": [
-        5,
-        6
+        6,
+        9
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
+    "revision": 2,
     "par": 6
   },
   {
@@ -1230,7 +1240,7 @@ export const GAME2_LEVELS = [
         5,
         6
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 5
@@ -1261,14 +1271,14 @@ export const GAME2_LEVELS = [
   {
     "name": "Jumping Light",
     "start": [
+      "PPG",
       "GPP",
-      "GGP",
-      "PPP"
+      "WPG"
     ],
     "target": [
-      "PPP",
-      "PPP",
-      "GGG"
+      "PPG",
+      "GWP",
+      "PPG"
     ],
     "world": 3,
     "tag": "test",
@@ -1278,22 +1288,22 @@ export const GAME2_LEVELS = [
         4,
         5
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
-    "par": 5
+    "revision": 2,
+    "par": 4
   },
   {
     "name": "Leap of Gold",
     "start": [
+      "PPW",
       "PPP",
-      "PYP",
-      "YYP"
+      "YYY"
     ],
     "target": [
-      "PPY",
-      "PPY",
-      "PPY"
+      "PYP",
+      "PWP",
+      "YPY"
     ],
     "world": 3,
     "tag": "test",
@@ -1301,19 +1311,19 @@ export const GAME2_LEVELS = [
       "focus": "PY",
       "band": [
         4,
-        5
+        7
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
-    "par": 5
+    "revision": 2,
+    "par": 4
   },
   {
     "name": "Over and Across",
     "start": [
-      "GYGY",
-      "GPPP",
-      "YYPG"
+      "PYGY",
+      "YPGP",
+      "GGYP"
     ],
     "target": [
       "PYGP",
@@ -1328,24 +1338,24 @@ export const GAME2_LEVELS = [
         6,
         7
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 2,
-    "par": 7
+    "revision": 3,
+    "par": 6
   },
   {
     "name": "Skipping Stair",
     "start": [
+      "PPY",
       "GYY",
-      "PPG",
-      "YPG",
-      "YPG"
+      "PYG",
+      "GGP"
     ],
     "target": [
       "PYG",
       "PYG",
-      "YGP",
-      "YGP"
+      "PYG",
+      "PYG"
     ],
     "world": 3,
     "tag": "test",
@@ -1355,9 +1365,9 @@ export const GAME2_LEVELS = [
         6,
         7
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 2,
+    "revision": 3,
     "par": 6
   },
   {
@@ -1380,35 +1390,37 @@ export const GAME2_LEVELS = [
         6,
         7
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 1,
     "par": 7
   },
   {
-    "name": "Rest Stop",
+    "name": "Hard Landing",
     "start": [
-      "BPB",
+      "WBP",
+      "BBP",
       "PPP",
-      "PPB"
+      "PBB"
     ],
     "target": [
-      "PPP",
-      "PPP",
-      "BBB"
+      "PBP",
+      "BPB",
+      "PWP",
+      "BPB"
     ],
     "world": 3,
-    "tag": "breather",
+    "tag": "test",
     "design": {
       "focus": "PB",
       "band": [
-        3,
-        4
+        4,
+        5
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
-    "par": 3
+    "revision": 2,
+    "par": 5
   },
   {
     "name": "Grasshopper",
@@ -1432,7 +1444,7 @@ export const GAME2_LEVELS = [
         8,
         9
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 8
@@ -1459,7 +1471,7 @@ export const GAME2_LEVELS = [
         8,
         9
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 9
@@ -1486,7 +1498,7 @@ export const GAME2_LEVELS = [
         9,
         11
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 12
@@ -1494,9 +1506,9 @@ export const GAME2_LEVELS = [
   {
     "name": "Tile Floor",
     "start": [
-      "BRB",
-      "YRG",
-      "GRR"
+      "BRR",
+      "RRB",
+      "YGG"
     ],
     "target": [
       "RRB",
@@ -1511,9 +1523,9 @@ export const GAME2_LEVELS = [
         4,
         5
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 2,
+    "revision": 3,
     "par": 6
   },
   {
@@ -1536,7 +1548,7 @@ export const GAME2_LEVELS = [
         5,
         6
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 1,
     "par": 6
@@ -1544,16 +1556,16 @@ export const GAME2_LEVELS = [
   {
     "name": "Stained Glass",
     "start": [
-      "RRRG",
-      "RRRR",
-      "RGGR",
-      "RRRG"
+      ".RR.",
+      "GGRG",
+      "GWWW",
+      ".RW."
     ],
     "target": [
-      "RRRR",
-      "RGGR",
-      "RGGR",
-      "RRRR"
+      ".RR.",
+      "GGGG",
+      "WWWW",
+      ".RR."
     ],
     "world": 4,
     "tag": "test",
@@ -1563,10 +1575,10 @@ export const GAME2_LEVELS = [
         6,
         7
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
-    "par": 7
+    "revision": 2,
+    "par": 6
   },
   {
     "name": "Patchwork",
@@ -1590,7 +1602,7 @@ export const GAME2_LEVELS = [
         7,
         8
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 8
@@ -1617,7 +1629,7 @@ export const GAME2_LEVELS = [
         7,
         8
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 7
@@ -1644,35 +1656,35 @@ export const GAME2_LEVELS = [
         6,
         7
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 8
   },
   {
-    "name": "Calm Courtyard",
+    "name": "Courtyard Knot",
     "start": [
       "BBB",
-      "BBB",
-      "BBR"
+      "RWB",
+      "RRR"
     ],
     "target": [
-      "BBB",
       "BRB",
-      "BBB"
+      "RWR",
+      "BRB"
     ],
     "world": 4,
-    "tag": "breather",
+    "tag": "test",
     "design": {
       "focus": "RB",
       "band": [
-        3,
-        4
+        4,
+        5
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
-    "par": 2
+    "revision": 2,
+    "par": 4
   },
   {
     "name": "Herald",
@@ -1696,7 +1708,7 @@ export const GAME2_LEVELS = [
         8,
         9
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 1,
     "par": 9
@@ -1704,10 +1716,10 @@ export const GAME2_LEVELS = [
   {
     "name": "Terraces",
     "start": [
-      "RGBY",
-      "GBRB",
-      "RYGR",
-      "BYGY"
+      "RGGB",
+      "RBGY",
+      "BYRG",
+      "BYYR"
     ],
     "target": [
       "RBGY",
@@ -1723,10 +1735,10 @@ export const GAME2_LEVELS = [
         8,
         9
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 2,
-    "par": 9
+    "revision": 3,
+    "par": 8
   },
   {
     "name": "Labyrinth Tile",
@@ -1750,7 +1762,7 @@ export const GAME2_LEVELS = [
         8,
         9
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 9
@@ -1758,10 +1770,10 @@ export const GAME2_LEVELS = [
   {
     "name": "Rosette",
     "start": [
-      "GPGP",
-      "YYGY",
-      "GYPY",
-      "YGYP"
+      "YYPY",
+      "YGYG",
+      "PPYP",
+      "YGGG"
     ],
     "target": [
       "YYGG",
@@ -1777,9 +1789,9 @@ export const GAME2_LEVELS = [
         8,
         9
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 2,
+    "revision": 3,
     "par": 9
   },
   {
@@ -1829,7 +1841,7 @@ export const GAME2_LEVELS = [
         9,
         10
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 9
@@ -1856,7 +1868,7 @@ export const GAME2_LEVELS = [
         9,
         10
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 10
@@ -1864,10 +1876,10 @@ export const GAME2_LEVELS = [
   {
     "name": "Cloister",
     "start": [
-      "RBBP",
-      "R.PR",
-      "BWPW",
-      "RW.P"
+      "RRBB",
+      "P.RP",
+      "WWRW",
+      "PP.B"
     ],
     "target": [
       "RRBB",
@@ -1883,10 +1895,10 @@ export const GAME2_LEVELS = [
         9,
         10
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 2,
-    "par": 9
+    "revision": 3,
+    "par": 8
   },
   {
     "name": "Parquet",
@@ -1910,17 +1922,17 @@ export const GAME2_LEVELS = [
         9,
         10
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 1,
     "par": 9
   },
   {
-    "name": "Gentle Mosaic",
+    "name": "Tangled Mosaic",
     "start": [
-      "YYG",
+      "YGB",
       "BBG",
-      "YGB"
+      "GYY"
     ],
     "target": [
       "YGB",
@@ -1928,16 +1940,16 @@ export const GAME2_LEVELS = [
       "BYG"
     ],
     "world": 4,
-    "tag": "breather",
+    "tag": "test",
     "design": {
       "focus": "YGB",
       "band": [
-        4,
-        5
+        5,
+        6
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
+    "revision": 2,
     "par": 5
   },
   {
@@ -1962,7 +1974,7 @@ export const GAME2_LEVELS = [
         10,
         11
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 11
@@ -1989,7 +2001,7 @@ export const GAME2_LEVELS = [
         10,
         11
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 10
@@ -1997,10 +2009,10 @@ export const GAME2_LEVELS = [
   {
     "name": "Grand Mosaic",
     "start": [
-      "GYBR",
-      "RPWG",
-      "GPWR",
-      "YBBY"
+      "YBPR",
+      "GBYW",
+      "GPRW",
+      "GRYB"
     ],
     "target": [
       "RGPR",
@@ -2016,10 +2028,10 @@ export const GAME2_LEVELS = [
         10,
         12
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 2,
-    "par": 11
+    "revision": 3,
+    "par": 10
   },
   {
     "name": "Prelude",
@@ -2043,7 +2055,7 @@ export const GAME2_LEVELS = [
         8,
         9
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 9
@@ -2051,15 +2063,15 @@ export const GAME2_LEVELS = [
   {
     "name": "Overture",
     "start": [
-      "YPYP",
-      "PGPP",
-      "GYPG",
-      "YGPG"
+      "PPGY",
+      "PYGY",
+      "PY.P",
+      "PGGP"
     ],
     "target": [
       "PPGG",
-      "PGYG",
-      "YPGP",
+      "PPGG",
+      "YY.P",
       "YYPP"
     ],
     "world": 5,
@@ -2067,13 +2079,13 @@ export const GAME2_LEVELS = [
     "design": {
       "focus": "PGY",
       "band": [
-        9,
-        10
+        10,
+        13
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 2,
-    "par": 9
+    "revision": 3,
+    "par": 10
   },
   {
     "name": "Counterpoint",
@@ -2097,7 +2109,7 @@ export const GAME2_LEVELS = [
         10,
         11
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 10
@@ -2124,7 +2136,7 @@ export const GAME2_LEVELS = [
         10,
         11
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 11
@@ -2153,35 +2165,35 @@ export const GAME2_LEVELS = [
         10,
         11
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 10
   },
   {
-    "name": "Interlude",
+    "name": "Intermezzo",
     "start": [
-      "RBRB",
-      "RBBB",
-      "RBRR"
+      "RBRR",
+      "BB.B",
+      "BBRR"
     ],
     "target": [
-      "RRBB",
-      "RRBB",
-      "RRBB"
+      "RBRB",
+      "RB.B",
+      "RBRB"
     ],
     "world": 5,
-    "tag": "breather",
+    "tag": "test",
     "design": {
       "focus": "RB",
       "band": [
-        5,
-        6
+        6,
+        7
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
-    "par": 5
+    "revision": 2,
+    "par": 7
   },
   {
     "name": "Canon",
@@ -2205,7 +2217,7 @@ export const GAME2_LEVELS = [
         10,
         11
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 11
@@ -2232,7 +2244,7 @@ export const GAME2_LEVELS = [
         11,
         12
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 11
@@ -2261,7 +2273,7 @@ export const GAME2_LEVELS = [
         11,
         12
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 11
@@ -2288,7 +2300,7 @@ export const GAME2_LEVELS = [
         11,
         12
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 11
@@ -2340,7 +2352,7 @@ export const GAME2_LEVELS = [
         12,
         13
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 11
@@ -2367,7 +2379,7 @@ export const GAME2_LEVELS = [
         12,
         13
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 12
@@ -2396,7 +2408,7 @@ export const GAME2_LEVELS = [
         12,
         13
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 12
@@ -2423,17 +2435,17 @@ export const GAME2_LEVELS = [
         12,
         13
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 12
   },
   {
-    "name": "Coda Rest",
+    "name": "Coda",
     "start": [
-      "RRBR",
-      "RBRB",
-      "BBBR"
+      "BBRR",
+      "RBRR",
+      "BBRB"
     ],
     "target": [
       "RBRB",
@@ -2441,16 +2453,16 @@ export const GAME2_LEVELS = [
       "RBRB"
     ],
     "world": 5,
-    "tag": "breather",
+    "tag": "test",
     "design": {
       "focus": "RB",
       "band": [
-        5,
-        6
+        6,
+        7
       ],
-      "scoring": 2
+      "scoring": 3
     },
-    "revision": 1,
+    "revision": 2,
     "par": 5
   },
   {
@@ -2477,7 +2489,7 @@ export const GAME2_LEVELS = [
         13,
         14
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 13
@@ -2504,7 +2516,7 @@ export const GAME2_LEVELS = [
         13,
         15
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 12
@@ -2533,7 +2545,7 @@ export const GAME2_LEVELS = [
         14,
         16
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 12
@@ -2562,7 +2574,7 @@ export const GAME2_LEVELS = [
         14,
         16
       ],
-      "scoring": 2
+      "scoring": 3
     },
     "revision": 2,
     "par": 12
