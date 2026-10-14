@@ -395,6 +395,9 @@ Smooth pebbles: generously rounded, quiet translucent fill, hairline edge.
 ### Inputs / Controls
 On/off settings are **switch rows**: a 56dp Glass pebble with the label on the left and a recoloured Material `Switch` on the right (Mint track and Pool Ink thumb when on; a Lichen outline when off). The whole row toggles, and it reads as a switch to TalkBack. A button that says "ON" is not used for state. Volume is a recoloured `Slider` with a round 24dp Mint thumb, a Mint active track, a muted inactive track and no end-stop dot.
 
+### Settings (Options)
+Three tabs (Play, Sound, Appearance), each a single scrolling column of 12dp-spaced rows under small muted **section titles** ("Feel", "Progress", "About", "With other audio", "Equipped"). Rows are only ever one of: a **switch row** (on/off), a **segmented choice** (the same pebble `Tabs` used for the page tabs, for 2–3 mutually exclusive options such as Reduce motion and Theme), a **volume slider**, an **info row** (label left, muted value right; with an action it ends in an arrow), or a plain pebble button. Each setting carries at most one 12sp Support line, and only where the consequence is not obvious. Destructive actions (Reset level progress) use a confirmation card in the pause-sheet style and say what is kept. Rows for values that do not exist yet (Privacy policy, Contact) are not shown.
+
 ### Overlay Sheet (pause)
 A Scrim covers the screen, and tapping it dismisses the overlay (the scrim is hidden from TalkBack; Back closes it). On top sits a Deep Pool sheet (28dp radius, 24dp padding, max 420dp wide, Hairline border) that announces its title, holding a centred stack: serif title, a Support line ("World 10 · Level 181 · Cloister"), then pebble buttons with 8dp gaps.
 

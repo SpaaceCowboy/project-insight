@@ -9,6 +9,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -27,15 +28,18 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         reduceMotion = readReduceMotion()
         // Match the saved light/dark choice before the first frame, so a light-mode player doesn't see dark bars or window.
-        val bars = if (model.dark) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+        val systemDark = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val dark = model.resolveDark(systemDark)
+        val bars = if (dark) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
         enableEdgeToEdge(bars, bars)
-        window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(if (model.dark) 0xFF0C252E.toInt() else 0xFFD9E9DC.toInt()))
+        window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(if (dark) 0xFF0C252E.toInt() else 0xFFD9E9DC.toInt()))
         setContent {
-            LaunchedEffect(model.dark) {
-                val bars = if (model.dark) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+            val dark = model.resolveDark(isSystemInDarkTheme())
+            LaunchedEffect(dark) {
+                val bars = if (dark) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
                 enableEdgeToEdge(bars, bars)
             }
-            CompositionLocalProvider(LocalPalette provides if (model.dark) DarkPalette else LightPalette, LocalReduceMotion provides reduceMotion) { App(model) }
+            CompositionLocalProvider(LocalPalette provides if (dark) DarkPalette else LightPalette, LocalReduceMotion provides (reduceMotion || model.motion == "on")) { App(model) }
         }
     }
 
@@ -47,7 +51,7 @@ class MainActivity : ComponentActivity() {
 fun App(m: GameModel) {
     // At the bottom of the stack on Home, Back falls through to the system and closes the app.
     BackHandler(enabled = !(m.stack.size == 1 && m.top == Route.Home)) { m.back() }
-    Backdrop(m.background, m.light) {
+    Backdrop(m.background, m.light, m.animatedBackground) {
         when (val top = m.top) {
             Route.Home -> HomeScreen(m)
             Route.Worlds -> WorldsScreen(m)

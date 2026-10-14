@@ -101,7 +101,7 @@ fun GameScreen(m: GameModel) {
     Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).semantics { isTraversalGroup = true }) {
         // On tablets and landscape windows the play area stays board-sized and centred instead of stretching edge to edge.
         Column(Modifier.align(Alignment.TopCenter).widthIn(max = 720.dp).fillMaxSize().padding(start = 12.dp, end = 12.dp, top = 60.dp, bottom = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Eyebrow("World ${spec.world} · Level %03d".format(m.level + 1))
+            Eyebrow("World ${spec.world} · Level %03d".format(m.level + 1) + if (m.moveCounter) " · Moves ${m.moves}" else "")
             Label(spec.name, 24.sp, Modifier.padding(top = 4.dp).semantics { heading() }, serif = true, align = TextAlign.Center)
             Spacer(Modifier.height(10.dp))
             Eyebrow("Target")
@@ -195,6 +195,7 @@ private fun Board(m: GameModel, modifier: Modifier) {
     val bloom = remember(m.level) { Animatable(0f) }
     val inks = remember { mutableStateListOf<Ink>() }
     val haptic = LocalHapticFeedback.current
+    fun buzz(type: HapticFeedbackType) { if (m.haptics) haptic.performHapticFeedback(type) }
     var focused by remember { mutableStateOf<Pos?>(null) }
     var status by remember { mutableStateOf("") }
     var statusCount by remember { mutableIntStateOf(0) }
@@ -217,7 +218,7 @@ private fun Board(m: GameModel, modifier: Modifier) {
         val isSolved by rememberUpdatedState(solved)
 
         fun rejectAt(at: Pos) {
-            rejected = at; m.audio.play("deny"); haptic.performHapticFeedback(HapticFeedbackType.Reject)
+            rejected = at; m.audio.play("deny"); buzz(HapticFeedbackType.Reject)
             say("${Art.NAME[current[at.r][at.c]]} cannot move there")
             scope.launch { reject.snapTo(0f); reject.animateTo(1f, tween(240)); rejected = null }
         }
@@ -228,7 +229,7 @@ private fun Board(m: GameModel, modifier: Modifier) {
                 slide.snapTo(0f); slide.animateTo(1f, tween(185))
                 val before = current
                 m.move(a, b); moving = null
-                haptic.performHapticFeedback(if (m.solved) HapticFeedbackType.Confirm else HapticFeedbackType.GestureEnd)
+                buzz(if (m.solved) HapticFeedbackType.Confirm else HapticFeedbackType.GestureEnd)
                 say(if (m.solved) "Grid solved" else "${Art.NAME[type]} swapped with ${Art.NAME[before[b.r][b.c]]}")
                 val ink = Ink(grid.center(a), grid.center(b), Art.LIGHT.getValue(type), Animatable(0f))
                 inks += ink; if (inks.size > 3) inks.removeAt(0)
@@ -243,13 +244,13 @@ private fun Board(m: GameModel, modifier: Modifier) {
             val sel = selected
             if (sel != null && Rules.isLegal(current, sel, at)) { move(sel, at, Offset.Zero); return }
             if (sel != null && sel != at && Rules.legalMoves(current, sel).isNotEmpty()) {
-                if (Rules.legalMoves(current, at).isNotEmpty()) { selected = at; haptic.performHapticFeedback(HapticFeedbackType.SegmentTick); m.audio.play("select", current[at.r][at.c]); return }
+                if (Rules.legalMoves(current, at).isNotEmpty()) { selected = at; buzz(HapticFeedbackType.SegmentTick); m.audio.play("select", current[at.r][at.c]); return }
                 rejectAt(sel); return
             }
             // A stone with no move (White, or boxed in) must not lift as if it could go somewhere.
             if (sel == null && Rules.legalMoves(current, at).isEmpty()) { rejectAt(at); return }
             selected = if (sel == at) null else at
-            if (selected != null) haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+            if (selected != null) buzz(HapticFeedbackType.SegmentTick)
             m.audio.play("select", current[at.r][at.c])
         }
 
@@ -268,7 +269,7 @@ private fun Board(m: GameModel, modifier: Modifier) {
                     val event = awaitPointerEvent()
                     val change = event.changes.firstOrNull { it.id == down.id } ?: break
                     val delta = change.position - down.position
-                    if (!moved && hypot(delta.x, delta.y) >= slop) { moved = true; selected = null; dragFrom = at; m.audio.play("select", current[at.r][at.c]); haptic.performHapticFeedback(HapticFeedbackType.SegmentTick) }
+                    if (!moved && hypot(delta.x, delta.y) >= slop) { moved = true; selected = null; dragFrom = at; m.audio.play("select", current[at.r][at.c]); buzz(HapticFeedbackType.SegmentTick) }
                     if (moved) {
                         dragOffset = delta; lastPos = change.position
                         hover = grid.hit(change.position)?.takeIf { it != at }

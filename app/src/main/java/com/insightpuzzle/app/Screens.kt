@@ -1,5 +1,9 @@
 package com.insightpuzzle.app
 
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.BackHandler
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -231,32 +235,89 @@ fun LevelsScreen(m: GameModel, world: Int) {
     }
 }
 
+/** Real values go here before release. A row is shown only when its value is set, so nothing broken ships. */
+object AppLinks {
+    const val PRIVACY_URL = ""
+    const val CONTACT_EMAIL = ""
+}
+
 @Composable
 fun OptionsScreen(m: GameModel) {
-    // "Play" only exists in debug builds (Developer mode); a release build has nothing to put on it, so it has no tab.
-    val tabs = buildList { if (BuildConfig.DEBUG) add("play" to "Play"); add("sound" to "Sound"); add("appearance" to "Appearance") }
-    var tab by remember { mutableStateOf(tabs.first().first) }
+    val tabs = buildList { add("play" to "Play"); add("sound" to "Sound"); add("appearance" to "Appearance") }
+    var tab by remember { mutableStateOf("play") }
+    var confirmReset by remember { mutableStateOf(false) }
+    var showLicences by remember { mutableStateOf(false) }
     val p = LocalPalette.current
-    Page("Options", "Make yourself at home.", { m.back() }, 520.dp) {
-        Tabs(tabs, tab) { tab = it }
-        Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            when (tab) {
-                "play" -> {
-                    ToggleRow("Developer mode", m.dev) { m.toggleDev() }
-                    Label("Developer Mode opens every campaign level. Achievements pause while it is on. (Debug builds only.)", 12.sp, color = p.muted)
-                }
-                "sound" -> {
-                    ToggleRow("Sound", m.sound) { m.toggleSound() }
-                    VolumeSlider("Ambience", m.ambience) { m.changeAmbience(it) }
-                    VolumeSlider("Effects", m.effects) { m.changeEffects(it) }
-                    ToggleRow("Spoken celebration", m.voice) { m.toggleVoice() }
-                }
-                else -> {
-                    ToggleRow("Dark mode", m.dark) { m.toggleDark() }
-                    MenuButton("Themes & tile finishes →") { m.push(Route.Achievements("appearance")) }
-                    Label("Equip your cosmetic rewards from the Appearance collection.", 12.sp, color = p.muted)
+    val context = LocalContext.current
+    BackHandler(enabled = confirmReset || showLicences) { confirmReset = false; showLicences = false }
+    Box(Modifier.fillMaxSize()) {
+        Page("Options", "Make yourself at home.", { m.back() }, 520.dp) {
+            Tabs(tabs, tab) { tab = it }
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                when (tab) {
+                    "play" -> {
+                        SectionTitle("Feel")
+                        ToggleRow("Haptics", m.haptics) { m.toggleHaptics() }
+                        Label("Reduce motion", 14.sp, Modifier.padding(top = 4.dp), weight = FontWeight.SemiBold)
+                        Tabs(listOf("system" to "Follow system", "on" to "Always on"), m.motion) { m.changeMotion(it) }
+                        ToggleRow("Move counter", m.moveCounter) { m.toggleMoveCounter() }
+                        Label("Shows how many swaps you have made. There is no par and no limit.", 12.sp, color = p.muted)
+
+                        SectionTitle("Progress")
+                        MenuButton("Reset level progress") { confirmReset = true }
+                        Label("Starts again at level 1. Your badges and cosmetics are yours to keep.", 12.sp, color = p.muted)
+
+                        SectionTitle("About")
+                        val info = remember { context.packageManager.getPackageInfo(context.packageName, 0) }
+                        InfoRow("Version", "${info.versionName} (${info.longVersionCode})")
+                        InfoRow("Open-source licences", "Fonts", onClick = { showLicences = true })
+                        if (AppLinks.PRIVACY_URL.isNotEmpty()) InfoRow("Privacy policy", "Open", onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(AppLinks.PRIVACY_URL))) })
+                        if (AppLinks.CONTACT_EMAIL.isNotEmpty()) InfoRow("Contact", AppLinks.CONTACT_EMAIL, onClick = { context.startActivity(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:${AppLinks.CONTACT_EMAIL}"))) })
+
+                        if (BuildConfig.DEBUG) {
+                            SectionTitle("Developer")
+                            ToggleRow("Developer mode", m.dev) { m.toggleDev() }
+                            Label("Developer Mode opens every campaign level. Achievements pause while it is on. (Debug builds only.)", 12.sp, color = p.muted)
+                        }
+                    }
+                    "sound" -> {
+                        ToggleRow("Sound", m.sound) { m.toggleSound() }
+                        VolumeSlider("Ambience", m.ambience) { m.changeAmbience(it) }
+                        VolumeSlider("Effects", m.effects) { m.changeEffects(it) }
+                        ToggleRow("Spoken celebration", m.voice) { m.toggleVoice() }
+                        SectionTitle("With other audio")
+                        ToggleRow("Pause ambience over other audio", m.pauseOverOthers) { m.togglePauseOverOthers() }
+                        ToggleRow("Silence when headphones unplug", m.silenceOnUnplug) { m.toggleSilenceOnUnplug() }
+                        Label("Ambience will not start while another app is playing music. After unplugging, it stays off until you reopen the app or toggle Sound.", 12.sp, color = p.muted)
+                    }
+                    else -> {
+                        Label("Theme", 14.sp, weight = FontWeight.SemiBold)
+                        Tabs(listOf("light" to "Light", "dark" to "Dark", "system" to "System"), m.theme) { m.changeTheme(it) }
+                        ToggleRow("Animated background", m.animatedBackground) { m.toggleAnimatedBackground() }
+                        Label("Turn off to freeze the drifting light and save battery.", 12.sp, color = p.muted)
+                        SectionTitle("Equipped")
+                        InfoRow("Background", COSMETICS.find { it.id == m.background }?.name ?: "Forest", onClick = { m.push(Route.Achievements("appearance")) })
+                        InfoRow("Tile finish", COSMETICS.find { it.id == m.finish }?.name ?: "Original", onClick = { m.push(Route.Achievements("appearance")) })
+                        Label("Equip your cosmetic rewards from the Appearance collection.", 12.sp, color = p.muted)
+                    }
                 }
             }
+        }
+        if (confirmReset) Overlay("Reset level progress", { confirmReset = false }) {
+            Label("Reset level progress?", 22.sp, Modifier.semantics { heading() }, serif = true, align = TextAlign.Center)
+            Label("This clears your solved levels and unfinished attempts. Your badges and cosmetics stay.", 13.sp, Modifier.padding(top = 8.dp, bottom = 16.dp), color = p.muted, align = TextAlign.Center)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                MenuButton("Cancel", Modifier.weight(1f)) { confirmReset = false }
+                MenuButton("Reset", Modifier.weight(1f), primary = true) { m.resetProgress(); confirmReset = false }
+            }
+        }
+        if (showLicences) Overlay("Open-source licences", { showLicences = false }) {
+            Label("Open-source licences", 22.sp, Modifier.semantics { heading() }, serif = true, align = TextAlign.Center)
+            val texts = remember { listOf("Source Sans 3" to "licenses/source-sans-3-OFL.txt", "Source Serif 4" to "licenses/source-serif-4-OFL.txt").map { (name, path) -> name to context.assets.open(path).bufferedReader().use { it.readText() } } }
+            Column(Modifier.padding(vertical = 12.dp).heightIn(max = 380.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                for ((name, text) in texts) { Label(name, 14.sp, weight = FontWeight.SemiBold); Label(text.trim(), 11.sp, color = p.muted) }
+            }
+            MenuButton("Close", primary = true) { showLicences = false }
         }
     }
 }

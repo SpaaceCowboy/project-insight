@@ -23,11 +23,28 @@ class Store(context: Context) {
     var sound by bool("sound", true)
     var voice by bool("voice", true)
     var dark by bool("dark", true)
+    var haptics by bool("haptics", true)
+    var moveCounter by bool("moveCounter", false)
+    var animatedBackground by bool("animatedBackground", true)
+    var pauseOverOthers by bool("pauseOverOthers", true)
+    var silenceOnUnplug by bool("silenceOnUnplug", true)
+    /** "system" follows the phone, "on" always removes decorative motion. */
+    var motion by string("motion", "system")
+    /** "light", "dark" or "system". Older installs only stored the dark/light boolean, so that is the fallback. */
+    var theme: String
+        get() = prefs.getString("theme", null) ?: if (prefs.getBoolean("dark", true)) "dark" else "light"
+        set(value) = prefs.edit().putString("theme", value).apply()
     var dev by bool("dev", false)
     var effects by float("effects", .8f)
     var ambience by float("ambience", .8f)
     var background by string("background", "forest")
     var finish by string("finish", "original")
+
+    /** Clears solved levels and unfinished attempts. Badges, cosmetics and settings are kept: rewards are permanent. */
+    fun resetProgress() = prefs.edit().apply {
+        remove("done"); remove("lastLevel")
+        prefs.all.keys.filter { it.startsWith("attempt_") }.forEach { remove(it) }
+    }.apply()
 
     /** Achievement id -> time earned (ms). */
     var earned: Map<String, Long>

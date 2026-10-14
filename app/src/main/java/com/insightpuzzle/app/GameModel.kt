@@ -36,7 +36,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     val store = Store(app)
     val levels: List<Level> = Levels.parse(app.assets.open("levels.json").bufferedReader().use { it.readText() })
     val achievements = Achievements(levels)
-    val audio = Audio(app).apply { enabled = store.sound; effects = store.effects; ambience = store.ambience; voice = store.voice }
+    val audio = Audio(app).apply { enabled = store.sound; effects = store.effects; ambience = store.ambience; voice = store.voice; pauseOverOthers = store.pauseOverOthers; silenceOnUnplug = store.silenceOnUnplug }
     val creator = CreatorState()
 
     /** Screens, bottom to top. The bottom is Home or Game; Pause and Win sit on top of Game. */
@@ -58,7 +58,13 @@ class GameModel(app: Application) : AndroidViewModel(app) {
 
     // Settings
     var sound by mutableStateOf(store.sound); private set
-    var dark by mutableStateOf(store.dark); private set
+    var theme by mutableStateOf(store.theme); private set
+    var haptics by mutableStateOf(store.haptics); private set
+    var motion by mutableStateOf(store.motion); private set
+    var moveCounter by mutableStateOf(store.moveCounter); private set
+    var animatedBackground by mutableStateOf(store.animatedBackground); private set
+    var pauseOverOthers by mutableStateOf(store.pauseOverOthers); private set
+    var silenceOnUnplug by mutableStateOf(store.silenceOnUnplug); private set
     var dev by mutableStateOf(store.dev && BuildConfig.DEBUG); private set
     var effects by mutableStateOf(store.effects); private set
     var ambience by mutableStateOf(store.ambience); private set
@@ -189,7 +195,22 @@ class GameModel(app: Application) : AndroidViewModel(app) {
 
     // Settings
     fun toggleSound() { sound = !sound; store.sound = sound; audio.enabled = sound }
-    fun toggleDark() { dark = !dark; store.dark = dark }
+    fun resolveDark(systemDark: Boolean) = when (theme) { "system" -> systemDark; "light" -> false; else -> true }
+    fun changeTheme(value: String) { theme = value; store.theme = value }
+    fun toggleHaptics() { haptics = !haptics; store.haptics = haptics }
+    fun changeMotion(value: String) { motion = value; store.motion = value }
+    fun toggleMoveCounter() { moveCounter = !moveCounter; store.moveCounter = moveCounter }
+    fun toggleAnimatedBackground() { animatedBackground = !animatedBackground; store.animatedBackground = animatedBackground }
+    fun togglePauseOverOthers() { pauseOverOthers = !pauseOverOthers; store.pauseOverOthers = pauseOverOthers; audio.pauseOverOthers = pauseOverOthers }
+    fun toggleSilenceOnUnplug() { silenceOnUnplug = !silenceOnUnplug; store.silenceOnUnplug = silenceOnUnplug; audio.silenceOnUnplug = silenceOnUnplug }
+
+    /** Back to level 1 with nothing solved. Badges and cosmetics stay. */
+    fun resetProgress() {
+        store.resetProgress()
+        clearRestartUndo()
+        done = emptySet(); winBadges = emptyList()
+        load(0)
+    }
     fun toggleDev() { dev = !dev; store.dev = dev }
     fun changeEffects(value: Float) { effects = value; store.effects = value; audio.effects = value }
     fun changeAmbience(value: Float) { ambience = value; store.ambience = value; audio.ambience = value }

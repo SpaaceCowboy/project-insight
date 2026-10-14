@@ -89,11 +89,11 @@ private val Serif = FontFamily(Font(R.font.source_serif_4_regular, FontWeight.No
 
 /** App background: base gradient, two glows, and two slow ambient lights tinted by the last moved tile (src/styles.css). */
 @Composable
-fun Backdrop(background: String, light: Color, content: @Composable BoxScope.() -> Unit) {
+fun Backdrop(background: String, light: Color, animated: Boolean = true, content: @Composable BoxScope.() -> Unit) {
     val p = LocalPalette.current
     val b = backdrop(background, p.dark)
     val tint by animateColorAsState(light, tween(1600), label = "light")
-    val reduce = LocalReduceMotion.current
+    val reduce = LocalReduceMotion.current || !animated
     val drift = rememberInfiniteTransition(label = "drift")
     val t1 by drift.animateFloat(0f, 1f, infiniteRepeatable(tween(42_000, easing = LinearEasing), RepeatMode.Reverse), label = "t1")
     val t2 by drift.animateFloat(1f, 0f, infiniteRepeatable(tween(57_000, easing = LinearEasing), RepeatMode.Reverse), label = "t2")
@@ -136,6 +136,27 @@ fun MenuButton(text: String, modifier: Modifier = Modifier, height: Dp = 48.dp, 
             val sub = subtitle ?: if (soon) "Coming soon" else null
             if (sub != null) Label(sub, 12.sp, Modifier.padding(top = 2.dp), color = if (primary) p.accentInk else p.muted, align = TextAlign.Center)
         }
+    }
+}
+
+/** Small heading that groups rows on a settings page. */
+@Composable
+fun SectionTitle(text: String, modifier: Modifier = Modifier) =
+    Label(text, 13.sp, modifier.padding(top = 8.dp).semantics { heading() }, color = LocalPalette.current.muted, weight = FontWeight.SemiBold, spacing = .06.em)
+
+/** A read-only row (label left, value right); with [onClick] it becomes a button that ends in an arrow. */
+@Composable
+fun InfoRow(label: String, value: String, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
+    val p = LocalPalette.current
+    val shape = RoundedCornerShape(14.dp)
+    Row(
+        modifier.fillMaxWidth().heightIn(min = 56.dp).clip(shape).background(p.paper).border(1.dp, p.line, shape)
+            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Label(label, 14.sp, Modifier.weight(1f), weight = FontWeight.SemiBold, spacing = .03.em)
+        Label(if (onClick != null) "$value →" else value, 14.sp, color = p.muted, align = TextAlign.End)
     }
 }
 

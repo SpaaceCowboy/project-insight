@@ -1,7 +1,12 @@
 package com.insightpuzzle.app
 
 import android.content.Context
+import android.content.BroadcastReceiver
+import android.content.Intent
+import android.content.IntentFilter
 import android.media.AudioAttributes
+import android.media.AudioManager
+import androidx.core.content.ContextCompat
 import android.media.MediaPlayer
 import android.media.SoundPool
 import android.os.Handler
@@ -20,7 +25,16 @@ class Audio(private val context: Context) {
     private var started = false
     private var foreground = true
 
-    var enabled = true; set(value) { field = value; if (!value) ambient?.pause() else if (started && foreground) ambient?.start() }
+    var pauseOverOthers = true
+    var silenceOnUnplug = true
+    // Headphones pulled out: stay quiet (like a music app) until the player toggles Sound or returns to the app.
+    private var silenced = false
+    private val noisy = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) { if (silenceOnUnplug) { silenced = true; ambient?.pause() } }
+    }
+    private val audioManager = context.getSystemService(AudioManager::class.java)
+
+    var enabled = true; set(value) { field = value; if (!value) ambient?.pause() else { silenced = false; if (started && foreground) startIfAllowed() } }
     var effects = .8f
     var ambience = .8f; set(value) { field = value; ambient?.setVolume(.7f * value, .7f * value) }
     var voice = true
@@ -38,8 +52,18 @@ class Audio(private val context: Context) {
             val player = MediaPlayer.create(context, R.raw.sfx_ambient)?.apply { isLooping = true; setVolume(.7f * ambience, .7f * ambience) }
             if (released) { player?.release(); return@thread }
             ambient = player
-            Handler(Looper.getMainLooper()).post { if (started && enabled && foreground) player?.start() }
+            Handler(Looper.getMainLooper()).post { if (started && enabled && foreground) startIfAllowed() }
         }
+        ContextCompat.registerReceiver(context, noisy, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY), ContextCompat.RECEIVER_NOT_EXPORTED)
+    }
+
+    /** Ambience starts only when nothing else is playing music (if the setting is on) and the headphones weren't just unplugged. */
+    private fun startIfAllowed() {
+        val player = ambient ?: return
+        if (silenced || player.isPlaying) return
+        // Our own player is stopped here, so an active music stream belongs to another app.
+        if (pauseOverOthers && audioManager.isMusicActive) return
+        player.start()
     }
 
     /** kind: select, move, deny, win. Tile notes use the tile's own pitch, like the web game. */
@@ -59,13 +83,13 @@ class Audio(private val context: Context) {
     // Like the web game, ambience starts with the first sound so it never plays before the player interacts.
     private fun startAmbience() {
         started = true
-        if (foreground && ambient?.isPlaying == false) ambient?.start()
+        if (foreground) startIfAllowed()
     }
 
     fun onForeground(visible: Boolean) {
         foreground = visible
-        if (!visible) { ambient?.pause(); pool.autoPause() } else { pool.autoResume(); if (started && enabled) ambient?.start() }
+        if (!visible) { ambient?.pause(); pool.autoPause() } else { silenced = false; pool.autoResume(); if (started && enabled) startIfAllowed() }
     }
 
-    fun release() { released = true; pool.release(); ambient?.release(); ambient = null }
+    fun release() { released = true; runCatching { context.unregisterReceiver(noisy) }; pool.release(); ambient?.release(); ambient = null }
 }
