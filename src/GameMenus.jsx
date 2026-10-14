@@ -14,7 +14,7 @@ export default function GameMenus({game}) {
           <div className="menu-hero" id="menuHero" aria-hidden="true"><Hero /></div></div>
         <div className="home-main">
           <button className="menu-main-btn home-btn" id="singlePlayerBtn" onClick={game.showWorlds}>Single player</button>
-          <button className="menu-main-btn home-btn" id="onlineBtn" aria-disabled="true">Online</button>
+          <button className="menu-main-btn home-btn" id="onlineBtn" onClick={()=>game.openDialog('onlineOverlay',true)}>Online</button>
           <button className="menu-main-btn home-btn" id="homeSettingsBtn" onClick={()=>game.openDialog('settingsOverlay',true)}>Options</button>
         </div>
         <div className="home-cubes">
@@ -23,6 +23,17 @@ export default function GameMenus({game}) {
           <button className="menu-main-btn home-cube" id="whatsNextBtn" aria-disabled="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 13.9 9l5.6 1.9-5.6 1.9L12 18.3l-1.9-5.5-5.6-1.9L10.1 9 12 3.5ZM19 16.5v3M17.5 18h3"/></svg>What's Next</button>
         </div>
       </div>
+    </Dialog>
+    <Dialog dialogs={dialogs} className="screen" id="onlineOverlay" role="dialog" aria-modal="true" aria-labelledby="onlineTitle">
+      <div className="modal online-card"><div className="screen-head"><BackButton id="closeOnline" onClick={()=>dialogs.close()} label="Back" data-close="onlineOverlay" /><div><h2 id="onlineTitle">Online</h2></div></div>
+        <div className="online-main">
+          <button className="menu-main-btn home-btn" id="onlineCreateBtn" onClick={()=>game.openDialog('createOverlay',true)}>Create</button>
+          <button className="menu-main-btn home-btn" id="onlinePlayBtn" aria-disabled="true">Play</button>
+        </div>
+      </div>
+    </Dialog>
+    <Dialog dialogs={dialogs} className="screen" id="createOverlay" role="dialog" aria-modal="true" aria-labelledby="createTitle">
+      <div className="modal online-card"><div className="screen-head"><BackButton id="closeCreate" onClick={()=>dialogs.close()} label="Back" data-close="createOverlay" /><div><h2 id="createTitle">Create</h2></div></div></div>
     </Dialog>
     <Dialog dialogs={dialogs} className="menu-overlay" id="pauseOverlay" role="dialog" aria-modal="true" aria-labelledby="pauseTitle">
       <div className="menu-card pause-card"><h2 id="pauseTitle">Menu</h2><p id="pauseDescription">{'Level '+String(index+1).padStart(3,'0')+' · '+state.config.levels[index].name}</p>

@@ -11,7 +11,7 @@ import AchievementsPanel from './AchievementsPanel.jsx';
 import AchievementAnnouncer from './AchievementAnnouncer.jsx';
 
 // Dialogs that fill the whole screen; the game board is hidden while any is in the stack.
-const SCREENS=['menuOverlay','worldsOverlay','levelsOverlay','settingsOverlay','achievementsOverlay'];
+const SCREENS=['menuOverlay','worldsOverlay','levelsOverlay','settingsOverlay','achievementsOverlay','onlineOverlay','createOverlay'];
 
 export default function GameApp() {
   const game=useGame(),{state,ui,dialogs}=game,{attempt,config}=state,spec=config.levels[attempt.level],custom=config.custom;
