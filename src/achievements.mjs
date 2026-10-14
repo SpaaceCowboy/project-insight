@@ -21,6 +21,7 @@ export function restoreAttempt(saved,eligible=true) {
 }
 
 const LEGACY_BADGES=['perfect-1','perfect-10','precision','clean','limits'];
+const PRE_MERGE_LEVELS=106,PRE_MERGE_GOALS=new Set(['complete','pristine']);
 
 export function createAchievements({levels,storage,onStorageError=()=>{},progressKeys=[]}) {
   const catalog=[
@@ -70,7 +71,11 @@ export function createAchievements({levels,storage,onStorageError=()=>{},progres
       if(saved.version===1 && !validStars(result.classic) && !validStars(result.limited))continue;
       results[id]=result.noUndo===true?{noUndo:true}:{};
     }
-    for(const badge of catalog)if(count(badge)>=badge.goal && Number.isSafeInteger(saved.earned?.[badge.id]) && saved.earned[badge.id]>0)earned[badge.id]=saved.earned[badge.id];
+    // Badges earned before Game 2 joined the campaign stay earned: their old goal was the 106 levels of Game 1.
+    for(const badge of catalog) {
+      const goal=PRE_MERGE_GOALS.has(badge.id)?Math.min(badge.goal,PRE_MERGE_LEVELS):badge.goal;
+      if(count(badge)>=goal && Number.isSafeInteger(saved.earned?.[badge.id]) && saved.earned[badge.id]>0)earned[badge.id]=saved.earned[badge.id];
+    }
     const retired=saved.version===1?saved.earned:saved.legacy;
     for(const id of LEGACY_BADGES)if(Number.isSafeInteger(retired?.[id]) && retired[id]>0)legacy[id]=retired[id];
   } else {
