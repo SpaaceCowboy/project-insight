@@ -5,20 +5,22 @@ import {solved} from './game-state.js';
 
 export default function GameMenus({game}) {
   const {state,dialogs,settingsTab,setSettingsTab,sound}=game,custom=state.config.custom,index=state.attempt.level;
-  const complete=solved(state.attempt),count=state.config.levels.length;
-  const playLabel=custom?(complete?'Back to editor':state.attempt.moves?'Resume playtest':'Playtest'):complete?(index<count-1?'Next puzzle →':'Replay final'):state.attempt.moves?'Resume · Level '+String(index+1).padStart(3,'0'):'Play · Level '+String(index+1).padStart(3,'0');
+  const complete=solved(state.attempt);
   function tabKeys(event,tab){if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();const tabs=['play','sound','appearance'],i=tabs.indexOf(tab),next=event.key==='Home'?0:event.key==='End'?2:(i+(event.key==='ArrowRight'?1:2))%3;setSettingsTab(tabs[next]);document.getElementById('settingsTab-'+tabs[next]).focus()}
   return <>
-    <Dialog dialogs={dialogs} className="menu-overlay" id="menuOverlay" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
-      <div className="menu-card home-card">
-        <div className="menu-logo" id="menuTitle">INSIGHT</div><div className="menu-tagline">A little order. A little wonder.</div>
-        <div className="menu-hero" id="menuHero" aria-hidden="true"><Hero /></div>
-        <div className="menu-progress" id="menuProgress">{custom?'Custom puzzle · Progress kept separate':state.dev?'Developer Mode · All '+count+' levels unlocked':'Game '+state.config.game+' · Level '+state.unlocked+' / '+count}</div>
-        <div className="menu-actions">
-          <button className="menu-main-btn primary" id="playBtn" onClick={game.continuePlay}>{playLabel}</button>
-          <button className="menu-main-btn" id="newGameBtn" hidden={!!custom} onClick={()=>game.newGame(1)}>New Game 1</button><button className="menu-main-btn" id="newGame2Btn" hidden={!!custom} onClick={()=>game.newGame(2)}>New Game 2</button><button className="menu-main-btn" id="menuLevelsBtn" onClick={game.showLevels}>{custom?'Back to editor':'Levels'}</button>
-          <button className="menu-main-btn" id="editorBtn" hidden={!!custom} onClick={game.leaveEditor}>My Puzzles · Editor</button><button className="menu-main-btn" id="achievementsBtn" onClick={()=>game.showAchievements()}>Achievements</button>
-          <button className={"menu-main-btn"+(custom?" menu-wide":"")} id="homeSettingsBtn" onClick={()=>game.openDialog('settingsOverlay',true)}>Settings</button>
+    <Dialog dialogs={dialogs} className="menu-overlay home-screen" id="menuOverlay" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
+      <div className="home-panel">
+        <div className="home-brand"><div className="menu-logo" id="menuTitle">INSIGHT</div><div className="menu-tagline">A little order. A little wonder.</div>
+          <div className="menu-hero" id="menuHero" aria-hidden="true"><Hero /></div></div>
+        <div className="home-main">
+          <button className="menu-main-btn home-btn" id="menuLevelsBtn" onClick={game.showLevels}>Single player</button>
+          <button className="menu-main-btn home-btn" id="onlineBtn" aria-disabled="true">Online</button>
+          <button className="menu-main-btn home-btn" id="homeSettingsBtn" onClick={()=>game.openDialog('settingsOverlay',true)}>Options</button>
+        </div>
+        <div className="home-cubes">
+          <button className="menu-main-btn home-cube" id="achievementsBtn" onClick={()=>game.showAchievements()}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0V4ZM8 6H4.5v1.5A3 3 0 0 0 8 10.5M16 6h3.5v1.5a3 3 0 0 1-3.5 3M12 13v4M8.5 20h7M10 17h4"/></svg>Achievements</button>
+          <button className="menu-main-btn home-cube" id="logInBtn" aria-disabled="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>Log In</button>
+          <button className="menu-main-btn home-cube" id="whatsNextBtn" aria-disabled="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 13.9 9l5.6 1.9-5.6 1.9L12 18.3l-1.9-5.5-5.6-1.9L10.1 9 12 3.5ZM19 16.5v3M17.5 18h3"/></svg>What's Next</button>
         </div>
       </div>
     </Dialog>

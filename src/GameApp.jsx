@@ -21,7 +21,7 @@ export default function GameApp() {
   return <>
     <div className="ambient-lights" aria-hidden="true"><span></span><span></span></div>
     <Particles burst={ui.burst} />
-    <div className="app" inert={!!dialogs.active}>
+    <div className={'app'+(dialogs.has('menuOverlay')?' behind-home':'')} inert={!!dialogs.active}>
       <header className="topbar">
   <div className="brand"><div className="brand-mark" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none">
   <path d="M24 4 42 14 24 24 6 14 24 4Z M24 24 42 14v20L24 44 6 34V14" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>

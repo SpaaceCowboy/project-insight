@@ -24,7 +24,7 @@ export function useDialogs(initial=null) {
     if(focus?.isConnected && focus.getClientRects().length && (!node || node.contains(focus)))focus.focus({preventScroll:true});
     else (node?.querySelector('#confirmCancel') || node?.querySelector('button:not(:disabled)'))?.focus({preventScroll:true});
   },[stack]);
-  return {active:stack.at(-1)?.id || null,open,close,ref:id=>node=>{if(node)nodes.current.set(id,node);else nodes.current.delete(id)}};
+  return {active:stack.at(-1)?.id || null,has:id=>stack.some(entry=>entry.id===id),open,close,ref:id=>node=>{if(node)nodes.current.set(id,node);else nodes.current.delete(id)}};
 }
 
 export function Dialog({dialogs,id,className='',children,...props}) {

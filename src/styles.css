@@ -186,6 +186,16 @@ body.light-mode .board-shell { background:rgba(232,243,230,.5); }
 .hero-tile:nth-child(3n) { animation-delay:-3s; }
 .hero-tile svg { width:55%; height:55%; }
 @keyframes heroFloat { to { transform:translateY(-4px); } }
+.home-screen { background:transparent; backdrop-filter:none; padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom)); }
+.app.behind-home { visibility:hidden; }
+.home-panel { width:min(360px,100%); height:100%; max-height:760px; display:grid; grid-template-rows:auto 1fr auto; text-align:center; overflow:auto; }
+.home-brand .menu-hero { margin:20px auto 0; }
+.home-main { display:grid; align-content:center; gap:14px; padding:20px 0; }
+.menu-main-btn.home-btn { min-height:64px; font-size:1.05rem; letter-spacing:.05em; }
+.home-cubes { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.menu-main-btn.home-cube { aspect-ratio:1; min-height:72px; padding:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px; font-size:.68rem; line-height:1.2; }
+.home-cube svg { width:26px; height:26px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+.home-btn[aria-disabled=true],.home-cube[aria-disabled=true] { cursor:default; }
 .menu-progress { color:var(--muted); font-size:.67rem; margin-bottom:14px; letter-spacing:.06em; }
 .menu-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; width:min(300px,100%); margin:auto; }
 .menu-actions .primary,.sound-controls,.voice-control { grid-column:1 / -1; }
@@ -351,6 +361,10 @@ body.light-mode .confirmation-mark.destructive { color:#86502f; }
 }
 @media (max-height:450px) {
   .menu-hero { display:none; }
+  .home-main { gap:8px; padding:10px 0; }
+  .menu-main-btn.home-btn { min-height:44px; font-size:.9rem; }
+  .menu-main-btn.home-cube { aspect-ratio:auto; min-height:56px; gap:4px; }
+  .home-cube svg { width:20px; height:20px; }
   .menu-card { padding:12px; }
   .menu-tagline { font-size:.8rem; margin-top:4px; }
   .menu-logo { font-size:1.25rem; }
