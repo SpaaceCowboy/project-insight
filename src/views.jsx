@@ -1,5 +1,6 @@
 import React from 'react';
 import {PuzzleArt,PuzzleRules} from './data.js';
+import {bounds} from './board-layout.js';
 
 const {ICONS,META,TILE_LIGHTS}=PuzzleArt;
 function Symbol({type}) {
@@ -45,10 +46,12 @@ export function Levels({world,levels,progress,current,unlocked,onSelect}) {
   return <section className="world-block">
     <div className="level-grid">{entries.map(({level,i})=>{
       const done=!!progress[i+1];
-      const locked=i>=unlocked;
+      const locked=i>=unlocked,box=bounds(level.target),cols=box.maxC-box.minC+1,rows=box.maxR-box.minR+1;
+      const cells=level.target.slice(box.minR,box.maxR+1).flatMap(row=>[...row.slice(box.minC,box.maxC+1)]);
       return <button key={i} className={'level-card '+(i===current?'current ':'')+(done?'done':'')}
         disabled={locked} aria-label={`Level ${i+1}, ${level.name}${locked?', locked':done?', solved':''}`} onClick={()=>onSelect(i)}>
-        <div className="lvl-num">{String(i+1).padStart(3,'0')}</div><div className="lvl-name">{level.name}</div>
+        <div className="lvl-num">{String(i+1).padStart(3,'0')}</div>
+        <div className="lvl-mini" aria-hidden="true" style={{'--cols':cols,'--n':Math.max(cols,rows)}}><Target cells={cells} /></div><div className="lvl-name">{level.name}</div>
         <div className={'lvl-status'+(locked?' locked-label':'')}>{locked?'Locked':done?'✓ Solved':''}</div>
       </button>;
     })}</div></section>;

@@ -238,12 +238,14 @@ body.light-mode .board-shell { background:rgba(232,243,230,.5); }
 #levelWorlds { flex:1; min-height:0; }
 .world-block { height:100%; display:flex; flex-direction:column; }
 .level-grid { flex:1; min-height:0; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); grid-template-rows:repeat(4,minmax(0,1fr)); gap:7px; }
-.level-card { min-height:0; padding:8px; overflow:hidden; position:relative; text-align:left; background:var(--paper); border:1px solid var(--line); border-radius:12px; }
+.level-card { min-height:0; padding:8px; overflow:hidden; position:relative; text-align:left; display:flex; flex-direction:column; container-type:inline-size; background:var(--paper); border:1px solid var(--line); border-radius:12px; }
 .level-card.current { outline:2px solid var(--accent); outline-offset:1px; }
 .level-card.done { background:color-mix(in srgb,var(--accent) 14%,var(--paper2)); }
+.lvl-mini { --mini:min(18px,calc((100cqw - 20px - (var(--n) - 1)*2px)/var(--n))); flex:1; min-height:0; display:grid; place-content:center; gap:2px; grid-template-columns:repeat(var(--cols),var(--mini)); }
+.lvl-mini .target-dot { width:var(--mini); height:var(--mini); border-radius:2px; box-shadow:none; }
 .lvl-num { font-size:.65rem; color:var(--muted); font-weight:650; }
 .lvl-name { font-size:.62rem; line-height:1.2; margin-top:3px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-.lvl-status { position:absolute; color:var(--muted); bottom:5px; right:6px; font-size:.56rem; }
+.lvl-status { align-self:flex-end; min-height:.7rem; margin-top:3px; color:var(--muted); font-size:.56rem; line-height:1.2; }
 .selector-footer { margin-top:12px; text-align:center; }
 .notice-region { position:fixed;left:max(14px,env(safe-area-inset-left));bottom:max(14px,env(safe-area-inset-bottom));z-index:155;width:min(360px,calc(100vw - 28px));pointer-events:none; }
 .system-notice { display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--paper2);box-shadow:0 12px 40px var(--shadow);animation:achievementNoticeEnter .2s ease-out; }
@@ -380,6 +382,7 @@ body.light-mode .confirmation-mark.destructive { color:#86502f; }
     .level-grid { gap:4px; }
   .level-card { padding:3px; }
   .lvl-name { font-size:.52rem; -webkit-line-clamp:1; }
+  .lvl-mini { display:none; }
 }
 @media (prefers-reduced-motion:reduce) {
   *,*::before,*::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; }
