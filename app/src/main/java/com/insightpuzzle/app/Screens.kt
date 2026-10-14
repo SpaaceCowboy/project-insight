@@ -197,32 +197,33 @@ fun LevelsScreen(m: GameModel, world: Int) {
     val p = LocalPalette.current
     val entries = m.levels.withIndex().filter { it.value.world == world }
     Page("World $world", "${entries.count { (it.index + 1) in m.done }} / ${entries.size} solved", { m.backToWorlds() }) {
-        val rows = (entries.size + 4) / 5
+        val columns = 3
+        val rows = (entries.size + columns - 1) / columns
         // Cells keep one shape in every world (a 6-level world must not stretch) and the list scrolls if large text needs the room.
-        Column(Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-            for (r in 0 until rows) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                for (c in 0 until 5) {
-                    val item = entries.getOrNull(r * 5 + c)
-                    if (item == null) { Spacer(Modifier.weight(1f).aspectRatio(.5f)); continue }
+        Column(Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            for (r in 0 until rows) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                for (c in 0 until columns) {
+                    val item = entries.getOrNull(r * columns + c)
+                    if (item == null) { Spacer(Modifier.weight(1f).aspectRatio(.72f)); continue }
                     val i = item.index; val level = item.value
                     val done = (i + 1) in m.done; val locked = !m.canAccess(i); val current = i == m.level
                     val shape = RoundedCornerShape(12.dp)
                     Column(
-                        Modifier.weight(1f).aspectRatio(.5f).clip(shape).background(if (done) lerp(p.paper2, p.accent, .14f) else p.paper)
+                        Modifier.weight(1f).aspectRatio(.72f).clip(shape).background(if (done) lerp(p.paper2, p.accent, .14f) else p.paper)
                             .border(if (current) 2.dp else 1.dp, if (current) p.accent else p.line, shape)
                             .then(if (locked) Modifier.alpha(.4f).semantics { disabled() } else Modifier.clickable(role = Role.Button) { m.start(i); m.audio.play("select") })
                             .semantics { contentDescription = "Level ${i + 1}, ${level.name}" + if (locked) ", locked" else if (done) ", solved" else "" }
-                            .padding(6.dp),
+                            .padding(10.dp),
                     ) {
-                        Label("%03d".format(i + 1), 11.sp, color = p.muted, weight = FontWeight.SemiBold)
+                        Label("%03d".format(i + 1), 13.sp, color = p.muted, weight = FontWeight.SemiBold)
                         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                             val target = Rules.crop(level.target); val n = maxOf(target.size, target[0].length)
-                            val cell = minOf(18.dp, (maxWidth - 8.dp - 2.dp * (n - 1)) / n, (maxHeight - 2.dp * (n - 1)) / n)
-                            if (cell > 3.dp) TargetMini(target, cell, 2.dp)
+                            val cell = minOf(30.dp, (maxWidth - 4.dp * (n - 1)) / n, (maxHeight - 4.dp * (n - 1)) / n)
+                            if (cell > 3.dp) TargetMini(target, cell, 3.dp)
                         }
                         val density = LocalDensity.current
-                        CompositionLocalProvider(LocalDensity provides Density(density.density, minOf(density.fontScale, 1.15f))) { Label(level.name, 11.sp, lines = 2) }
-                        Label(if (locked) "Locked" else if (done) "Solved" else "", 11.sp, Modifier.align(Alignment.End), color = p.muted)
+                        CompositionLocalProvider(LocalDensity provides Density(density.density, minOf(density.fontScale, 1.15f))) { Label(level.name, 13.sp, lines = 2) }
+                        Label(if (locked) "Locked" else if (done) "Solved" else "", 12.sp, Modifier.align(Alignment.End), color = p.muted)
                     }
                 }
             }

@@ -338,7 +338,7 @@ Portrait only (`screenOrientation="portrait"`), edge-to-edge, with transparent s
 
 **Game board.** The corner round buttons (Menu top-left, Restart top-right) float at 12dp / 10dp. Content starts 60dp down to clear them: eyebrow, serif level name, a "TARGET" eyebrow, the target card, then the board shell filling the remaining height. The target card scales with the grid (30dp cells for a 2×2, down to 20dp for 5×5) on the same deep pool as the board. When a level is solved the result strip grows in under the board and the board shrinks to make room, so the solved arrangement stays visible. On windows 600dp wide or more the play area stays centred at 720dp max and cells grow to 120dp; below that the cap is 88dp. Board cells are `min(cap, fit)` with 32dp of internal padding and a 5dp gap. The *occupied* area is centred, not the full grid, so holes along one side never push the puzzle off centre.
 
-**Level grid.** Five columns with 7dp gaps on both axes. Every cell is 1:2 (width:height) in every world, so a six-level world never stretches; the grid scrolls when large text needs the room. Cell captions stop growing at 1.15× font scale and end in an ellipsis, since the full name is in the game and in TalkBack.
+**Level grid.** Three columns with 10dp gaps on both axes, so each preview map (up to 30dp cells), number and name stays large enough to read. Every cell is 18:25 (width:height) in every world, so a six-level world never stretches; the grid scrolls when large text needs the room. Cell captions stop growing at 1.15× font scale and end in an ellipsis, since the full name is in the game and in TalkBack.
 
 **Spacing rhythm.** 4 / 8 / 12 / 14 / 16 / 24dp, with 14dp as the signature vertical stack gap. Lists use 10–12dp between cards.
 
@@ -389,7 +389,7 @@ Smooth pebbles: generously rounded, quiet translucent fill, hairline edge.
 ### Cards / Containers
 - **World card:** 64dp tall, 16dp radius, Deep Pool washed 24% toward the world's light stripe colour on the left. A 6dp vertical gradient stripe sits inside the leading edge. Completed worlds get a full-colour border and the pulsing world glow. Locked worlds are at 50% opacity.
 - **Achievement row:** 16dp radius, 14dp padding. Contents: a 44dp badge mark (12dp radius, Mint when earned, Hairline when locked), an eyebrow, the name, the requirement in Support, a 6dp progress bar, and "Unlocks …" in Mint. Earned rows use Pool Lit with a Mint border. All badges are one scrolling list. Marks are drawn line art (world badges show their number), never Unicode glyphs.
-- **Level cell:** 12dp radius with 6dp padding. Contents: the zero-padded number ("014"), a target mini in the middle, the name (two lines max) and the status. Solved cells use Pool Lit. The current level gets a 2dp Mint border. Locked cells are at 40% opacity.
+- **Level cell:** 12dp radius with 10dp padding. Contents: the zero-padded number ("014", 13sp), a target mini in the middle, the name (two lines, 13sp) and the status (12sp). Solved cells use Pool Lit. The current level gets a 2dp Mint border. Locked cells are at 40% opacity.
 - **Cube (home footer):** a square 14dp-radius Glass pebble with a 26dp line icon over an 11sp label.
 
 ### Inputs / Controls
