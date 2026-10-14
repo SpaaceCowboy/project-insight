@@ -1,6 +1,13 @@
 package com.insightpuzzle.app
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.keyframes
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -115,6 +122,40 @@ fun Backdrop(background: String, light: Color, animated: Boolean = true, content
         })
         content()
     }
+}
+
+/**
+ * A crystal glow for the one button that leads somewhere special (Online): a slow pulsing halo, a prismatic edge
+ * (coral → violet → ice, the tile hues) and a glint that crosses the face every few seconds. It stays still,
+ * at its mid brightness, when reduce motion is on.
+ */
+@Composable
+fun Modifier.crystalGlow(cornerRadius: Dp = 14.dp): Modifier {
+    val reduce = LocalReduceMotion.current
+    val transition = rememberInfiniteTransition(label = "crystal")
+    val pulse by transition.animateFloat(0f, 1f, infiniteRepeatable(tween(3600, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "pulse")
+    val glint by transition.animateFloat(0f, 1f, infiniteRepeatable(keyframes { durationMillis = 5400; 0f at 0 using LinearEasing; 1f at 1400; 1f at 5400 }), label = "glint")
+    val level = if (reduce) .5f else pulse
+    val prism = listOf(Art.LIGHT.getValue('R'), Art.LIGHT.getValue('P'), Art.LIGHT.getValue('B'))
+    return this
+        .drawBehind {
+            val r = cornerRadius.toPx(); val brush = Brush.horizontalGradient(prism)
+            for ((grow, alpha) in listOf(8.dp to .07f, 5.dp to .12f, 2.5.dp to .2f)) {
+                val g = grow.toPx()
+                drawRoundRect(brush, Offset(-g, -g), Size(size.width + 2 * g, size.height + 2 * g), CornerRadius(r + g), alpha = alpha * (.55f + .9f * level))
+            }
+        }
+        .drawWithContent {
+            drawContent()
+            val r = cornerRadius.toPx(); val w = size.width; val h = size.height
+            drawRoundRect(Brush.horizontalGradient(prism), Offset.Zero, size, CornerRadius(r), style = Stroke(1.6.dp.toPx()), alpha = .55f + .4f * level)
+            if (!reduce && glint in 0.001f..0.999f) {
+                val x = -w * .3f + w * 1.6f * glint
+                clipPath(androidx.compose.ui.graphics.Path().apply { addRoundRect(androidx.compose.ui.geometry.RoundRect(0f, 0f, w, h, CornerRadius(r))) }) {
+                    drawRect(Brush.linearGradient(listOf(Color.Transparent, Color.White.copy(alpha = .38f), Color.Transparent), Offset(x, 0f), Offset(x + w * .22f, h)))
+                }
+            }
+        }
 }
 
 /** Rounded button with the web game's .menu-main-btn look. A null [onClick] means "not built yet": it is dimmed and labelled "Coming soon". */

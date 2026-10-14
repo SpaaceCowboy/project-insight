@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -99,7 +100,7 @@ fun HomeScreen(m: GameModel) {
                     MenuButton("Continue", height = buttonHeight, primary = true, fontSize = 17.sp, subtitle = "Level %03d · %s".format(next + 1, m.levels[next].name)) { m.start(next); m.audio.play("select") }
                 }
                 MenuButton("Single player", height = buttonHeight, fontSize = 17.sp) { m.push(Route.Worlds) }
-                MenuButton("Online", height = buttonHeight, fontSize = 17.sp) { m.push(Route.Online) }
+                MenuButton("Online", Modifier.crystalGlow(), height = buttonHeight, fontSize = 17.sp) { m.push(Route.Online) }
                 MenuButton("Options", height = buttonHeight, fontSize = 17.sp) { m.push(Route.Options) }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -373,16 +374,18 @@ fun AchievementsScreen(m: GameModel, initialTab: String) {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 for (kind in listOf("background", "finish")) {
                     Label(if (kind == "background") "Background" else "Tile finish", 15.sp, weight = FontWeight.SemiBold)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // IntrinsicSize.Min + fillMaxHeight: every card in a row is as tall as the tallest, whatever its caption.
+                    Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         for (c in COSMETICS.filter { it.kind == kind }) {
                             val owned = m.achievements.owns(c, m.earned); val on = (if (kind == "background") m.background else m.finish) == c.id
                             val shape = RoundedCornerShape(14.dp)
-                            Column(Modifier.weight(1f).clip(shape).background(p.paper).border(if (on) 2.dp else 1.dp, if (on) p.accent else p.line, shape)
+                            Column(Modifier.weight(1f).fillMaxHeight().clip(shape).background(p.paper).border(if (on) 2.dp else 1.dp, if (on) p.accent else p.line, shape)
                                 .then(if (owned) Modifier.clickable(role = Role.Button) { m.equip(c) } else Modifier.alpha(.45f).semantics { disabled() }).padding(10.dp)) {
                                 Box(Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(10.dp)).drawBehind { cosmeticPreview(c.id, m.finish) })
                                 Label(c.name, 13.sp, Modifier.padding(top = 6.dp), weight = FontWeight.SemiBold)
-                                val requirement = m.achievements.catalog.find { it.id == c.badge }?.requirement ?: ""
-                                Label(if (!owned) requirement else if (on) "Equipped" else c.description, 12.sp, color = p.muted)
+                                val badge = m.achievements.catalog.find { it.id == c.badge }
+                                // Locked cards name the badge that unlocks them (the full requirement is on the Collection tab).
+                                Label(if (!owned) "Earn ${badge?.name ?: "a badge"}" else if (on) "Equipped" else c.description, 12.sp, color = p.muted)
                             }
                         }
                     }

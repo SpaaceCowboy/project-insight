@@ -386,11 +386,16 @@ Smooth pebbles: generously rounded, quiet translucent fill, hairline edge.
 - **Style:** an equal-width segmented row with 8dp gaps. Each segment is a 48dp-tall 14dp-radius pebble with Glass fill and Hairline border.
 - **Selected:** Sea-Glass Mint fill and Pool Ink label. No underline or indicator bar.
 
+### Crystal Glow (Online)
+The Online button is the one control that carries a glow, because it is the paid feature. A slow 3.6s breathing halo (three layered rounded rects, 8dp at most), a 1.6dp prismatic edge (Coral → Anemone → Lagoon, the flat tile hues) and a glint that crosses the face for about 1.4s every 5.4s. With reduce motion on it holds still at mid brightness and the glint is skipped. No other button gets it.
+
 ### Cards / Containers
 - **World card:** 64dp tall, 16dp radius, Deep Pool washed 24% toward the world's light stripe colour on the left. A 6dp vertical gradient stripe sits inside the leading edge. Completed worlds get a full-colour border and the pulsing world glow. Locked worlds are at 50% opacity.
 - **Achievement row:** 16dp radius, 14dp padding. Contents: a 44dp badge mark (12dp radius, Mint when earned, Hairline when locked), an eyebrow, the name, the requirement in Support, a 6dp progress bar, and "Unlocks …" in Mint. Earned rows use Pool Lit with a Mint border. All badges are one scrolling list. Marks are drawn line art (world badges show their number), never Unicode glyphs.
 - **Level cell:** 12dp radius with 10dp padding. Contents: the zero-padded number ("014", 13sp), a target mini in the middle, the name (two lines, 13sp) and the status (12sp). Solved cells use Pool Lit. The current level gets a 2dp Mint border. Locked cells are at 40% opacity.
 - **Cube (home footer):** a square 14dp-radius Glass pebble with a 26dp line icon over an 11sp label.
+
+- **Cosmetic card (Appearance):** cards in a row are always the same height (the tallest sets it), and a locked card says only "Earn <badge name>"; the full requirement lives on the Collection tab.
 
 ### Inputs / Controls
 On/off settings are **switch rows**: a 56dp Glass pebble with the label on the left and a recoloured Material `Switch` on the right (Mint track and Pool Ink thumb when on; a Lichen outline when off). The whole row toggles, and it reads as a switch to TalkBack. A button that says "ON" is not used for state. Volume is a recoloured `Slider` with a round 24dp Mint thumb, a Mint active track, a muted inactive track and no end-stop dot.
