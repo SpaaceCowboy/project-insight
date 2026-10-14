@@ -25,12 +25,13 @@ export default function GameMenus({game}) {
       </div>
     </Dialog>
     <Dialog dialogs={dialogs} className="menu-overlay" id="pauseOverlay" role="dialog" aria-modal="true" aria-labelledby="pauseTitle">
-      <div className="menu-card pause-card"><div className="win-kicker">Take a breath</div><h2 id="pauseTitle">Paused</h2><p id="pauseDescription">{'Level '+String(index+1).padStart(3,'0')+' · '+state.config.levels[index].name}</p>
-        <div className="menu-actions">
-          <button className="menu-main-btn primary" id="resumeBtn" onClick={game.resume}>{complete?'View result':'Resume puzzle'}</button>
-          <button className="menu-main-btn" id="pauseRestartBtn" onClick={game.restart}>Restart</button><button className="menu-main-btn" id="pauseLevelsBtn" onClick={game.showLevels}>{custom?'Back to editor':'Levels'}</button>
-          <button className="menu-main-btn" id="pauseAchievementsBtn" onClick={()=>game.showAchievements()}>Achievements</button><button className="menu-main-btn" id="pauseSettingsBtn" onClick={()=>game.openDialog('settingsOverlay',true)}>Settings</button>
-          <button className="menu-main-btn menu-wide" id="homeBtn" onClick={()=>game.openDialog('menuOverlay')}>Back to home</button>
+      <div className="menu-card pause-card"><h2 id="pauseTitle">Menu</h2><p id="pauseDescription">{'Level '+String(index+1).padStart(3,'0')+' · '+state.config.levels[index].name}</p>
+        <div className="menu-actions menu-stack">
+          <button className="menu-main-btn primary" id="resumeBtn" onClick={game.resume}>{complete?'View result':'Resume'}</button>
+          <button className="menu-main-btn" id="pauseLevelsBtn" onClick={game.showLevels}>{custom?'Back to editor':'Levels'}</button>
+          <button className="menu-main-btn" id="pauseSettingsBtn" onClick={()=>game.openDialog('settingsOverlay',true)}>Options</button>
+          <button className="menu-main-btn" id="pauseAchievementsBtn" onClick={()=>game.showAchievements()}>Achievements</button>
+          <button className="menu-main-btn" id="homeBtn" onClick={()=>game.openDialog('menuOverlay')}>Main Menu</button>
         </div>
       </div>
     </Dialog>

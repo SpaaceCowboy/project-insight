@@ -22,15 +22,8 @@ export default function GameApp() {
     <div className="ambient-lights" aria-hidden="true"><span></span><span></span></div>
     <Particles burst={ui.burst} />
     <div className={'app'+(dialogs.has('menuOverlay')?' behind-home':'')} inert={!!dialogs.active}>
-      <header className="topbar">
-  <div className="brand"><div className="brand-mark" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none">
-  <path d="M24 4 42 14 24 24 6 14 24 4Z M24 24 42 14v20L24 44 6 34V14" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
-  <path d="M24 10 34 15.5 24 21 14 15.5 24 10Z M24 21v13 M14 15.5v13.4 M34 15.5v13.4" stroke="currentColor" strokeWidth="1.35" strokeLinejoin="round" opacity=".92"/>
-  <path d="M14 28.9 24 34 34 28.9" stroke="currentColor" strokeWidth="1.15" opacity=".62"/>
-</svg></div><div className="brand-name">INSIGHT</div></div>
-
-        <div className="top-actions"><button className="ui-btn" id="menuBtn" aria-label="Pause game" onClick={()=>game.openDialog('pauseOverlay')}>Ⅱ <span>Pause</span></button><button className="ui-btn" id="levelsBtn" aria-label={custom?'Back to editor':'Choose level'} onClick={game.showLevels}>▦ <span>Levels</span></button><button className="ui-btn" id="soundBtn" aria-label={state.sound?'Mute sound':'Enable sound'} aria-pressed={state.sound} onClick={()=>game.toggle('sound')}>{state.sound?'♪':'×'} <span>{state.sound?'Sound':'Muted'}</span></button></div>
-      </header>
+      <button className="corner-btn left" id="menuBtn" aria-label="Menu" onClick={()=>game.openDialog('pauseOverlay')}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <button className="corner-btn right" id="restartBtn" aria-label="Restart level" onClick={game.restart}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v4.5h-4.5"/></svg></button>
       <main>
         <section className="level-meta"><div className="eyebrow" id="levelNo">{custom?'MY PUZZLES · PLAYTEST':config.worldNames[spec.world]+' · LEVEL '+String(attempt.level+1).padStart(3,'0')}</div><h1 id="levelName">{spec.name}</h1></section>
         <section className="target-area"><div className="target-label">Target</div><div id="target" role="img" aria-label={targetLabel} style={{gridTemplateColumns:`repeat(${targetCols},var(--target-cell))`,gridTemplateRows:`repeat(${targetRows},var(--target-cell))`,width:`calc(${targetCols} * var(--target-cell) + ${(targetCols-1)*4}px)`,minHeight:`calc(${targetRows} * var(--target-cell) + ${(targetRows-1)*4}px)`}}><Target cells={targetCells} /></div></section>
@@ -40,7 +33,6 @@ export default function GameApp() {
             onPointerMove={game.pointerMove} onPointerUp={game.pointerUp} onPointerCancel={game.cancelDrag} onLostPointerCapture={()=>game.cancelDrag()}><GameBoard game={game} /></div>
           <ColorStrokes ink={game.ink} />
         </section>
-        <div className="controls"><button className="control-btn" id="restartBtn" onClick={game.restart}>↶ Restart</button><button className="control-btn" id="undoBtn" disabled={!state.history.length && !state.restart} onClick={game.undo}>{state.restart?'↶ Undo restart':'↶ Undo'}</button><button className="control-btn primary" id="levelsBtn2" onClick={game.showLevels}>{custom?'My Puzzles':'Choose Level'}</button><button className="control-btn" id="nextBtn" disabled={!custom && !final && !canAccess(state,attempt.level+1)} onClick={game.next}>{custom?'Back to editor':final?'Replay final':'Next →'}</button></div>
       </main>
     </div>
     <GameMenus game={game} />
