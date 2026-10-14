@@ -17,7 +17,7 @@ export function GameBoard({game}) {
     const direction=PuzzleRules.moves[type].map(([dr,dc])=>`${dr<0?'up':dr>0?'down':''}${dc ? (dr?' ':'')+(dc<0?'left':'right') : ''}`).join(' or ');
     const label=`${META[type].name}, row ${r+1}, column ${c+1}${direction ? ', moves '+direction : ', carried only'}`;
     return <div key={`${r}:${c}`} className={'cell'+(same(ui.drag?.hover,[r,c])?' hover-target':'')} data-r={r} data-c={c}>
-      <Tile type={type} ref={game.tileRef([r,c])} className={'tile '+META[type].cls+(same(ui.selected,[r,c])?' selected':'')+(same(ui.drag?.from,[r,c]) && ui.drag.moves.length?' dragging':'')+(ui.moving?.some(pos=>same(pos,[r,c]))?' moving':'')+(same(ui.rejected,[r,c])?' rejected':'')+(ui.arrived.some(pos=>same(pos,[r,c]))?' arrived':'')}
+      <Tile type={type} ref={game.tileRef([r,c])} className={'tile '+META[type].cls+(same(ui.selected,[r,c])?' selected':'')+(same(ui.drag?.from,[r,c])?' dragging':'')+(ui.moving?.some(pos=>same(pos,[r,c]))?' moving':'')+(same(ui.rejected,[r,c])?' rejected':'')+(ui.arrived.some(pos=>same(pos,[r,c]))?' arrived':'')}
         style={{'--tile-order':r+c}}
         onPointerDown={event=>game.pointerDown(event,[r,c])} onClick={event=>{if(event.detail===0)game.choose([r,c])}} onAnimationEnd={event=>{if(event.target===event.currentTarget && event.animationName==='tileArrival')game.clearArrival([r,c])}}
         data-r={r} data-c={c} data-type={type} aria-label={label} aria-pressed={same(ui.selected,[r,c])} />

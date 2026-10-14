@@ -130,11 +130,10 @@ export default function useGame() {
   function choose(position){
     const current=live.current;if(ui.moving || drag.current || solved(current.attempt))return;
     if(ui.selected && PuzzleRules.legalMoves(current.attempt.board,...ui.selected).some(pos=>pos[0]===position[0] && pos[1]===position[1])){move(ui.selected,position);return}
-    if(ui.selected && ui.selected.join(':')!==position.join(':')){reject(ui.selected,'That swap is not allowed.');return}
-    const moves=PuzzleRules.legalMoves(current.attempt.board,...position),selected=moves.length && ui.selected?.join(':')!==position.join(':')?position:null;
+    if(ui.selected && ui.selected.join(':')!==position.join(':') && PuzzleRules.legalMoves(current.attempt.board,...ui.selected).length){reject(ui.selected,'That swap is not allowed.');return}
+    const moves=PuzzleRules.legalMoves(current.attempt.board,...position),selected=ui.selected?.join(':')!==position.join(':')?position:null;
     changeUI({selected});
-    if(!moves.length){reject(position,'Tile not selected.');return}
-    sound.play('select',current.attempt.board[position[0]][position[1]]);changeUI({announcement:selected?'Selected '+PuzzleArt.META[current.attempt.board[position[0]][position[1]]].name+'.':'Tile not selected.'});
+    sound.play('select',current.attempt.board[position[0]][position[1]]);changeUI({announcement:selected?'Selected '+PuzzleArt.META[current.attempt.board[position[0]][position[1]]].name+(moves.length?'.':'. No legal moves.'):'Tile not selected.'});
   }
   function pointerDown(event,position){
     if(event.button!==0 || ui.moving || drag.current || solved(live.current.attempt))return;
@@ -148,10 +147,10 @@ export default function useGame() {
   function updateDrag(item){
     if(!item.moved && Math.hypot(item.x-item.startX,item.y-item.startY)<8)return;
     const started=!item.moved,previous=item.hover;
-    if(started && item.moves.length)sound.play('select',live.current.attempt.board[item.from[0]][item.from[1]]);
+    if(started)sound.play('select',live.current.attempt.board[item.from[0]][item.from[1]]);
     item.moved=true;
     item.hover=item.targets.find(({rect})=>item.x>=rect.left && item.x<=rect.right && item.y>=rect.top && item.y<=rect.bottom)?.pos || null;
-    if(item.moves.length)item.node.style.transform=`translate3d(${item.x-item.startX}px,${item.y-item.startY}px,0) scale(1.045)`;
+    item.node.style.transform=`translate3d(${item.x-item.startX}px,${item.y-item.startY}px,0) scale(1.045)`;
     // React owns selection and destination feedback; only this tile moves each frame.
     if(started || previous!==item.hover)changeUI({selected:null,drag:{from:item.from,moves:item.moves,hover:item.hover}});
   }
@@ -165,7 +164,7 @@ export default function useGame() {
     // Release may arrive before the queued frame, so use its final coordinates.
     drag.current.x=event.clientX;drag.current.y=event.clientY;updateDrag(drag.current);
     const item=cancelDrag();
-    if(!item.moved)choose(item.from);else if(item.hover)move(item.from,item.hover,[item.x-item.startX,item.y-item.startY]);else reject(item.from,'That swap is not allowed.');
+    if(!item.moved)choose(item.from);else if(item.hover)move(item.from,item.hover,[item.x-item.startX,item.y-item.startY]);else if(item.moves.length)reject(item.from,'That swap is not allowed.');else{sound.play('deny');changeUI({announcement:'No legal moves for that tile.'})}
   }
   function leaveEditor(){cancelPending();persist(live.current);location.href='Editor.html'}
   function next(){if(state.config.custom)leaveEditor();else if(state.attempt.level<state.config.levels.length-1)start(state.attempt.level+1);else restart()}
