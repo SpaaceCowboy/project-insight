@@ -36,7 +36,7 @@ button:focus-visible,input:focus-visible { outline:3px solid var(--ink); outline
 button { transition:background .18s,box-shadow .18s,transform .18s; }
 button:active:not(:disabled) { transform:translateY(1px); }
 @media (hover:hover) {
-  .ui-btn:hover,.corner-btn:hover,.control-btn:hover,.menu-main-btn:hover,.level-card:hover,.close:hover {
+  .ui-btn:hover,.corner-btn:hover,.back-btn:hover,.control-btn:hover,.menu-main-btn:hover,.level-card:hover,.close:hover {
     background:color-mix(in srgb,var(--accent) 16%,var(--paper2));
     border-color:var(--accent);
   }
@@ -52,10 +52,12 @@ button:active:not(:disabled) { transform:translateY(1px); }
 .ui-btn,.control-btn,.menu-main-btn,.close {
   border:1px solid var(--line); background:var(--paper); border-radius:14px; font-weight:600;
 }
-.corner-btn { position:fixed; top:max(10px,env(safe-area-inset-top)); z-index:2; width:44px; height:44px; padding:0; display:grid; place-items:center; border-radius:50%; border:1px solid var(--line); background:var(--paper2); }
+.corner-btn,.back-btn { width:44px; height:44px; padding:0; display:grid; place-items:center; border-radius:50%; border:1px solid var(--line); background:var(--paper2); }
+.back-btn { flex:none; }
+.corner-btn { position:fixed; top:max(10px,env(safe-area-inset-top)); z-index:2; }
 .corner-btn.left { left:max(12px,env(safe-area-inset-left)); }
 .corner-btn.right { right:max(12px,env(safe-area-inset-right)); }
-.corner-btn svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.corner-btn svg,.back-btn svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 .ui-btn { min-height:40px; padding:8px 13px; font-size:.75rem; }
 main {
   flex:1; min-height:0; width:min(1100px,94vw); margin:0 auto;
@@ -186,7 +188,7 @@ body.light-mode .board-shell { background:rgba(232,243,230,.5); }
 .hero-tile svg { width:55%; height:55%; }
 @keyframes heroFloat { to { transform:translateY(-4px); } }
 .home-screen { background:transparent; backdrop-filter:none; padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom)); }
-.app.behind-home { visibility:hidden; }
+.app.behind-screen { visibility:hidden; }
 .home-panel { width:min(360px,100%); height:100%; max-height:760px; display:grid; grid-template-rows:auto 1fr auto; text-align:center; overflow:auto; }
 .home-brand .menu-hero { margin:20px auto 0; }
 .home-main { display:grid; align-content:center; gap:14px; padding:20px 0; }
@@ -219,9 +221,16 @@ body.light-mode .board-shell { background:rgba(232,243,230,.5); }
 .modal h2 { margin:0; font-family:Georgia,'Times New Roman',serif; font-size:1.75rem; font-weight:400; }
 .modal p { margin:5px 0 0; color:var(--muted); font-size:.75rem; }
 .close { width:40px; height:40px; font-size:1.4rem; }
-#levelsOverlay .modal { height:min(650px,calc(100dvh - 24px)); display:flex; flex-direction:column; }
+#levelsOverlay .modal { display:flex; flex-direction:column; }
 .modal-actions { display:flex; align-items:center; gap:8px; }
-.worlds-card { width:min(460px,94vw); }
+.worlds-card { --screen-w:460px; }
+.settings-card { --screen-w:520px; }
+/* Full-screen pages: same gradient and lights as home, no card or blur. */
+.overlay.screen { padding:0; background:transparent; backdrop-filter:none; }
+.screen .modal { width:min(var(--screen-w,640px),100%); height:100%; max-height:none; overflow-y:auto; padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom)); border:0; border-radius:0; background:transparent; box-shadow:none; }
+.screen .worlds-card { padding-inline:32px; }
+.screen .world-list { max-height:none; overflow:visible; margin:0; padding:10px 0 24px; }
+.screen-head { display:flex; align-items:center; gap:14px; margin-bottom:16px; flex-shrink:0; }
 .world-list { display:grid; gap:12px; max-height:calc(100dvh - 150px); overflow-y:auto; padding:16px 24px 24px; margin:-10px -24px 0; scrollbar-width:thin; scrollbar-color:var(--line) transparent; }
 .world-card {
   min-height:64px; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0 18px 0 22px; text-align:left;
@@ -235,7 +244,7 @@ body.light-mode .board-shell { background:rgba(232,243,230,.5); }
 .world-card.complete { border-color:var(--w1); animation:worldGlow 3.2s ease-in-out infinite alternate; box-shadow:0 0 0 1px var(--w1),0 0 18px 2px color-mix(in srgb,var(--w1) 55%,transparent),0 0 44px color-mix(in srgb,var(--w1) 28%,transparent); }
 .world-card.complete .world-card-status { color:var(--w1); }
 @keyframes worldGlow { to { box-shadow:0 0 0 1px var(--w1),0 0 26px 5px color-mix(in srgb,var(--w1) 70%,transparent),0 0 60px color-mix(in srgb,var(--w1) 38%,transparent); } }
-#levelWorlds { flex:1; min-height:0; }
+#levelWorlds { flex:1; min-height:0; max-height:640px; }
 .world-block { height:100%; display:flex; flex-direction:column; }
 .level-grid { flex:1; min-height:0; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); grid-template-rows:repeat(4,minmax(0,1fr)); gap:7px; }
 .level-card { min-height:0; padding:8px; overflow:hidden; position:relative; text-align:left; display:flex; flex-direction:column; container-type:inline-size; background:var(--paper); border:1px solid var(--line); border-radius:12px; }
@@ -259,7 +268,6 @@ body.light-mode .notice-warning .notice-mark,body.light-mode .notice-error .noti
 .pause-card h2 { font:2rem Georgia,serif;margin:10px 0; }
 .pause-card>p { color:var(--muted);font-size:.75rem;line-height:1.5;margin:0 0 22px; }
 .home-card .menu-main-btn,.pause-card .menu-main-btn { min-height:44px; }
-.settings-card { width:min(520px,94vw); }
 .settings-tabs { display:flex;gap:8px;margin-bottom:16px; }
 .settings-tabs .ui-btn { flex:1;min-height:44px; }
 .settings-tabs [aria-selected=true] { background:var(--accent);color:var(--accent-ink); }
@@ -378,6 +386,8 @@ body.light-mode .confirmation-mark.destructive { color:#86502f; }
   .voice-control { min-height:22px; font-size:.62rem; }
   .volume-control { font-size:.62rem; margin-top:0; gap:2px; }
   .modal { padding:10px; }
+  .screen .modal { padding:8px 16px; }
+  .screen-head { margin-bottom:8px; }
   .modal p { font-size:.65rem; }
     .level-grid { gap:4px; }
   .level-card { padding:3px; }

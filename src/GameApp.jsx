@@ -1,7 +1,7 @@
 import React from 'react';
 import useGame from './useGame.js';
 import {GameBoard,Target,Worlds,Levels,AchievementUnlocks} from './views.jsx';
-import {Dialog,ColorStrokes,Particles} from './react-ui.jsx';
+import {Dialog,BackButton,ColorStrokes,Particles} from './react-ui.jsx';
 import {bounds} from './board-layout.js';
 import {solved,canAccess,worldStats} from './game-state.js';
 import {PuzzleArt} from './data.js';
@@ -9,6 +9,9 @@ import GameMenus from './GameMenus.jsx';
 import FeedbackUI from './FeedbackUI.jsx';
 import AchievementsPanel from './AchievementsPanel.jsx';
 import AchievementAnnouncer from './AchievementAnnouncer.jsx';
+
+// Dialogs that fill the whole screen; the game board is hidden while any is in the stack.
+const SCREENS=['menuOverlay','worldsOverlay','levelsOverlay','settingsOverlay','achievementsOverlay'];
 
 export default function GameApp() {
   const game=useGame(),{state,ui,dialogs}=game,{attempt,config}=state,spec=config.levels[attempt.level],custom=config.custom;
@@ -22,7 +25,7 @@ export default function GameApp() {
   return <>
     <div className="ambient-lights" aria-hidden="true"><span></span><span></span></div>
     <Particles burst={ui.burst} />
-    <div className={'app'+(dialogs.has('menuOverlay')?' behind-home':'')} inert={!!dialogs.active}>
+    <div className={'app'+(SCREENS.some(dialogs.has)?' behind-screen':'')} inert={!!dialogs.active}>
       <button className="corner-btn left" id="menuBtn" aria-label="Menu" onClick={()=>game.openDialog('pauseOverlay')}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
       <button className="corner-btn right" id="restartBtn" aria-label="Restart level" onClick={game.restart}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v4.5h-4.5"/></svg></button>
       <main>
@@ -37,8 +40,8 @@ export default function GameApp() {
       </main>
     </div>
     <GameMenus game={game} />
-    <Dialog dialogs={dialogs} id="worldsOverlay" role="dialog" aria-modal="true" aria-labelledby="worldsTitle"><div className="modal worlds-card"><div className="modal-head"><div><h2 id="worldsTitle">Choose a world</h2><p id="worldsDescription">{state.dev?'Developer Mode · All worlds unlocked.':worlds.filter(world=>world.complete).length+' / '+worlds.length+' worlds complete.'}</p></div><button className="close" aria-label="Close world selection" data-close="worldsOverlay" onClick={()=>dialogs.close()}>×</button></div><Worlds worlds={worlds} onSelect={game.chooseWorld} /></div></Dialog>
-    <Dialog dialogs={dialogs} id="levelsOverlay" role="dialog" aria-modal="true" aria-labelledby="levelsTitle"><div className="modal"><div className="modal-head"><div><h2 id="levelsTitle">World {game.world}</h2><p id="levelsDescription">{currentWorld?currentWorld.solved+' / '+currentWorld.total+' solved':''}</p></div><div className="modal-actions"><button className="ui-btn" id="backToWorldsBtn" onClick={game.backToWorlds}>← Worlds</button><button className="close" aria-label="Close level selection" data-close="levelsOverlay" onClick={()=>dialogs.close()}>×</button></div></div><div id="levelWorlds"><Levels world={game.world} levels={config.levels} progress={state.progress.done} current={attempt.level} unlocked={state.dev?config.levels.length:state.unlocked} onSelect={index=>{game.start(index);game.sound.play('select')}} /></div></div></Dialog>
+    <Dialog dialogs={dialogs} className="screen" id="worldsOverlay" role="dialog" aria-modal="true" aria-labelledby="worldsTitle"><div className="modal worlds-card"><div className="screen-head"><BackButton onClick={()=>dialogs.close()} label="Back" data-close="worldsOverlay" /><div><h2 id="worldsTitle">Choose a world</h2><p id="worldsDescription">{state.dev?'Developer Mode · All worlds unlocked.':worlds.filter(world=>world.complete).length+' / '+worlds.length+' worlds complete.'}</p></div></div><Worlds worlds={worlds} onSelect={game.chooseWorld} /></div></Dialog>
+    <Dialog dialogs={dialogs} className="screen" id="levelsOverlay" role="dialog" aria-modal="true" aria-labelledby="levelsTitle"><div className="modal"><div className="screen-head"><BackButton id="backToWorldsBtn" onClick={game.backToWorlds} label="Back to worlds" data-close="levelsOverlay" /><div><h2 id="levelsTitle">World {game.world}</h2><p id="levelsDescription">{currentWorld?currentWorld.solved+' / '+currentWorld.total+' solved':''}</p></div></div><div id="levelWorlds"><Levels world={game.world} levels={config.levels} progress={state.progress.done} current={attempt.level} unlocked={state.dev?config.levels.length:state.unlocked} onSelect={index=>{game.start(index);game.sound.play('select')}} /></div></div></Dialog>
     <Dialog dialogs={dialogs} id="winOverlay" role="dialog" aria-modal="true" aria-labelledby="winTitle"><div className="win-card"><div className="win-kicker">Grid solved</div><div className="win-title" id="winTitle">Beautifully solved.</div><div id="winAchievementSummary"><AchievementUnlocks badges={state.badges} onOpen={()=>game.showAchievements()} /></div><div className="win-actions"><button className="control-btn" id="replayBtn" onClick={game.restart}>Replay</button><button className="control-btn primary" id="winNextBtn" disabled={!custom && !final && !canAccess(state,attempt.level+1)} onClick={game.next}>{custom?'Back to editor':final?'Replay Final':'Next →'}</button><button className="control-btn" id="winLevelsBtn" hidden={!!custom || !final} onClick={game.showLevels}>Choose level</button></div></div></Dialog>
     <FeedbackUI dialogs={dialogs} feedback={game.feedback} />
     <AchievementsPanel dialogs={dialogs} request={game.collectionRequest} />

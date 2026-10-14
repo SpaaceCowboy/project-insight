@@ -1,6 +1,6 @@
 import React from 'react';
 import {Hero} from './views.jsx';
-import {Dialog} from './react-ui.jsx';
+import {Dialog,BackButton} from './react-ui.jsx';
 import {solved} from './game-state.js';
 
 export default function GameMenus({game}) {
@@ -35,8 +35,8 @@ export default function GameMenus({game}) {
         </div>
       </div>
     </Dialog>
-    <Dialog dialogs={dialogs} id="settingsOverlay" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
-      <div className="modal settings-card"><div className="modal-head"><div><h2 id="settingsTitle">Settings</h2><p>Make yourself at home.</p></div><button className="close" id="closeSettings" onClick={()=>dialogs.close()} aria-label="Close settings" data-close="settingsOverlay">×</button></div>
+    <Dialog dialogs={dialogs} className="screen" id="settingsOverlay" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div className="modal settings-card"><div className="screen-head"><BackButton id="closeSettings" onClick={()=>dialogs.close()} label="Back" data-close="settingsOverlay" /><div><h2 id="settingsTitle">Options</h2><p>Make yourself at home.</p></div></div>
         <div className="settings-tabs" role="tablist" aria-label="Settings sections">{['play','sound','appearance'].map((tab,i)=><button className="ui-btn" key={tab} id={'settingsTab-'+tab} role="tab" aria-controls={'settingsPanel-'+tab} aria-selected={settingsTab===tab} tabIndex={settingsTab===tab?0:-1} onClick={()=>setSettingsTab(tab)} onKeyDown={event=>tabKeys(event,tab)} data-settings-tab={tab}>{tab[0].toUpperCase()+tab.slice(1)}</button>)}</div>
         <section id="settingsPanel-play" role="tabpanel" aria-labelledby="settingsTab-play" className="settings-panel" hidden={settingsTab!=='play'}>
           <div className="settings-options"><button className="menu-main-btn menu-wide" id="devModeBtn" hidden={!!custom} onClick={game.toggleDev} aria-label="Developer mode" aria-pressed={state.dev}>Dev Mode · {state.dev?'ON':'OFF'}</button></div>

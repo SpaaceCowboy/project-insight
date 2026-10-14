@@ -27,6 +27,10 @@ export function useDialogs(initial=null) {
   return {active:stack.at(-1)?.id || null,has:id=>stack.some(entry=>entry.id===id),open,close,ref:id=>node=>{if(node)nodes.current.set(id,node);else nodes.current.delete(id)}};
 }
 
+export function BackButton({onClick,label='Back',...props}) {
+  return <button {...props} className="back-btn" onClick={onClick} aria-label={label}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg></button>;
+}
+
 export function Dialog({dialogs,id,className='',children,...props}) {
   const active=dialogs.active===id;
   return <div {...props} id={id} ref={dialogs.ref(id)} className={'overlay '+className+(active?' open':'')} inert={!active}
