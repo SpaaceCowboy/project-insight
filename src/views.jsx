@@ -29,19 +29,20 @@ export function Target({cells}) {
     {type!=='.' && <Symbol type={type} />}
   </div>);
 }
-export function WorldTabs({selected,onSelect}) {
-  return [1,2,3,4,5].map(w=><button key={w} id={'worldTab'+w} className="ui-btn" role="tab" aria-controls="levelWorlds"
-    aria-selected={selected===w} tabIndex={selected===w?0:-1} onClick={()=>onSelect(w)} onKeyDown={event=>{
-      if(!['ArrowLeft','ArrowRight'].includes(event.key))return;
-      event.preventDefault();
-      const next=(w-1+(event.key==='ArrowRight'?1:4))%5+1;
-      onSelect(next);document.getElementById('worldTab'+next).focus();
-    }}>World {w}</button>);
+export function Worlds({worlds,onSelect}) {
+  const {WORLD_COLORS}=PuzzleArt;
+  return <div className="world-list">{worlds.map(({world,total,solved,complete,locked})=>{
+    const [light,deep]=WORLD_COLORS[(world-1)%WORLD_COLORS.length];
+    return <button key={world} className={'world-card'+(complete?' complete':'')} style={{'--w1':light,'--w2':deep}} disabled={locked} onClick={()=>onSelect(world)}
+      aria-label={`World ${world}, ${solved} of ${total} solved${locked?', locked':complete?', complete':''}`}>
+      <span className="world-card-name">World {world}</span>
+      <span className="world-card-status">{locked?'Locked':complete?'✓ Complete':solved+' / '+total}</span>
+    </button>;
+  })}</div>;
 }
-export function Levels({world,name,levels,progress,current,unlocked,onSelect}) {
+export function Levels({world,levels,progress,current,unlocked,onSelect}) {
   const entries=levels.map((level,i)=>({level,i})).filter(({level})=>level.world===world);
-  return <section className="world-block"><div className="world-head"><div className="world-title">WORLD {world} · {name}</div>
-    <div className="world-sub">{entries.filter(({i})=>progress[i+1]).length} / {entries.length} solved</div></div>
+  return <section className="world-block">
     <div className="level-grid">{entries.map(({level,i})=>{
       const done=!!progress[i+1];
       const locked=i>=unlocked;

@@ -13,7 +13,7 @@ export default function GameMenus({game}) {
         <div className="home-brand"><div className="menu-logo" id="menuTitle">INSIGHT</div><div className="menu-tagline">A little order. A little wonder.</div>
           <div className="menu-hero" id="menuHero" aria-hidden="true"><Hero /></div></div>
         <div className="home-main">
-          <button className="menu-main-btn home-btn" id="menuLevelsBtn" onClick={game.showLevels}>Single player</button>
+          <button className="menu-main-btn home-btn" id="singlePlayerBtn" onClick={game.showWorlds}>Single player</button>
           <button className="menu-main-btn home-btn" id="onlineBtn" aria-disabled="true">Online</button>
           <button className="menu-main-btn home-btn" id="homeSettingsBtn" onClick={()=>game.openDialog('settingsOverlay',true)}>Options</button>
         </div>

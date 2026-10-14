@@ -1,21 +1,10 @@
-import {CORE_LEVELS,PuzzleRules,PuzzleSolver,PuzzleArt} from './data.js';
+import {CAMPAIGN_LEVELS,PuzzleRules,PuzzleSolver,PuzzleArt} from './data.js';
 import {newAttempt,restoreAttempt} from './achievements.mjs';
 
-export const WORLD_NAMES={1:'FIRST CONNECTIONS',2:'BORROWED PATHS',3:'LAST CHARGE',4:'CONVERGENCE',5:'COMPLEX MAPS'};
-export const KEYS={dev:'insight-dev-mode-v1',dark:'insight-theme-v1',sound:'insight-sound-v1',game:'insight-active-game-v1'};
-// Each campaign keeps its own solved levels, access and attempts. Revision 3 (no stars or Tile Limits) starts fresh
-// under new keys and leaves older keys untouched. Only Game 1 earns achievements, which index its levels.
-// Game 2 levels load on demand (loadGame).
-export const GAMES={
-  1:{achievements:true,levels:CORE_LEVELS,worldNames:WORLD_NAMES,progressKey:'insight-campaign-r3',campaignKey:'insight-campaign-v3',sessionKey:'insight-session-r3',attemptsKey:'insight-attempts-r3'},
-  2:{achievements:false,levels:null,worldNames:null,progressKey:'insight-game2-progress-v2',campaignKey:'insight-game2-campaign-v2',sessionKey:'insight-game2-session-v2',attemptsKey:'insight-game2-attempts-v2'}
-};
-export function activeGame(){return readPreference(KEYS.game)==='2'?2:1}
-export async function loadGame(id) {
-  if(GAMES[id].levels)return;
-  const {GAME2_LEVELS,GAME2_WORLDS}=await import('./data/levels-2.js');
-  GAMES[id].levels=GAME2_LEVELS;GAMES[id].worldNames=GAME2_WORLDS;
-}
+export const KEYS={dev:'insight-dev-mode-v1',dark:'insight-theme-v1',sound:'insight-sound-v1'};
+// Game 1 and Game 2 are one campaign. Game 1's saved keys (and level numbers 1-106) carry over unchanged;
+// Game 2's old keys are left untouched and unused.
+const CAMPAIGN={achievements:true,levels:CAMPAIGN_LEVELS,progressKey:'insight-campaign-r3',campaignKey:'insight-campaign-v3',sessionKey:'insight-session-r3',attemptsKey:'insight-attempts-r3'};
 export function readPreference(key,fallback=null){try{return localStorage.getItem(key) ?? fallback}catch{return fallback}}
 function readJSON(key){try{return JSON.parse(localStorage.getItem(key))}catch{return null}}
 export function readProgress(config) {
@@ -65,6 +54,15 @@ export function stashAttempt(state) {
   return {last:state.attempt.level,entries:{...state.attempts.entries,[attemptKey(state.config,state.attempt.level)]:saved}};
 }
 export function solved(attempt){return PuzzleRules.key(attempt.board)===PuzzleRules.key(attempt.target)}
+// Per-world summary for the world selector: a world is locked until its first level is unlocked.
+export function worldStats(config,done,unlocked,dev) {
+  const worlds=[];
+  config.levels.forEach((level,i)=>{
+    const world=worlds[level.world-1] || (worlds[level.world-1]={world:level.world,total:0,solved:0,first:i});
+    world.total++;if(done[i+1])world.solved++;
+  });
+  return worlds.map(world=>({...world,complete:world.solved===world.total,locked:!dev && world.first>=unlocked}));
+}
 export function canAccess(state,index){return !!state.config.custom || state.dev || index<state.unlocked}
 
 export function startPuzzle(state,index,{restart=false}={}) {
@@ -78,7 +76,7 @@ export function startPuzzle(state,index,{restart=false}={}) {
   return {...state,attempt,attempts,history:resume?restored.history:[],restart:recovery?.attempt.moves?recovery:null,color:resume?restored.color:PuzzleArt.TILE_LIGHTS.B,badges:[]};
 }
 
-export function initializeGame(gameId=activeGame()) {
+export function initializeGame() {
   let custom=null,error=null;
   if(new URLSearchParams(location.search).has('editor'))try{
     const preview=JSON.parse(sessionStorage.getItem('insight-editor-preview-v1')),verified=PuzzleSolver.verify(preview,preview);
@@ -86,17 +84,17 @@ export function initializeGame(gameId=activeGame()) {
     custom={...verified,id:preview.id,world:1};
   }catch{error='Playtest unavailable. Open the editor and validate your puzzle again.'}
   const spec=custom?PuzzleRules.validate(custom):null;if(spec)delete spec.name;
-  if(!GAMES[gameId].levels){console.error('Game '+gameId+' levels are not loaded; opening Game 1.');gameId=1}
-  const config={...GAMES[gameId],game:custom?0:gameId,custom,error,...(custom?{achievements:false,levels:[custom],sessionKey:'insight-editor-session-v2',attemptsKey:'insight-editor-attempts-v2'}:{}),stamp:custom?JSON.stringify([custom.id,spec]):null};
+  const config={...CAMPAIGN,custom,error,...(custom?{achievements:false,levels:[custom],sessionKey:'insight-editor-session-v2',attemptsKey:'insight-editor-attempts-v2'}:{}),stamp:custom?JSON.stringify([custom.id,spec]):null};
   const dev=!custom && readPreference(KEYS.dev)==='on';
   const attempts=readAttempts(config),progress=readProgress(config);
   let unlocked=1;const saved=readJSON(config.campaignKey);
   if(!custom && Number.isInteger(saved?.unlocked) && saved.unlocked>=1 && saved.unlocked<=config.levels.length)unlocked=saved.unlocked;
   else if(!custom){
-    for(const id of Object.keys(progress.done))unlocked=Math.max(unlocked,+id+1);
     for(const entry of Object.values(attempts.entries)){const restored=restoreSession(config,entry,config.achievements && !dev);if(restored)unlocked=Math.max(unlocked,restored.attempt.level+1)}
-    unlocked=Math.min(unlocked,config.levels.length);
   }
+  // Solved levels always open the next one, so players who finished the old 106-level campaign reach level 107.
+  if(!custom)for(const id of Object.keys(progress.done))unlocked=Math.max(unlocked,+id+1);
+  unlocked=Math.min(unlocked,config.levels.length);
   const state={config,dev,unlocked,attempts,progress,attempt:null,history:[],restart:null,color:PuzzleArt.TILE_LIGHTS.B,badges:[],dark:readPreference(KEYS.dark)!=='light',sound:readPreference(KEYS.sound)!=='off'};
   const restored=restoreSession(config,attempts.entries[attemptKey(config,attempts.last)],config.achievements && !dev),unfinished=config.levels.findIndex((level,i)=>!progress.done[i+1]);
   const initial=restored && !solved(restored.attempt)?restored.attempt.level:Math.max(0,unfinished);

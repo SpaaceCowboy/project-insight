@@ -1,7 +1,7 @@
 import {useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {PuzzleRules,PuzzleArt} from './data.js';
 import {achievements,hasAchievementStorageWarning} from './achievement-store.js';
-import {initializeGame,startPuzzle,stashAttempt,solved,canAccess,attemptKey,KEYS,GAMES,loadGame} from './game-state.js';
+import {initializeGame,startPuzzle,stashAttempt,solved,canAccess,attemptKey,KEYS} from './game-state.js';
 import {useDialogs,useFeedback,useAppearance,useStrokes} from './react-ui.jsx';
 import useAudio from './useAudio.js';
 
@@ -169,6 +169,10 @@ export default function useGame() {
   function leaveEditor(){cancelPending();persist(live.current);location.href='Editor.html'}
   function next(){if(state.config.custom)leaveEditor();else if(state.attempt.level<state.config.levels.length-1)start(state.attempt.level+1);else restart()}
   function showLevels(){if(state.config.custom){leaveEditor();return}setWorld(state.config.levels[state.attempt.level].world);openDialog('levelsOverlay',!!dialogs.active)}
+  function showWorlds(){if(state.config.custom){leaveEditor();return}openDialog('worldsOverlay',!!dialogs.active)}
+  function chooseWorld(number){setWorld(number);openDialog('levelsOverlay',true)}
+  // Levels opened from Worlds pops back to it; opened from the in-game menu it puts Worlds on top.
+  function backToWorlds(){const below=dialogs.has('worldsOverlay');dialogs.close();if(!below)dialogs.open('worldsOverlay',{nested:true})}
   function showAchievements(tab='collection'){setCollectionRequest({tab});openDialog('achievementsOverlay',true)}
   function continuePlay(){if(solved(state.attempt))next();else{dialogs.close(true);pendingFocus.current='first'}sound.play('select')}
   function resume(){if(solved(state.attempt))openDialog('winOverlay');else dialogs.close(true)}
@@ -179,15 +183,6 @@ export default function useGame() {
     if(next.dev){next.attempt={...next.attempt,achievementAttempt:{...next.attempt.achievementAttempt,eligible:false}};if(next.restart)next.restart={...next.restart,attempt:{...next.restart.attempt,achievementAttempt:{...next.restart.attempt.achievementAttempt,eligible:false}}}}
     if(!canAccess(next,next.attempt.level))next=startPuzzle(next,next.unlocked-1);
     enter(next,{keepDialogs:true});
-  }
-  // Game 2 is a development campaign; each New Game clears only its own campaign and makes it the active one.
-  async function newGame(id=1){
-    if(state.config.custom || !await feedback.confirm({title:'Start New Game '+id+'?',message:'Game '+id+' solved levels and saved attempts will be cleared. Achievements and cosmetics remain unlocked. Your custom puzzles, settings and the other game\'s progress will stay.',accept:'Start new game',danger:true}))return;
-    try{await loadGame(id)}catch(error){console.error(error);feedback.notify('Game '+id+' could not load. Your progress is unchanged.',{title:'New game not started',tone:'error'});return}
-    const empty={done:{}};store(GAMES[id].progressKey,JSON.stringify(empty));store(KEYS.dev,'off');store(KEYS.game,String(id));
-    const current=live.current.config.game===id?live.current:initializeGame(id);
-    enter(startPuzzle({...current,attempt:null,attempts:{last:0,entries:{}},progress:empty,history:[],restart:null,dev:false,unlocked:1},0,{restart:true}));
-    feedback.notify('Game '+id+' starts again at Level 1. Achievements and cosmetics are kept.',{title:'New game started',tone:'success'});changeUI({announcement:'New game '+id+' started. Level 1.'});
   }
   useEffect(()=>{
     function keydown(event){
@@ -203,5 +198,5 @@ export default function useGame() {
     document.addEventListener('keydown',keydown);window.addEventListener('resize',resize);
     return ()=>{document.removeEventListener('keydown',keydown);window.removeEventListener('resize',resize)};
   });
-  return {state,ui,dialogs,feedback,ink,sound,world,setWorld,settingsTab,setSettingsTab,collectionRequest,notices,dismissNotice:()=>setNotices(items=>items.slice(1)),boardRef,shellRef,tileRef,pointerDown,pointerMove,pointerUp,cancelDrag,choose,start,restart,undo,next,showLevels,showAchievements,continuePlay,resume,toggle,toggleDev,newGame,leaveEditor,openDialog,clearSelection:()=>changeUI({selected:null}),clearArrival:pos=>setUI(previous=>({...previous,arrived:previous.arrived.filter(item=>item.join(':')!==pos.join(':'))}))};
+  return {state,ui,dialogs,feedback,ink,sound,world,setWorld,settingsTab,setSettingsTab,collectionRequest,notices,dismissNotice:()=>setNotices(items=>items.slice(1)),boardRef,shellRef,tileRef,pointerDown,pointerMove,pointerUp,cancelDrag,choose,start,restart,undo,next,showLevels,showWorlds,chooseWorld,backToWorlds,showAchievements,continuePlay,resume,toggle,toggleDev,leaveEditor,openDialog,clearSelection:()=>changeUI({selected:null}),clearArrival:pos=>setUI(previous=>({...previous,arrived:previous.arrived.filter(item=>item.join(':')!==pos.join(':'))}))};
 }

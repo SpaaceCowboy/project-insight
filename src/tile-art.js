@@ -17,5 +17,7 @@ const META = {
   P: {cls: 'purple', name: 'Purple'}
 };
 const TILE_LIGHTS = {R:'#e69a99',B:'#88cedd',G:'#9fd6b5',Y:'#edcc82',P:'#bba9dc',W:'#e4ecdf'};
-return {ICONS,META,TILE_LIGHTS};
+// One [light, deep] pair per world; the first six echo the tile colours.
+const WORLD_COLORS = [['#93d2db','#3b88a6'],['#e09a91','#ae546b'],['#a6d7ad','#4b896b'],['#f0d38b','#b88a43'],['#c9b8e1','#8464a9'],['#8fd9c9','#2f8a80'],['#f0b48c','#b8663f'],['#a4b4ec','#4a5aa8'],['#c5d98f','#7a9440'],['#e8a3cf','#a8508a'],['#f3f4df','#c3cfbc']];
+return {ICONS,META,TILE_LIGHTS,WORLD_COLORS};
 })();

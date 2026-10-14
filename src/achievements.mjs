@@ -28,7 +28,7 @@ export function createAchievements({levels,storage,onStorageError=()=>{},progres
     {id:'flow',name:'Finding Flow',requirement:'Complete 10 distinct campaign levels.',goal:10,metric:'completed',mark:'≈'},
     {id:'halfway',name:'Halfway Home',requirement:'Complete 50 distinct campaign levels.',goal:50,metric:'completed',mark:'◐'},
     {id:'complete',name:'INSIGHT Complete',requirement:'Complete all '+levels.length+' campaign levels.',goal:levels.length,metric:'completed',mark:'✦'},
-    ...[1,2,3,4,5].map(world=>({id:'world-'+world,name:'World '+world+' Master',requirement:'Complete every level in World '+world+'.',goal:levels.filter(level=>level.world===world).length,world,metric:'world',mark:String(world)})),
+    ...[...new Set(levels.map(level=>level.world))].map(world=>({id:'world-'+world,name:'World '+world+' Master',requirement:'Complete every level in World '+world+'.',goal:levels.filter(level=>level.world===world).length,world,metric:'world',mark:String(world)})),
     {id:'first-clean',name:'First Clean Solve',requirement:'Complete 1 campaign level without undo.',goal:1,metric:'noUndo',mark:'★'},
     {id:'steady',name:'Steady Hand',requirement:'Complete 10 distinct levels without undo.',goal:10,metric:'noUndo',mark:'⌁'},
     {id:'unbroken',name:'Unbroken',requirement:'Complete 25 distinct levels without undo.',goal:25,metric:'noUndo',mark:'✧'},
