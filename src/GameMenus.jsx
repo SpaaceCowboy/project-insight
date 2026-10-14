@@ -2,6 +2,7 @@ import React from 'react';
 import {Hero} from './views.jsx';
 import {Dialog,BackButton} from './react-ui.jsx';
 import {solved} from './game-state.js';
+import Creator from './Creator.jsx';
 
 export default function GameMenus({game}) {
   const {state,dialogs,settingsTab,setSettingsTab,sound}=game,custom=state.config.custom,index=state.attempt.level;
@@ -32,9 +33,7 @@ export default function GameMenus({game}) {
         </div>
       </div>
     </Dialog>
-    <Dialog dialogs={dialogs} className="screen" id="createOverlay" role="dialog" aria-modal="true" aria-labelledby="createTitle">
-      <div className="modal online-card"><div className="screen-head"><BackButton id="closeCreate" onClick={()=>dialogs.close()} label="Back" data-close="createOverlay" /><div><h2 id="createTitle">Create</h2></div></div></div>
-    </Dialog>
+    <Dialog dialogs={dialogs} className="screen creator-screen" id="createOverlay" role="dialog" aria-modal="true" aria-labelledby="createTitle"><Creator dialogs={dialogs} sound={sound} /></Dialog>
     <Dialog dialogs={dialogs} className="menu-overlay" id="pauseOverlay" role="dialog" aria-modal="true" aria-labelledby="pauseTitle">
       <div className="menu-card pause-card"><h2 id="pauseTitle">Menu</h2><p id="pauseDescription">{'Level '+String(index+1).padStart(3,'0')+' · '+state.config.levels[index].name}</p>
         <div className="menu-actions menu-stack">
