@@ -26,6 +26,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         reduceMotion = readReduceMotion()
+        // Match the saved light/dark choice before the first frame, so a light-mode player doesn't see dark bars or window.
+        val bars = if (model.dark) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+        enableEdgeToEdge(bars, bars)
+        window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(if (model.dark) 0xFF0C252E.toInt() else 0xFFD9E9DC.toInt()))
         setContent {
             LaunchedEffect(model.dark) {
                 val bars = if (model.dark) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)

@@ -18,6 +18,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -62,6 +63,7 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -97,7 +99,8 @@ fun GameScreen(m: GameModel) {
     // The target is what you play from: it scales with the grid instead of staying a thumbnail.
     val targetCell = when (maxOf(target.size, target[0].length)) { 1, 2 -> 30.dp; 3 -> 26.dp; 4 -> 22.dp; else -> 20.dp }
     Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).semantics { isTraversalGroup = true }) {
-        Column(Modifier.fillMaxSize().padding(start = 12.dp, end = 12.dp, top = 60.dp, bottom = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        // On tablets and landscape windows the play area stays board-sized and centred instead of stretching edge to edge.
+        Column(Modifier.align(Alignment.TopCenter).widthIn(max = 720.dp).fillMaxSize().padding(start = 12.dp, end = 12.dp, top = 60.dp, bottom = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Eyebrow("World ${spec.world} · Level %03d".format(m.level + 1))
             Label(spec.name, 24.sp, Modifier.padding(top = 4.dp).semantics { heading() }, serif = true, align = TextAlign.Center)
             Spacer(Modifier.height(10.dp))
@@ -204,7 +207,7 @@ private fun Board(m: GameModel, modifier: Modifier) {
         val gap = with(density) { 5.dp.toPx() }
         val w = constraints.maxWidth.toFloat(); val h = constraints.maxHeight.toFloat()
         val pad = with(density) { 32.dp.toPx() }
-        val cell = min(with(density) { 88.dp.toPx() }, min((w - pad - (cols - 1) * gap) / cols, (h - pad - (rows - 1) * gap) / rows))
+        val cell = min(with(density) { (if (LocalConfiguration.current.screenWidthDp >= 600) 120.dp else 88.dp).toPx() }, min((w - pad - (cols - 1) * gap) / cols, (h - pad - (rows - 1) * gap) / rows))
         // Centre the occupied area, not the full grid (holes on one side would push it off centre).
         val (minR, maxR, minC, maxC) = Rules.bounds(board)
         val gridW = cols * cell + (cols - 1) * gap; val gridH = rows * cell + (rows - 1) * gap
@@ -239,7 +242,10 @@ private fun Board(m: GameModel, modifier: Modifier) {
             if (moving != null || isSolved) return
             val sel = selected
             if (sel != null && Rules.isLegal(current, sel, at)) { move(sel, at, Offset.Zero); return }
-            if (sel != null && sel != at && Rules.legalMoves(current, sel).isNotEmpty()) { rejectAt(sel); return }
+            if (sel != null && sel != at && Rules.legalMoves(current, sel).isNotEmpty()) {
+                if (Rules.legalMoves(current, at).isNotEmpty()) { selected = at; haptic.performHapticFeedback(HapticFeedbackType.SegmentTick); m.audio.play("select", current[at.r][at.c]); return }
+                rejectAt(sel); return
+            }
             // A stone with no move (White, or boxed in) must not lift as if it could go somewhere.
             if (sel == null && Rules.legalMoves(current, at).isEmpty()) { rejectAt(at); return }
             selected = if (sel == at) null else at

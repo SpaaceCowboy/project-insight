@@ -22,12 +22,12 @@ class Achievements(private val levels: List<Level>) {
         add(Badge("halfway", "Halfway Home", "Complete 50 distinct campaign levels.", 50, "◐", metric = Metric.COMPLETED))
         add(Badge("complete", "INSIGHT Complete", "Complete all ${levels.size} campaign levels.", levels.size, "✦", metric = Metric.COMPLETED))
         worlds.forEach { w -> add(Badge("world-$w", "World $w Master", "Complete every level in World $w.", levels.count { it.world == w }, "$w", w, Metric.WORLD)) }
-        add(Badge("first-clean", "First Clean Solve", "Complete 1 campaign level without undo.", 1, "★", metric = Metric.CLEAN))
-        add(Badge("steady", "Steady Hand", "Complete 10 distinct levels without undo.", 10, "⌁", metric = Metric.CLEAN))
-        add(Badge("unbroken", "Unbroken", "Complete 25 distinct levels without undo.", 25, "✧", metric = Metric.CLEAN))
-        add(Badge("flawless", "Flawless", "Complete 50 distinct levels without undo.", 50, "◇", metric = Metric.CLEAN))
-        add(Badge("clean-sweep", "Clean Sweep", "Complete every level in one world without undo.", 1, "⋈", metric = Metric.CLEAN_WORLD))
-        add(Badge("pristine", "Pristine", "Complete all ${levels.size} campaign levels without undo.", levels.size, "⊞", metric = Metric.CLEAN))
+        add(Badge("first-clean", "First Clean Solve", "Complete 1 campaign level. There is no undo here, so every solve counts.", 1, "★", metric = Metric.CLEAN))
+        add(Badge("steady", "Steady Hand", "Complete 10 distinct levels. There is no undo here, so every solve counts.", 10, "⌁", metric = Metric.CLEAN))
+        add(Badge("unbroken", "Unbroken", "Complete 25 distinct levels. There is no undo here, so every solve counts.", 25, "✧", metric = Metric.CLEAN))
+        add(Badge("flawless", "Flawless", "Complete 50 distinct levels. There is no undo here, so every solve counts.", 50, "◇", metric = Metric.CLEAN))
+        add(Badge("clean-sweep", "Clean Sweep", "Complete every level in one world. There is no undo here, so every solve counts.", 1, "⋈", metric = Metric.CLEAN_WORLD))
+        add(Badge("pristine", "Pristine", "Complete all ${levels.size} campaign levels. There is no undo here, so every solve counts.", levels.size, "⊞", metric = Metric.CLEAN))
     }
 
     /** Progress toward a badge given the solved level numbers (1-based). */
