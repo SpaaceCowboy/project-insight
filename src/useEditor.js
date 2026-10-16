@@ -34,6 +34,7 @@ function readyMessage(draft){
 export default function useEditor() {
   const [initial]=useState(loadLibrary),[library,setLibrary]=useState(initial.library),live=useRef(library),draft=getDraft(library);
   const [side,setSide]=useState('start'),[panel,setPanel]=useState('paint'),[edits,setEdits]=useState({undo:[],redo:[]}),history=useRef(edits);
+  const [studioLast,setStudioLast]=useState(null);
   const [status,setStatus]=useState(null),[saved,setSaved]=useState(true),[checking,setChecking]=useState(false);
   const [holding,setHolding]=useState(null),[drag,setDrag]=useState(null),[drop,setDrop]=useState(null),[discarding,setDiscarding]=useState(false);
   const [color,setColor]=useState(PuzzleArt.TILE_LIGHTS.B),[importText,setImportText]=useState(''),[exportScope,setExportScope]=useState('one'),[seed,setSeed]=useState('0'),[download,setDownload]=useState(null);
@@ -165,6 +166,12 @@ export default function useEditor() {
     if(PuzzleRules.key(board)===draft.target.join('|')){message('No different Start was generated. Add movable tiles to Target and try again.','error');return}
     change(next=>{next.start=board.map(row=>row.join(''))});setSide('start');validate();
   }
+  // Dev server only: the newest studio level, which is the only one "Remove" may delete.
+  async function refreshStudio(){
+    if(!import.meta.env.DEV)return;
+    try{const response=await fetch('/__studio/levels');setStudioLast((await response.json()).levels?.at(-1) || null)}catch{setStudioLast(null)}
+  }
+  useEffect(()=>{refreshStudio()},[]);
   async function addToGame(){
     try{
       const current=getDraft(live.current);if(!current.proof?.par)return;
@@ -173,7 +180,20 @@ export default function useEditor() {
       if(!response.ok)throw new Error(result.error || 'Request failed ('+response.status+').');
       const android=result.android==='exported'?'Android assets updated.':'Android export '+result.android;
       feedback.notify('Level '+result.level+' · World '+result.world+' · par '+result.par+'. '+android,{title:'Added to game',tone:result.android==='exported'?'success':'warning',duration:result.android==='exported'?6000:0});
+      refreshStudio();
     }catch(error){message('Add to game failed: '+error.message,'error')}
+  }
+  async function removeLastFromGame(){
+    const last=studioLast;if(!last)return;
+    if(!await feedback.confirm({title:'Remove level '+last.level+' from the game?',message:'“'+last.name+'” is deleted from the studio levels and the Android assets. Your drafts are not affected.',accept:'Remove level'}))return;
+    try{
+      const response=await fetch('/__studio/remove-last',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({level:last.level})});
+      const result=await response.json().catch(()=>({error:'Unexpected response ('+response.status+').'}));
+      if(!response.ok)throw new Error(result.error || 'Request failed ('+response.status+').');
+      const android=result.android==='exported'?'Android assets updated.':'Android export '+result.android;
+      feedback.notify('“'+result.removed+'” (level '+result.level+') removed. '+android,{title:'Removed from game',tone:result.android==='exported'?'success':'warning',duration:result.android==='exported'?6000:0});
+    }catch(error){message('Remove failed: '+error.message,'error')}
+    refreshStudio();
   }
   function playtest(){try{const current=getDraft(live.current);if(!current.proof)return;save();const spec=PuzzleSolver.verify(current,current.proof);sessionStorage.setItem(PREVIEW_KEY,JSON.stringify({...spec,id:current.id}));location.href='Puzzle.html?editor=1'}catch(error){message('Playtest could not open: '+error.message,'error')}}
   function importJSON(text){
@@ -207,5 +227,5 @@ export default function useEditor() {
     return ()=>{document.removeEventListener('keydown',keydown);window.removeEventListener('pagehide',pagehide);window.removeEventListener('blur',cancelPlacement)};
   });
   const counts=Object.fromEntries(Object.keys(PuzzleArt.META).map(type=>[type,['start','target'].map(which=>[...draft[which].join('')].filter(tile=>tile===type).length)]));
-  return {library,draft,side,panel,edits,status:status || {text:readyMessage(draft),tone:draft.proof?'valid':'idle'},saved,checking,holding,drag,drop,discarding,counts,dialogs,feedback,ink,boardRef,shellRef,removeRef,fileRef,downloadRef,download,importText,setImportText,exportScope,setExportScope,seed,setSeed,cellRef:pos=>node=>{const key=pos.join(':');if(node)cells.current.set(key,node);else cells.current.delete(key)},paletteRef:type=>node=>{if(node)palette.current.set(type,node);else palette.current.delete(type)},beginDrag,pointerMove,pointerUp,cancelPlacement,pickUp,activate,showPanel,changeSide,change,undoEdit,switchDraft,newDraft:()=>addDraft(newDraft()),duplicateDraft:()=>addDraft({...copy(draft),id:newDraft().id,name:draft.name.slice(0,53)+' · copy'}),copyLevel:()=>addDraft(newDraft({...CAMPAIGN_LEVELS[+seed],name:CAMPAIGN_LEVELS[+seed].name+' · copy'})),deleteDraft,resize,clear,shuffle,validate,playtest,addToGame,importJSON,importFile,exportFile,removePicked:()=>{if(holding?.from)removeTile(holding.from);else message('Drag tiles here or outside the board to remove. Delete also removes.')}};
+  return {library,draft,side,panel,edits,status:status || {text:readyMessage(draft),tone:draft.proof?'valid':'idle'},saved,checking,holding,drag,drop,discarding,counts,dialogs,feedback,ink,boardRef,shellRef,removeRef,fileRef,downloadRef,download,importText,setImportText,exportScope,setExportScope,seed,setSeed,cellRef:pos=>node=>{const key=pos.join(':');if(node)cells.current.set(key,node);else cells.current.delete(key)},paletteRef:type=>node=>{if(node)palette.current.set(type,node);else palette.current.delete(type)},beginDrag,pointerMove,pointerUp,cancelPlacement,pickUp,activate,showPanel,changeSide,change,undoEdit,switchDraft,newDraft:()=>addDraft(newDraft()),duplicateDraft:()=>addDraft({...copy(draft),id:newDraft().id,name:draft.name.slice(0,53)+' · copy'}),copyLevel:()=>addDraft(newDraft({...CAMPAIGN_LEVELS[+seed],name:CAMPAIGN_LEVELS[+seed].name+' · copy'})),deleteDraft,resize,clear,shuffle,validate,playtest,addToGame,studioLast,removeLastFromGame,importJSON,importFile,exportFile,removePicked:()=>{if(holding?.from)removeTile(holding.from);else message('Drag tiles here or outside the board to remove. Delete also removes.')}};
 }

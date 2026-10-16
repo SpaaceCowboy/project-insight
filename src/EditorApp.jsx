@@ -48,7 +48,7 @@ export default function EditorApp() {
     </section>
     <footer className="studio-footer">
       <div id="validationStatus" role="status" aria-live="polite" data-state={editor.status.tone}>{editor.status.text}</div>
-      <div className="studio-row"><button id="validatePuzzle" onClick={editor.validate} className="control-btn">{editor.checking?'Cancel check':'Validate'}</button><button id="playtestPuzzle" onClick={editor.playtest} className="control-btn primary" disabled={!draft.proof?.par || editor.checking}>Playtest</button>{import.meta.env.DEV && <button id="addToGame" onClick={editor.addToGame} className="control-btn" disabled={!draft.proof?.par || editor.checking}>Add to game</button>}</div>
+      <div className="studio-row"><button id="validatePuzzle" onClick={editor.validate} className="control-btn">{editor.checking?'Cancel check':'Validate'}</button><button id="playtestPuzzle" onClick={editor.playtest} className="control-btn primary" disabled={!draft.proof?.par || editor.checking}>Playtest</button>{import.meta.env.DEV && <button id="addToGame" onClick={editor.addToGame} className="control-btn" disabled={!draft.proof?.par || editor.checking}>Add to game</button>}{import.meta.env.DEV && editor.studioLast && <button id="removeFromGame" onClick={editor.removeLastFromGame} className="control-btn" title={'Remove “'+editor.studioLast.name+'” from the game'}>Remove level {editor.studioLast.level}</button>}</div>
     </footer>
   </main>
 </div>

@@ -15,6 +15,8 @@ npm run dev     # http://127.0.0.1:8000/  (the studio)
 4. **Add to game** (dev server only): the server re-solves the puzzle itself, rejects boards already in the game, appends it to `src/data/levels-3.js` / `level-solutions-3.js`, and runs `../project-insight-android/tools/export-assets.mjs` to refresh the Android assets. The new level becomes the next campaign number (207, 208, …; World 11 holds 207–220, World 12 follows).
 5. In the Android project run `./gradlew testDebugUnitTest` (replays every verified route) and build the APK.
 
+**Remove level N** (next to Add to game) undoes the newest studio level after a confirmation. Only the newest can go: removing an earlier one would renumber the rest and break saved progress.
+
 Levels are append-only: Android saves progress by level number. To change or reorder existing levels, edit `src/data/*` by hand and re-run `node scripts/check-levels.cjs --update`.
 
 `Export` in the studio still writes puzzle JSON; it is a backup/share format and is not read by the game.
