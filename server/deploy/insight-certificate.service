@@ -1,0 +1,8 @@
+[Unit]
+Description=Renew INSIGHT IP certificate
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/insight-online/certbot/bin/certbot renew --config-dir /opt/insight-online/acme/config --work-dir /opt/insight-online/acme/work --logs-dir /opt/insight-online/acme/logs --quiet

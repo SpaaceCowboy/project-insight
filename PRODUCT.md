@@ -33,10 +33,13 @@ The rules are the tiles themselves: each colour moves in its own fixed direction
 - **Gameplay fits on one screen.** No tutorials, help dialogs, rule explanations or legal-destination hints, by explicit decision on the web game, carried into the port. Players learn the rules by playing.
 - **No pressure mechanics:** no move limits, timers or star ratings. The web game removed stars and tile limits in revision 3.
 - **Dev Mode** (all levels unlocked, achievements paused) exists only in debug builds.
-- **Online, Log In and What's Next are planned features.** They are inert placeholders today; keep their slots and design toward them. The creator's Make-level step (M) is also inert.
+- **Private Online test:** verified email/password accounts, profiles, community worlds and grids, legal-solution publishing, discovery, code lookup, and server-owned XP. The creator's Make step publishes a successfully checked grid. Guests retain the campaign and local creator.
+- **Local Online preview:** a separate installable build demonstrates the same flows on-device with labelled sample players/worlds. It makes no network calls and is not a real account service.
+- **Deferred:** Casual, What's Next, profile search, additional discovery filters, and billing.
 - **Distribution:** Google Play. The campaign is free. Online play is the paid part. The purchase mechanism (IAP and its price) is undecided.
 - `applicationId` `com.insightpuzzle.app` becomes permanent once published.
-- Undecided: what Online play consists of, account and login requirements, and what What's Next contains.
+- Online menu order: Profile, Create, Casual (Coming soon), Play. Content uses curated English word combinations and six tile icons. Worlds hold at most 20 immutable published grids, including hidden grids; owners can rename and hide/restore content.
+- Level 100 requires 106,920 XP. First verified solve: 100 XP; replay: 10 XP once per content/day, up to 50 daily; original publication: 25 XP, up to 50 daily; distinct other player/grid: 0.001 XP after a legal move. Existing progress/badges import without XP. Campaign and community progress remain separate.
 
 ## Brand Commitments
 

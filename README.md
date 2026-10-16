@@ -16,7 +16,16 @@ A native Android version (Kotlin + Jetpack Compose) of the INSIGHT puzzle game. 
 | Game board | `GameScreen.kt` |
 | `src/useCreator.js`, `src/Creator.jsx` | `CreatorState.kt`, `CreatorScreen.kt` |
 
-Differences from the web version: portrait only; no undo key (so every solve counts as a clean solve); Dev Mode exists only in debug builds; Log In, What's Next, Online → Play and the creator's M are inert, as on the web.
+Differences from the web version: portrait only; no undo key (so every solve counts as a clean solve); Dev Mode exists only in debug builds. Android now includes accounts, profiles, community worlds/play, checked publishing, and XP. What's Next and Casual remain planned features.
+
+## Online and installable builds
+
+The TypeScript/PostgreSQL service and deployment instructions are in [server/README.md](server/README.md). Community features require a verified account; campaign and local creation work offline. No billing is enabled for the private test.
+
+- **INSIGHT-preview.apk** at the repository root is a signed debug build with a clearly labelled, persistent local Online demonstration. It needs no server or internet. Its package is `com.insightpuzzle.app.preview`, so it can coexist with the real app.
+- **INSIGHT-online.apk** at the repository root is a signed debug build configured for the deployed private-test backend. The campaign still works without connectivity; real accounts and community discovery require it. This is an installable test build, not a Play release.
+
+Rebuild the local preview with `./gradlew assembleDebug -PinsightOnlineDemo=true`. Build a backend-connected APK with `./gradlew assembleDebug -PinsightApiUrl=https://YOUR_API`. Release builds reject cleartext service addresses. Preview data, saves, and credentials are kept separate from real service data.
 
 ## Toolchain (this machine)
 

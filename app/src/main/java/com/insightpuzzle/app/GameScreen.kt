@@ -101,7 +101,7 @@ fun GameScreen(m: GameModel) {
     Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).semantics { isTraversalGroup = true }) {
         // On tablets and landscape windows the play area stays board-sized and centred instead of stretching edge to edge.
         Column(Modifier.align(Alignment.TopCenter).widthIn(max = 720.dp).fillMaxSize().padding(start = 12.dp, end = 12.dp, top = 60.dp, bottom = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Eyebrow("World ${spec.world} · Level %03d".format(m.level + 1) + if (m.moveCounter) " · Moves ${m.moves}" else "")
+            Eyebrow((m.community?.grid?.optString("worldName") ?: "World ${spec.world} · Level %03d".format(m.level + 1)) + if (m.moveCounter) " · Moves ${m.moves}" else "")
             Label(spec.name, 24.sp, Modifier.padding(top = 4.dp).semantics { heading() }, serif = true, align = TextAlign.Center)
             Spacer(Modifier.height(10.dp))
             Eyebrow("Target")

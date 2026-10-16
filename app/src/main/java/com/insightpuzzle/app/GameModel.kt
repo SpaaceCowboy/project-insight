@@ -12,6 +12,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 sealed interface Route {
     data object Home : Route
@@ -24,10 +25,21 @@ sealed interface Route {
     data class Achievements(val tab: String = "collection") : Route
     data object Online : Route
     data object Create : Route
+    data class Auth(val destination: Route? = null) : Route
+    data class Profile(val id: String? = null) : Route
+    data object Browse : Route
+    data class CommunityWorld(val id: String) : Route
+    data object Publish : Route
 }
 
 /** What a Restart threw away, kept briefly so one stray tap never costs a long attempt. */
-class RestartUndo(val level: Int, val board: Board, val path: List<Pair<Int, Int>>, val light: Color)
+class RestartUndo(val level: Int, val board: Board, val path: List<Pair<Int, Int>>, val light: Color, val communityId: String? = null)
+
+data class CommunityAttempt(val grid: JSONObject, val sessionId: String, val account: String) {
+    val id get() = grid.getString("id")
+    val worldId get() = grid.getString("worldId")
+    val spec get() = Level(grid.getString("name"), grid.board("start"), grid.board("target"), 0, 0)
+}
 
 data class WorldStat(val world: Int, val total: Int, val solved: Int, val first: Int, val locked: Boolean) { val complete get() = solved == total }
 
@@ -37,7 +49,9 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     val levels: List<Level> = Levels.parse(app.assets.open("levels.json").bufferedReader().use { it.readText() })
     val achievements = Achievements(levels)
     val audio = Audio(app).apply { enabled = store.sound; effects = store.effects; ambience = store.ambience; voice = store.voice; pauseOverOthers = store.pauseOverOthers; silenceOnUnplug = store.silenceOnUnplug }
-    val creator = CreatorState()
+    val creator = CreatorState(store.creatorDraft) { store.creatorDraft = it }
+    val online = OnlineState(this, app, viewModelScope)
+    var community by mutableStateOf<CommunityAttempt?>(null); private set
 
     /** Screens, bottom to top. The bottom is Home or Game; Pause and Win sit on top of Game. */
     val stack = mutableStateListOf<Route>(Route.Home)
@@ -72,7 +86,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     var background by mutableStateOf(store.background); private set
     var finish by mutableStateOf(store.finish); private set
 
-    val spec get() = levels[level]
+    val spec get() = community?.spec ?: levels[level]
     /** Home's Continue: the unfinished attempt, else the first level not yet solved. Null on a fresh install. */
     val continueLevel: Int? get() {
         if (done.isEmpty() && store.attempt(level) == null) return null
@@ -89,6 +103,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
         // Cosmetics can only stay equipped while owned.
         if (COSMETICS.none { it.id == background && achievements.owns(it, earned) }) background = "forest"
         if (COSMETICS.none { it.id == finish && achievements.owns(it, earned) }) finish = "original"
+        online.initialize()
     }
 
     fun worlds(): List<WorldStat> = levels.withIndex().groupBy { it.value.world }.map { (w, items) ->
@@ -97,6 +112,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
 
     /** Opens a level, resuming its unfinished attempt if one was saved. */
     private fun load(index: Int, restart: Boolean = false) {
+        community = null
         winJob?.cancel()
         level = index; board = levels[index].start; moves = 0; path = mutableListOf(); light = Art.LIGHT.getValue('B')
         if (restart) { store.saveAttempt(index, null); return }
@@ -122,28 +138,80 @@ class GameModel(app: Application) : AndroidViewModel(app) {
         stack.clear(); stack += Route.Game
     }
 
+    fun startCommunity(grid: JSONObject, sessionId: String) {
+        val account = online.user?.takeIf { it.verified }?.id ?: return
+        winJob?.cancel(); clearRestartUndo()
+        community = CommunityAttempt(grid, sessionId, account)
+        board = spec.start; moves = 0; path = mutableListOf(); winBadges = emptyList(); light = Art.LIGHT.getValue('B')
+        val saved = store.communityAttempt(grid.getString("id"))
+        if (saved != null) {
+            val width = board[0].length; val recovered = mutableListOf<Pair<Int, Int>>()
+            var replay = board; var valid = true
+            for (step in saved.split(';')) {
+                val parts = step.split(',').mapNotNull { it.toIntOrNull() }
+                if (parts.size != 2 || parts.any { it !in 0 until width * board.size }) { valid = false; break }
+                val a = Pos(parts[0] / width, parts[0] % width); val b = Pos(parts[1] / width, parts[1] % width)
+                if (!Rules.isLegal(replay, a, b) || Rules.key(replay) == Rules.key(spec.target)) { valid = false; break }
+                replay = Rules.swap(replay, a, b); recovered += parts[0] to parts[1]
+            }
+            if (valid && Rules.key(replay) != Rules.key(spec.target)) { board = replay; path = recovered; moves = recovered.size }
+        }
+        stack.clear(); stack += Route.Game
+    }
+
+    private fun saveCurrentAttempt(value: String?) {
+        val current = community
+        if (current == null) store.saveAttempt(level, value) else store.saveCommunityAttempt(current.id, value)
+    }
+
+    fun selectAccount(id: String?) {
+        if (store.activeAccount == id) return
+        winJob?.cancel(); clearRestartUndo(); community = null
+        store.selectAccount(id); done = store.done; earned = store.earned; winBadges = emptyList()
+        load(levels.indices.firstOrNull { (it + 1) !in done } ?: 0)
+        if (COSMETICS.none { it.id == background && achievements.owns(it, earned) }) { background = "forest"; store.background = background }
+        if (COSMETICS.none { it.id == finish && achievements.owns(it, earned) }) { finish = "original"; store.finish = finish }
+    }
+
+    fun mergeAccountProgress(json: JSONObject) {
+        val solved = json.getJSONArray("done")
+        done = done + List(solved.length()) { solved.getInt(it) }; store.done = done
+        earned = earned + json.getJSONArray("badges").strings().associateWith { earned[it] ?: System.currentTimeMillis() }; store.earned = earned
+    }
+
+    fun openOnline(destination: Route) {
+        if (online.user?.verified == true) {
+            if (destination == Route.Publish) online.task { online.repository.remove(online.user!!.id, "publish-draft"); push(destination) }
+            else push(destination)
+        } else push(Route.Auth(destination))
+    }
+
     fun restart() {
         // Offer to take it back when real work is about to be wiped (not after a solve: that is a deliberate replay).
         if (moves > 0 && !solved) {
-            restartUndo = RestartUndo(level, board, path.toList(), light)
+            restartUndo = RestartUndo(level, board, path.toList(), light, community?.id)
             undoJob?.cancel()
             undoJob = viewModelScope.launch { delay(6000); restartUndo = null }
         } else clearRestartUndo()
-        load(level, restart = true); audio.play("move", 'B'); if (top == Route.Win || top == Route.Pause) stack.removeAt(stack.lastIndex)
+        if (community == null) load(level, restart = true) else {
+            winJob?.cancel(); board = spec.start; moves = 0; path = mutableListOf(); saveCurrentAttempt(null)
+        }
+        audio.play("move", 'B'); if (top == Route.Win || top == Route.Pause) stack.removeAt(stack.lastIndex)
     }
 
     fun undoRestart() {
         val u = restartUndo ?: return
         clearRestartUndo()
-        if (u.level != level || solved) return
+        if (u.level != level || u.communityId != community?.id || solved) return
         board = u.board; moves = u.path.size; path = u.path.toMutableList(); light = u.light
-        store.saveAttempt(level, path.joinToString(";") { "${it.first},${it.second}" })
+        saveCurrentAttempt(path.joinToString(";") { "${it.first},${it.second}" })
         audio.play("select", 'B')
     }
 
     private fun clearRestartUndo() { undoJob?.cancel(); restartUndo = null }
 
     fun next() {
+        community?.let { val world = it.worldId; community = null; stack.clear(); stack += Route.Home; stack += Route.Online; stack += Route.CommunityWorld(world); return }
         if (level < levels.size - 1) start(level + 1) else { restart(); stack.clear(); stack += Route.Game }
     }
 
@@ -154,9 +222,14 @@ class GameModel(app: Application) : AndroidViewModel(app) {
         val type = board[a.r][a.c]; val width = board[0].length
         board = Rules.swap(board, a, b); moves++; light = Art.LIGHT.getValue(type)
         path += (a.r * width + a.c) to (b.r * width + b.c)
-        if (!solved) { store.saveAttempt(level, path.joinToString(";") { "${it.first},${it.second}" }); return }
-        store.saveAttempt(level, null)
-        if (!dev) {
+        val current = community
+        if (!dev && current != null && moves == 1) online.completion(OnlineRepository.operation()
+            .put("_endpoint", "/v1/play-sessions/${current.sessionId}/move").put("path", path.jsonMoves()))
+        if (!solved) { saveCurrentAttempt(path.joinToString(";") { "${it.first},${it.second}" }); return }
+        if (!dev) online.completion(OnlineRepository.operation().put("kind", if (current == null) "campaign" else "community")
+            .apply { if (current == null) put("levelId", level + 1) else put("sessionId", current.sessionId) }.put("path", path.jsonMoves()))
+        saveCurrentAttempt(null)
+        if (!dev && current == null) {
             done = done + (level + 1); store.done = done
             winBadges = achievements.newlyEarned(done, earned)
             if (winBadges.isNotEmpty()) { earned = earned + winBadges.associate { it.id to System.currentTimeMillis() }; store.earned = earned }
@@ -169,7 +242,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
 
     fun push(route: Route) { if (top != route) stack += route }
 
-    fun showLevels() { push(Route.Levels(spec.world)) }
+    fun showLevels() { community?.let { push(Route.CommunityWorld(it.worldId)) } ?: push(Route.Levels(spec.world)) }
 
     /** Back from Levels: return to Worlds if it is underneath, otherwise replace Levels with Worlds (src/useGame.js backToWorlds). */
     fun backToWorlds() {
@@ -177,7 +250,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
         if (top != Route.Worlds) stack += Route.Worlds
     }
 
-    fun mainMenu() { stack.clear(); stack += Route.Home }
+    fun mainMenu() { winJob?.cancel(); community = null; stack.clear(); stack += Route.Home }
 
     fun resume() { stack.removeAt(stack.lastIndex); if (solved && top != Route.Win) stack += Route.Win }
 

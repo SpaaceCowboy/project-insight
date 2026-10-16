@@ -8,3 +8,12 @@ local.properties
 
 # Impeccable critique snapshots hold absolute local paths
 .impeccable/critique/
+
+node_modules/
+server/dist/
+.env
+server/.env
+tls/
+secrets/
+backups/
+acme/

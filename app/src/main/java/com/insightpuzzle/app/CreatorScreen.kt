@@ -103,8 +103,9 @@ fun CreatorScreen(m: GameModel) {
     fun shellOrigin() = rect(shellBox)?.topLeft ?: Offset.Zero
     fun cellAt(x: Offset): Pos? = grid?.hit(x - shellOrigin())
     fun swap(a: Pos, b: Pos) {
+            if (s.solved) return
         val type = s.board[a.r][a.c]; val g = grid ?: return
-        s.board = Rules.swap(s.board, a, b); s.picked = null; s.note = ""
+            s.move(a, b)
         val ink = Ink(g.center(a), g.center(b), Art.LIGHT.getValue(type), Animatable(0f))
         inks += ink; if (inks.size > 3) inks.removeAt(0)
         scope.launch { ink.t.animateTo(1f, tween(1200, easing = LinearEasing)); inks.remove(ink) }
@@ -272,7 +273,8 @@ fun CreatorScreen(m: GameModel) {
             Row(Modifier.widthIn(max = 360.dp).fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Step("Start", "Start position", if (s.phase == Phase.BUILD) StepState.ON else StepState.DONE, Modifier.weight(1f)) { s.pressStart(); s.picked = null }
                 Step("Target", "Target position", when (s.phase) { Phase.BUILD -> StepState.LOCKED; Phase.SHAPE -> StepState.ON; Phase.CHECK -> StepState.DONE }, Modifier.weight(1f)) { s.pressTarget() }
-                Step("Make", "Make level", StepState.LOCKED, Modifier.weight(1f), soon = true, onClick = null)
+                Step("Make", "Publish level", if (s.solved && !m.dev) StepState.ON else StepState.LOCKED, Modifier.weight(1f),
+                    onClick = if (s.solved && !m.dev) ({ m.openOnline(Route.Publish) }) else null)
             }
         }
         drag?.let { (type, at) ->

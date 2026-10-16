@@ -1,0 +1,28 @@
+# Docker Compose >= 2.24.4. Separate project; does not claim existing host ports 80/443.
+services:
+  api:
+    environment:
+      NODE_ENV: production
+      MAIL_DELIVERY_MODE: ${MAIL_DELIVERY_MODE:-test-inbox}
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      TRUST_PROXY: 172.16.0.0/12
+  mailpit:
+    profiles: !reset []
+    ports: !override ["127.0.0.1:8026:8025"]
+    volumes: ["private-test-mail:/data"]
+    environment:
+      MP_DATABASE: /data/mailpit.db
+      MP_MAX_MESSAGES: 5000
+    restart: unless-stopped
+  https:
+    image: nginx:stable-alpine
+    ports: ["8443:443"]
+    volumes:
+      - ./server/deploy/insight-nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./tls:/etc/nginx/tls:ro
+    depends_on: [api]
+    restart: unless-stopped
+volumes:
+  private-test-mail:

@@ -2,23 +2,54 @@ package com.insightpuzzle.app
 
 import android.content.Context
 import android.content.SharedPreferences
+import org.json.JSONArray
+import org.json.JSONObject
 
 /** Saved progress and settings. SharedPreferences is enough: a few small values, written on each solve or setting change. */
 class Store(context: Context) {
-    private val prefs: SharedPreferences = context.getSharedPreferences("insight", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = context.getSharedPreferences(if (BuildConfig.ONLINE_DEMO) "insight_demo" else "insight", Context.MODE_PRIVATE)
+    var activeAccount: String? = prefs.getString("activeAccount", null); private set
+    private fun scoped(key: String, account: String? = activeAccount) = account?.let { "account_${it}_$key" } ?: key
+    fun selectAccount(id: String?) {
+        check(prefs.edit().apply { if (id == null) remove("activeAccount") else putString("activeAccount", id) }.commit())
+        activeAccount = id
+    }
+    fun guestProgress() = prefs.getStringSet("done", emptySet())!!.mapNotNull { it.toIntOrNull() }.toSet()
+    fun guestBadges() = prefs.getStringSet("earned", emptySet())!!.map { it.substringBefore('=') }
+    var importedInto: String?
+        get() = prefs.getString("importedInto", null)
+        set(value) { check(prefs.edit().putString("importedInto", value).commit()) }
+    var creatorDraft: String?
+        get() = prefs.getString("creatorDraft", null)
+        set(value) { check(prefs.edit().putString("creatorDraft", value).commit()) }
+
+    /** Bridge the synchronous gameplay result into Room without losing a proof on process death. */
+    fun saveProof(payload: JSONObject) {
+        val key = scoped("proof_${payload.getString("operationId")}")
+        check(prefs.edit().putString(key, payload.toString()).commit())
+    }
+    fun proofs(account: String? = activeAccount): List<JSONObject> {
+        val prefix = scoped("proof_", account)
+        return prefs.all.filterKeys { it.startsWith(prefix) }.values.map { JSONObject(it as String) }
+    }
+    fun removeProof(id: String, account: String?) { check(prefs.edit().remove(scoped("proof_$id", account)).commit()) }
 
     /** 1-based level numbers that have been solved. */
     var done: Set<Int>
-        get() = prefs.getStringSet("done", emptySet())!!.mapNotNull { it.toIntOrNull() }.toSet()
-        set(value) = prefs.edit().putStringSet("done", value.map { it.toString() }.toSet()).apply()
+        get() = prefs.getStringSet(scoped("done"), emptySet())!!.mapNotNull { it.toIntOrNull() }.toSet()
+        set(value) = prefs.edit().putStringSet(scoped("done"), value.map { it.toString() }.toSet()).apply()
 
     /** Moves made in an unfinished level, as flat cell indices "a,b;c,d", so a level resumes where it was left. */
-    fun attempt(level: Int): String? = prefs.getString("attempt_$level", null)
-    fun saveAttempt(level: Int, path: String?) = prefs.edit().apply { if (path.isNullOrEmpty()) remove("attempt_$level") else putString("attempt_$level", path) }.apply()
+    fun attempt(level: Int): String? = prefs.getString(scoped("attempt_$level"), null)
+    fun saveAttempt(level: Int, path: String?) = prefs.edit().apply { if (path.isNullOrEmpty()) remove(scoped("attempt_$level")) else putString(scoped("attempt_$level"), path) }.apply()
+    fun communityAttempt(id: String): String? = prefs.getString(scoped("community_attempt_$id"), null)
+    fun saveCommunityAttempt(id: String, path: String?) = prefs.edit().apply {
+        if (path.isNullOrEmpty()) remove(scoped("community_attempt_$id")) else putString(scoped("community_attempt_$id"), path)
+    }.apply()
 
     var lastLevel: Int
-        get() = prefs.getInt("lastLevel", 0)
-        set(value) = prefs.edit().putInt("lastLevel", value).apply()
+        get() = prefs.getInt(scoped("lastLevel"), 0)
+        set(value) = prefs.edit().putInt(scoped("lastLevel"), value).apply()
 
     var sound by bool("sound", true)
     var voice by bool("voice", true)
@@ -42,14 +73,14 @@ class Store(context: Context) {
 
     /** Clears solved levels and unfinished attempts. Badges, cosmetics and settings are kept: rewards are permanent. */
     fun resetProgress() = prefs.edit().apply {
-        remove("done"); remove("lastLevel")
-        prefs.all.keys.filter { it.startsWith("attempt_") }.forEach { remove(it) }
+          remove(scoped("done")); remove(scoped("lastLevel"))
+          prefs.all.keys.filter { it.startsWith(scoped("attempt_")) }.forEach { remove(it) }
     }.apply()
 
     /** Achievement id -> time earned (ms). */
     var earned: Map<String, Long>
-        get() = prefs.getStringSet("earned", emptySet())!!.mapNotNull { entry -> entry.split('=').takeIf { it.size == 2 }?.let { it[0] to (it[1].toLongOrNull() ?: 0L) } }.toMap()
-        set(value) = prefs.edit().putStringSet("earned", value.map { "${it.key}=${it.value}" }.toSet()).apply()
+        get() = prefs.getStringSet(scoped("earned"), emptySet())!!.mapNotNull { entry -> entry.split('=').takeIf { it.size == 2 }?.let { it[0] to (it[1].toLongOrNull() ?: 0L) } }.toMap()
+        set(value) = prefs.edit().putStringSet(scoped("earned"), value.map { "${it.key}=${it.value}" }.toSet()).apply()
 
     private fun bool(key: String, default: Boolean) = object : kotlin.properties.ReadWriteProperty<Any?, Boolean> {
         override fun getValue(thisRef: Any?, property: kotlin.reflect.KProperty<*>) = prefs.getBoolean(key, default)

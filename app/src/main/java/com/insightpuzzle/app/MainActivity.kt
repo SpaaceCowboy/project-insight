@@ -63,6 +63,11 @@ fun App(m: GameModel) {
             is Route.Achievements -> AchievementsScreen(m, top.tab)
             Route.Online -> OnlineScreen(m)
             Route.Create -> CreatorScreen(m)
+            is Route.Auth -> AuthScreen(m, top.destination)
+            is Route.Profile -> ProfileScreen(m, top.id)
+            Route.Browse -> BrowseScreen(m)
+            is Route.CommunityWorld -> CommunityWorldScreen(m, top.id)
+            Route.Publish -> PublishScreen(m)
         }
         Burst(m.burst)
     }

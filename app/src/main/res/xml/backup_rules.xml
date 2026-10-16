@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <exclude domain="sharedpref" path="online_credentials.xml" />
+    <exclude domain="sharedpref" path="online_demo_credentials.xml" />
+    <exclude domain="database" path="online.db" />
+    <exclude domain="database" path="online.db-wal" />
+    <exclude domain="database" path="online.db-shm" />
+</full-backup-content>

@@ -105,7 +105,7 @@ fun HomeScreen(m: GameModel) {
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Cube("Achievements", trophyIcon, Modifier.weight(1f)) { m.push(Route.Achievements()) }
-                Cube("Log In", personIcon, Modifier.weight(1f), null)
+                Cube(if (m.online.user != null) "Profile" else if (BuildConfig.ONLINE_DEMO) "Preview" else "Log In", personIcon, Modifier.weight(1f)) { m.openOnline(Route.Profile()) }
                 Cube("What's Next", sparkIcon, Modifier.weight(1f), null)
             }
         }
@@ -439,10 +439,12 @@ private fun DrawScope.cosmeticPreview(id: String, finish: String) {
 
 @Composable
 fun OnlineScreen(m: GameModel) {
-    Page("Online", null, { m.back() }, 420.dp) {
+    Page("Online", if (BuildConfig.ONLINE_DEMO) "Local preview · Everything stays on this device" else null, { m.back() }, 420.dp) {
         Column(Modifier.weight(1f).fillMaxWidth().padding(bottom = 64.dp), verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically)) {
+            MenuButton("Profile", height = 64.dp, fontSize = 17.sp) { m.openOnline(Route.Profile()) }
             MenuButton("Create", height = 64.dp, fontSize = 17.sp) { m.push(Route.Create) }
-            MenuButton("Play", height = 64.dp, fontSize = 17.sp, onClick = null)
+            MenuButton("Casual", height = 64.dp, fontSize = 17.sp, subtitle = "Coming soon", onClick = null)
+            MenuButton("Play", height = 64.dp, fontSize = 17.sp) { m.openOnline(Route.Browse) }
         }
     }
 }
@@ -451,7 +453,7 @@ fun OnlineScreen(m: GameModel) {
 fun PauseOverlay(m: GameModel) {
     Overlay("Menu", { m.resume() }) {
         Label("Menu", 24.sp, Modifier.semantics { heading() }, serif = true)
-        Label("World %d · Level %03d · %s".format(m.spec.world, m.level + 1, m.spec.name), 12.sp, Modifier.padding(top = 4.dp, bottom = 16.dp), color = LocalPalette.current.muted, align = TextAlign.Center)
+        Label(m.community?.let { "${it.grid.optString("worldName")} · ${m.spec.name}" } ?: "World %d · Level %03d · %s".format(m.spec.world, m.level + 1, m.spec.name), 12.sp, Modifier.padding(top = 4.dp, bottom = 16.dp), color = LocalPalette.current.muted, align = TextAlign.Center)
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             MenuButton(if (m.solved) "View result" else "Resume", primary = true) { m.resume() }
             MenuButton("Levels") { m.showLevels() }
@@ -485,7 +487,8 @@ fun WinStrip(m: GameModel) {
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             MenuButton("Replay", Modifier.weight(1f)) { m.restart() }
-            if (final) MenuButton("Choose level", Modifier.weight(1f), primary = true) { m.showLevels() }
+            if (m.community != null) MenuButton("World", Modifier.weight(1f), primary = true) { m.next() }
+            else if (final) MenuButton("Choose level", Modifier.weight(1f), primary = true) { m.showLevels() }
             else MenuButton("Next →", Modifier.weight(1f), primary = true, enabled = m.canAccess(m.level + 1)) { m.next() }
         }
     }
