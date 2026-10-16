@@ -46,11 +46,12 @@ class OnlineState(private val model: GameModel, app: Application, private val sc
         firstWords = response.getJSONArray("first").strings(); secondWords = response.getJSONArray("second").strings()
         emailDeliveryMode = repository.client.request("GET", "/v1/capabilities", account = null).getString("emailDelivery")
     }
-    fun login(email: String, password: String, destination: Route?) = task {
+    fun login(email: String, password: String, destination: Route?, complete: () -> Unit = {}) = task {
         user = repository.client.login(email.trim(), password)
         model.selectAccount(user!!.id)
         if (user!!.verified) { activate(); finishLogin(destination) }
         else notice = "Enter the verification code from your email to continue."
+        complete()
     }
     fun register(email: String, password: String, name: String, complete: () -> Unit) = task {
         repository.client.request("POST", "/v1/auth/register", JSONObject().put("email", email.trim()).put("password", password).put("name", name), account = null)

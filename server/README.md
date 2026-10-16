@@ -65,6 +65,14 @@ TEST_DATABASE_URL=postgresql://localhost/insight_test npm run test:integration
 
 Integration tests create and drop only a randomly named schema inside the supplied database. They cover two-account publishing/play, idempotency, the twentieth-slot race, replay/creation caps, imports, auth recovery, refresh rotation, and throttling. Rules replay the same 206 campaign solutions used by Kotlin.
 
+The Android form regression test uses a loopback-only fixture with a temporary database schema. Start `TEST_DATABASE_URL=postgresql://localhost/insight_test node --import tsx test/android-fixture.ts` from `server/`, then run the following from the repository root with an emulator available:
+
+```sh
+./gradlew :app:connectedDebugAndroidTest -PinsightDebugApiUrl=http://10.0.2.2:38861 -Pandroid.testInstrumentationRunnerArguments.class=com.insightpuzzle.app.OnlineAuthFlowTest
+```
+
+It exercises registration, verification, visible login errors, password retention, and successful profile entry through the actual Android forms, using synthetic credentials only. The fixture's test-code endpoint exists only in this standalone test process, binds to loopback, and is excluded from the production Docker image. Stop the fixture to remove its temporary schema. Never point this test at a deployed service.
+
 ## Staging deployment and operations
 
 1. Configure a staging DNS name and an HTTPS reverse proxy to the API's loopback port 3000. For example, Caddy: `online.example.com { reverse_proxy 127.0.0.1:3000 }`. Keep PostgreSQL and Mailpit off public interfaces. Do not enable the local Mailpit profile in staging.

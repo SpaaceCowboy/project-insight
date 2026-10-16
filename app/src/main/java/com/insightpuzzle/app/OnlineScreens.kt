@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.runtime.*
@@ -23,6 +24,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -40,10 +43,10 @@ import java.text.NumberFormat
 import java.util.Locale
 
 @Composable
-private fun OnlinePage(m: GameModel, title: String, subtitle: String? = null, content: @Composable ColumnScope.() -> Unit) {
+private fun OnlinePage(m: GameModel, title: String, subtitle: String? = null, messages: Boolean = true, content: @Composable ColumnScope.() -> Unit) {
     Page(title, subtitle, { m.back() }, 560.dp) {
         Column(Modifier.weight(1f).fillMaxWidth().imePadding().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            OnlineMessages(m)
+            if (messages) OnlineMessages(m)
             content()
             Spacer(Modifier.height(12.dp))
         }
@@ -61,8 +64,13 @@ private fun OnlineMessages(m: GameModel) {
 @Composable
 private fun OnlineField(label: String, value: String, password: Boolean = false, keyboard: KeyboardType = KeyboardType.Text, enabled: Boolean = true, onChange: (String) -> Unit) {
     val p = LocalPalette.current
+    var passwordVisible by remember { mutableStateOf(false) }
     OutlinedTextField(value, onChange, Modifier.fillMaxWidth().heightIn(min = 56.dp), enabled = enabled, singleLine = true,
-        label = { Label(label, 12.sp) }, visualTransformation = if (password) PasswordVisualTransformation() else VisualTransformation.None,
+        label = { Label(label, 12.sp) }, visualTransformation = if (password && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
+        trailingIcon = if (password) ({ IconButton(onClick = { passwordVisible = !passwordVisible }, enabled = enabled,
+            modifier = Modifier.size(48.dp).semantics { contentDescription = if (passwordVisible) "Hide password" else "Show password" }) {
+            Label(if (passwordVisible) "Hide" else "Show", 12.sp)
+        } }) else null,
         keyboardOptions = KeyboardOptions(keyboardType = if (password) KeyboardType.Password else keyboard, autoCorrectEnabled = false),
         shape = RoundedCornerShape(14.dp), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = p.ink, unfocusedTextColor = p.ink,
             focusedBorderColor = p.accent, unfocusedBorderColor = p.line, cursorColor = p.accent, focusedLabelColor = p.accent, unfocusedLabelColor = p.muted))
@@ -97,6 +105,8 @@ private fun NamePicker(m: GameModel, name: String, onChange: (String) -> Unit) {
 @Composable
 fun AuthScreen(m: GameModel, destination: Route?) {
     val o = m.online
+    val keyboard = LocalSoftwareKeyboardController.current
+    val focus = LocalFocusManager.current
     if (BuildConfig.ONLINE_DEMO) {
         var previewName by rememberSaveable { mutableStateOf("Quiet Cove") }
         OnlinePage(m, "Your Online preview", "No backend or internet connection needed") {
@@ -116,7 +126,7 @@ fun AuthScreen(m: GameModel, destination: Route?) {
     var registrationError by remember(email, password, name, mode) { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) { try { o.vocabulary() } catch (error: Exception) { o.report(error) } }
     LaunchedEffect(o.user?.verified) { if (o.user?.verified == false) mode = "verify" }
-    OnlinePage(m, when (mode) { "register" -> "Make yourself at home"; "verify" -> "Verify email"; "recover" -> "Recover account"; else -> "Log in" }, "INSIGHT Online · Private test") {
+    OnlinePage(m, when (mode) { "register" -> "Make yourself at home"; "verify" -> "Verify email"; "recover" -> "Recover account"; else -> "Log in" }, "INSIGHT Online · Private test", messages = false) {
         if (!o.repository.client.configured) Label("This build needs an Online service address before you can log in.", 14.sp)
         if (o.emailDeliveryMode == "test-inbox") Label("Private test: email codes go to the operator's private inbox. Use your supplied verified test account, or ask the operator for your code.", 14.sp, color = LocalPalette.current.muted)
         if (mode == "login" || mode == "register") Tabs(listOf("login" to "Log in", "register" to "Register"), mode) { if (!o.busy) { mode = it; password = ""; o.clearMessages() } }
@@ -128,6 +138,7 @@ fun AuthScreen(m: GameModel, destination: Route?) {
             OnlineField("Nickname", name, enabled = !o.busy) { name = it.take(128) }
             Label("Choose your own nickname (1–32 characters). Names are unique, ignoring letter case.", 12.sp, color = LocalPalette.current.muted)
             registrationError?.let { Label(it, 14.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite }, color = LocalPalette.current.accent) }
+            OnlineMessages(m)
             MenuButton("Create account", primary = true, enabled = !o.busy) {
                 registrationError = when {
                     email.isBlank() -> "Enter your email address."
@@ -136,21 +147,26 @@ fun AuthScreen(m: GameModel, destination: Route?) {
                     else -> null
                 }
                 if (registrationError == null) {
+                    focus.clearFocus(); keyboard?.hide()
                     o.register(email, password, Nicknames.normalize(name)) { mode = "verify"; password = "" }
                 }
             }
         } else if (mode == "login") {
+            OnlineMessages(m)
             MenuButton("Log in", primary = true, enabled = !o.busy && email.isNotBlank() && password.isNotBlank()) {
-                val secret = password; password = ""; o.login(email, secret, destination)
+                focus.clearFocus(); keyboard?.hide()
+                o.login(email, password, destination) { password = "" }
             }
-            MenuButton("Forgot password?") { mode = "recover"; password = ""; code = ""; o.clearMessages() }
-            MenuButton("I have a verification code") { mode = "verify"; password = ""; o.clearMessages() }
+            MenuButton("Forgot password?", enabled = !o.busy) { mode = "recover"; password = ""; code = ""; o.clearMessages() }
+            MenuButton("I have a verification code", enabled = !o.busy) { mode = "verify"; password = ""; o.clearMessages() }
         } else {
             OnlineField("Eight-digit email code", code, keyboard = KeyboardType.Number, enabled = !o.busy) { code = it.filter(Char::isDigit).take(8) }
+            OnlineMessages(m)
             MenuButton(if (mode == "recover") "Change password" else "Verify email", primary = true,
                 enabled = !o.busy && code.length == 8 && email.isNotBlank() && (mode != "recover" || password.length >= 12)) {
-                val secret = if (mode == "recover") password else null; password = ""
-                o.confirm(email, code, secret, destination) { mode = "login"; code = "" }
+                focus.clearFocus(); keyboard?.hide()
+                val secret = if (mode == "recover") password else null
+                o.confirm(email, code, secret, destination) { mode = "login"; code = ""; password = "" }
             }
             MenuButton("Request email code", enabled = !o.busy && email.isNotBlank()) { o.requestCode(email, mode == "recover") }
             MenuButton("Back to login", enabled = !o.busy) { mode = "login"; code = ""; password = ""; o.clearMessages() }

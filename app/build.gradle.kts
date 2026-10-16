@@ -12,8 +12,8 @@ android {
         applicationId = "com.insightpuzzle.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.1.2"
+        versionCode = 4
+        versionName = "0.1.3"
         buildConfigField("boolean", "ONLINE_DEMO", onlineDemo.toString())
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         if (onlineDemo) {
@@ -32,7 +32,7 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
         }
         debug {
-            val onlineUrl = providers.gradleProperty("insightApiUrl").orElse(providers.environmentVariable("INSIGHT_API_URL")).getOrElse("http://10.0.2.2:3000")
+            val onlineUrl = providers.gradleProperty("insightDebugApiUrl").orElse(providers.gradleProperty("insightApiUrl")).orElse(providers.environmentVariable("INSIGHT_API_URL")).getOrElse("http://10.0.2.2:3000")
             buildConfigField("String", "ONLINE_BASE_URL", "\"${onlineUrl.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
         }
     }
