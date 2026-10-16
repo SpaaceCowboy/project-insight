@@ -1,6 +1,6 @@
 # INSIGHT Puzzle Studio
 
-Open the game menu and choose **My Puzzles · Editor**, or visit `/Editor.html` on the local server. Run `npm install` and `npm run dev` first. Keep the same URL/browser to retain drafts.
+Run `npm install` and `npm run dev`, then open `http://127.0.0.1:8000/`. Keep the same URL/browser to retain drafts.
 
 ## Design and play
 
@@ -11,6 +11,7 @@ Open the game menu and choose **My Puzzles · Editor**, or visit `/Editor.html` 
 - **Playtest:** use the existing game with its sound, controls, undo, restart, and animations. Back to editor returns to the same draft. Unfinished custom attempts are saved by draft; board changes invalidate incompatible attempts. Campaign progress and attempts remain separate.
 
 Unchanged copies of campaign puzzles reuse their verified optimal routes immediately. New arrangements use a background solver that checks at most 350,000 positions or eight seconds. Hitting either limit reports **not verified** and leaves Playtest disabled. An exhaustive search that finds no route reports **unsolvable**. Solutions are not displayed as gameplay hints.
+- **Add to game** (dev server only, enabled after Validate): appends the verified puzzle to the Android campaign. The server re-solves it, refuses boards already in the game, and refreshes the Android assets. See `README.md`.
 
 ## Files and storage
 

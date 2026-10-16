@@ -2,10 +2,11 @@ const fs=require('node:fs'),assert=require('node:assert/strict');
 const {rootPath}=require('./check-paths.cjs');
 const {PuzzleRules:rules}=require('../src/puzzle-rules.js'),{PuzzleSolver:solver}=require('../src/puzzle-solver.js');
 const {greedyRate}=require('./level-metrics.cjs');
-// `--game 2` checks the Game 2 campaign and writes its own certificates.
-const game2=process.argv.includes('--game') && process.argv[process.argv.indexOf('--game')+1]==='2',suffix=game2?'-2':'';
-const data=require('../src/data/levels'+suffix+'.js'),count=game2?100:106;
-const levels=JSON.parse(JSON.stringify(game2?data.GAME2_LEVELS:data.CORE_LEVELS));
+// `--game 2` checks the Game 2 campaign, `--game 3` the studio levels; each writes its own certificates.
+const game=process.argv.includes('--game')?process.argv[process.argv.indexOf('--game')+1]:'1',game2=game==='2',studio=game==='3',suffix=game==='1'?'':'-'+game;
+assert(['1','2','3'].includes(game),'Unknown --game '+game);
+const data=require('../src/data/levels'+suffix+'.js'),list=game2?data.GAME2_LEVELS:studio?data.STUDIO_LEVELS:data.CORE_LEVELS,count=game2?100:studio?list.length:106;
+const levels=JSON.parse(JSON.stringify(list));
 assert.equal(levels.length,count);
 if(process.argv.includes('--audit')){audit();return}
 const results=[];
@@ -23,7 +24,7 @@ for(const [index,level] of levels.entries()){
 fs.mkdirSync(rootPath('artifacts'),{recursive:true});
 fs.writeFileSync(rootPath('artifacts','level-checks'+suffix+'.json'),JSON.stringify(results,null,2)+'\n');
 fs.writeFileSync(rootPath('src','data','level-solutions'+suffix+'.js'),'// Generated optimal routes.\nexport const LEVEL_SOLUTIONS = '+JSON.stringify(results.map(r=>r.path))+';\n');
-if(process.argv.includes('--update'))fs.writeFileSync(rootPath('src','data','levels'+suffix+'.js'),game2?fs.readFileSync(rootPath('src','data','levels-2.js'),'utf8').replace(/export const GAME2_LEVELS = [\s\S]*$/,'export const GAME2_LEVELS = '+JSON.stringify(levels,null,2)+';\n'):'// Stable campaign positions; changed boards have individual revisions.\nexport const CORE_LEVELS = '+JSON.stringify(levels,null,2)+';\n');
+if(process.argv.includes('--update'))fs.writeFileSync(rootPath('src','data','levels'+suffix+'.js'),studio?fs.readFileSync(rootPath('src','data','levels-3.js'),'utf8').replace(/export const STUDIO_LEVELS = [\s\S]*$/,'export const STUDIO_LEVELS = '+JSON.stringify(levels,null,2)+';\n'):game2?fs.readFileSync(rootPath('src','data','levels-2.js'),'utf8').replace(/export const GAME2_LEVELS = [\s\S]*$/,'export const GAME2_LEVELS = '+JSON.stringify(levels,null,2)+';\n'):'// Stable campaign positions; changed boards have individual revisions.\nexport const CORE_LEVELS = '+JSON.stringify(levels,null,2)+';\n');
 console.log('All '+count+' puzzles verified.');
 
 // `--audit` is read-only: difficulty signals from scripts/level-metrics.cjs (sources in level-design.md).

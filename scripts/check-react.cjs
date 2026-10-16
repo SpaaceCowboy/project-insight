@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict');
 const {chromium}=require(process.env.PLAYWRIGHT_PATH || 'playwright');
 const {rootPath}=require('./check-paths.cjs');
-const {play,home,dismissMenus,movesIs}=require('./check-ui-helpers.cjs');
+const {play,dismissMenus,movesIs}=require('./check-ui-helpers.cjs');
 
 (async()=>{
   // An isolated development fixture exercises Strict Mode and real unmounts.
@@ -30,14 +30,16 @@ const {play,home,dismissMenus,movesIs}=require('./check-ui-helpers.cjs');
     page.on('pageerror',error=>errors.push(error.message));
     page.on('console',message=>{if(message.type()==='error')errors.push(message.text())});
     page.on('response',response=>{if(response.status()>=400)errors.push(response.status()+' '+response.url())});
+    // The game only plays an editor handoff: seed a verified one-move puzzle (flat cells 0 -> 1).
     await page.addInitScript(()=>{
+      sessionStorage.setItem('insight-editor-preview-v1',JSON.stringify({id:'react-check',name:'React check',start:['BR','RB'],target:['RB','RB'],path:[[0,1]]}));
       const NativeWorker=window.Worker;window.activeWorkers=new Set();
       window.Worker=class extends NativeWorker{
         constructor(...args){super(...args);window.activeWorkers.add(this)}
         terminate(){window.activeWorkers.delete(this);super.terminate()}
       };
     });
-    await page.goto(server.resolvedUrls.local[0]+'__react-check.html');
+    await page.goto(server.resolvedUrls.local[0]+'__react-check.html?editor=1');
     const ready=()=>page.waitForFunction(()=>document.documentElement.dataset.ready==='true');
     const mount=async screen=>{
       await page.evaluate(()=>window.mountScreen(null));
@@ -75,9 +77,9 @@ const {play,home,dismissMenus,movesIs}=require('./check-ui-helpers.cjs');
     await page.keyboard.press('Escape');await page.mouse.up();
     assert.equal(await dragSource.evaluate(el=>el.style.transform),'','Cancel removes the imperative drag transform');
     // A preference changed during the animation must survive its completion.
-    await move();await page.locator('#soundBtn').click();
+    await move();await page.locator('#menuBtn').click();await page.locator('#pauseSettingsBtn').click();await page.locator('#settingsSoundBtn').click();
     await movesIs(page,1);
-    assert.equal(await page.locator('#soundBtn').getAttribute('aria-pressed'),'false');
+    assert.equal(await page.locator('#settingsSoundBtn').getAttribute('aria-pressed'),'false');
     assert.equal(await page.evaluate(()=>localStorage.getItem('insight-sound-v1')),'off');
     await dismissMenus(page);await page.keyboard.press('r');
     // Unmounting mid-animation cancels the uncommitted swap and its win timer.
@@ -99,9 +101,7 @@ const {play,home,dismissMenus,movesIs}=require('./check-ui-helpers.cjs');
     await page.waitForFunction(()=>!document.documentElement.dataset.ready);await page.mouse.up();
     assert.equal(await page.evaluate(()=>window.oldTile.style.transform),'','Unmount cancels pending drag work');
     await page.evaluate(()=>window.mountScreen('game'));await ready();await play(page);
-    await home(page);await page.locator('#newGameBtn').click();
-    await mount('game');
-    assert.equal(await page.locator('#confirmationOverlay').isVisible(),false,'An unmounted confirmation cannot remain pending');
+    await mount('editor');
 
     await mount('editor');
     await page.locator('#filesTab').click();

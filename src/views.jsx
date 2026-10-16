@@ -30,32 +30,6 @@ export function Target({cells}) {
     {type!=='.' && <Symbol type={type} />}
   </div>);
 }
-export function Worlds({worlds,onSelect}) {
-  const {WORLD_COLORS}=PuzzleArt;
-  return <div className="world-list">{worlds.map(({world,total,solved,complete,locked})=>{
-    const [light,deep]=WORLD_COLORS[(world-1)%WORLD_COLORS.length];
-    return <button key={world} className={'world-card'+(complete?' complete':'')} style={{'--w1':light,'--w2':deep}} disabled={locked} onClick={()=>onSelect(world)}
-      aria-label={`World ${world}, ${solved} of ${total} solved${locked?', locked':complete?', complete':''}`}>
-      <span className="world-card-name">World {world}</span>
-      <span className="world-card-status">{locked?'Locked':complete?'✓ Complete':solved+' / '+total}</span>
-    </button>;
-  })}</div>;
-}
-export function Levels({world,levels,progress,current,unlocked,onSelect}) {
-  const entries=levels.map((level,i)=>({level,i})).filter(({level})=>level.world===world);
-  return <section className="world-block">
-    <div className="level-grid">{entries.map(({level,i})=>{
-      const done=!!progress[i+1];
-      const locked=i>=unlocked,box=bounds(level.target),cols=box.maxC-box.minC+1,rows=box.maxR-box.minR+1;
-      const cells=level.target.slice(box.minR,box.maxR+1).flatMap(row=>[...row.slice(box.minC,box.maxC+1)]);
-      return <button key={i} className={'level-card '+(i===current?'current ':'')+(done?'done':'')}
-        disabled={locked} aria-label={`Level ${i+1}, ${level.name}${locked?', locked':done?', solved':''}`} onClick={()=>onSelect(i)}>
-        <div className="lvl-num">{String(i+1).padStart(3,'0')}</div>
-        <div className="lvl-mini" aria-hidden="true" style={{'--cols':cols,'--n':Math.max(cols,rows)}}><Target cells={cells} /></div><div className="lvl-name">{level.name}</div>
-        <div className={'lvl-status'+(locked?' locked-label':'')}>{locked?'Locked':done?'✓ Solved':''}</div>
-      </button>;
-    })}</div></section>;
-}
 export function EditorBoard({editor}) {
   const {draft,side,holding,drag}=editor,board=draft[side],revision=draft.id+':'+side;
   const same=(a,b)=>a?.join(':')===b?.join(':');
@@ -77,6 +51,4 @@ export function Palette({editor}) {
   })}<button id="removeTile" type="button" aria-label="Remove tile"
     title="Drag a board tile here or outside the board to leave an empty slot" ref={editor.removeRef} className={'gap-brush'+(editor.discarding?' drop-ready':'')} onClick={editor.removePicked}><span aria-hidden="true">×</span></button></>;
 }
-export function Hero(){return ['R','B','G','P','W','Y','B','G','R'].map((type,i)=><span key={i} className={'hero-tile '+META[type].cls}><Symbol type={type} /></span>)}
-export function AchievementUnlocks({badges,onOpen}){return badges.length>0 && <div className="achievement-unlocks"><strong>{badges.length===1?badges[0].name+' earned':badges.length+' achievements earned'}</strong><span>{badges.filter(b=>b.reward).map(b=>b.reward).join(' · ') || 'A new badge for your collection.'}</span><button className="ui-btn" id="winAchievementsBtn" onClick={onOpen}>View collection →</button></div>}
 export function Counts({counts}){return Object.entries(counts).filter(([,values])=>values.some(Boolean)).map(([type,[a,b]])=><span key={type} className={'count-chip'+(a!==b?' mismatch':'')} title="Start / Target">{META[type].name} {a} / {b}</span>)}

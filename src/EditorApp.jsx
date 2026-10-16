@@ -1,7 +1,7 @@
 import React from 'react';
 import useEditor from './useEditor.js';
 import {Palette,EditorBoard,Counts,Tile} from './views.jsx';
-import {CORE_LEVELS,PuzzleArt} from './data.js';
+import {CAMPAIGN_LEVELS,PuzzleArt} from './data.js';
 import {ColorStrokes} from './react-ui.jsx';
 import {createPortal} from 'react-dom';
 import FeedbackUI from './FeedbackUI.jsx';
@@ -12,7 +12,7 @@ export default function EditorApp() {
   return <>
 <div className="ambient-lights" aria-hidden="true"><span></span><span></span></div>
 <div className="editor-app" inert={!!dialogs.active} onPointerMove={editor.pointerMove} onPointerUp={editor.pointerUp} onPointerCancel={editor.cancelPlacement} onLostPointerCapture={()=>{if(editor.drag)editor.cancelPlacement()}}>
-  <header className="topbar"><div className="editor-brand">INSIGHT <span id="editorSubtitle">{draft.name.trim() || 'Untitled puzzle'}</span></div><div className="top-actions"><span id="saveState" role="status">{editor.saved?'Saved':'Export to keep'}</span><a className="ui-btn" href="Puzzle.html">Game</a></div></header>
+  <header className="topbar"><div className="editor-brand">INSIGHT <span id="editorSubtitle">{draft.name.trim() || 'Untitled puzzle'}</span></div><div className="top-actions"><span id="saveState" role="status">{editor.saved?'Saved':'Export to keep'}</span></div></header>
   <main className="editor-main">
     <aside className="studio-tools" aria-label="Puzzle tools">
       <div className="studio-tabs" role="tablist" aria-label="Editor tools">
@@ -31,7 +31,7 @@ export default function EditorApp() {
         <label className="studio-field">My puzzles<select id="draftSelect" value={draft.id} onChange={event=>editor.switchDraft(event.currentTarget.value)}>{editor.library.drafts.map(item=><option key={item.id} value={item.id}>{item.name.trim() || 'Untitled puzzle'}</option>)}</select></label>
         <div className="studio-row"><button id="newDraft" onClick={editor.newDraft} className="ui-btn">New</button><button id="duplicateDraft" onClick={editor.duplicateDraft} className="ui-btn">Duplicate</button><button id="deleteDraft" onClick={editor.deleteDraft} className="ui-btn">Delete</button></div>
         <div className="studio-row sizes"><label>Columns<select id="boardWidth" value={draft.start[0].length} onChange={event=>editor.resize(+event.currentTarget.value,draft.start.length)} aria-label="Board columns"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label><label>Rows<select id="boardHeight" value={draft.start.length} onChange={event=>editor.resize(draft.start[0].length,+event.currentTarget.value)} aria-label="Board rows"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label><button id="clearBoard" onClick={editor.clear} className="ui-btn">Clear</button></div>
-        <div className="studio-row"><select id="seedLevel" value={editor.seed} onChange={event=>editor.setSeed(event.currentTarget.value)} aria-label="Built-in puzzle to copy">{CORE_LEVELS.map((level,i)=><option key={i} value={i}>{String(i+1).padStart(3,'0')+' · '+level.name}</option>)}</select><button id="copyLevel" onClick={editor.copyLevel} className="ui-btn">Copy level</button></div>
+        <div className="studio-row"><select id="seedLevel" value={editor.seed} onChange={event=>editor.setSeed(event.currentTarget.value)} aria-label="Built-in puzzle to copy">{CAMPAIGN_LEVELS.map((level,i)=><option key={i} value={i}>{String(i+1).padStart(3,'0')+' · '+level.name}</option>)}</select><button id="copyLevel" onClick={editor.copyLevel} className="ui-btn">Copy level</button></div>
         <button id="shuffleStart" onClick={editor.shuffle} className="ui-btn">Shuffle Start from Target</button>
       </section>
       <section id="filesPanel" role="tabpanel" aria-labelledby="filesTab" hidden={editor.panel!=='files'}>
@@ -48,7 +48,7 @@ export default function EditorApp() {
     </section>
     <footer className="studio-footer">
       <div id="validationStatus" role="status" aria-live="polite" data-state={editor.status.tone}>{editor.status.text}</div>
-      <div className="studio-row"><button id="validatePuzzle" onClick={editor.validate} className="control-btn">{editor.checking?'Cancel check':'Validate'}</button><button id="playtestPuzzle" onClick={editor.playtest} className="control-btn primary" disabled={!draft.proof?.par || editor.checking}>Playtest</button></div>
+      <div className="studio-row"><button id="validatePuzzle" onClick={editor.validate} className="control-btn">{editor.checking?'Cancel check':'Validate'}</button><button id="playtestPuzzle" onClick={editor.playtest} className="control-btn primary" disabled={!draft.proof?.par || editor.checking}>Playtest</button>{import.meta.env.DEV && <button id="addToGame" onClick={editor.addToGame} className="control-btn" disabled={!draft.proof?.par || editor.checking}>Add to game</button>}</div>
     </footer>
   </main>
 </div>

@@ -1,5 +1,5 @@
 import {useEffect,useLayoutEffect,useRef,useState} from 'react';
-import {CORE_LEVELS,LEVEL_SOLUTIONS,PuzzleRules,PuzzleSolver,PuzzleArt} from './data.js';
+import {CAMPAIGN_LEVELS,CAMPAIGN_SOLUTIONS,PuzzleRules,PuzzleSolver,PuzzleArt} from './data.js';
 import {useDialogs,useFeedback,useAppearance,useStrokes} from './react-ui.jsx';
 import {readPreference} from './game-state.js';
 
@@ -141,8 +141,8 @@ export default function useEditor() {
     cancelPlacement();if(worker.current){stopWorker();message('Validation cancelled. Your draft is saved.');return}
     const current=getDraft(live.current);let spec;
     try{spec=PuzzleRules.validate(current);if(spec.start.join('|')===spec.target.join('|'))throw new Error('Start and Target are already identical. Change one board.')}catch(error){message(error.message,'error');return}
-    const known=CORE_LEVELS.findIndex(level=>puzzleKey(level)===puzzleKey(spec));
-    if(known>=0){replaceDraft({...current,proof:PuzzleSolver.verify(current,{path:LEVEL_SOLUTIONS[known]})});setStatus(null);return}
+    const known=CAMPAIGN_LEVELS.findIndex(level=>puzzleKey(level)===puzzleKey(spec));
+    if(known>=0){replaceDraft({...current,proof:PuzzleSolver.verify(current,{path:CAMPAIGN_SOLUTIONS[known]})});setStatus(null);return}
     const pending={...current};delete pending.proof;replaceDraft(pending);
     const source=`const PuzzleRules=(${PuzzleRules.create.toString()})();const PuzzleSolver=(${PuzzleSolver.create.toString()})(PuzzleRules);onmessage=event=>{try{const result=PuzzleSolver.solve(event.data,{maxStates:350000,timeout:8000,progress:count=>postMessage({count})});postMessage({result:PuzzleSolver.verify(event.data,result)})}catch(error){postMessage({error:error.message})}};`;
     try{
@@ -164,6 +164,16 @@ export default function useEditor() {
     if(PuzzleRules.key(board)===draft.target.join('|') && lastDifferent)board=lastDifferent;
     if(PuzzleRules.key(board)===draft.target.join('|')){message('No different Start was generated. Add movable tiles to Target and try again.','error');return}
     change(next=>{next.start=board.map(row=>row.join(''))});setSide('start');validate();
+  }
+  async function addToGame(){
+    try{
+      const current=getDraft(live.current);if(!current.proof?.par)return;
+      const response=await fetch('/__studio/add-level',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:current.name,start:current.start,target:current.target})});
+      const result=await response.json().catch(()=>({error:'Unexpected response ('+response.status+').'}));
+      if(!response.ok)throw new Error(result.error || 'Request failed ('+response.status+').');
+      const android=result.android==='exported'?'Android assets updated.':'Android export '+result.android;
+      feedback.notify('Level '+result.level+' · World '+result.world+' · par '+result.par+'. '+android,{title:'Added to game',tone:result.android==='exported'?'success':'warning',duration:result.android==='exported'?6000:0});
+    }catch(error){message('Add to game failed: '+error.message,'error')}
   }
   function playtest(){try{const current=getDraft(live.current);if(!current.proof)return;save();const spec=PuzzleSolver.verify(current,current.proof);sessionStorage.setItem(PREVIEW_KEY,JSON.stringify({...spec,id:current.id}));location.href='Puzzle.html?editor=1'}catch(error){message('Playtest could not open: '+error.message,'error')}}
   function importJSON(text){
@@ -197,5 +207,5 @@ export default function useEditor() {
     return ()=>{document.removeEventListener('keydown',keydown);window.removeEventListener('pagehide',pagehide);window.removeEventListener('blur',cancelPlacement)};
   });
   const counts=Object.fromEntries(Object.keys(PuzzleArt.META).map(type=>[type,['start','target'].map(which=>[...draft[which].join('')].filter(tile=>tile===type).length)]));
-  return {library,draft,side,panel,edits,status:status || {text:readyMessage(draft),tone:draft.proof?'valid':'idle'},saved,checking,holding,drag,drop,discarding,counts,dialogs,feedback,ink,boardRef,shellRef,removeRef,fileRef,downloadRef,download,importText,setImportText,exportScope,setExportScope,seed,setSeed,cellRef:pos=>node=>{const key=pos.join(':');if(node)cells.current.set(key,node);else cells.current.delete(key)},paletteRef:type=>node=>{if(node)palette.current.set(type,node);else palette.current.delete(type)},beginDrag,pointerMove,pointerUp,cancelPlacement,pickUp,activate,showPanel,changeSide,change,undoEdit,switchDraft,newDraft:()=>addDraft(newDraft()),duplicateDraft:()=>addDraft({...copy(draft),id:newDraft().id,name:draft.name.slice(0,53)+' · copy'}),copyLevel:()=>addDraft(newDraft({...CORE_LEVELS[+seed],name:CORE_LEVELS[+seed].name+' · copy'})),deleteDraft,resize,clear,shuffle,validate,playtest,importJSON,importFile,exportFile,removePicked:()=>{if(holding?.from)removeTile(holding.from);else message('Drag tiles here or outside the board to remove. Delete also removes.')}};
+  return {library,draft,side,panel,edits,status:status || {text:readyMessage(draft),tone:draft.proof?'valid':'idle'},saved,checking,holding,drag,drop,discarding,counts,dialogs,feedback,ink,boardRef,shellRef,removeRef,fileRef,downloadRef,download,importText,setImportText,exportScope,setExportScope,seed,setSeed,cellRef:pos=>node=>{const key=pos.join(':');if(node)cells.current.set(key,node);else cells.current.delete(key)},paletteRef:type=>node=>{if(node)palette.current.set(type,node);else palette.current.delete(type)},beginDrag,pointerMove,pointerUp,cancelPlacement,pickUp,activate,showPanel,changeSide,change,undoEdit,switchDraft,newDraft:()=>addDraft(newDraft()),duplicateDraft:()=>addDraft({...copy(draft),id:newDraft().id,name:draft.name.slice(0,53)+' · copy'}),copyLevel:()=>addDraft(newDraft({...CAMPAIGN_LEVELS[+seed],name:CAMPAIGN_LEVELS[+seed].name+' · copy'})),deleteDraft,resize,clear,shuffle,validate,playtest,addToGame,importJSON,importFile,exportFile,removePicked:()=>{if(holding?.from)removeTile(holding.from);else message('Drag tiles here or outside the board to remove. Delete also removes.')}};
 }

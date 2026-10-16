@@ -1,37 +1,30 @@
-import {CAMPAIGN_LEVELS,PuzzleRules,PuzzleSolver,PuzzleArt} from './data.js';
-import {newAttempt,restoreAttempt} from './achievements.mjs';
+import {PuzzleRules,PuzzleSolver,PuzzleArt} from './data.js';
 
-export const KEYS={dev:'insight-dev-mode-v1',dark:'insight-theme-v1',sound:'insight-sound-v1'};
-// Game 1 and Game 2 are one campaign. Game 1's saved keys (and level numbers 1-106) carry over unchanged;
-// Game 2's old keys are left untouched and unused.
-const CAMPAIGN={achievements:true,levels:CAMPAIGN_LEVELS,progressKey:'insight-campaign-r3',campaignKey:'insight-campaign-v3',sessionKey:'insight-session-r3',attemptsKey:'insight-attempts-r3'};
+export const KEYS={dark:'insight-theme-v1',sound:'insight-sound-v1'};
+// The web build only plays studio drafts handed over by the editor, so every key is editor-scoped.
+const PLAYTEST={attemptsKey:'insight-editor-attempts-v2',sessionKey:'insight-editor-session-v2'};
+const UNAVAILABLE={name:'Playtest unavailable',start:['RB'],target:['BR'],world:1};
 export function readPreference(key,fallback=null){try{return localStorage.getItem(key) ?? fallback}catch{return fallback}}
 function readJSON(key){try{return JSON.parse(localStorage.getItem(key))}catch{return null}}
-export function readProgress(config) {
-  const done={};
-  if(!config.custom)for(const [id,value] of Object.entries(readJSON(config.progressKey)?.done || {}))
-    if(/^[1-9]\d*$/.test(id) && +id<=config.levels.length && value===true)done[id]=true;
-  return {done};
-}
-export function attemptKey(config,index){return (config.custom?config.custom.id+':':'')+index}
+export function attemptKey(config,index){return (config.custom?.id ?? 'none')+':'+index}
 function readAttempts(config) {
   const data=readJSON(config.attemptsKey);
   if(data && Number.isInteger(data.last) && config.levels[data.last] && data.entries && !Array.isArray(data.entries) && typeof data.entries==='object') {
     const entries={};
-    for(const [id,entry] of Object.entries(data.entries))if(entry && Number.isInteger(entry.level) && config.levels[entry.level] && (config.custom?/^[\w-]{1,80}:0$/.test(id):id===attemptKey(config,entry.level)))entries[id]=entry;
+    for(const [id,entry] of Object.entries(data.entries))if(entry && Number.isInteger(entry.level) && config.levels[entry.level] && /^[\w-]{1,80}:0$/.test(id))entries[id]=entry;
     return {last:data.last,entries};
   }
   const saved=readJSON(config.sessionKey);
   if(saved && Number.isInteger(saved.level) && config.levels[saved.level])return {last:saved.level,entries:{[attemptKey(config,saved.level)]:saved}};
   return {last:0,entries:{}};
 }
-export function restoreSession(config,saved,eligible) {
+export function restoreSession(config,saved) {
   try {
     if(!saved || !Number.isInteger(saved.level) || !config.levels[saved.level] || !Array.isArray(saved.path) || saved.path.length>10000)return null;
-    if(config.custom && saved.puzzleStamp!==config.stamp)return null;
+    if(saved.puzzleStamp!==config.stamp)return null;
     const spec=config.levels[saved.level];
     if((saved.revision || 1)!==(spec.revision || 1))return null;
-    let attempt={level:saved.level,target:PuzzleRules.parse(spec.target),...PuzzleRules.initialState(spec),moves:0,achievementAttempt:restoreAttempt(saved.achievementAttempt,eligible)};
+    let attempt={level:saved.level,target:PuzzleRules.parse(spec.target),...PuzzleRules.initialState(spec),moves:0};
     const history=[];let color=PuzzleArt.TILE_LIGHTS.B;
     for(const move of saved.path) {
       if(!Array.isArray(move) || move.length!==2 || !move.every(pos=>Array.isArray(pos) && pos.length===2 && pos.every(Number.isInteger)))return null;
@@ -46,7 +39,7 @@ export function restoreSession(config,saved,eligible) {
   } catch{return null}
 }
 export function snapshot(config,attempt,history) {
-  return {revision:config.levels[attempt.level].revision || 1,level:attempt.level,path:history.map(step=>step.move),achievementAttempt:{...attempt.achievementAttempt},...(config.custom?{puzzleStamp:config.stamp}:{})};
+  return {revision:config.levels[attempt.level].revision || 1,level:attempt.level,path:history.map(step=>step.move),puzzleStamp:config.stamp};
 }
 export function stashAttempt(state) {
   const saved=snapshot(state.config,state.attempt,state.history);
@@ -54,49 +47,30 @@ export function stashAttempt(state) {
   return {last:state.attempt.level,entries:{...state.attempts.entries,[attemptKey(state.config,state.attempt.level)]:saved}};
 }
 export function solved(attempt){return PuzzleRules.key(attempt.board)===PuzzleRules.key(attempt.target)}
-// Per-world summary for the world selector: a world is locked until its first level is unlocked.
-export function worldStats(config,done,unlocked,dev) {
-  const worlds=[];
-  config.levels.forEach((level,i)=>{
-    const world=worlds[level.world-1] || (worlds[level.world-1]={world:level.world,total:0,solved:0,first:i});
-    world.total++;if(done[i+1])world.solved++;
-  });
-  return worlds.map(world=>({...world,complete:world.solved===world.total,locked:!dev && world.first>=unlocked}));
-}
-export function canAccess(state,index){return !!state.config.custom || state.dev || index<state.unlocked}
 
 export function startPuzzle(state,index,{restart=false}={}) {
-  if(!state.config.levels[index] || !canAccess(state,index))return state;
+  if(!state.config.levels[index])return state;
   const attempts=state.attempt?stashAttempt(state):state.attempts,config=state.config,spec=config.levels[index];
-  const saved=attempts.entries[attemptKey(config,index)],eligible=config.achievements && !state.dev;
-  const restored=restart?null:restoreSession(config,saved,eligible),resume=restored && !solved(restored.attempt);
-  const attempt=resume?restored.attempt:{level:index,target:PuzzleRules.parse(spec.target),...PuzzleRules.initialState(spec),moves:0,achievementAttempt:newAttempt(eligible)};
-  if(!eligible)attempt.achievementAttempt={...attempt.achievementAttempt,eligible:false};
-  const recovery=resume && !restored.history.length?restoreSession(config,saved.restart,eligible):null;
-  return {...state,attempt,attempts,history:resume?restored.history:[],restart:recovery?.attempt.moves?recovery:null,color:resume?restored.color:PuzzleArt.TILE_LIGHTS.B,badges:[]};
+  const saved=attempts.entries[attemptKey(config,index)];
+  const restored=restart?null:restoreSession(config,saved),resume=restored && !solved(restored.attempt);
+  const attempt=resume?restored.attempt:{level:index,target:PuzzleRules.parse(spec.target),...PuzzleRules.initialState(spec),moves:0};
+  const recovery=resume && !restored.history.length?restoreSession(config,saved.restart):null;
+  return {...state,attempt,attempts,history:resume?restored.history:[],restart:recovery?.attempt.moves?recovery:null,color:resume?restored.color:PuzzleArt.TILE_LIGHTS.B};
 }
 
+// A missing or invalid editor handoff sets config.error; GameApp then sends the user back to the editor.
 export function initializeGame() {
   let custom=null,error=null;
-  if(new URLSearchParams(location.search).has('editor'))try{
+  try{
+    if(!new URLSearchParams(location.search).has('editor'))throw new Error();
     const preview=JSON.parse(sessionStorage.getItem('insight-editor-preview-v1')),verified=PuzzleSolver.verify(preview,preview);
     if(!verified.par || typeof preview.id!=='string' || !/^[\w-]{1,80}$/.test(preview.id))throw new Error();
     custom={...verified,id:preview.id,world:1};
   }catch{error='Playtest unavailable. Open the editor and validate your puzzle again.'}
   const spec=custom?PuzzleRules.validate(custom):null;if(spec)delete spec.name;
-  const config={...CAMPAIGN,custom,error,...(custom?{achievements:false,levels:[custom],sessionKey:'insight-editor-session-v2',attemptsKey:'insight-editor-attempts-v2'}:{}),stamp:custom?JSON.stringify([custom.id,spec]):null};
-  const dev=!custom && readPreference(KEYS.dev)==='on';
-  const attempts=readAttempts(config),progress=readProgress(config);
-  let unlocked=1;const saved=readJSON(config.campaignKey);
-  if(!custom && Number.isInteger(saved?.unlocked) && saved.unlocked>=1 && saved.unlocked<=config.levels.length)unlocked=saved.unlocked;
-  else if(!custom){
-    for(const entry of Object.values(attempts.entries)){const restored=restoreSession(config,entry,config.achievements && !dev);if(restored)unlocked=Math.max(unlocked,restored.attempt.level+1)}
-  }
-  // Solved levels always open the next one, so players who finished the old 106-level campaign reach level 107.
-  if(!custom)for(const id of Object.keys(progress.done))unlocked=Math.max(unlocked,+id+1);
-  unlocked=Math.min(unlocked,config.levels.length);
-  const state={config,dev,unlocked,attempts,progress,attempt:null,history:[],restart:null,color:PuzzleArt.TILE_LIGHTS.B,badges:[],dark:readPreference(KEYS.dark)!=='light',sound:readPreference(KEYS.sound)!=='off'};
-  const restored=restoreSession(config,attempts.entries[attemptKey(config,attempts.last)],config.achievements && !dev),unfinished=config.levels.findIndex((level,i)=>!progress.done[i+1]);
-  const initial=restored && !solved(restored.attempt)?restored.attempt.level:Math.max(0,unfinished);
-  return startPuzzle(state,canAccess(state,initial)?initial:unlocked-1);
+  const config={...PLAYTEST,custom,error,levels:[custom || UNAVAILABLE],stamp:custom?JSON.stringify([custom.id,spec]):null};
+  const attempts=custom?readAttempts(config):{last:0,entries:{}};
+  const state={config,attempts,attempt:null,history:[],restart:null,color:PuzzleArt.TILE_LIGHTS.B,dark:readPreference(KEYS.dark)!=='light',sound:readPreference(KEYS.sound)!=='off'};
+  const restored=custom?restoreSession(config,attempts.entries[attemptKey(config,attempts.last)]):null;
+  return startPuzzle(state,restored && !solved(restored.attempt)?restored.attempt.level:0);
 }
