@@ -45,6 +45,10 @@ Run on the emulator:
 ~/Android/Sdk/platform-tools/adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
+## Adding levels
+
+Design them in the web studio (`../project-insight`, `npm run dev`) and press **Add to game**: it appends to the campaign (next level number, World 11 onward) and runs the export below. Then run the unit tests and rebuild. Levels are append-only because progress is saved by level number.
+
 ## When the web levels or sounds change
 
 ```sh

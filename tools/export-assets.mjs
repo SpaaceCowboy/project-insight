@@ -8,8 +8,7 @@ const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const web=resolve(process.argv[2] || join(root,'..','project-insight'));
 const load=file=>import(pathToFileURL(join(web,file)).href);
 
-const {CAMPAIGN_LEVELS}=await load('src/data/campaign.js');
-const solutions=[...(await load('src/data/level-solutions.js')).LEVEL_SOLUTIONS,...(await load('src/data/level-solutions-2.js')).LEVEL_SOLUTIONS];
+const {CAMPAIGN_LEVELS,CAMPAIGN_SOLUTIONS:solutions}=await load('src/data/campaign.js');
 if(solutions.length!==CAMPAIGN_LEVELS.length)throw new Error(`Expected ${CAMPAIGN_LEVELS.length} solutions, found ${solutions.length}`);
 
 const levels=CAMPAIGN_LEVELS.map(({name,start,target,world,par})=>({name,start,target,world,par}));

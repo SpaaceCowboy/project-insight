@@ -13,7 +13,7 @@ class RulesTest {
     fun allLevelsSolvedByVerifiedRoutes() {
         val levels = Levels.parse(java.io.File("src/main/assets/levels.json").readText())
         val routes = JSONArray(resource("solutions.json"))
-        assertEquals(206, levels.size)
+        assertTrue(levels.isNotEmpty())
         assertEquals(levels.size, routes.length())
         levels.forEachIndexed { i, level ->
             val width = level.start[0].length
