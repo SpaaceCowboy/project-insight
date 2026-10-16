@@ -5,6 +5,7 @@ import { campaign } from '../src/campaign.js';
 import { contentHash, replay, type Move } from '../src/rules.js';
 import { progression, threshold } from '../src/progression.js';
 import { safeName } from '../src/vocabulary.js';
+import { nickname } from '../src/nickname.js';
 
 test('TypeScript rules replay every Kotlin campaign fixture', () => {
   const routes = JSON.parse(readFileSync(new URL('../../app/src/test/resources/solutions.json', import.meta.url), 'utf8')) as Move[][];
@@ -36,4 +37,10 @@ test('all level thresholds, fractional XP, and the level-100 cap', () => {
 test('only reviewed word combinations are accepted', () => {
   assert.equal(safeName('Quiet Cove'), 'Quiet Cove');
   for (const text of ['quiet cove', 'QuietCove', 'Quiet Cove!', 'John Cove', 'Quiet\u200b Cove']) assert.throws(() => safeName(text));
+});
+test('free nicknames preserve Unicode, normalize spacing, and reject hidden/oversized names', () => {
+  assert.equal(nickname('  Ｍｙ\u3000Name '), 'My Name');
+  assert.equal(nickname('پازل\u200cباز 🎮'), 'پازل\u200cباز 🎮');
+  assert.equal(nickname('🧩'.repeat(32)), '🧩'.repeat(32));
+  for (const name of ['', '   ', '\u200c\u200d', 'bad\u202ename', 'a\u0000b', '🧩'.repeat(33)]) assert.throws(() => nickname(name));
 });

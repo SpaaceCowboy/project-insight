@@ -3,10 +3,10 @@ import argon2 from 'argon2';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { PoolClient } from 'pg';
 import type { Config } from './config.js';
-import { database, transaction, type Db } from './db.js';
+import { operation, transaction, type Db } from './db.js';
 import { decrypt, digest, encrypt, token } from './crypto.js';
 import { requireValue } from './rules.js';
-import { safeName } from './vocabulary.js';
+import { claimNickname, nickname } from './nickname.js';
 
 export const uuidSchema = { type: 'string', format: 'uuid' };
 export const operationSchema = { ...uuidSchema };
@@ -49,27 +49,17 @@ export async function authRoutes(app: FastifyInstance, db: Db, config: Config) {
   // A dummy hash keeps absent-account logins on the same expensive verification path.
   const dummyHash = await argon2.hash(token(), passwords);
   const limited = { rateLimit: { max: 8, timeWindow: '15 minutes' } };
-  app.post('/v1/auth/register', { config: limited, schema: { body: objectSchema({ email: emailSchema, password: passwordSchema, name: { type: 'string' }, invite: { type: 'string', minLength: 8, maxLength: 128 } }) } }, async req => {
-    const b = req.body as any; const email = b.email.trim().toLowerCase(); const name = safeName(b.name);
+  // Accept (and ignore) a legacy invitation field so already-installed clients can still register.
+  app.post('/v1/auth/register', { config: limited, schema: { body: objectSchema({ email: emailSchema, password: passwordSchema, name: { type: 'string', minLength: 1, maxLength: 128 }, invite: { type: 'string', maxLength: 128 } }, ['email', 'password', 'name']) } }, async req => {
+    const b = req.body as any; const email = b.email.trim().toLowerCase(); const name = nickname(b.name);
     const passwordHash = await argon2.hash(b.password, passwords);
     await transaction(db, async c => {
       // Serializes duplicate registration without disclosing whether the address already exists.
       await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [`register:${email}`]);
-      const invitation = await c.query('SELECT hash,remaining FROM invitations WHERE hash=$1 FOR UPDATE', [digest(b.invite, key)]);
-      requireValue(invitation.rowCount, 'INVITE_REQUIRED', 'A valid test invitation is required.', 403);
       if ((await c.query('SELECT id FROM users WHERE email=$1', [email])).rowCount) return;
-      requireValue(invitation.rows[0].remaining > 0, 'INVITE_REQUIRED', 'A valid test invitation is required.', 403);
-      let username = '';
-      for (let i = 0; i < 100; i++) {
-        username = `${name} #${String(randomInt(10000)).padStart(4, '0')}`;
-        await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [`username:${username}`]);
-        if (!(await c.query('SELECT 1 FROM users WHERE username=$1', [username])).rowCount) break;
-        username = '';
-      }
-      requireValue(username, 'NAME_BUSY', 'Please try another name.', 409);
+      await claimNickname(c, name);
       const id = randomUUID();
-      await c.query('INSERT INTO users(id,email,password_hash,username) VALUES($1,$2,$3,$4)', [id, email, passwordHash, username]);
-      await c.query('UPDATE invitations SET remaining=remaining-1 WHERE hash=$1', [digest(b.invite, key)]);
+      await c.query('INSERT INTO users(id,email,password_hash,username) VALUES($1,$2,$3,$4)', [id, email, passwordHash, name]);
       await challenge(c, id, email, 'verify', key);
     });
     return { accepted: true, message: 'If registration is available, a verification code has been queued.' };
@@ -146,4 +136,12 @@ export async function authRoutes(app: FastifyInstance, db: Db, config: Config) {
     return { accepted: true };
   });
   app.get('/v1/account', { preHandler: auth }, async req => ({ user: req.account }));
+  app.patch('/v1/account/name', { preHandler: [auth, verified], schema: { body: objectSchema({ operationId: operationSchema, name: { type: 'string', minLength: 1, maxLength: 128 } }) } }, async req => {
+    const b = req.body as any; const name = nickname(b.name);
+    return operation(db, req.account!.id, b.operationId, 'nickname', digest(JSON.stringify(b), key), async c => {
+      await claimNickname(c, name, req.account!.id);
+      await c.query('UPDATE users SET username=$1 WHERE id=$2', [name, req.account!.id]);
+      return { accepted: true };
+    });
+  });
 }

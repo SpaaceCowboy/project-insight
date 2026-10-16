@@ -6,7 +6,7 @@ import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { database, type Db } from '../src/db.js';
 import { migrate } from '../src/migrate.js';
-import { decrypt, digest } from '../src/crypto.js';
+import { decrypt } from '../src/crypto.js';
 import { campaign } from '../src/campaign.js';
 import { contentHash, type Move } from '../src/rules.js';
 import type { Config } from '../src/config.js';
@@ -27,9 +27,8 @@ async function call(method: any, path: string, body?: any, account?: any, status
 }
 const op = () => randomUUID();
 async function makeAccount() {
-  const email = `${randomUUID()}@example.test`; const invite = randomUUID();
-  await db.query('INSERT INTO invitations(hash,remaining) VALUES($1,1)', [digest(invite, key)]);
-  await call('POST', '/v1/auth/register', { email, password: 'long-test-password', name: 'Quiet Cove', invite });
+  const email = `${randomUUID()}@example.test`;
+  await call('POST', '/v1/auth/register', { email, password: 'long-test-password', name: `Player ${op().slice(0, 12)}` });
   const pending = (await db.query("SELECT o.encrypted_payload FROM email_outbox o JOIN challenges c ON c.id=o.challenge_id JOIN users u ON u.id=c.user_id WHERE u.email=$1 ORDER BY c.created_at DESC LIMIT 1", [email])).rows[0];
   const { code } = decrypt<any>(pending.encrypted_payload, key);
   await call('POST', '/v1/auth/verify/confirm', { email, code });
@@ -55,9 +54,14 @@ test('two accounts publish, discover, play, earn XP, and expose only public prof
   assert.deepEqual(await call('POST', `/v1/grids/${d.id}/publish`, publish, creator), published);
   const found = await call('GET', '/v1/worlds?query=Calm', undefined, player); assert.equal(found.items[0].id, w.id);
   const session = await call('POST', `/v1/grids/${d.id}/sessions`, { operationId: op() }, player);
+  assert.equal((await call('GET', `/v1/worlds/${w.id}/grids`, undefined, player)).items[0].completed, false);
   const proof = { operationId: op(), kind: 'community', sessionId: session.sessionId, path: custom(1).path };
   const result = await call('POST', '/v1/completions', proof, player); assert.equal(result.awardedMilli, '100000');
   assert.deepEqual(await call('POST', '/v1/completions', proof, player), result);
+  assert.equal((await call('GET', `/v1/worlds/${w.id}/grids`, undefined, player)).items[0].completed, true);
+  assert.equal((await call('GET', `/v1/worlds/${w.id}/grids`, undefined, creator)).items[0].completed, false);
+  const playerProgress = await call('GET', '/v1/progress', undefined, player);
+  assert.deepEqual(playerProgress.communityDone, [d.id]); assert.deepEqual(playerProgress.done, []);
   const ownerProfile = await call('GET', `/v1/profiles/${creator.user.id}`, undefined, player);
   assert.equal(ownerProfile.xpMilli, '25001'); assert.equal(ownerProfile.worldCount, 1); assert.equal(ownerProfile.gridCount, 1);
   assert.equal('email' in ownerProfile, false); assert.equal('password_hash' in ownerProfile, false);
@@ -137,4 +141,26 @@ test('unverified accounts are gated, login is throttled, and OpenAPI is availabl
   for (let n = 0; n < 8; n++) await call('POST', '/v1/auth/login', { email: 'unknown@example.test', password: 'bad' }, undefined, 401, '192.0.2.1');
   await call('POST', '/v1/auth/login', { email: 'unknown@example.test', password: 'bad' }, undefined, 429, '192.0.2.1');
   const spec = await call('GET', '/docs/json'); assert.ok(spec.paths['/v1/completions']);
+});
+
+test('open registration, Unicode unique nicknames, concurrent claims and idempotent profile rename', async () => {
+  const email = `${op()}@example.test`;
+  await call('POST', '/v1/auth/register', { email, password: 'long-test-password', name: '  My\u3000Nickname  ' });
+  const registered = await call('POST', '/v1/auth/login', { email, password: 'long-test-password' });
+  assert.equal(registered.user.username, 'My Nickname');
+  await call('PATCH', '/v1/account/name', { operationId: op(), name: 'Other name' }, registered, 403);
+  const conflict = await call('POST', '/v1/auth/register', { email: `${op()}@example.test`, password: 'long-test-password', name: 'ｍｙ nickname' }, undefined, 409);
+  assert.equal(conflict.code, 'NAME_TAKEN');
+  const name = `Race ${op().slice(0, 12)}`;
+  const race = await Promise.all([name, name.toUpperCase()].map((name, n) => app.inject({ method: 'POST', url: '/v1/auth/register', remoteAddress: `192.0.2.${20+n}`, payload: { email: `${op()}@example.test`, password: 'long-test-password', name } })));
+  assert.deepEqual(race.map(r => r.statusCode).sort(), [200,409]);
+  const a = await makeAccount(); const b = await makeAccount();
+  const change = { operationId: op(), name: 'پازل\u200cباز 🎮' };
+  await call('PATCH', '/v1/account/name', change, a);
+  await call('PATCH', '/v1/account/name', change, a);
+  assert.equal((await call('GET', '/v1/account', undefined, a)).user.username, change.name);
+  assert.equal((await call('GET', `/v1/profiles/${a.user.id}`, undefined, b)).username, change.name);
+  await call('PATCH', '/v1/account/name', { ...change, operationId: op() }, b, 409);
+  await call('PATCH', '/v1/account/name', { operationId: op(), name: 'bad\u202ename' }, a, 400);
+  await call('POST', '/v1/auth/register', { email: `${op()}@example.test`, password: 'long-test-password', name: 'Old client', invite: 'unused-legacy-invitation' });
 });

@@ -38,7 +38,8 @@ The rules are the tiles themselves: each colour moves in its own fixed direction
 - **Deferred:** Casual, What's Next, profile search, additional discovery filters, and billing.
 - **Distribution:** Google Play. The campaign is free. Online play is the paid part. The purchase mechanism (IAP and its price) is undecided.
 - `applicationId` `com.insightpuzzle.app` becomes permanent once published.
-- Online menu order: Profile, Create, Casual (Coming soon), Play. Content uses curated English word combinations and six tile icons. Worlds hold at most 20 immutable published grids, including hidden grids; owners can rename and hide/restore content.
+- Online menu order: Profile, Create, Casual (Coming soon), Play. World/grid titles use curated English word combinations and six tile icons. Registration requires no invitation. Players choose free-text unique nicknames (1–32 characters, case-insensitive) without a generated suffix, and can change them on their profile. Worlds hold at most 20 immutable published grids, including hidden grids; owners can rename and hide/restore content.
+- Completed community grids show a small themed checkmark and Solved badge, with Play again available. Completion history is separate from campaign progress, persists per account, and is restored after login.
 - Level 100 requires 106,920 XP. First verified solve: 100 XP; replay: 10 XP once per content/day, up to 50 daily; original publication: 25 XP, up to 50 daily; distinct other player/grid: 0.001 XP after a legal move. Existing progress/badges import without XP. Campaign and community progress remain separate.
 
 ## Brand Commitments

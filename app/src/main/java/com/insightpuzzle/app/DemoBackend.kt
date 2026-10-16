@@ -8,6 +8,7 @@ import java.security.MessageDigest
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.util.UUID
+import java.util.Locale
 
 /** Explicit, device-only preview transport. Never selected as a fallback for a real service failure. */
 class DemoBackend(context: Context) {
@@ -23,11 +24,11 @@ class DemoBackend(context: Context) {
         return name
     }
     private fun initial(): JSONObject {
-        val users = JSONArray().put(JSONObject().put("id", player).put("username", "Quiet Cove #0001").put("verified", true).put("done", JSONArray()).put("badges", JSONArray()).put("sampleXp", 0))
+        val users = JSONArray().put(JSONObject().put("id", player).put("username", "Quiet Cove").put("verified", true).put("done", JSONArray()).put("badges", JSONArray()).put("sampleXp", 0))
         val worlds = JSONArray(); val grids = JSONArray()
         listOf("Silver Grove", "Warm Fern").forEachIndexed { index, name ->
             val author = id(); val world = id()
-            users.put(JSONObject().put("id", author).put("username", "$name #010${index + 1}").put("verified", true).put("done", JSONArray((1..(10 + index * 15)).toList())).put("badges", JSONArray(listOf("first", "first-clean", "flow", "steady"))).put("sampleXp", 850000 + index * 500000))
+            users.put(JSONObject().put("id", author).put("username", name).put("verified", true).put("done", JSONArray((1..(10 + index * 15)).toList())).put("badges", JSONArray(listOf("first", "first-clean", "flow", "steady"))).put("sampleXp", 850000 + index * 500000))
             worlds.put(JSONObject().put("id", world).put("ownerId", author).put("name", if (index == 0) "Silver Tide" else "Warm Grove").put("icon", if (index == 0) "B" else "G").put("hidden", false).put("moderated", false).put("samplePopularity", 24 - index * 7))
             listOf(0, 3, 8).forEachIndexed { n, level ->
                 val spec = levels[level + index]
@@ -67,10 +68,18 @@ class DemoBackend(context: Context) {
         fun entity(key: String, value: String) = list(key).firstOrNull { it.getString("id") == value } ?: failure("NOT_FOUND", "Preview item unavailable.", 404)
         fun own(key: String, value: String): JSONObject = entity(key, value).also { if (it.optString("ownerId") != player || it.optBoolean("moderated")) failure("NOT_FOUND", "Item unavailable.", 404) }
         fun person(value: String) = entity("users", value)
+        fun rename(value: String) {
+            if (!Nicknames.valid(value)) failure("INVALID_NICKNAME", Nicknames.REQUIREMENT)
+            val name = Nicknames.normalize(value)
+            val key = name.lowercase(Locale.ROOT)
+            if (list("users").any { it.getString("id") != player && Nicknames.normalize(it.getString("username")).lowercase(Locale.ROOT) == key }) failure("NAME_TAKEN", "That nickname is already taken. Choose another.", 409)
+            person(player).put("username", name)
+        }
         fun publicUser(value: String) = person(value).let { JSONObject().put("id", value).put("username", it.getString("username")).put("verified", true) }
         fun visible(g: JSONObject): Boolean = !g.isNull("publishedAt") && !g.optBoolean("hidden") && !g.optBoolean("moderated") && entity("worlds", g.getString("worldId")).let { !it.optBoolean("hidden") && !it.optBoolean("moderated") }
         fun grid(g: JSONObject): JSONObject = JSONObject(g.toString()).apply {
             remove("hash"); put("username", person(g.getString("ownerId")).getString("username"))
+            put("completed", list("gridCompletions").any { it.getString("userId") == player && it.getString("gridId") == g.getString("id") })
             put("worldName", if (g.isNull("worldId")) JSONObject.NULL else entity("worlds", g.getString("worldId")).getString("name"))
         }
         fun world(w: JSONObject): JSONObject = JSONObject(w.toString()).apply {
@@ -95,6 +104,7 @@ class DemoBackend(context: Context) {
             return JSONObject().put("level", level).put("xpMilli", total.toString()).put("levelStartMilli", threshold(level).toString()).put("nextLevelMilli", if (level == 100) JSONObject.NULL else threshold(level + 1).toString())
         }
         fun progress(): JSONObject = xp(player).put("done", person(player).getJSONArray("done")).put("badges", person(player).getJSONArray("badges"))
+            .put("communityDone", JSONArray(list("gridCompletions").filter { it.getString("userId") == player }.map { it.getString("gridId") }))
         fun qualify(g: JSONObject) {
             if (g.getString("ownerId") == player || list("plays").any { it.getString("gridId") == g.getString("id") && it.getString("userId") == player }) return
             root.getJSONArray("plays").put(JSONObject().put("gridId", g.getString("id")).put("userId", player))
@@ -115,12 +125,13 @@ class DemoBackend(context: Context) {
             route == "/v1/vocabulary" -> JSONObject().put("version", 1).put("first", JSONArray(first)).put("second", JSONArray(second))
             route == "/v1/capabilities" -> JSONObject().put("emailDelivery", "local-preview")
             route == "/v1/auth/login" -> {
-                person(player).put("username", "${safeName(body.optString("password", "Quiet Cove"))} #0001")
+                rename(body.optString("password", "Quiet Cove"))
                 JSONObject().put("accessToken", "D".repeat(43)).put("refreshToken", "R".repeat(43)).put("user", publicUser(player))
             }
             route == "/v1/auth/refresh" -> JSONObject().put("accessToken", "D".repeat(43)).put("refreshToken", "R".repeat(43)).put("user", publicUser(player))
             route == "/v1/auth/logout" -> JSONObject().put("accepted", true)
             route == "/v1/account" -> JSONObject().put("user", publicUser(player))
+            route == "/v1/account/name" && method == "PATCH" -> { rename(body.getString("name")); JSONObject().put("accepted", true) }
             route == "/v1/progress" -> progress()
             route == "/v1/progress/import" -> {
                 val p = person(player)

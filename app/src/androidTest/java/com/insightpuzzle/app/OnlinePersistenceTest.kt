@@ -23,19 +23,23 @@ class OnlinePersistenceTest {
     }
 
     @Test fun savesProofsAndResetsAreAccountScoped() {
-        val store = Store(isolatedContext())
+        val context = isolatedContext(); val store = Store(context)
         store.done = setOf(1); store.earned = mapOf("first" to 1L); store.sound = false
         store.saveProof(JSONObject().put("operationId", "guest-proof"))
         store.selectAccount("account-a")
         assertTrue(store.done.isEmpty()); assertTrue(store.earned.isEmpty()); assertTrue(store.proofs().isEmpty())
         store.done = setOf(2); store.earned = mapOf("steady" to 2L); store.saveAttempt(1, "0,3")
+        store.communityDone = setOf("grid-a")
         store.saveCommunityAttempt("grid", "0,2"); store.saveProof(JSONObject().put("operationId", "a-proof"))
         store.selectAccount("account-b")
+        assertTrue(store.communityDone.isEmpty())
         assertTrue(store.done.isEmpty()); assertNull(store.attempt(1)); assertNull(store.communityAttempt("grid")); assertTrue(store.proofs().isEmpty())
         store.done = setOf(3)
         store.selectAccount("account-a"); assertEquals(setOf(2), store.done); assertEquals("0,3", store.attempt(1))
+        assertEquals(setOf("grid-a"), Store(context).communityDone)
         store.resetProgress()
         assertTrue(store.done.isEmpty()); assertEquals(mapOf("steady" to 2L), store.earned)
+        assertEquals(setOf("grid-a"), store.communityDone)
         assertEquals("a-proof", store.proofs().single().getString("operationId"))
         store.selectAccount("account-b"); assertEquals(setOf(3), store.done)
         store.selectAccount(null); assertEquals(setOf(1), store.done); assertFalse(store.sound)
@@ -84,6 +88,7 @@ class OnlinePersistenceTest {
         assertEquals(2, worlds.length())
         val sampleWorld = worlds.getJSONObject(0)
         val sampleGrid = request("GET", "/v1/worlds/${sampleWorld.getString("id")}/grids").getJSONArray("items").getJSONObject(0)
+        assertFalse(sampleGrid.getBoolean("completed"))
         val play = request("POST", "/v1/grids/${sampleGrid.getString("id")}/sessions", op())
         // The first preview grid reuses campaign level 1, whose only solution is one horizontal swap.
         val spec = sampleGrid.board("start"); val target = sampleGrid.board("target")
@@ -92,10 +97,20 @@ class OnlinePersistenceTest {
         val body = op().put("kind", "community").put("sessionId", play.getString("sessionId")).put("path", proof)
         val first = request("POST", "/v1/completions", body)
         assertEquals("100000", first.getString("awardedMilli")); assertEquals(first.toString(), request("POST", "/v1/completions", body).toString())
+        assertTrue(request("GET", "/v1/worlds/${sampleWorld.getString("id")}/grids").getJSONArray("items").getJSONObject(0).getBoolean("completed"))
+        assertEquals(sampleGrid.getString("id"), request("GET", "/v1/progress").getJSONArray("communityDone").getString(0))
+        assertEquals(0, request("GET", "/v1/progress").getJSONArray("done").length())
+        try {
+            request("PATCH", "/v1/account/name", op().put("name", sampleWorld.getString("username").lowercase()))
+            fail("Another player's nickname must remain unique")
+        } catch (error: OnlineException) { assertEquals("NAME_TAKEN", error.code) }
+        request("PATCH", "/v1/account/name", op().put("name", "پازل\u200cباز 🎮"))
         val w = request("POST", "/v1/worlds", op().put("name", "Calm Pool").put("icon", "R"))
         val draft = request("POST", "/v1/grids/drafts", op().put("name", "Soft Cove").put("start", JSONArray(listOf("RBY","GPW"))).put("target", JSONArray(listOf("GBY","RPW"))).put("path", JSONArray().put(JSONArray(listOf(0,3)))))
         request("POST", "/v1/grids/${draft.getString("id")}/publish", op().put("worldId", w.getString("id")))
         demo = DemoBackend(context)
+        assertEquals("پازل\u200cباز 🎮", request("GET", "/v1/account").getJSONObject("user").getString("username"))
+        assertTrue(request("GET", "/v1/worlds/${sampleWorld.getString("id")}/grids").getJSONArray("items").getJSONObject(0).getBoolean("completed"))
         val profile = request("GET", "/v1/profiles/$account")
         assertEquals(1, profile.getInt("worldCount")); assertEquals(1, profile.getInt("gridCount")); assertEquals(1, profile.getInt("communityCount"))
         assertEquals(draft.getString("id"), request("GET", "/v1/grids/code/${draft.getString("code")}").getJSONObject("grid").getString("id"))

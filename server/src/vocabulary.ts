@@ -1,6 +1,6 @@
 import { requireValue } from './rules.js';
 
-// Reviewed combinations only. No free-text names, proper names, or player-provided words.
+// Reviewed combinations for world/grid titles. Account nicknames are separately validated free text.
 export const vocabulary = {
   version: 1,
   first: ['Amber', 'Calm', 'Clear', 'Gentle', 'Golden', 'Quiet', 'Silver', 'Soft', 'Still', 'Warm'],

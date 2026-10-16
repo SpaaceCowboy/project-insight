@@ -7,7 +7,8 @@ const board = array(text);
 const user = object({ id: text, username: text, verified: boolean });
 const progressFields = { level: integer, xpMilli: text, levelStartMilli: text, nextLevelMilli: nullable(text) };
 const world = object({ id: text, ownerId: text, name: text, icon: text, hidden: boolean, moderated: boolean, username: text, gridCount: integer, usedSlots: integer, popularity: integer });
-const grid = object({ id: text, ownerId: text, worldId: nullable(text), name: text, code: text, start: board, target: board, hidden: boolean, moderated: boolean, publishedAt: nullable(text), worldName: nullable(text), username: text });
+const gridFields = { id: text, ownerId: text, worldId: nullable(text), name: text, code: text, start: board, target: board, hidden: boolean, moderated: boolean, publishedAt: nullable(text), worldName: nullable(text), username: text };
+const grid = object({ ...gridFields, completed: boolean }, Object.keys(gridFields));
 const page = object({ items: array(world), nextPage: nullable(integer) });
 const accepted = object({ accepted: boolean, message: text }, ['accepted']);
 const tokenResponse = object({ accessToken: text, refreshToken: text, user });
@@ -17,7 +18,7 @@ const responses: Record<string, object> = {
   'GET /v1/capabilities': object({ emailDelivery: text }),
   'GET /v1/account': object({ user }),
   'POST /v1/auth/login': tokenResponse, 'POST /v1/auth/refresh': tokenResponse,
-  'GET /v1/progress': object({ done: array(integer), badges: array(text), ...progressFields }),
+  'GET /v1/progress': object({ done: array(integer), communityDone: array(text), badges: array(text), ...progressFields }),
   'POST /v1/progress/import': object({ accepted: boolean, awardedMilli: text }),
   'GET /v1/profiles/:id': object({ id: text, username: text, worldCount: integer, gridCount: integer, campaignCount: integer, communityCount: integer, beatenCount: integer, badges: array(text), ...progressFields }),
   'GET /v1/worlds': page, 'POST /v1/worlds': world,

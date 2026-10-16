@@ -39,6 +39,11 @@ class Store(context: Context) {
         get() = prefs.getStringSet(scoped("done"), emptySet())!!.mapNotNull { it.toIntOrNull() }.toSet()
         set(value) = prefs.edit().putStringSet(scoped("done"), value.map { it.toString() }.toSet()).apply()
 
+    /** Community history is account-scoped and separate from campaign unlocks and resets. */
+    var communityDone: Set<String>
+        get() = prefs.getStringSet(scoped("community_done"), emptySet())!!.toSet()
+        set(value) { check(prefs.edit().putStringSet(scoped("community_done"), value).commit()) }
+
     /** Moves made in an unfinished level, as flat cell indices "a,b;c,d", so a level resumes where it was left. */
     fun attempt(level: Int): String? = prefs.getString(scoped("attempt_$level"), null)
     fun saveAttempt(level: Int, path: String?) = prefs.edit().apply { if (path.isNullOrEmpty()) remove(scoped("attempt_$level")) else putString(scoped("attempt_$level"), path) }.apply()

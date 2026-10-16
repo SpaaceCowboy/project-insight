@@ -52,9 +52,16 @@ class OnlineState(private val model: GameModel, app: Application, private val sc
         if (user!!.verified) { activate(); finishLogin(destination) }
         else notice = "Enter the verification code from your email to continue."
     }
-    fun register(email: String, password: String, name: String, invite: String, complete: () -> Unit) = task {
-        repository.client.request("POST", "/v1/auth/register", JSONObject().put("email", email.trim()).put("password", password).put("name", name).put("invite", invite.trim()), account = null)
+    fun register(email: String, password: String, name: String, complete: () -> Unit) = task {
+        repository.client.request("POST", "/v1/auth/register", JSONObject().put("email", email.trim()).put("password", password).put("name", name), account = null)
         notice = "If eligible, your verification email has been queued. Delivery may take a moment."
+        complete()
+    }
+    fun rename(name: String, complete: () -> Unit) = task {
+        if (!Nicknames.valid(name)) throw OnlineException(400, "INVALID_NICKNAME", Nicknames.REQUIREMENT)
+        repository.command("nickname", "PATCH", "/v1/account/name", JSONObject().put("name", Nicknames.normalize(name)))
+        user = repository.client.updateVerifiedUser()
+        notice = "Nickname saved."
         complete()
     }
     fun requestCode(email: String, recover: Boolean) = task {

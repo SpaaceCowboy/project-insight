@@ -60,8 +60,9 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
 
   app.get('/v1/progress', { preHandler: ready }, async req => {
     const done = (await db.query('SELECT level_id FROM campaign_progress WHERE user_id=$1 ORDER BY level_id', [user(req)])).rows.map(r => r.level_id);
+    const communityDone = (await db.query('SELECT grid_id FROM grid_completions WHERE user_id=$1 ORDER BY grid_id', [user(req)])).rows.map(r => r.grid_id);
     const badges = new Set([...earnedBadges(done), ...(await db.query('SELECT badge_id FROM imported_badges WHERE user_id=$1', [user(req)])).rows.map(r => r.badge_id)]);
-    return { done, badges: [...badges], ...(await xp(db, user(req))) };
+    return { done, communityDone, badges: [...badges], ...(await xp(db, user(req))) };
   });
   app.post('/v1/progress/import', { preHandler: ready, schema: { body: objectSchema({ operationId: operationSchema,
     done: { type: 'array', maxItems: campaign.length, uniqueItems: true, items: { type: 'integer', minimum: 1, maximum: campaign.length } },
@@ -112,7 +113,8 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
     requireValue(w, 'NOT_FOUND', 'World unavailable.', 404);
     const items = (await db.query(`${gridSelect} WHERE g.world_id=$1 AND g.published_at IS NOT NULL
       AND ((${publishedVisible}) OR g.owner_id=$2) ORDER BY g.published_at,g.id`, [id, user(req)])).rows;
-    return { world: w, items };
+    const completed = new Set((await db.query('SELECT grid_id FROM grid_completions WHERE user_id=$1 AND grid_id=ANY($2::uuid[])', [user(req), items.map(g => g.id)])).rows.map(r => r.grid_id));
+    return { world: w, items: items.map(g => ({ ...g, completed: completed.has(g.id) })) };
   });
   app.get('/v1/grids/drafts', { preHandler: ready }, async req => ({ items: (await db.query(`${gridSelect} WHERE g.owner_id=$1 AND g.published_at IS NULL ORDER BY g.created_at DESC LIMIT 100`, [user(req)])).rows }));
   app.post('/v1/grids/drafts', { preHandler: ready, schema: { body: objectSchema({ operationId: operationSchema, name: nameSchema, start: boardSchema, target: boardSchema, path: pathSchema }) } }, req => write(req, 'draft-create', async c => {

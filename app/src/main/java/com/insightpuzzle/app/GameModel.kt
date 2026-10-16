@@ -58,6 +58,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     val top get() = stack.last()
 
     var done by mutableStateOf(store.done); private set
+    var communityDone by mutableStateOf(store.communityDone); private set
     var earned by mutableStateOf(store.earned); private set
     var level by mutableIntStateOf(0); private set
     var board by mutableStateOf(levels[0].start); private set
@@ -167,7 +168,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     fun selectAccount(id: String?) {
         if (store.activeAccount == id) return
         winJob?.cancel(); clearRestartUndo(); community = null
-        store.selectAccount(id); done = store.done; earned = store.earned; winBadges = emptyList()
+        store.selectAccount(id); done = store.done; communityDone = store.communityDone; earned = store.earned; winBadges = emptyList()
         load(levels.indices.firstOrNull { (it + 1) !in done } ?: 0)
         if (COSMETICS.none { it.id == background && achievements.owns(it, earned) }) { background = "forest"; store.background = background }
         if (COSMETICS.none { it.id == finish && achievements.owns(it, earned) }) { finish = "original"; store.finish = finish }
@@ -176,6 +177,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     fun mergeAccountProgress(json: JSONObject) {
         val solved = json.getJSONArray("done")
         done = done + List(solved.length()) { solved.getInt(it) }; store.done = done
+        communityDone = communityDone + (json.optJSONArray("communityDone")?.strings() ?: emptyList()); store.communityDone = communityDone
         earned = earned + json.getJSONArray("badges").strings().associateWith { earned[it] ?: System.currentTimeMillis() }; store.earned = earned
     }
 
@@ -228,6 +230,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
         if (!solved) { saveCurrentAttempt(path.joinToString(";") { "${it.first},${it.second}" }); return }
         if (!dev) online.completion(OnlineRepository.operation().put("kind", if (current == null) "campaign" else "community")
             .apply { if (current == null) put("levelId", level + 1) else put("sessionId", current.sessionId) }.put("path", path.jsonMoves()))
+        if (!dev && current != null) { communityDone = communityDone + current.id; store.communityDone = communityDone }
         saveCurrentAttempt(null)
         if (!dev && current == null) {
             done = done + (level + 1); store.done = done

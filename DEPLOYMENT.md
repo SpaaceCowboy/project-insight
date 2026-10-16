@@ -20,14 +20,9 @@ Use those credentials in the connected APK's Log In screen. Additional QA/creato
 ssh -L 8026:127.0.0.1:8026 root@31.57.24.70
 ```
 
-Then open http://localhost:8026. Generate registration invitations with:
+Then open http://localhost:8026. Registration no longer requires an invitation: enter an email, a password of 12–128 characters, and a unique nickname of 1–32 characters. Verification still uses the eight-digit code from the private inbox. The connected APK already contains the service address, so installation needs no connection settings. Existing users can change their nickname on their profile; existing names are preserved until changed.
 
-```sh
-cd /opt/insight-online
-docker compose -p insight-online -f compose.yaml -f server/deploy/compose.vps.yaml exec api node dist/operator.js invite
-```
-
-Give the generated single-use invitation to the tester for the **Test invitation** field. An arbitrary number is not an invitation. Registration requires a password of 12–128 characters; verification then uses the eight-digit code from the private inbox. The connected APK already contains the service address, so installation needs no connection settings.
+Nickname uniqueness ignores letter case and Unicode compatibility variants. Migration `002_unique_nicknames.sql` adds a unique index without changing existing accounts or progress. World and grid titles still use the reviewed word picker. Completed community grids show a themed Solved badge; their history is kept per account and restored from the service.
 
 To enable real mail, edit the private `/opt/insight-online/.env`, set `MAIL_DELIVERY_MODE=smtp`, real `MAIL_FROM`, `SMTP_HOST`, port, TLS setting, username, and password. Recreate the API and reload its HTTPS proxy. Test actual receipt and recovery before inviting users expecting external email.
 

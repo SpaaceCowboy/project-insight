@@ -102,7 +102,8 @@ fun AuthScreen(m: GameModel, destination: Route?) {
         OnlinePage(m, "Your Online preview", "No backend or internet connection needed") {
             Label("Explore a world of your own", 24.sp, serif = true)
             Label("These players and worlds are examples. Publishing, play, and XP are saved only on this device. Real accounts use the separate service build.", 14.sp, color = LocalPalette.current.muted)
-            NamePicker(m, previewName) { previewName = it }
+            OnlineField("Nickname", previewName, enabled = !o.busy) { previewName = it.take(128) }
+            Label("Choose your own nickname. Names are unique, ignoring letter case.", 12.sp, color = LocalPalette.current.muted)
             MenuButton("Enter local preview", primary = true, enabled = !o.busy) { o.login("preview@insight.local", previewName, destination) }
         }
         return
@@ -110,10 +111,9 @@ fun AuthScreen(m: GameModel, destination: Route?) {
     var mode by rememberSaveable { mutableStateOf(if (o.user?.verified == false) "verify" else "login") }
     var email by rememberSaveable { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var invite by remember { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
-    var name by rememberSaveable { mutableStateOf("Quiet Cove") }
-    var registrationError by remember(email, password, invite, mode) { mutableStateOf<String?>(null) }
+    var name by rememberSaveable { mutableStateOf("") }
+    var registrationError by remember(email, password, name, mode) { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) { try { o.vocabulary() } catch (error: Exception) { o.report(error) } }
     LaunchedEffect(o.user?.verified) { if (o.user?.verified == false) mode = "verify" }
     OnlinePage(m, when (mode) { "register" -> "Make yourself at home"; "verify" -> "Verify email"; "recover" -> "Recover account"; else -> "Log in" }, "INSIGHT Online · Private test") {
@@ -125,21 +125,18 @@ fun AuthScreen(m: GameModel, destination: Route?) {
             OnlineField(when (mode) { "recover" -> "New password (12–128 characters)"; "register" -> "Password (12–128 characters)"; else -> "Password" }, password, password = true, enabled = !o.busy) { password = it.take(128) }
         }
         if (mode == "register") {
-            SectionTitle("Your public name")
-            NamePicker(m, name) { name = it }
-            Label("A number will make your name unique. Only these reviewed words appear publicly.", 12.sp, color = LocalPalette.current.muted)
-            OnlineField("Test invitation", invite, enabled = !o.busy) { invite = it.take(128) }
-            Label("Ask the test operator for a single-use invitation. Random numbers will not work.", 12.sp, color = LocalPalette.current.muted)
+            OnlineField("Nickname", name, enabled = !o.busy) { name = it.take(128) }
+            Label("Choose your own nickname (1–32 characters). Names are unique, ignoring letter case.", 12.sp, color = LocalPalette.current.muted)
             registrationError?.let { Label(it, 14.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite }, color = LocalPalette.current.accent) }
             MenuButton("Create account", primary = true, enabled = !o.busy) {
                 registrationError = when {
                     email.isBlank() -> "Enter your email address."
                     password.length < 12 -> "Choose a password with at least 12 characters."
-                    invite.trim().length < 8 -> "Enter the full test invitation supplied by the operator."
+                    !Nicknames.valid(name) -> Nicknames.REQUIREMENT
                     else -> null
                 }
                 if (registrationError == null) {
-                    o.register(email, password, name, invite) { mode = "verify"; password = ""; invite = "" }
+                    o.register(email, password, Nicknames.normalize(name)) { mode = "verify"; password = "" }
                 }
             }
         } else if (mode == "login") {
@@ -216,6 +213,10 @@ fun ProfileScreen(m: GameModel, requestedId: String?) {
             m.achievements.catalog.filter { it.id in badges }.forEach { badge -> InfoRow(badge.name, "Earned") }
         }
         if (own) {
+            var nickname by rememberSaveable(account) { mutableStateOf(m.online.user?.username.orEmpty()) }
+            OnlineField("Nickname", nickname, enabled = !m.online.busy) { nickname = it.take(128) }
+            Label("1–32 characters · Unique, ignoring letter case", 12.sp, color = LocalPalette.current.muted)
+            MenuButton("Save nickname", enabled = !m.online.busy) { m.online.rename(nickname) { revision++ } }
             MenuButton("Sync progress", enabled = !m.online.busy) { m.online.task {
                 m.online.flushProofs()
                 if (!m.online.repository.sync()) throw java.io.IOException("Sync unavailable")
@@ -321,12 +322,16 @@ fun CommunityWorldScreen(m: GameModel, id: String) {
             val grids = json.getJSONArray("items").objects()
             if (grids.isEmpty()) Label("This world has no published grids yet.", 14.sp)
             grids.forEachIndexed { index, grid ->
+                val completed = grid.optBoolean("completed") || grid.getString("id") in m.communityDone
                 OnlineCard {
-                    Label("${number(index + 1)} · ${grid.getString("name")}", 18.sp, serif = true)
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Label("${number(index + 1)} · ${grid.getString("name")}", 18.sp, Modifier.weight(1f), serif = true)
+                        if (completed) Label("✓ Solved", 12.sp, Modifier.clip(RoundedCornerShape(12.dp)).background(LocalPalette.current.accent.copy(alpha = .12f)).padding(horizontal = 10.dp, vertical = 5.dp), color = LocalPalette.current.accent)
+                    }
                     TargetMini(Rules.crop(grid.board("target")), 16.dp, 3.dp, Modifier.semantics { contentDescription = "Grid target arrangement" })
                     val unavailable = grid.optBoolean("hidden") || grid.optBoolean("moderated") || world.optBoolean("hidden") || world.optBoolean("moderated")
                     if (unavailable) Label("Hidden or unavailable", 12.sp, color = LocalPalette.current.muted)
-                    MenuButton("Play grid", enabled = !m.online.busy && !unavailable) { m.online.task {
+                    MenuButton(if (completed) "Play again" else "Play grid", enabled = !m.online.busy && !unavailable) { m.online.task {
                         val response = m.online.repository.command("play:${grid.getString("id")}", "POST", "/v1/grids/${grid.getString("id")}/sessions")
                         m.startCommunity(response.getJSONObject("grid"), response.getString("sessionId"))
                     } }
