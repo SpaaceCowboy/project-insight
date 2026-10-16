@@ -113,6 +113,7 @@ fun AuthScreen(m: GameModel, destination: Route?) {
     var invite by remember { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
     var name by rememberSaveable { mutableStateOf("Quiet Cove") }
+    var registrationError by remember(email, password, invite, mode) { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) { try { o.vocabulary() } catch (error: Exception) { o.report(error) } }
     LaunchedEffect(o.user?.verified) { if (o.user?.verified == false) mode = "verify" }
     OnlinePage(m, when (mode) { "register" -> "Make yourself at home"; "verify" -> "Verify email"; "recover" -> "Recover account"; else -> "Log in" }, "INSIGHT Online · Private test") {
@@ -121,15 +122,25 @@ fun AuthScreen(m: GameModel, destination: Route?) {
         if (mode == "login" || mode == "register") Tabs(listOf("login" to "Log in", "register" to "Register"), mode) { if (!o.busy) { mode = it; password = ""; o.clearMessages() } }
         OnlineField("Email", email, keyboard = KeyboardType.Email, enabled = !o.busy) { email = it.take(254) }
         if (mode in listOf("login", "register", "recover")) {
-            OnlineField(if (mode == "recover") "New password (12–128 characters)" else "Password", password, password = true, enabled = !o.busy) { password = it.take(128) }
+            OnlineField(when (mode) { "recover" -> "New password (12–128 characters)"; "register" -> "Password (12–128 characters)"; else -> "Password" }, password, password = true, enabled = !o.busy) { password = it.take(128) }
         }
         if (mode == "register") {
             SectionTitle("Your public name")
             NamePicker(m, name) { name = it }
             Label("A number will make your name unique. Only these reviewed words appear publicly.", 12.sp, color = LocalPalette.current.muted)
             OnlineField("Test invitation", invite, enabled = !o.busy) { invite = it.take(128) }
-            MenuButton("Create account", primary = true, enabled = !o.busy && email.isNotBlank() && password.length >= 12 && invite.length >= 8) {
-                o.register(email, password, name, invite) { mode = "verify"; password = ""; invite = "" }
+            Label("Ask the test operator for a single-use invitation. Random numbers will not work.", 12.sp, color = LocalPalette.current.muted)
+            registrationError?.let { Label(it, 14.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite }, color = LocalPalette.current.accent) }
+            MenuButton("Create account", primary = true, enabled = !o.busy) {
+                registrationError = when {
+                    email.isBlank() -> "Enter your email address."
+                    password.length < 12 -> "Choose a password with at least 12 characters."
+                    invite.trim().length < 8 -> "Enter the full test invitation supplied by the operator."
+                    else -> null
+                }
+                if (registrationError == null) {
+                    o.register(email, password, name, invite) { mode = "verify"; password = ""; invite = "" }
+                }
             }
         } else if (mode == "login") {
             MenuButton("Log in", primary = true, enabled = !o.busy && email.isNotBlank() && password.isNotBlank()) {
