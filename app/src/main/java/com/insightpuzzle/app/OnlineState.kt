@@ -10,7 +10,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.IOException
 
 /** UI coordination; network/cache/queue ownership stays in OnlineRepository. */
 class OnlineState(private val model: GameModel, app: Application, private val scope: CoroutineScope) {
@@ -19,17 +18,11 @@ class OnlineState(private val model: GameModel, app: Application, private val sc
     var busy by mutableStateOf(false); private set
     var error by mutableStateOf(repository.client.credentialError); private set
     var notice by mutableStateOf<String?>(null); private set
-    var emailDeliveryMode by mutableStateOf("smtp"); private set
-    var firstWords by mutableStateOf(listOf("Amber", "Calm", "Clear", "Gentle", "Golden", "Quiet", "Silver", "Soft", "Still", "Warm")); private set
-    var secondWords by mutableStateOf(listOf("Brook", "Cove", "Dawn", "Fern", "Grove", "Leaf", "Meadow", "Pebble", "Pool", "Tide")); private set
     fun clearMessages() { error = null; notice = null }
+    fun dismissError() { error = null }
     fun report(error: Throwable) {
         if (error is CancellationException) throw error
-        this.error = when (error) {
-            is OnlineException -> error.message
-            is IOException -> "Could not connect. Your saved work is safe. Please retry when connected."
-            else -> "Online could not finish this action. Please retry."
-        }
+        this.error = playerErrorMessage(error)
         Log.e("InsightOnline", "action_failed type=${error.javaClass.simpleName}")
     }
     fun task(block: suspend () -> Unit) {
@@ -37,57 +30,50 @@ class OnlineState(private val model: GameModel, app: Application, private val sc
         busy = true; clearMessages()
         scope.launch { try { block() } catch (error: Exception) { report(error) } finally { busy = false } }
     }
+    /** Startup sync runs in the background: it must never hold [busy], or Make and every other button would do nothing while the network is slow. */
     fun initialize() {
         model.selectAccount(user?.id)
-        if (user?.verified == true) task { activate() }
+        if (user != null) scope.launch {
+            try { activate() }
+            catch (error: CancellationException) { throw error }
+            catch (error: OnlineException) { if (error.status == 401) report(error) else Log.w("InsightOnline", "startup_sync_failed status=${error.status}") }
+            catch (error: Exception) { Log.w("InsightOnline", "startup_sync_failed type=${error.javaClass.simpleName}") }
+        }
     }
-    suspend fun vocabulary() {
-        val response = repository.client.request("GET", "/v1/vocabulary", account = null)
-        firstWords = response.getJSONArray("first").strings(); secondWords = response.getJSONArray("second").strings()
-        emailDeliveryMode = repository.client.request("GET", "/v1/capabilities", account = null).getString("emailDelivery")
+    private var refreshing = false
+    /** Silent: flush proofs, sync the outbox, merge server progress. Network trouble is logged, never shown. */
+    suspend fun refreshProgress() {
+        val account = user?.id ?: return
+        if (refreshing) return
+        refreshing = true
+        try {
+            flushProofs()
+            repository.sync()
+            val progress = repository.fetch("/v1/progress", account)
+            if (user?.id == account) model.mergeAccountProgress(progress)
+        } catch (error: CancellationException) { throw error }
+        catch (error: Exception) { Log.w("InsightOnline", "refresh_failed type=${error.javaClass.simpleName}") }
+        finally { refreshing = false }
     }
+    fun refreshProgressAsync() { scope.launch { refreshProgress() } }
     fun login(email: String, password: String, destination: Route?, complete: () -> Unit = {}) = task {
         user = repository.client.login(email.trim(), password)
         model.selectAccount(user!!.id)
-        if (user!!.verified) { activate(); finishLogin(destination) }
-        else notice = "Enter the verification code from your email to continue."
         complete()
+        finishLogin(destination); activate()
     }
-    fun register(email: String, password: String, name: String, complete: () -> Unit) = task {
-        repository.client.request("POST", "/v1/auth/register", JSONObject().put("email", email.trim()).put("password", password).put("name", name), account = null)
-        notice = "If eligible, your verification email has been queued. Delivery may take a moment."
+    fun register(email: String, password: String, name: String, destination: Route?, complete: () -> Unit) = task {
+        user = repository.client.register(email.trim(), password, name)
+        model.selectAccount(user!!.id)
         complete()
-    }
-    fun rename(name: String, complete: () -> Unit) = task {
-        if (!Nicknames.valid(name)) throw OnlineException(400, "INVALID_NICKNAME", Nicknames.REQUIREMENT)
-        repository.command("nickname", "PATCH", "/v1/account/name", JSONObject().put("name", Nicknames.normalize(name)))
-        user = repository.client.updateVerifiedUser()
-        notice = "Nickname saved."
-        complete()
-    }
-    fun requestCode(email: String, recover: Boolean) = task {
-        repository.client.request("POST", "/v1/auth/${if (recover) "recover" else "verify"}/request", JSONObject().put("email", email.trim()), account = null)
-        notice = "If eligible, an email code has been queued."
-    }
-    fun confirm(email: String, code: String, password: String?, destination: Route?, complete: () -> Unit) = task {
-        val recover = password != null
-        repository.client.request("POST", "/v1/auth/${if (recover) "recover" else "verify"}/confirm",
-            JSONObject().put("email", email.trim()).put("code", code.trim()).apply { if (password != null) put("password", password) }, account = null)
-        if (!recover && user != null) {
-            user = repository.client.updateVerifiedUser(); activate(); finishLogin(destination)
-        } else {
-            if (recover && user != null) { repository.client.logout(); user = null; model.selectAccount(null) }
-            notice = if (recover) "Password changed. Please log in." else "Email verified. Please log in."
-            complete()
-        }
+        finishLogin(destination); activate()
     }
     private suspend fun finishLogin(destination: Route?) {
         if (model.top is Route.Auth) model.back()
-        if (destination == Route.Publish) repository.remove(user!!.id, "publish-draft")
         if (destination != null) model.push(destination)
     }
     private suspend fun activate() {
-        val account = user?.takeIf { it.verified }?.id ?: return
+        val account = user?.id ?: return
         if (model.store.importedInto == null) model.store.importedInto = account
         if (model.store.importedInto == account) {
             var imported = repository.cached(account, "guest-import")
@@ -112,14 +98,15 @@ class OnlineState(private val model: GameModel, app: Application, private val sc
         repository.enqueue(account, endpoint, body)
     }
     suspend fun flushProofs() {
-        val account = user?.takeIf { it.verified }?.id ?: return
-        for (proof in model.store.proofs(account)) {
-            queueProof(account, proof); model.store.removeProof(proof.getString("operationId"), account)
-        }
+        repository.importProofs(model.store)
+        repository.schedule()
     }
     fun completion(proof: JSONObject) {
         model.store.saveProof(proof)
-        if (user?.verified == true) scope.launch { try { flushProofs() } catch (error: Exception) { report(error) } }
+        proofSaved()
+    }
+    fun proofSaved() {
+        if (user != null) scope.launch { try { flushProofs() } catch (error: Exception) { report(error) } }
     }
     fun logout() = task {
         val revoked = repository.client.logout()

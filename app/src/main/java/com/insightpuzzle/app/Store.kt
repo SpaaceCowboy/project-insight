@@ -52,23 +52,30 @@ class Store(context: Context) {
         if (path.isNullOrEmpty()) remove(scoped("community_attempt_$id")) else putString(scoped("community_attempt_$id"), path)
     }.apply()
 
+    fun playAttempt(id: String): JSONObject? = prefs.getString(scoped("play_attempt_$id"), null)?.let { JSONObject(it) }
+    /** Progress, attempt identity, and any terminal proof are committed before navigation. */
+    fun savePlayAttempt(id: String, path: String?, attempt: PlayAttempt, proof: JSONObject? = null) {
+        check(prefs.edit().apply {
+            if (path.isNullOrEmpty()) remove(scoped("community_attempt_$id")) else putString(scoped("community_attempt_$id"), path)
+            putString(scoped("play_attempt_$id"), attempt.json().toString())
+            if (proof != null) putString(scoped("proof_${proof.getString("operationId")}"), proof.toString())
+        }.commit())
+    }
+
     var lastLevel: Int
         get() = prefs.getInt(scoped("lastLevel"), 0)
         set(value) = prefs.edit().putInt(scoped("lastLevel"), value).apply()
 
     var sound by bool("sound", true)
-    var voice by bool("voice", true)
     var dark by bool("dark", true)
     var haptics by bool("haptics", true)
-    var moveCounter by bool("moveCounter", false)
-    var animatedBackground by bool("animatedBackground", true)
     var pauseOverOthers by bool("pauseOverOthers", true)
     var silenceOnUnplug by bool("silenceOnUnplug", true)
-    /** "system" follows the phone, "on" always removes decorative motion. */
+    /** Not in Options: the instrumented tests set "on" to freeze decorative animation. */
     var motion by string("motion", "system")
-    /** "light", "dark" or "system". Older installs only stored the dark/light boolean, so that is the fallback. */
+    /** "light" or "dark". Older installs stored "system" or only the dark/light boolean; both fall back to dark unless light was chosen. */
     var theme: String
-        get() = prefs.getString("theme", null) ?: if (prefs.getBoolean("dark", true)) "dark" else "light"
+        get() = if ((prefs.getString("theme", null) ?: if (prefs.getBoolean("dark", true)) "dark" else "light") == "light") "light" else "dark"
         set(value) = prefs.edit().putString("theme", value).apply()
     var dev by bool("dev", false)
     var effects by float("effects", .8f)

@@ -1,33 +1,29 @@
 package com.insightpuzzle.app
 
-// Port of src/achievements.mjs. The app has no undo, so every solve is a clean (no-undo) solve.
+// Legacy clean badges keep their IDs and completion requirements for saved progress.
 data class Badge(val id: String, val name: String, val requirement: String, val goal: Int, val mark: String, val world: Int = 0, val metric: Metric)
 enum class Metric { COMPLETED, WORLD, CLEAN, CLEAN_WORLD }
 data class Cosmetic(val id: String, val kind: String, val name: String, val description: String, val badge: String? = null)
 
 val COSMETICS = listOf(
-    Cosmetic("forest", "background", "Forest", "Soft greens and moving light."),
-    Cosmetic("mist", "background", "Northern Mist", "Cool blue skies and teal light.", "world-1"),
-    Cosmetic("aurora", "background", "Aurora", "Blue twilight with violet light.", "complete"),
     Cosmetic("original", "finish", "Original", "The familiar warm tile surface."),
-    Cosmetic("frosted", "finish", "Frosted", "A soft, luminous glass surface.", "first-clean"),
-    Cosmetic("metal", "finish", "Brushed Metal", "Fine brushing and a gentle satin shine.", "clean-sweep"),
+    Cosmetic("obsidian", "finish", "Obsidian", "Dark satin tiles with vivid coloured symbols.", "pristine"),
 )
 
 class Achievements(private val levels: List<Level>) {
     private val worlds = levels.map { it.world }.distinct()
     val catalog: List<Badge> = buildList {
         add(Badge("first", "First Step", "Complete 1 campaign level.", 1, "Ⅰ", metric = Metric.COMPLETED))
-        add(Badge("flow", "Finding Flow", "Complete 10 distinct campaign levels.", 10, "≈", metric = Metric.COMPLETED))
-        add(Badge("halfway", "Halfway Home", "Complete 50 distinct campaign levels.", 50, "◐", metric = Metric.COMPLETED))
+        add(Badge("flow", "Finding Flow", "Complete 10 campaign levels.", 10, "≈", metric = Metric.COMPLETED))
+        add(Badge("halfway", "Halfway Home", "Complete 50 campaign levels.", 50, "◐", metric = Metric.COMPLETED))
         add(Badge("complete", "INSIGHT Complete", "Complete all ${levels.size} campaign levels.", levels.size, "✦", metric = Metric.COMPLETED))
         worlds.forEach { w -> add(Badge("world-$w", "World $w Master", "Complete every level in World $w.", levels.count { it.world == w }, "$w", w, Metric.WORLD)) }
-        add(Badge("first-clean", "First Clean Solve", "Complete 1 campaign level. There is no undo here, so every solve counts.", 1, "★", metric = Metric.CLEAN))
-        add(Badge("steady", "Steady Hand", "Complete 10 distinct levels. There is no undo here, so every solve counts.", 10, "⌁", metric = Metric.CLEAN))
-        add(Badge("unbroken", "Unbroken", "Complete 25 distinct levels. There is no undo here, so every solve counts.", 25, "✧", metric = Metric.CLEAN))
-        add(Badge("flawless", "Flawless", "Complete 50 distinct levels. There is no undo here, so every solve counts.", 50, "◇", metric = Metric.CLEAN))
-        add(Badge("clean-sweep", "Clean Sweep", "Complete every level in one world. There is no undo here, so every solve counts.", 1, "⋈", metric = Metric.CLEAN_WORLD))
-        add(Badge("pristine", "Pristine", "Complete all ${levels.size} campaign levels. There is no undo here, so every solve counts.", levels.size, "⊞", metric = Metric.CLEAN))
+        add(Badge("first-clean", "First Clean Solve", "Complete 1 campaign level.", 1, "★", metric = Metric.CLEAN))
+        add(Badge("steady", "Steady Hand", "Complete 10 levels.", 10, "⌁", metric = Metric.CLEAN))
+        add(Badge("unbroken", "Unbroken", "Complete 25 levels.", 25, "✧", metric = Metric.CLEAN))
+        add(Badge("flawless", "Flawless", "Complete 50 levels.", 50, "◇", metric = Metric.CLEAN))
+        add(Badge("clean-sweep", "Clean Sweep", "Complete every level in one world.", 1, "⋈", metric = Metric.CLEAN_WORLD))
+        add(Badge("pristine", "Pristine", "Complete all ${levels.size} campaign levels.", levels.size, "⊞", metric = Metric.CLEAN))
     }
 
     /** Progress toward a badge given the solved level numbers (1-based). */
@@ -41,5 +37,8 @@ class Achievements(private val levels: List<Level>) {
     fun newlyEarned(done: Set<Int>, earned: Map<String, Long>) = catalog.filter { it.id !in earned && progress(it, done) >= it.goal }
 
     fun reward(badge: Badge) = COSMETICS.find { it.badge == badge.id }?.name
-    fun owns(cosmetic: Cosmetic, earned: Map<String, Long>) = cosmetic.badge == null || cosmetic.badge in earned
+    fun owns(cosmetic: Cosmetic, earned: Map<String, Long>, dev: Boolean = false) = dev || cosmetic.badge == null || cosmetic.badge in earned
+
+    fun equippedFinish(id: String, earned: Map<String, Long>, dev: Boolean) =
+        COSMETICS.find { it.id == id && owns(it, earned, dev) }?.id ?: "original"
 }

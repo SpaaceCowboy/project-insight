@@ -91,6 +91,8 @@ class OnlineClient(context: Context) {
                 Log.i("InsightOnline", "route=$route status=${response.code} latencyMs=${(System.nanoTime() - started) / 1_000_000} correlation=$correlation")
                 val text = response.body?.string().orEmpty()
                 val json = try { JSONObject(text) } catch (_: org.json.JSONException) {
+                    if (!response.isSuccessful) throw OnlineException(response.code, "REQUEST_FAILED",
+                        if (response.code == 401) "Your session has expired. Please log in again." else "Online request failed. Please try again.")
                     throw OnlineException(response.code, "INVALID_RESPONSE", "Online returned an unreadable response. Please retry.")
                 }
                 if (!response.isSuccessful) throw OnlineException(response.code, json.optString("code", "REQUEST_FAILED"), json.optString("message", "Online request failed."))
@@ -126,6 +128,12 @@ class OnlineClient(context: Context) {
     suspend fun login(email: String, password: String): OnlineUser = withContext(Dispatchers.IO) {
         sessionLock.withLock {
             val response = raw("POST", "/v1/auth/login", JSONObject().put("email", email).put("password", password), null)
+            save(response); user!!
+        }
+    }
+    suspend fun register(email: String, password: String, name: String): OnlineUser = withContext(Dispatchers.IO) {
+        sessionLock.withLock {
+            val response = raw("POST", "/v1/auth/register", JSONObject().put("email", email).put("password", password).put("name", name), null)
             save(response); user!!
         }
     }

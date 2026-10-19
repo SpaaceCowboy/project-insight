@@ -452,3 +452,7 @@ A 125dp 3×3 of tiles rotated −9°, with the outer columns floating ±4dp out 
 - **Don't** add pressure: no timers, countdowns, move limits shown as threats, red error states or score-shaming. A wrong move is a 240ms Coral ring and nothing more.
 - **Don't** use bold or semibold serif. Serif is weight 400 only (The Quiet Serif Rule).
 - **Don't** introduce a second accent colour for interface chrome; colour belongs to the stones.
+
+## Android v0.1.9 implementation notes
+
+Theme.kt defines the shipped neutral light/dark palettes. Original and Pristine-unlocked Obsidian are the only tile finishes; the background has no selectable cosmetics. Obsidian uses charcoal/black bodies and saturated coloured symbols, with a white designator for White. Buttons and selectable cards have 2dp borders, selected states 3dp. Creator previews and level-card numbers are centered. Gameplay targets use 13dp cells, 2.6dp gaps and 6.5dp panel padding. The result has one Grid solved heading; the 900ms solve wave fades over 350ms and reduced motion skips it. This snapshot retains the original world-based campaign and community navigation.

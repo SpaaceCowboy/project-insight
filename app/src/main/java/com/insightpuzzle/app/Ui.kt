@@ -96,11 +96,11 @@ private val Serif = FontFamily(Font(R.font.source_serif_4_regular, FontWeight.No
 
 /** App background: base gradient, two glows, and two slow ambient lights tinted by the last moved tile (src/styles.css). */
 @Composable
-fun Backdrop(background: String, light: Color, animated: Boolean = true, content: @Composable BoxScope.() -> Unit) {
+fun Backdrop(light: Color, content: @Composable BoxScope.() -> Unit) {
     val p = LocalPalette.current
-    val b = backdrop(background, p.dark)
+    val b = backdrop(p.dark)
     val tint by animateColorAsState(light, tween(1600), label = "light")
-    val reduce = LocalReduceMotion.current || !animated
+    val reduce = LocalReduceMotion.current
     val drift = rememberInfiniteTransition(label = "drift")
     val t1 by drift.animateFloat(0f, 1f, infiniteRepeatable(tween(42_000, easing = LinearEasing), RepeatMode.Reverse), label = "t1")
     val t2 by drift.animateFloat(1f, 0f, infiniteRepeatable(tween(57_000, easing = LinearEasing), RepeatMode.Reverse), label = "t2")
@@ -125,8 +125,8 @@ fun Backdrop(background: String, light: Color, animated: Boolean = true, content
 }
 
 /**
- * A crystal glow for the one button that leads somewhere special (Online): a slow pulsing halo, a prismatic edge
- * (coral → violet → ice, the tile hues) and a glint that crosses the face every few seconds. It stays still,
+ * A crystal glow for the one button that leads somewhere special (Worlds): a slow pulsing halo, a grey prismatic edge
+ * and a glint that crosses the face every few seconds. It stays still,
  * at its mid brightness, when reduce motion is on.
  */
 @Composable
@@ -136,7 +136,7 @@ fun Modifier.crystalGlow(cornerRadius: Dp = 14.dp): Modifier {
     val pulse by transition.animateFloat(0f, 1f, infiniteRepeatable(tween(3600, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "pulse")
     val glint by transition.animateFloat(0f, 1f, infiniteRepeatable(keyframes { durationMillis = 5400; 0f at 0 using LinearEasing; 1f at 1400; 1f at 5400 }), label = "glint")
     val level = if (reduce) .5f else pulse
-    val prism = listOf(Art.LIGHT.getValue('R'), Art.LIGHT.getValue('P'), Art.LIGHT.getValue('B'))
+    val prism = listOf(Color(0xFFC9CCD2), Color(0xFF8A8E96), Color(0xFFD6D9DE))
     return this
         .drawBehind {
             val r = cornerRadius.toPx(); val brush = Brush.horizontalGradient(prism)
@@ -166,7 +166,7 @@ fun MenuButton(text: String, modifier: Modifier = Modifier, height: Dp = 48.dp, 
     val shape = RoundedCornerShape(14.dp)
     Box(
         modifier.alpha(if (!enabled) .4f else if (soon) .6f else 1f).fillMaxWidth().heightIn(min = height).clip(shape)
-            .background(if (primary) p.accent else p.paper).border(1.dp, if (primary) p.accent else p.line, shape)
+            .background(if (primary) p.accent else p.paper).border(2.dp, if (primary) p.accent else p.line, shape)
             .then(if (onClick != null && enabled) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier.semantics { role = Role.Button; disabled(); if (soon) stateDescription = "Coming soon" })
             .then(if (description != null) Modifier.semantics { contentDescription = description } else Modifier)
             .padding(10.dp),
@@ -191,7 +191,7 @@ fun InfoRow(label: String, value: String, modifier: Modifier = Modifier, onClick
     val p = LocalPalette.current
     val shape = RoundedCornerShape(14.dp)
     Row(
-        modifier.fillMaxWidth().heightIn(min = 56.dp).clip(shape).background(p.paper).border(1.dp, p.line, shape)
+        modifier.fillMaxWidth().heightIn(min = 56.dp).clip(shape).background(p.paper).border(if (onClick != null) 2.dp else 1.dp, p.line, shape)
             .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -207,7 +207,7 @@ fun ToggleRow(label: String, checked: Boolean, modifier: Modifier = Modifier, on
     val p = LocalPalette.current
     val shape = RoundedCornerShape(14.dp)
     Row(
-        modifier.fillMaxWidth().heightIn(min = 56.dp).clip(shape).background(p.paper).border(1.dp, p.line, shape)
+        modifier.fillMaxWidth().heightIn(min = 56.dp).clip(shape).background(p.paper).border(if (checked) 3.dp else 2.dp, p.line, shape)
             .toggleable(checked, role = Role.Switch, onValueChange = onChange).padding(start = 16.dp, end = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -223,7 +223,7 @@ fun ToggleRow(label: String, checked: Boolean, modifier: Modifier = Modifier, on
 @Composable
 fun RoundButton(description: String, modifier: Modifier = Modifier, onClick: () -> Unit, icon: DrawScope.(Color) -> Unit) {
     val p = LocalPalette.current
-    Box(modifier.size(48.dp).clip(CircleShape).background(p.paper2).border(1.dp, p.line, CircleShape)
+    Box(modifier.size(48.dp).clip(CircleShape).background(p.paper2).border(2.dp, p.line, CircleShape)
         .clickable(role = Role.Button, onClickLabel = description, onClick = onClick).semantics { contentDescription = description }, contentAlignment = Alignment.Center) {
         Canvas(Modifier.size(20.dp)) { icon(p.ink) }
     }
@@ -233,29 +233,18 @@ fun DrawScope.polyline(color: Color, vararg points: Float) {
     val u = size.width / 24f
     for (i in 0 until points.size - 2 step 2) drawLine(color, Offset(points[i] * u, points[i + 1] * u), Offset(points[i + 2] * u, points[i + 3] * u), 2 * u, StrokeCap.Round)
 }
-val backIcon: DrawScope.(Color) -> Unit = { polyline(it, 15f, 5f, 8f, 12f, 15f, 19f) }
 val menuIcon: DrawScope.(Color) -> Unit = { polyline(it, 4f, 7f, 20f, 7f); polyline(it, 4f, 12f, 20f, 12f); polyline(it, 4f, 17f, 20f, 17f) }
 val restartIcon: DrawScope.(Color) -> Unit = {
     val u = size.width / 24f
-    drawArc(it, -40f, 300f, false, Offset(4 * u, 4 * u), androidx.compose.ui.geometry.Size(16 * u, 16 * u), style = Stroke(2 * u, cap = StrokeCap.Round))
+    drawArc(it, 0f, 324f, false, Offset(4 * u, 4 * u), androidx.compose.ui.geometry.Size(16 * u, 16 * u), style = Stroke(2 * u, cap = StrokeCap.Round))
     polyline(it, 20f, 4f, 20f, 8.5f, 15.5f, 8.5f)
 }
 
-/** Full-screen page with the round Back button and a title (the web game's .screen pages). */
+/** Full-screen page. There is no on-screen title or Back button (system Back leaves); [title] is only announced to TalkBack. */
 @Composable
-fun Page(title: String, subtitle: String?, onBack: () -> Unit, maxWidth: Dp = 640.dp, content: @Composable ColumnScope.() -> Unit) {
-    Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing), contentAlignment = Alignment.TopCenter) {
-        Column(Modifier.widthIn(max = maxWidth).fillMaxSize().padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 16.dp)) {
-                RoundButton("Back", onClick = onBack, icon = backIcon)
-                Spacer(Modifier.width(14.dp))
-                Column {
-                    Label(title, 24.sp, Modifier.semantics { heading() }, serif = true)
-                    if (subtitle != null) Label(subtitle, 12.sp, color = LocalPalette.current.muted)
-                }
-            }
-            content()
-        }
+fun Page(title: String, maxWidth: Dp = 640.dp, content: @Composable ColumnScope.() -> Unit) {
+    Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).semantics { paneTitle = title }, contentAlignment = Alignment.TopCenter) {
+        Column(Modifier.widthIn(max = maxWidth).fillMaxSize().padding(16.dp), content = content)
     }
 }
 
@@ -266,7 +255,7 @@ fun Tabs(options: List<Pair<String, String>>, selected: String, onSelect: (Strin
     Row(Modifier.fillMaxWidth().padding(bottom = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         for ((id, label) in options) {
             val on = id == selected
-            Box(Modifier.weight(1f).heightIn(min = 48.dp).clip(RoundedCornerShape(14.dp)).background(if (on) p.accent else p.paper).border(1.dp, p.line, RoundedCornerShape(14.dp))
+            Box(Modifier.weight(1f).heightIn(min = 48.dp).clip(RoundedCornerShape(14.dp)).background(if (on) p.accent else p.paper).border(if (on) 3.dp else 2.dp, p.line, RoundedCornerShape(14.dp))
                 .clickable(role = Role.Tab) { onSelect(id) }.semantics { this.selected = on }, contentAlignment = Alignment.Center) {
                 Label(label, 12.sp, color = if (on) p.accentInk else p.ink, weight = FontWeight.SemiBold)
             }
@@ -279,7 +268,7 @@ fun Tabs(options: List<Pair<String, String>>, selected: String, onSelect: (Strin
 fun Overlay(title: String, onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
     val p = LocalPalette.current
     Box(Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxSize().background(Color(0x99031319)).clickable(interactionSource = null, indication = null, onClick = onDismiss).clearAndSetSemantics { })
+        Box(Modifier.fillMaxSize().background(Color(0x99000000)).clickable(interactionSource = null, indication = null, onClick = onDismiss).clearAndSetSemantics { })
         Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp), contentAlignment = Alignment.Center) {
             Column(Modifier.widthIn(max = 420.dp).fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(p.paper2).border(1.dp, p.line, RoundedCornerShape(28.dp))
                 .pointerInput(Unit) { detectTapGestures { } }.semantics { paneTitle = title }.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, content = content)

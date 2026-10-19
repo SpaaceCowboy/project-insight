@@ -1,0 +1,10 @@
+{
+  "allowed": [
+    "Calm Pool", "Quiet Cove", "Fire Garden", "Scunthorpe", "Grape Fields", "Assassin Hill", "Bombay Blues", "Fire Retardant",
+    "Dickens Corner", "Sussex Downs", "Skill Tree", "Level 10", "Glass Bridge", "Bass Cave", "Cumin Fields", "Wash It", "Mountain Peak", "Therapist Row", "Sky Ship"
+  ],
+  "blocked": [
+    "fuck", "F U C K", "f.u.c.k", "FUUUCK", "Sh1t Fort", "Ａｓｓ", "A55", "Kíll Zone", "Kill Zone", "Rapist Den", "Nazi Base",
+    "Hitler Land", "Suicide Cliff", "n1gga", "Bomb Squad", "Murder Hill", "Big Bitch", "Porn World", "Terrorist Camp"
+  ]
+}

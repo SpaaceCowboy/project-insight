@@ -3,36 +3,31 @@ package com.insightpuzzle.app
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
-// Colours from the web game's src/styles.css (:root and body.light-mode).
+// Neutral greys: dark mode is near-black, light mode is white with dark grey ink. No hue tint anywhere.
 data class Palette(
     val ink: Color, val muted: Color, val line: Color, val paper: Color, val paper2: Color,
     val accent: Color, val accentInk: Color, val shadow: Color, val shell: List<Color>, val shellInk: Color, val dark: Boolean,
 )
 
 val DarkPalette = Palette(
-    ink = Color(0xFFEDF5E9), muted = Color(0xFFAAC9C8), line = Color(0x2EB4E0D2), paper = Color(0xA6091F27), paper2 = Color(0xFF102A34),
-    accent = Color(0xFFA8DFCF), accentInk = Color(0xFF102F32), shadow = Color(0x47020E14),
-    shell = listOf(Color(0x421C3C42), Color(0x8C041821)), shellInk = Color(0xFFEDF5E9), dark = true,
+    ink = Color(0xFFEDEDED), muted = Color(0xFFA6A8AD), line = Color(0x2EFFFFFF), paper = Color(0xA61E1F22), paper2 = Color(0xFF26272A),
+    accent = Color(0xFFD4D6DA), accentInk = Color(0xFF1B1C1E), shadow = Color(0x47000000),
+    shell = listOf(Color(0xFF2E2F33), Color(0xFF1C1D20)), shellInk = Color(0xFFEDEDED), dark = true,
 )
 val LightPalette = Palette(
-    ink = Color(0xFF173E3F), muted = Color(0xFF365C58), line = Color(0x3318463E), paper = Color(0xA8EBF6EA), paper2 = Color(0xFFE2EFE6),
-    accent = Color(0xFF2C6963), accentInk = Color(0xFFF3F7E7), shadow = Color(0x242B5247),
-    shell = listOf(Color(0xB0275C58), Color(0xC21A4744)), shellInk = Color(0xFFF3F7E7), dark = false,
+    ink = Color(0xFF26282C), muted = Color(0xFF5E6168), line = Color(0x3326282C), paper = Color(0xB3FFFFFF), paper2 = Color(0xFFF4F4F5),
+    accent = Color(0xFF3A3D42), accentInk = Color(0xFFFFFFFF), shadow = Color(0x24000000),
+    shell = listOf(Color(0xFFEFEFF1), Color(0xFFE3E4E7)), shellInk = Color(0xFF26282C), dark = false,
 )
 
 val LocalPalette = staticCompositionLocalOf { DarkPalette }
 
-/** Two radial glows plus a 165° linear base, per background cosmetic and light/dark mode. */
+/** Two radial glows plus a 165° linear base, in light/dark mode. */
 data class Backdrop(val glow1: Color, val glow2: Color, val base: List<Color>)
 
-fun backdrop(id: String, dark: Boolean): Backdrop = when (id to dark) {
-    "mist" to true -> Backdrop(Color(0xFF254F6D), Color(0xFF165954), listOf(Color(0xFF122C48), Color(0xFF102B38), Color(0xFF173D42)))
-    "mist" to false -> Backdrop(Color(0xFFDFEDF6), Color(0xFFACDCD5), listOf(Color(0xFFB9D8EA), Color(0xFFD8EAF0), Color(0xFFB8DAD5)))
-    "aurora" to true -> Backdrop(Color(0xFF2F3E76), Color(0xFF543669), listOf(Color(0xFF152C4A), Color(0xFF202A48), Color(0xFF352A48)))
-    "aurora" to false -> Backdrop(Color(0xFFD6E5FF), Color(0xFFD8C4ED), listOf(Color(0xFFC6D8EE), Color(0xFFE0E5F2), Color(0xFFD1C8E4)))
-    "forest" to false -> Backdrop(Color(0xFFE7EEE2), Color(0xFFBFD9D5), listOf(Color(0xFFC5D6DF), Color(0xFFD9E9DC), Color(0xFFBBD2C5)))
-    else -> Backdrop(Color(0xFF234958), Color(0xFF1E4843), listOf(Color(0xFF142B41), Color(0xFF0C252E), Color(0xFF182F35)))
-}
+fun backdrop(dark: Boolean): Backdrop = if (dark)
+    Backdrop(Color(0xFF2E2F33), Color(0xFF26272A), listOf(Color(0xFF1E1F22), Color(0xFF161718), Color(0xFF202124)))
+else Backdrop(Color(0xFFFFFFFF), Color(0xFFE9EAEC), listOf(Color(0xFFEDEDEF), Color(0xFFFAFAFA), Color(0xFFE8E9EB)))
 
 object Art {
     /** Tile body gradients (light, deep). */

@@ -61,9 +61,9 @@ class CreatorState(saved: String? = null, private val persist: (String) -> Unit 
 
     val hint get() = note.ifEmpty {
         when (phase) {
-            Phase.BUILD -> holding?.let { "Tap the grid to place ${Art.NAME[it]}. Tap the tile again to stop." } ?: "Drag tiles onto the grid, then tap Start."
+            Phase.BUILD -> holding?.let { "Tap the grid to place ${Art.NAME[it]}. Tap the tile again to stop." } ?: "Drag tiles onto the grid, then tap Start. Drag a tile off the grid to remove it."
             Phase.SHAPE -> "Move tiles to shape your target, then tap Target."
-            Phase.CHECK -> if (solved) "Target reached. Your level works." else "Play your level. Tap Target or Start to go back."
+            Phase.CHECK -> if (solved) "Target reached. Your level works. Tap Make to publish." else "Play your level. Tap Target or Start to go back."
         }
     }
 

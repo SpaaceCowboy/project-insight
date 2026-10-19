@@ -22,7 +22,7 @@ The rules are the tiles themselves: each colour moves in its own fixed direction
 
 - Native Android port (Kotlin + Jetpack Compose) of the web game in `../project-insight`, which it never modifies. Level data and sounds are imported from it with `tools/export-assets.mjs`.
 - Campaign: 206 levels across 11 worlds (20 per world, 6 in world 11). Solving a level unlocks the next.
-- Achievements: a permanent collection of campaign and skill badges, some of which unlock cosmetic backgrounds and tile finishes.
+- Achievements: a permanent collection of campaign and skill badges. Pristine unlocks Obsidian; other badges have no cosmetic rewards.
 - A level creator (Create) for building start and target arrangements.
 - Sound is part of the experience: each tile colour plays a pitched note from one pentatonic scale, with ambience, effects and an optional spoken celebration, each with its own setting.
 

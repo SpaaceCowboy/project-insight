@@ -3,7 +3,7 @@ package com.insightpuzzle.app
 import java.text.Normalizer
 
 object Nicknames {
-    const val REQUIREMENT = "Choose a nickname of 1–32 visible characters."
+    const val REQUIREMENT = "Choose a username of 1–32 visible characters."
     fun normalize(value: String): String = Normalizer.normalize(value, Normalizer.Form.NFKC).replace(Regex("[\\s\\p{Z}\\uFEFF]+"), " ").trim()
     fun valid(value: String): Boolean {
         val name = normalize(value)

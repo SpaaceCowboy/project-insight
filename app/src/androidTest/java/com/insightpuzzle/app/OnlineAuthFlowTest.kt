@@ -11,7 +11,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.net.URLEncoder
 import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
@@ -32,8 +31,14 @@ class OnlineAuthFlowTest {
     private fun text(value: String) = nodes().any { it.text?.toString() == value }
     private fun tap(value: String) {
         await("Control unavailable: $value") {
-            var node = nodes().lastOrNull { it.text?.toString() == value } ?: return@await false
+            val found = nodes().lastOrNull { it.text?.toString() == value }
+            if (found == null) {
+                nodes().lastOrNull { it.isScrollable }?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
+                return@await false
+            }
+            var node: AccessibilityNodeInfo = found
             while (!node.isClickable) node = node.parent ?: return@await false
+            if (!node.isVisibleToUser) { node.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_SHOW_ON_SCREEN.id); return@await false }
             node.isEnabled && node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
         }
     }
@@ -47,7 +52,7 @@ class OnlineAuthFlowTest {
         instrumentation.waitForIdleSync()
     }
 
-    @Test fun registerVerifyThenLoginThroughActualFormsAndKeepRejectedPassword() {
+    @Test fun registerWithoutCodeThenLoginAndKeepRejectedPassword() {
         // Only the explicit local fixture is allowed: this test never registers accounts against a deployed service.
         assumeTrue(!BuildConfig.ONLINE_DEMO && BuildConfig.ONLINE_BASE_URL == "http://10.0.2.2:38861")
         val context = instrumentation.targetContext
@@ -62,13 +67,16 @@ class OnlineAuthFlowTest {
             tap("Log In"); tap("Register")
             fill(0, email); fill(1, password); fill(2, "Android $id")
             tap("Create account")
-            await("Registration must open email verification") { text("Eight-digit email code") }
-            val code = runBlocking { repository.client.request("GET", "/test/code?email=${URLEncoder.encode(email, "UTF-8")}", account = null).getString("code") }
-            fill(1, code); tap("Verify email")
-            await("Verification must return to login") { text("Email verified. Please log in.") }
+            await("Registration must immediately open the profile") { text("Your profile") }
+            assertTrue(repository.client.user != null)
+            tap("Log out")
+            await("Logout must return home") { text("Log In") }
+            tap("Log In")
+            fill(0, email)
             val rejected = "An incorrect password"
             fill(1, rejected); tap("Log in")
             await("Rejected login must show a visible error") { text("Email or password is incorrect.") }
+            tap("OK")
             tap("Show")
             await("A rejected password must remain editable") { fields().getOrNull(1)?.text?.contains(rejected) == true }
             fill(1, password); tap("Hide"); tap("Log in")

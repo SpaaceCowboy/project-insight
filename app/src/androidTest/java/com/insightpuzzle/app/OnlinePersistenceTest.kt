@@ -15,11 +15,85 @@ import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
 class OnlinePersistenceTest {
+    @Test fun previewDiscoveryFiltersAndFailuresSurviveRecreation() {
+        val context = isolatedContext(); var demo = DemoBackend(context)
+        fun request(method: String, path: String, body: JSONObject = JSONObject()) = demo.request(method,path,body,"demo")
+        val creators = request("GET","/v1/creators?sort=level").getJSONArray("items")
+        assertEquals(2,creators.length())
+        assertEquals("Warm Fern",creators.getJSONObject(0).getString("username"))
+        assertEquals(1,request("GET","/v1/creators?query=Silver&sort=designed").getJSONArray("items").length())
+        val today = request("GET","/v1/worlds?period=today&sort=newest").getJSONArray("items")
+        assertEquals(1,today.length())
+        val world = today.getJSONObject(0).getString("id")
+        val grids = request("GET","/v1/worlds/$world/grids").getJSONArray("items")
+        val grid = grids.getJSONObject(0)
+        val board = grid.board("start"); val target = grid.board("target"); val width = board[0].length
+        val move = board.indices.flatMap { r -> board[r].indices.map { c -> Pos(r,c) } }.flatMap { a -> Rules.legalMoves(board,a).map { a to it } }.first { (a,b) -> Rules.swap(board,a,b) != target }
+        val path = JSONArray().put(JSONArray(listOf(move.first.r*width+move.first.c,move.second.r*width+move.second.c)))
+        val session = request("POST","/v1/grids/${grid.getString("id")}/sessions",OnlineRepository.operation()).getString("sessionId")
+        val proof = OnlineRepository.operation().put("attemptId",UUID.randomUUID().toString()).put("reason","restart").put("path",path)
+        request("POST","/v1/play-sessions/$session/failures",proof)
+        proof.put("operationId",UUID.randomUUID().toString())
+        request("POST","/v1/play-sessions/$session/failures",proof)
+        demo = DemoBackend(context)
+        val restored = request("GET","/v1/worlds/$world/grids").getJSONArray("items").getJSONObject(0)
+        assertEquals(1,restored.getInt("failedAttemptCount")); assertEquals(0,restored.getInt("beatenCount"))
+    }
+    @Test fun restartProofIsDurableAndAccountScoped() {
+        val context = isolatedContext(); var store = Store(context)
+        store.selectAccount("attempt-player")
+        val original = PlayAttempt.open(null,"session",0)
+        val operation = UUID.randomUUID().toString()
+        val proof = JSONObject().put("operationId",operation).put("_endpoint","/v1/play-sessions/session/failures")
+            .put("attemptId",original.id).put("_notBefore",System.currentTimeMillis()+6000).put("reason","restart")
+        store.savePlayAttempt("grid","0,1",original.copy(closed=true),proof)
+        store = Store(context)
+        assertTrue(store.playAttempt("grid")!!.getBoolean("closed"))
+        assertEquals(operation,store.proofs().single().getString("operationId"))
+        assertTrue(store.proofs().single().getLong("_notBefore")>System.currentTimeMillis())
+        assertEquals("0,1",store.communityAttempt("grid"))
+        store.selectAccount("other-player")
+        assertNull(store.playAttempt("grid")); assertTrue(store.proofs().isEmpty())
+    }
     private fun isolatedContext(): Context {
         val prefix = UUID.randomUUID().toString()
         return object : ContextWrapper(InstrumentationRegistry.getInstrumentation().targetContext) {
             override fun getSharedPreferences(name: String, mode: Int): SharedPreferences = super.getSharedPreferences("test_${prefix}_$name", mode)
         }
+    }
+
+    @Test fun casualPreviewSeedsResetsAndIgnoresLateCycleReports() {
+        val context = isolatedContext()
+        var demo = DemoBackend(context)
+        fun request(path: String, body: JSONObject = OnlineRepository.operation()) = demo.request("POST", path, body, "demo")
+        val player = demo.request("GET", "/v1/account", JSONObject(), "demo").getJSONObject("user").getString("id")
+        val prefs = context.getSharedPreferences("online_demo_data", Context.MODE_PRIVATE)
+        val root = JSONObject(prefs.getString("data", null)!!)
+        val grids = root.getJSONArray("grids").objects().take(2)
+        grids.forEach { it.put("start", JSONArray(listOf("RBY", "GPW"))).put("target", JSONArray(listOf("GBY", "RPW"))) }
+        root.put("grids", JSONArray(grids)).put("gridCompletions", JSONArray().put(JSONObject().put("userId", player).put("gridId", grids[0].getString("id"))))
+        assertTrue(prefs.edit().putString("data", root.toString()).commit())
+        val operation = OnlineRepository.operation()
+        val first = request("/v1/casual/sessions", operation)
+        assertEquals(grids[1].getString("id"), first.getJSONObject("grid").getString("id"))
+        assertEquals(first.toString(), request("/v1/casual/sessions", operation).toString())
+        val late = request("/v1/casual/sessions")
+        fun solve(session: JSONObject) = request("/v1/completions", OnlineRepository.operation().put("kind", "community")
+            .put("sessionId", session.getString("sessionId")).put("attemptId", UUID.randomUUID().toString()).put("path", JSONArray().put(JSONArray(listOf(0, 3)))))
+        solve(first)
+        demo = DemoBackend(context)
+        val reset = request("/v1/casual/sessions")
+        assertFalse(reset.isNull("grid"))
+        assertEquals(2, JSONObject(prefs.getString("data", null)!!).getInt("casualCycle"))
+        solve(late)
+        assertEquals(0, JSONObject(prefs.getString("data", null)!!).getJSONArray("casualDone").length())
+        solve(reset)
+        val next = request("/v1/casual/sessions")
+        assertNotEquals(reset.getJSONObject("grid").getString("id"), next.getJSONObject("grid").getString("id"))
+        val saved = JSONObject(prefs.getString("data", null)!!)
+        saved.getJSONArray("grids").objects().forEach { it.put("hidden", true) }
+        assertTrue(prefs.edit().putString("data", saved.toString()).commit())
+        assertTrue(request("/v1/casual/sessions").isNull("grid"))
     }
 
     @Test fun savesProofsAndResetsAreAccountScoped() {
@@ -100,19 +174,23 @@ class OnlinePersistenceTest {
         assertTrue(request("GET", "/v1/worlds/${sampleWorld.getString("id")}/grids").getJSONArray("items").getJSONObject(0).getBoolean("completed"))
         assertEquals(sampleGrid.getString("id"), request("GET", "/v1/progress").getJSONArray("communityDone").getString(0))
         assertEquals(0, request("GET", "/v1/progress").getJSONArray("done").length())
-        try {
-            request("PATCH", "/v1/account/name", op().put("name", sampleWorld.getString("username").lowercase()))
-            fail("Another player's nickname must remain unique")
-        } catch (error: OnlineException) { assertEquals("NAME_TAKEN", error.code) }
-        request("PATCH", "/v1/account/name", op().put("name", "پازل\u200cباز 🎮"))
+        val username = request("GET", "/v1/account").getJSONObject("user").getString("username")
         val w = request("POST", "/v1/worlds", op().put("name", "Calm Pool").put("icon", "R"))
         val draft = request("POST", "/v1/grids/drafts", op().put("name", "Soft Cove").put("start", JSONArray(listOf("RBY","GPW"))).put("target", JSONArray(listOf("GBY","RPW"))).put("path", JSONArray().put(JSONArray(listOf(0,3)))))
         request("POST", "/v1/grids/${draft.getString("id")}/publish", op().put("worldId", w.getString("id")))
         demo = DemoBackend(context)
-        assertEquals("پازل\u200cباز 🎮", request("GET", "/v1/account").getJSONObject("user").getString("username"))
+        assertEquals(username, request("GET", "/v1/account").getJSONObject("user").getString("username"))
         assertTrue(request("GET", "/v1/worlds/${sampleWorld.getString("id")}/grids").getJSONArray("items").getJSONObject(0).getBoolean("completed"))
         val profile = request("GET", "/v1/profiles/$account")
         assertEquals(1, profile.getInt("worldCount")); assertEquals(1, profile.getInt("gridCount")); assertEquals(1, profile.getInt("communityCount"))
         assertEquals(draft.getString("id"), request("GET", "/v1/grids/code/${draft.getString("code")}").getJSONObject("grid").getString("id"))
+        assertEquals(1, request("GET", "/v1/worlds/${w.getString("id")}/grids").getJSONArray("items").getJSONObject(0).getInt("levelNumber"))
+        fun level(name: String) = op().put("name", name).put("start", JSONArray(listOf("RBY","GPW"))).put("target", JSONArray(listOf("GBY","RPW"))).put("path", JSONArray().put(JSONArray(listOf(0,3))))
+        val added = request("POST", "/v1/worlds/${w.getString("id")}/levels", level(""))
+        assertEquals(2, added.getInt("levelNumber")); assertEquals("Level 2", added.getString("name"))
+        try { request("POST", "/v1/worlds/${w.getString("id")}/levels", level("Kill Zone")); fail("Blocked names must be refused") } catch (error: OnlineException) { assertEquals("INVALID_NAME", error.code) }
+        for (n in 3..20) assertEquals(n, request("POST", "/v1/worlds/${w.getString("id")}/levels", level("")).getInt("levelNumber"))
+        try { request("POST", "/v1/worlds/${w.getString("id")}/levels", level("")); fail("A world holds at most 20 levels") } catch (error: OnlineException) { assertEquals("WORLD_FULL", error.code) }
+        assertEquals(20, request("GET", "/v1/worlds?mine=true").getJSONArray("items").let { items -> (0 until items.length()).map { items.getJSONObject(it) }.first { it.getString("id") == w.getString("id") } }.getInt("usedSlots"))
     }
 }

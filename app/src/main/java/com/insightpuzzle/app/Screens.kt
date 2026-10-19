@@ -45,6 +45,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -91,21 +92,22 @@ fun HomeScreen(m: GameModel) {
         // Short phones (about 640dp tall) get a smaller hero and buttons so nothing touches.
         val compact = maxHeight < 640.dp
         val buttonHeight = if (compact) 56.dp else 64.dp
+        // Side cubes are squares; the Profile cube between them is 1.6 times as wide and the same height.
+        val cubeHeight = (minOf(maxWidth, 360.dp) - 20.dp) / 3.6f
         Column(Modifier.widthIn(max = 360.dp).fillMaxHeight().heightIn(max = 760.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Label("INSIGHT", if (compact) 26.sp else 29.sp, color = p.accent, weight = FontWeight.SemiBold, spacing = .3.em)
-            Label("A little order. A little wonder.", 16.sp, Modifier.padding(top = 8.dp), color = p.muted, serif = true)
+            Label("INSIGHT", if (compact) 26.sp else 29.sp, Modifier.padding(top = if (compact) 16.dp else 26.dp), color = p.accent, weight = FontWeight.SemiBold, spacing = .3.em)
             Hero(m.finish, Modifier.padding(top = if (compact) 12.dp else 20.dp, bottom = if (compact) 10.dp else 0.dp), if (compact) 96.dp else 125.dp)
             Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(if (compact) 10.dp else 14.dp, Alignment.CenterVertically)) {
                 m.continueLevel?.let { next ->
-                    MenuButton("Continue", height = buttonHeight, primary = true, fontSize = 17.sp, subtitle = "Level %03d · %s".format(next + 1, m.levels[next].name)) { m.start(next); m.audio.play("select") }
+                    MenuButton("Continue", height = buttonHeight, primary = true, fontSize = 17.sp, subtitle = "${m.levelTitle(next)} · ${m.levels[next].name}") { m.start(next); m.audio.play("select") }
                 }
-                MenuButton("Single player", height = buttonHeight, fontSize = 17.sp) { m.push(Route.Worlds) }
-                MenuButton("Online", Modifier.crystalGlow(), height = buttonHeight, fontSize = 17.sp) { m.push(Route.Online) }
+                MenuButton("Journey", height = buttonHeight, fontSize = 17.sp) { m.push(Route.Worlds) }
+                MenuButton("Worlds", Modifier.crystalGlow(), height = buttonHeight, fontSize = 17.sp) { m.push(Route.Online) }
                 MenuButton("Options", height = buttonHeight, fontSize = 17.sp) { m.push(Route.Options) }
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Cube("Achievements", trophyIcon, Modifier.weight(1f)) { m.push(Route.Achievements()) }
-                Cube(if (m.online.user != null) "Profile" else if (BuildConfig.ONLINE_DEMO) "Preview" else "Log In", personIcon, Modifier.weight(1f)) { m.openOnline(Route.Profile()) }
+            Row(Modifier.fillMaxWidth().height(cubeHeight), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Cube("Achievements", trophyIcon, Modifier.weight(1f)) { m.push(Route.Achievements) }
+                Cube(m.online.user?.username ?: if (BuildConfig.ONLINE_DEMO) "Preview" else "Log In", personIcon, Modifier.weight(1.6f)) { m.openOnline(Route.Profile()) }
                 Cube("What's Next", sparkIcon, Modifier.weight(1f), null)
             }
         }
@@ -132,13 +134,13 @@ fun Hero(finish: String, modifier: Modifier = Modifier, size: Dp = 125.dp) {
 private fun Cube(label: String, icon: DrawScope.(Color) -> Unit, modifier: Modifier, onClick: (() -> Unit)?) {
     val p = LocalPalette.current
     Column(
-        modifier.alpha(if (onClick == null) .6f else 1f).aspectRatio(1f).clip(RoundedCornerShape(14.dp)).background(p.paper).border(1.dp, p.line, RoundedCornerShape(14.dp))
+        modifier.alpha(if (onClick == null) .6f else 1f).fillMaxHeight().clip(RoundedCornerShape(14.dp)).background(p.paper).border(2.dp, p.line, RoundedCornerShape(14.dp))
             .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier.semantics { role = Role.Button; disabled(); stateDescription = "Coming soon" }).padding(6.dp),
         verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Canvas(Modifier.size(26.dp)) { icon(p.ink) }
         Spacer(Modifier.height(7.dp))
-        Label(label, 11.sp, weight = FontWeight.SemiBold, align = TextAlign.Center)
+        Label(label, 11.sp, weight = FontWeight.SemiBold, align = TextAlign.Center, lines = 1)
         if (onClick == null) Label("Soon", 11.sp, color = p.muted, align = TextAlign.Center)
     }
 }
@@ -165,7 +167,7 @@ private val sparkIcon: DrawScope.(Color) -> Unit = { c ->
 @Composable
 fun WorldsScreen(m: GameModel) {
     val worlds = m.worlds()
-    Page("Choose a world", if (m.dev) "Developer Mode · All worlds unlocked." else "${worlds.count { it.complete }} / ${worlds.size} worlds complete.", { m.back() }, 460.dp) {
+    Page("Choose a world", 460.dp) {
         Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             for (w in worlds) WorldCard(w) { m.push(Route.Levels(w.world)) }
             Spacer(Modifier.height(12.dp))
@@ -185,7 +187,7 @@ private fun WorldCard(w: WorldStat, onClick: () -> Unit) {
         Modifier.fillMaxWidth().heightIn(min = 64.dp)
             .drawBehind { if (w.complete) { val g = if (reduce) .5f else glow; drawRoundRect(light.copy(alpha = .25f + .2f * g), Offset(-8.dp.toPx() * (1 + g), -8.dp.toPx() * (1 + g)), Size(size.width + 16.dp.toPx() * (1 + g), size.height + 16.dp.toPx() * (1 + g)), CornerRadius(24.dp.toPx())) } }
             .clip(shape).background(Brush.horizontalGradient(listOf(lerp(p.paper2, light, .24f), p.paper2), 0f, 900f))
-            .border(1.dp, if (w.complete) light else lerp(p.line, light, .55f), shape)
+            .border(2.dp, if (w.complete) light else lerp(p.line, light, .55f), shape)
             .then(if (w.locked) Modifier.alpha(.5f).semantics { disabled() } else Modifier.clickable(role = Role.Button, onClick = onClick))
             .semantics { contentDescription = "World ${w.world}, ${w.solved} of ${w.total} solved" + if (w.locked) ", locked" else if (w.complete) ", complete" else "" }
             .drawBehind { drawRoundRect(Brush.verticalGradient(listOf(light, deep)), Offset(0f, 10.dp.toPx()), Size(6.dp.toPx(), size.height - 20.dp.toPx()), CornerRadius(6.dp.toPx())) }
@@ -201,34 +203,43 @@ private fun WorldCard(w: WorldStat, onClick: () -> Unit) {
 fun LevelsScreen(m: GameModel, world: Int) {
     val p = LocalPalette.current
     val entries = m.levels.withIndex().filter { it.value.world == world }
-    Page("World $world", "${entries.count { (it.index + 1) in m.done }} / ${entries.size} solved", { m.backToWorlds() }) {
-        val columns = 3
+    val reduce = LocalReduceMotion.current
+    val pulse = rememberInfiniteTransition(label = "solved")
+    val breathe by pulse.animateFloat(0f, 1f, infiniteRepeatable(tween(3200), RepeatMode.Reverse), label = "solved")
+    val glow = { if (reduce) .5f else breathe }
+    Page("World $world") {
+        val columns = 4
         val rows = (entries.size + columns - 1) / columns
         // Cells keep one shape in every world (a 6-level world must not stretch) and the list scrolls if large text needs the room.
-        Column(Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // The vertical padding keeps a solved cell's glow from being clipped at the top and bottom of the list.
+        Column(Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             for (r in 0 until rows) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 for (c in 0 until columns) {
                     val item = entries.getOrNull(r * columns + c)
-                    if (item == null) { Spacer(Modifier.weight(1f).aspectRatio(.72f)); continue }
-                    val i = item.index; val level = item.value
+                    if (item == null) { Spacer(Modifier.weight(1f).aspectRatio(.6f)); continue }
+                    val i = item.index; val level = item.value; val number = r * columns + c + 1
                     val done = (i + 1) in m.done; val locked = !m.canAccess(i); val current = i == m.level
                     val shape = RoundedCornerShape(12.dp)
                     Column(
-                        Modifier.weight(1f).aspectRatio(.72f).clip(shape).background(if (done) lerp(p.paper2, p.accent, .14f) else p.paper)
-                            .border(if (current) 2.dp else 1.dp, if (current) p.accent else p.line, shape)
+                        Modifier.weight(1f).aspectRatio(.6f)
+                            .drawBehind { if (done) { val k = glow(); val g = (3 + 3 * k).dp.toPx(); drawRoundRect(p.accent.copy(alpha = .16f + .14f * k), Offset(-g, -g), Size(size.width + 2 * g, size.height + 2 * g), CornerRadius(12.dp.toPx() + g)) } }
+                            .clip(shape).background(if (done) lerp(p.paper2, p.accent, .14f) else p.paper)
+                            .border(if (current) 3.dp else 2.dp, if (current) p.accent else if (done) p.accent.copy(alpha = .7f) else p.line, shape)
                             .then(if (locked) Modifier.alpha(.4f).semantics { disabled() } else Modifier.clickable(role = Role.Button) { m.start(i); m.audio.play("select") })
-                            .semantics { contentDescription = "Level ${i + 1}, ${level.name}" + if (locked) ", locked" else if (done) ", solved" else "" }
-                            .padding(10.dp),
+                            .semantics { contentDescription = "Level $number, ${level.name}" + if (locked) ", locked" else if (done) ", solved" else "" }
+                            .padding(8.dp),
                     ) {
-                        Label("%03d".format(i + 1), 13.sp, color = p.muted, weight = FontWeight.SemiBold)
+                        Label("%02d".format(number), 13.sp, Modifier.fillMaxWidth(), color = p.muted, weight = FontWeight.SemiBold, align = TextAlign.Center)
                         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            val target = Rules.crop(level.target); val n = maxOf(target.size, target[0].length)
-                            val cell = minOf(30.dp, (maxWidth - 4.dp * (n - 1)) / n, (maxHeight - 4.dp * (n - 1)) / n)
+                            // One cell size for every level: what a 4x4 target gets. Larger targets shrink to fit, smaller ones do not grow.
+                            val target = Rules.crop(level.target)
+                            fun fit(n: Int, room: Dp) = (room - 3.dp * (n - 1)) / n
+                            val cell = minOf(minOf(fit(4, maxWidth), fit(4, maxHeight)), minOf(fit(target[0].length, maxWidth), fit(target.size, maxHeight)))
                             if (cell > 3.dp) TargetMini(target, cell, 3.dp)
                         }
                         val density = LocalDensity.current
-                        CompositionLocalProvider(LocalDensity provides Density(density.density, minOf(density.fontScale, 1.15f))) { Label(level.name, 13.sp, lines = 2) }
-                        Label(if (locked) "Locked" else if (done) "Solved" else "", 12.sp, Modifier.align(Alignment.End), color = p.muted)
+                        CompositionLocalProvider(LocalDensity provides Density(density.density, minOf(density.fontScale, 1.15f))) { Label(level.name, 13.sp, Modifier.fillMaxWidth(), align = TextAlign.Center, lines = 2) }
+                        Label(if (locked) "Locked" else "", 12.sp, Modifier.fillMaxWidth(), color = p.muted, align = TextAlign.Center)
                     }
                 }
             }
@@ -252,17 +263,13 @@ fun OptionsScreen(m: GameModel) {
     val context = LocalContext.current
     BackHandler(enabled = confirmReset || showLicences) { confirmReset = false; showLicences = false }
     Box(Modifier.fillMaxSize()) {
-        Page("Options", "Make yourself at home.", { m.back() }, 520.dp) {
+        Page("Options", 520.dp) {
             Tabs(tabs, tab) { tab = it }
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 when (tab) {
                     "play" -> {
                         SectionTitle("Feel")
                         ToggleRow("Haptics", m.haptics) { m.toggleHaptics() }
-                        Label("Reduce motion", 14.sp, Modifier.padding(top = 4.dp), weight = FontWeight.SemiBold)
-                        Tabs(listOf("system" to "Follow system", "on" to "Always on"), m.motion) { m.changeMotion(it) }
-                        ToggleRow("Move counter", m.moveCounter) { m.toggleMoveCounter() }
-                        Label("Shows how many swaps you have made. There is no par and no limit.", 12.sp, color = p.muted)
 
                         SectionTitle("Progress")
                         MenuButton("Reset level progress") { confirmReset = true }
@@ -270,7 +277,7 @@ fun OptionsScreen(m: GameModel) {
 
                         SectionTitle("About")
                         val info = remember { context.packageManager.getPackageInfo(context.packageName, 0) }
-                        InfoRow("Version", "${info.versionName} (${info.longVersionCode})")
+                        InfoRow("Version", "${info.versionName} (${androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(info)})")
                         InfoRow("Open-source licences", "Fonts", onClick = { showLicences = true })
                         if (AppLinks.PRIVACY_URL.isNotEmpty()) InfoRow("Privacy policy", "Open", onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(AppLinks.PRIVACY_URL))) })
                         if (AppLinks.CONTACT_EMAIL.isNotEmpty()) InfoRow("Contact", AppLinks.CONTACT_EMAIL, onClick = { context.startActivity(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:${AppLinks.CONTACT_EMAIL}"))) })
@@ -285,7 +292,6 @@ fun OptionsScreen(m: GameModel) {
                         ToggleRow("Sound", m.sound) { m.toggleSound() }
                         VolumeSlider("Ambience", m.ambience) { m.changeAmbience(it) }
                         VolumeSlider("Effects", m.effects) { m.changeEffects(it) }
-                        ToggleRow("Spoken celebration", m.voice) { m.toggleVoice() }
                         SectionTitle("With other audio")
                         ToggleRow("Pause ambience over other audio", m.pauseOverOthers) { m.togglePauseOverOthers() }
                         ToggleRow("Silence when headphones unplug", m.silenceOnUnplug) { m.toggleSilenceOnUnplug() }
@@ -293,13 +299,8 @@ fun OptionsScreen(m: GameModel) {
                     }
                     else -> {
                         Label("Theme", 14.sp, weight = FontWeight.SemiBold)
-                        Tabs(listOf("light" to "Light", "dark" to "Dark", "system" to "System"), m.theme) { m.changeTheme(it) }
-                        ToggleRow("Animated background", m.animatedBackground) { m.toggleAnimatedBackground() }
-                        Label("Turn off to freeze the drifting light and save battery.", 12.sp, color = p.muted)
-                        SectionTitle("Equipped")
-                        InfoRow("Background", COSMETICS.find { it.id == m.background }?.name ?: "Forest", onClick = { m.push(Route.Achievements("appearance")) })
-                        InfoRow("Tile finish", COSMETICS.find { it.id == m.finish }?.name ?: "Original", onClick = { m.push(Route.Achievements("appearance")) })
-                        Label("Equip your cosmetic rewards from the Appearance collection.", 12.sp, color = p.muted)
+                        Tabs(listOf("light" to "Light", "dark" to "Dark"), m.theme) { m.changeTheme(it) }
+                        CosmeticPicker(m)
                     }
                 }
             }
@@ -340,13 +341,12 @@ private fun VolumeSlider(label: String, value: Float, onChange: (Float) -> Unit)
 }
 
 @Composable
-fun AchievementsScreen(m: GameModel, initialTab: String) {
-    var tab by remember(initialTab) { mutableStateOf(initialTab) }
+fun AchievementsScreen(m: GameModel) {
     val p = LocalPalette.current
     val badges = m.achievements.catalog
-    Page("Achievements", "${m.earned.size} / ${badges.size} earned · Yours to keep", { m.back() }) {
-        Tabs(listOf("collection" to "Collection", "appearance" to "Appearance"), tab) { tab = it }
-        if (tab == "collection") {
+    val account = m.online.user?.id
+    LaunchedEffect(account) { if (account != null) m.online.refreshProgress() }
+    Page("Achievements") {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 for (badge in badges) {
                     val earned = badge.id in m.earned; val progress = m.achievements.progress(badge, m.done)
@@ -370,29 +370,30 @@ fun AchievementsScreen(m: GameModel, initialTab: String) {
                 }
                 Spacer(Modifier.height(12.dp))
             }
-        } else {
-            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                for (kind in listOf("background", "finish")) {
-                    Label(if (kind == "background") "Background" else "Tile finish", 15.sp, weight = FontWeight.SemiBold)
-                    // IntrinsicSize.Min + fillMaxHeight: every card in a row is as tall as the tallest, whatever its caption.
-                    Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        for (c in COSMETICS.filter { it.kind == kind }) {
-                            val owned = m.achievements.owns(c, m.earned); val on = (if (kind == "background") m.background else m.finish) == c.id
-                            val shape = RoundedCornerShape(14.dp)
-                            Column(Modifier.weight(1f).fillMaxHeight().clip(shape).background(p.paper).border(if (on) 2.dp else 1.dp, if (on) p.accent else p.line, shape)
-                                .then(if (owned) Modifier.clickable(role = Role.Button) { m.equip(c) } else Modifier.alpha(.45f).semantics { disabled() }).padding(10.dp)) {
-                                Box(Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(10.dp)).drawBehind { cosmeticPreview(c.id, m.finish) })
-                                Label(c.name, 13.sp, Modifier.padding(top = 6.dp), weight = FontWeight.SemiBold)
-                                val badge = m.achievements.catalog.find { it.id == c.badge }
-                                // Locked cards name the badge that unlocks them (the full requirement is on the Collection tab).
-                                Label(if (!owned) "Earn ${badge?.name ?: "a badge"}" else if (on) "Equipped" else c.description, 12.sp, color = p.muted)
-                            }
-                        }
-                    }
+    }
+}
+
+/** Tile-finish choices: Options → Appearance. */
+@Composable
+private fun CosmeticPicker(m: GameModel) {
+    val p = LocalPalette.current
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Label("Tile finish", 15.sp, weight = FontWeight.SemiBold)
+        // IntrinsicSize.Min + fillMaxHeight keeps both cards as tall as the longest caption.
+        Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            for (c in COSMETICS) {
+                val owned = m.achievements.owns(c, m.earned, m.dev); val on = m.finish == c.id
+                val shape = RoundedCornerShape(14.dp)
+                Column(Modifier.weight(1f).fillMaxHeight().clip(shape).background(p.paper).border(if (on) 3.dp else 2.dp, if (on) p.accent else p.line, shape)
+                    .then(if (owned) Modifier.clickable(role = Role.Button) { m.equip(c) } else Modifier.alpha(.45f).semantics { disabled() }).padding(10.dp)) {
+                    Box(Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(10.dp)).drawBehind { cosmeticPreview(c.id) })
+                    Label(c.name, 13.sp, Modifier.padding(top = 6.dp), weight = FontWeight.SemiBold)
+                    val badge = m.achievements.catalog.find { it.id == c.badge }
+                    Label(if (!owned) "Earn ${badge?.name ?: "a badge"}" else if (on) "Equipped" else c.description, 12.sp, color = p.muted)
                 }
-                Label("Keep your light or dark setting. Rewards change the look; your puzzle stays the same.", 12.sp, color = p.muted)
             }
         }
+        Label("Keep your light or dark setting. Rewards change the look; your puzzle stays the same.", 12.sp, color = p.muted)
     }
 }
 
@@ -428,23 +429,21 @@ private fun DrawScope.badgeIcon(id: String, c: Color) {
     }
 }
 
-private fun DrawScope.cosmeticPreview(id: String, finish: String) {
-    when (id) {
-        "forest" -> drawRect(Brush.linearGradient(listOf(Color(0xFF234958), Color(0xFF1E4843))))
-        "mist" -> drawRect(Brush.linearGradient(listOf(Color(0xFF477D9C), Color(0xFF297D77))))
-        "aurora" -> drawRect(Brush.linearGradient(listOf(Color(0xFF455C9E), Color(0xFF8B5EAA))))
-        else -> { drawRect(Color(0xFF102A34)); val s = size.height * .8f; tile('B', Offset((size.width - s) / 2, size.height * .1f), s, id) }
-    }
+private fun DrawScope.cosmeticPreview(id: String) {
+    drawRect(Color(0xFF26272A))
+    val s = size.height * .8f
+    tile('B', Offset((size.width - s) / 2, size.height * .1f), s, id)
 }
 
 @Composable
 fun OnlineScreen(m: GameModel) {
-    Page("Online", if (BuildConfig.ONLINE_DEMO) "Local preview · Everything stays on this device" else null, { m.back() }, 420.dp) {
-        Column(Modifier.weight(1f).fillMaxWidth().padding(bottom = 64.dp), verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically)) {
-            MenuButton("Profile", height = 64.dp, fontSize = 17.sp) { m.openOnline(Route.Profile()) }
+    Page("Worlds", 420.dp) {
+        if (BuildConfig.ONLINE_DEMO) Eyebrow("Local preview · Everything stays on this device")
+        Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically)) {
+            MenuButton(m.online.user?.username ?: "Profile", height = 64.dp, fontSize = 17.sp) { m.openOnline(Route.Profile()) }
             MenuButton("Create", height = 64.dp, fontSize = 17.sp) { m.push(Route.Create) }
-            MenuButton("Casual", height = 64.dp, fontSize = 17.sp, subtitle = "Coming soon", onClick = null)
-            MenuButton("Play", height = 64.dp, fontSize = 17.sp) { m.openOnline(Route.Browse) }
+            MenuButton("Play", height = 64.dp, fontSize = 17.sp, onClick = { m.openOnline(Route.Casual) })
+            MenuButton("Find", height = 64.dp, fontSize = 17.sp) { m.openOnline(Route.Browse) }
         }
     }
 }
@@ -453,18 +452,18 @@ fun OnlineScreen(m: GameModel) {
 fun PauseOverlay(m: GameModel) {
     Overlay("Menu", { m.resume() }) {
         Label("Menu", 24.sp, Modifier.semantics { heading() }, serif = true)
-        Label(m.community?.let { "${it.grid.optString("worldName")} · ${m.spec.name}" } ?: "World %d · Level %03d · %s".format(m.spec.world, m.level + 1, m.spec.name), 12.sp, Modifier.padding(top = 4.dp, bottom = 16.dp), color = LocalPalette.current.muted, align = TextAlign.Center)
+        Label(m.community?.let { c -> "${c.grid.optString("worldName")} · Level ${c.grid.optInt("levelNumber")}" + if (m.spec.name != "Level ${c.grid.optInt("levelNumber")}") " · ${m.spec.name}" else "" } ?: "${m.levelTitle(m.level)} · ${m.spec.name}", 12.sp, Modifier.padding(top = 4.dp, bottom = 16.dp), color = LocalPalette.current.muted, align = TextAlign.Center)
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             MenuButton(if (m.solved) "View result" else "Resume", primary = true) { m.resume() }
             MenuButton("Levels") { m.showLevels() }
             MenuButton("Options") { m.push(Route.Options) }
-            MenuButton("Achievements") { m.push(Route.Achievements()) }
+            MenuButton("Achievements") { m.push(Route.Achievements) }
             MenuButton("Main Menu") { m.mainMenu() }
         }
     }
 }
 
-/** The result, docked under the board instead of dimming it: the solved arrangement stays lit while you read it. */
+/** The result, docked under the board so the solved arrangement remains visible. */
 @Composable
 fun WinStrip(m: GameModel) {
     val p = LocalPalette.current
@@ -475,19 +474,19 @@ fun WinStrip(m: GameModel) {
             .semantics { paneTitle = "Grid solved"; liveRegion = LiveRegionMode.Polite }.padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Eyebrow("Grid solved")
-        Label("Beautifully solved.", 26.sp, Modifier.padding(top = 4.dp, bottom = 12.dp).semantics { heading() }, serif = true, align = TextAlign.Center)
+        Label("Grid solved", 26.sp, Modifier.padding(bottom = 12.dp).semantics { heading() }, serif = true, align = TextAlign.Center)
         val badges = m.winBadges
         if (badges.isNotEmpty()) {
             Column(Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(14.dp)).background(p.paper).padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Label(if (badges.size == 1) "${badges[0].name} earned" else "${badges.size} achievements earned", 14.sp, weight = FontWeight.SemiBold)
                 Label(badges.mapNotNull { m.achievements.reward(it) }.joinToString(" · ").ifEmpty { "A new badge for your collection." }, 12.sp, color = p.muted, align = TextAlign.Center)
-                MenuButton("View collection →", Modifier.padding(top = 8.dp), height = 48.dp, fontSize = 12.sp) { m.push(Route.Achievements()) }
+                MenuButton("View collection →", Modifier.padding(top = 8.dp), height = 48.dp, fontSize = 12.sp) { m.push(Route.Achievements) }
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             MenuButton("Replay", Modifier.weight(1f)) { m.restart() }
-            if (m.community != null) MenuButton("World", Modifier.weight(1f), primary = true) { m.next() }
+            if (m.community?.casual == true) MenuButton("Next →", Modifier.weight(1f), primary = true, enabled = !m.online.busy) { m.next() }
+            else if (m.community != null) MenuButton("World", Modifier.weight(1f), primary = true) { m.next() }
             else if (final) MenuButton("Choose level", Modifier.weight(1f), primary = true) { m.showLevels() }
             else MenuButton("Next →", Modifier.weight(1f), primary = true, enabled = m.canAccess(m.level + 1)) { m.next() }
         }

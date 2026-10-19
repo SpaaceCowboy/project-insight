@@ -96,53 +96,43 @@ import kotlin.random.Random
 fun GameScreen(m: GameModel) {
     val spec = m.spec
     val target = Rules.crop(spec.target)
-    // The target is what you play from: it scales with the grid instead of staying a thumbnail.
-    val targetCell = when (maxOf(target.size, target[0].length)) { 1, 2 -> 30.dp; 3 -> 26.dp; 4 -> 22.dp; else -> 20.dp }
+    val targetCell = 13.dp
     Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).semantics { isTraversalGroup = true }) {
         // On tablets and landscape windows the play area stays board-sized and centred instead of stretching edge to edge.
         Column(Modifier.align(Alignment.TopCenter).widthIn(max = 720.dp).fillMaxSize().padding(start = 12.dp, end = 12.dp, top = 60.dp, bottom = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Eyebrow((m.community?.grid?.optString("worldName") ?: "World ${spec.world} · Level %03d".format(m.level + 1)) + if (m.moveCounter) " · Moves ${m.moves}" else "")
-            Label(spec.name, 24.sp, Modifier.padding(top = 4.dp).semantics { heading() }, serif = true, align = TextAlign.Center)
+            val casual = m.community?.takeIf { it.casual }
+            if (casual != null) {
+                Box(Modifier.heightIn(min = 48.dp).clickable(role = Role.Button) { m.push(Route.Profile(casual.grid.getString("ownerId"))) }, contentAlignment = Alignment.Center) {
+                    Eyebrow(casual.grid.getString("username"))
+                }
+                Label(casual.grid.getString("worldName") + " · Level " + casual.grid.getInt("levelNumber"), 24.sp, Modifier.semantics { heading() }, serif = true, align = TextAlign.Center)
+            } else {
+                Eyebrow(m.community?.grid?.optString("worldName") ?: m.levelTitle(m.level))
+                Label(spec.name, 24.sp, Modifier.padding(top = 4.dp).semantics { heading() }, serif = true, align = TextAlign.Center)
+            }
             Spacer(Modifier.height(10.dp))
             Eyebrow("Target")
             Spacer(Modifier.height(6.dp))
             TargetCard(target, targetCell, spec.target)
             Spacer(Modifier.height(12.dp))
             Board(m, Modifier.weight(1f).fillMaxWidth())
-            // The result sits under the board, so the arrangement you just made stays lit and visible.
+            // The result sits under the board so the solved arrangement remains visible.
             AnimatedVisibility(Route.Win in m.stack, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) { WinStrip(m) }
         }
         RoundButton("Menu", Modifier.align(Alignment.TopStart).padding(12.dp, 10.dp).semantics { traversalIndex = -2f }, onClick = { m.push(Route.Pause) }, icon = menuIcon)
         RoundButton("Restart level", Modifier.align(Alignment.TopEnd).padding(12.dp, 10.dp).semantics { traversalIndex = -1f }, onClick = { m.restart() }, icon = restartIcon)
-        AnimatedVisibility(m.restartUndo != null, Modifier.align(Alignment.TopCenter).padding(top = 10.dp), enter = fadeIn(), exit = fadeOut()) { UndoPebble { m.undoRestart() } }
     }
 }
 
-/** The target on the same deep "pool" as the board, so its flat colours keep their contrast in light mode too. */
+/** The target on the same panel as the board. */
 @Composable
 private fun TargetCard(target: Board, cell: Dp, full: Board) {
     val p = LocalPalette.current
     val shape = RoundedCornerShape(16.dp)
-    Box(Modifier.clip(shape).background(Brush.radialGradient(p.shell)).border(1.dp, if (p.dark) p.line else Color(0x40F3F7E7), shape).padding(10.dp)) {
-        TargetMini(target, cell, 4.dp, Modifier.semantics {
+    Box(Modifier.clip(shape).background(Brush.radialGradient(p.shell)).border(1.dp, p.line, shape).padding(6.5.dp)) {
+        TargetMini(target, cell, 2.6.dp, Modifier.semantics {
             contentDescription = "Target arrangement: " + full.mapIndexed { i, row -> "row ${i + 1}: " + row.map { Art.NAME[it] ?: "gap" }.joinToString(", ") }.joinToString("; ")
         })
-    }
-}
-
-/** "Restarted · Undo", shown for a few seconds beside the Restart button. */
-@Composable
-private fun UndoPebble(onUndo: () -> Unit) {
-    val p = LocalPalette.current
-    val shape = RoundedCornerShape(24.dp)
-    Row(
-        Modifier.heightIn(min = 48.dp).clip(shape).background(p.paper2).border(1.dp, p.line, shape)
-            .clickable(role = Role.Button, onClickLabel = "Undo restart", onClick = onUndo)
-            .semantics { liveRegion = LiveRegionMode.Polite; contentDescription = "Level restarted. Undo restart" }.padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Label("Restarted", 13.sp, color = p.muted)
-        Label("Undo", 14.sp, color = p.accent, weight = FontWeight.SemiBold, spacing = .05.em)
     }
 }
 
@@ -157,20 +147,17 @@ class Ink(val from: Offset, val to: Offset, val color: Color, val t: Animatable<
 class Grid(val rows: Int, val cols: Int, val cell: Float, val gap: Float, val origin: Offset) {
     fun topLeft(p: Pos) = origin + Offset(p.c * (cell + gap), p.r * (cell + gap))
     fun center(p: Pos) = topLeft(p) + Offset(cell / 2, cell / 2)
+    /** True when [x] lies beyond the rows x cols rectangle grown by [slack] on every side. */
+    fun isOutside(x: Offset, slack: Float): Boolean {
+        val width = cols * cell + (cols - 1) * gap; val height = rows * cell + (rows - 1) * gap
+        return x.x < origin.x - slack || x.y < origin.y - slack || x.x > origin.x + width + slack || x.y > origin.y + height + slack
+    }
     fun hit(x: Offset): Pos? {
         val c = ((x.x - origin.x) / (cell + gap)).toInt(); val r = ((x.y - origin.y) / (cell + gap)).toInt()
         if (x.x < origin.x || x.y < origin.y || r !in 0 until rows || c !in 0 until cols) return null
         val tl = topLeft(Pos(r, c))
         return if (x.x <= tl.x + cell && x.y <= tl.y + cell) Pos(r, c) else null
     }
-}
-
-/** Board shell: rounded panel with the faint concentric rings of the web game. */
-fun DrawScope.shell(p: Palette) {
-    val c = Offset(size.width / 2, size.height / 2); val r = size.width * .39f
-    val ring = if (p.dark) p.line else Color(0x40F3F7E7)
-    for ((extra, alpha) in listOf(0f to .4f, 35.dp.toPx() to .18f, 70.dp.toPx() to .1f))
-        drawCircle(ring.copy(alpha = ring.alpha * alpha / .4f), r + extra, c, style = Stroke(if (extra == 0f) 1.dp.toPx() else 1f))
 }
 
 /** Port of src/useGame.js pointer handling: tap to select then tap a destination, or drag to a legal cell. */
@@ -192,7 +179,9 @@ private fun Board(m: GameModel, modifier: Modifier) {
     val reject = remember { Animatable(0f) }
     var arrived by remember { mutableStateOf(emptyList<Pos>()) }
     val arrive = remember { Animatable(0f) }
-    val bloom = remember(m.level) { Animatable(0f) }
+    val bloom = remember(m.level, m.community?.id) { Animatable(0f) }
+    val solveGlow = remember(m.level, m.community?.id) { Animatable(0f) }
+    val reduceMotion = LocalReduceMotion.current
     val inks = remember { mutableStateListOf<Ink>() }
     val haptic = LocalHapticFeedback.current
     fun buzz(type: HapticFeedbackType) { if (m.haptics) haptic.performHapticFeedback(type) }
@@ -202,9 +191,17 @@ private fun Board(m: GameModel, modifier: Modifier) {
     // Polite spoken status for TalkBack (swaps, refusals, solve). The zero-width toggle makes repeats announce again.
     fun say(text: String) { statusCount++; status = text + if (statusCount % 2 == 0) "" else "\u200B" }
     val solved = m.solved
-    LaunchedEffect(solved, m.level) { if (solved) bloom.animateTo(1f, tween(900, easing = LinearEasing)) else bloom.snapTo(0f) }
+    LaunchedEffect(solved, m.level, m.community?.id, reduceMotion) {
+        bloom.snapTo(0f)
+        solveGlow.snapTo(0f)
+        if (solved && !reduceMotion) {
+            solveGlow.snapTo(1f)
+            bloom.animateTo(1f, tween(900, easing = LinearEasing))
+            solveGlow.animateTo(0f, tween(350))
+        }
+    }
 
-    BoxWithConstraints(modifier.clip(RoundedCornerShape(24.dp)).background(Brush.radialGradient(p.shell)).border(1.dp, if (p.dark) p.line else Color(0x40F3F7E7), RoundedCornerShape(24.dp))) {
+    BoxWithConstraints(modifier.clip(RoundedCornerShape(24.dp)).background(Brush.radialGradient(p.shell)).border(1.dp, p.line, RoundedCornerShape(24.dp))) {
         val gap = with(density) { 5.dp.toPx() }
         val w = constraints.maxWidth.toFloat(); val h = constraints.maxHeight.toFloat()
         val pad = with(density) { 32.dp.toPx() }
@@ -287,7 +284,6 @@ private fun Board(m: GameModel, modifier: Modifier) {
                 }
             }
         }) {
-            shell(p)
             for (ink in inks) ink(ink, ink.t.value)
             val mv = moving
             val late = mutableListOf<() -> Unit>()
@@ -304,12 +300,12 @@ private fun Board(m: GameModel, modifier: Modifier) {
                 if (pos == rejected) ring = Color(0xFFFFB4A8).copy(alpha = sin(reject.value * Math.PI).toFloat() * .85f)
                 if (pos in arrived) ring = Color(0xFFF5FFEA).copy(alpha = sin(arrive.value * Math.PI).toFloat() * .65f)
                 if (pos == focused && ring == null) ring = p.shellInk.copy(alpha = .9f)
-                if (solved) {
+                if (solved && !reduceMotion && solveGlow.value > 0f) {
                     // Solved bloom: each tile swells in turn, ordered by r + c (src/styles.css solvedBloom).
                     val t = ((bloom.value * 900f - (r + c) * 16f) / 650f).coerceIn(0f, 1f)
                     val s = 1f + .035f * sin(t * Math.PI).toFloat()
                     o -= Offset(cell * (s - 1) / 2, cell * (s - 1) / 2); size *= s
-                    glow = Art.LIGHT.getValue(type).copy(alpha = .5f)
+                    glow = Art.LIGHT.getValue(type).copy(alpha = .5f * solveGlow.value)
                 }
                 val highlight = if (pos == hover) .1f else 0f
                 val draw = { tile(type, o, size, m.finish, glow, ring, highlight) }

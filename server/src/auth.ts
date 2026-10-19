@@ -1,4 +1,4 @@
-import { randomInt, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import argon2 from 'argon2';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { PoolClient } from 'pg';
@@ -24,14 +24,6 @@ async function issue(c: PoolClient, userId: string, key: string, id = randomUUID
   const user = (await c.query('SELECT id,username,verified FROM users WHERE id=$1', [userId])).rows[0];
   return { accessToken, refreshToken, user };
 }
-async function challenge(c: PoolClient, userId: string, email: string, purpose: 'verify' | 'recover', key: string) {
-  const recent = (await c.query("SELECT 1 FROM challenges WHERE user_id=$1 AND purpose=$2 AND created_at>now()-interval '1 minute'", [userId, purpose])).rowCount;
-  if (recent) return;
-  await c.query('UPDATE challenges SET consumed=true WHERE user_id=$1 AND purpose=$2', [userId, purpose]);
-  const id = randomUUID(); const code = String(randomInt(10000000, 100000000));
-  await c.query("INSERT INTO challenges(id,user_id,purpose,code_hash,expires_at) VALUES($1,$2,$3,$4,now()+interval '15 minutes')", [id, userId, purpose, digest(`${id}:${code}`, key)]);
-  await c.query('INSERT INTO email_outbox(id,challenge_id,encrypted_payload) VALUES($1,$2,$3)', [randomUUID(), id, encrypt({ email, code, purpose }, key)]);
-}
 export function authentication(db: Db, config: Config) {
   return async (req: FastifyRequest) => {
     const bearer = req.headers.authorization?.match(/^Bearer ([A-Za-z0-9_-]{43})$/)?.[1];
@@ -42,72 +34,37 @@ export function authentication(db: Db, config: Config) {
     req.account = { id: row.id, username: row.username, verified: row.verified, sessionId: row.session_id };
   };
 }
-export async function verified(req: FastifyRequest) { requireValue(req.account?.verified, 'VERIFY_REQUIRED', 'Verify your email to use Online.', 403); }
+
 
 export async function authRoutes(app: FastifyInstance, db: Db, config: Config) {
   const auth = authentication(db, config); const key = config.encryptionKey;
   // A dummy hash keeps absent-account logins on the same expensive verification path.
   const dummyHash = await argon2.hash(token(), passwords);
   const limited = { rateLimit: { max: 8, timeWindow: '15 minutes' } };
-  // Accept (and ignore) a legacy invitation field so already-installed clients can still register.
-  app.post('/v1/auth/register', { config: limited, schema: { body: objectSchema({ email: emailSchema, password: passwordSchema, name: { type: 'string', minLength: 1, maxLength: 128 }, invite: { type: 'string', maxLength: 128 } }, ['email', 'password', 'name']) } }, async req => {
+  // Registration needs only an email, password and unique username.
+  app.post('/v1/auth/register', { config: limited, schema: { body: objectSchema({ email: emailSchema, password: passwordSchema, name: { type: 'string', minLength: 1, maxLength: 128 } }, ['email', 'password', 'name']) } }, async req => {
     const b = req.body as any; const email = b.email.trim().toLowerCase(); const name = nickname(b.name);
     const passwordHash = await argon2.hash(b.password, passwords);
-    await transaction(db, async c => {
-      // Serializes duplicate registration without disclosing whether the address already exists.
+    return transaction(db, async c => {
+      // Serialize duplicate registrations and return an actionable conflict.
       await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [`register:${email}`]);
-      if ((await c.query('SELECT id FROM users WHERE email=$1', [email])).rowCount) return;
+      requireValue(!(await c.query('SELECT id FROM users WHERE email=$1', [email])).rowCount, 'EMAIL_TAKEN', 'An account with this email already exists. Please log in.', 409);
       await claimNickname(c, name);
       const id = randomUUID();
-      await c.query('INSERT INTO users(id,email,password_hash,username) VALUES($1,$2,$3,$4)', [id, email, passwordHash, name]);
-      await challenge(c, id, email, 'verify', key);
+      await c.query('INSERT INTO users(id,email,password_hash,username,verified) VALUES($1,$2,$3,$4,true)', [id, email, passwordHash, name]);
+      return issue(c, id, key);
     });
-    return { accepted: true, message: 'If registration is available, a verification code has been queued.' };
   });
   app.post('/v1/auth/login', { config: limited, schema: { body: objectSchema({ email: emailSchema, password: { type: 'string', minLength: 1, maxLength: 128 } }) } }, async req => {
     const b = req.body as any;
     return transaction(db, async c => {
-      // Password reset and login serialize on the account row: old credentials cannot issue a post-reset session.
+      // Serialize credential checks on the account row.
       const user = (await c.query('SELECT * FROM users WHERE email=$1 FOR UPDATE', [b.email.trim().toLowerCase()])).rows[0];
       const valid = await argon2.verify(user?.password_hash ?? dummyHash, b.password);
       requireValue(user && valid && !user.suspended, 'LOGIN_FAILED', 'Email or password is incorrect.', 401);
       return issue(c, user.id, key);
     });
   });
-  for (const purpose of ['verify', 'recover'] as const) {
-    app.post(`/v1/auth/${purpose}/request`, { config: limited, schema: { body: objectSchema({ email: emailSchema }) } }, async req => {
-      const email = (req.body as any).email.trim().toLowerCase();
-      await transaction(db, async c => {
-        await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [`challenge:${email}`]);
-        const user = (await c.query('SELECT * FROM users WHERE email=$1', [email])).rows[0];
-        if (user && !user.suspended && (purpose !== 'verify' || !user.verified)) await challenge(c, user.id, email, purpose, key);
-      });
-      return { accepted: true, message: 'If eligible, an email code has been queued.' };
-    });
-    app.post(`/v1/auth/${purpose}/confirm`, { config: limited, schema: { body: objectSchema({ email: emailSchema, code: { type: 'string', pattern: '^[0-9]{8}$' }, ...(purpose === 'recover' ? { password: passwordSchema } : {}) }) } }, async req => {
-      const b = req.body as any;
-      const passwordHash = purpose === 'recover' ? await argon2.hash(b.password, passwords) : null;
-      // Wrong-code attempts must COMMIT, rather than being rolled back with the error response.
-      const accepted = await transaction(db, async c => {
-        const user = (await c.query('SELECT * FROM users WHERE email=$1', [b.email.trim().toLowerCase()])).rows[0];
-        if (!user || user.suspended) return false;
-        const ch = (await c.query(`SELECT * FROM challenges WHERE user_id=$1 AND purpose=$2 AND NOT consumed AND expires_at>now()
-          ORDER BY created_at DESC LIMIT 1 FOR UPDATE`, [user.id, purpose])).rows[0];
-        if (!ch || ch.attempts >= 5) return false;
-        await c.query('UPDATE challenges SET attempts=attempts+1 WHERE id=$1', [ch.id]);
-        if (ch.code_hash !== digest(`${ch.id}:${b.code}`, key)) return false;
-        await c.query('UPDATE challenges SET consumed=true WHERE id=$1', [ch.id]);
-        if (purpose === 'verify') await c.query('UPDATE users SET verified=true WHERE id=$1', [user.id]);
-        else {
-          await c.query('UPDATE users SET password_hash=$1 WHERE id=$2', [passwordHash, user.id]);
-          await c.query('UPDATE sessions SET revoked=true WHERE user_id=$1', [user.id]);
-        }
-        return true;
-      });
-      requireValue(accepted, 'INVALID_CODE', 'The code is invalid, expired, or has too many attempts.');
-      return { accepted: true };
-    });
-  }
   app.post('/v1/auth/refresh', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } }, schema: { body: objectSchema({ refreshToken: { type: 'string', minLength: 43, maxLength: 43 }, operationId: operationSchema }) } }, async req => {
     const b = req.body as any;
     const result = await transaction(db, async c => {
@@ -136,7 +93,7 @@ export async function authRoutes(app: FastifyInstance, db: Db, config: Config) {
     return { accepted: true };
   });
   app.get('/v1/account', { preHandler: auth }, async req => ({ user: req.account }));
-  app.patch('/v1/account/name', { preHandler: [auth, verified], schema: { body: objectSchema({ operationId: operationSchema, name: { type: 'string', minLength: 1, maxLength: 128 } }) } }, async req => {
+  app.patch('/v1/account/name', { preHandler: auth, schema: { body: objectSchema({ operationId: operationSchema, name: { type: 'string', minLength: 1, maxLength: 128 } }) } }, async req => {
     const b = req.body as any; const name = nickname(b.name);
     return operation(db, req.account!.id, b.operationId, 'nickname', digest(JSON.stringify(b), key), async c => {
       await claimNickname(c, name, req.account!.id);

@@ -45,23 +45,39 @@ class OnlineRepository private constructor(private val context: Context) {
         remove(account, cacheKey)
         return response
     }
-    suspend fun enqueue(account: String, endpoint: String, payload: JSONObject) = withContext(Dispatchers.IO) {
+    suspend fun enqueue(account: String, endpoint: String, payload: JSONObject, scheduleWork: Boolean = true) = withContext(Dispatchers.IO) {
         require(payload.has("operationId"))
         queries.enqueue(OnlineDatabase.Pending().apply {
             id = payload.getString("operationId"); this.account = account; this.endpoint = endpoint
             this.payload = payload.toString(); createdAt = System.currentTimeMillis()
         })
-        schedule()
+        if (scheduleWork) schedule()
     }
-    fun schedule() {
+    fun schedule(delayMillis: Long = 0) {
         val work = OneTimeWorkRequestBuilder<OnlineSyncWorker>().setConstraints(Constraints.Builder().setRequiredNetworkType(if (BuildConfig.ONLINE_DEMO) NetworkType.NOT_REQUIRED else NetworkType.CONNECTED).build())
+            .setInitialDelay(delayMillis.coerceAtLeast(0), TimeUnit.MILLISECONDS)
             .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS).build()
         WorkManager.getInstance(context).enqueueUniqueWork("online-sync", ExistingWorkPolicy.APPEND_OR_REPLACE, work)
+    }
+    /** Proofs with a future `_notBefore` stay in preferences until their time comes. */
+    suspend fun importProofs(store: Store) {
+        val account = client.user?.id ?: return
+        var next: Long? = null
+        for (proof in store.proofs(account)) {
+            val remaining = proof.optLong("_notBefore") - System.currentTimeMillis()
+            if (remaining > 0) { next = minOf(next ?: remaining, remaining); continue }
+            val body = JSONObject(proof.toString())
+            val endpoint = body.optString("_endpoint", "/v1/completions")
+            body.remove("_endpoint"); body.remove("_notBefore")
+            enqueue(account, endpoint, body, scheduleWork = false)
+            store.removeProof(proof.getString("operationId"), account)
+        }
+        next?.let { schedule(it) }
     }
     suspend fun outcomes(account: String): List<OnlineDatabase.Pending> = withContext(Dispatchers.IO) { queries.outcomes(account) }
     suspend fun sync(): Boolean = syncLock.withLock {
         withContext(Dispatchers.IO) {
-            val account = client.user?.takeIf { it.verified }?.id ?: return@withContext true
+            val account = client.user?.id ?: return@withContext true
             var more: Boolean
             do {
                 val batch = queries.pending(account)
@@ -73,7 +89,7 @@ class OnlineRepository private constructor(private val context: Context) {
                         if (result.has("xpMilli")) save(account, "last-xp", result)
                         queries.acknowledge(account, pending.id)
                     } catch (error: OnlineException) {
-                        if (error.status == 401 || error.code == "VERIFY_REQUIRED") return@withContext true
+                        if (error.status == 401) throw error
                         if (error.status >= 500 || error.status == 429 || error.status == 408) return@withContext false
                         queries.fail(account, pending.id, error.message)
                     } catch (_: IOException) { return@withContext false }
@@ -93,7 +109,9 @@ class OnlineRepository private constructor(private val context: Context) {
 
 class OnlineSyncWorker(context: Context, parameters: WorkerParameters) : CoroutineWorker(context, parameters) {
     override suspend fun doWork(): Result = try {
-        if (OnlineRepository.get(applicationContext).sync()) Result.success() else Result.retry()
+        val repository = OnlineRepository.get(applicationContext)
+        repository.importProofs(Store(applicationContext))
+        if (repository.sync()) Result.success() else Result.retry()
     } catch (error: Exception) {
         if (error is kotlinx.coroutines.CancellationException) throw error
         Log.e("InsightOnline", "sync_failed type=${error.javaClass.simpleName}")
