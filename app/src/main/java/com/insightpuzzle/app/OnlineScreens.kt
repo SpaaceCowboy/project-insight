@@ -14,7 +14,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -32,7 +31,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -43,6 +44,8 @@ import org.json.JSONObject
 import java.net.URLEncoder
 import java.text.NumberFormat
 import java.util.Locale
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 @Composable
 private fun OnlinePage(m: GameModel, title: String, messages: Boolean = true, content: @Composable ColumnScope.() -> Unit) {
@@ -56,10 +59,9 @@ private fun OnlinePage(m: GameModel, title: String, messages: Boolean = true, co
 }
 
 @Composable
-internal fun OnlineMessages(m: GameModel) {
+internal fun OnlineMessages(m: GameModel, errors: Boolean = true) {
     if (BuildConfig.ONLINE_DEMO) Eyebrow("Local preview · On this device")
-    if (m.online.busy) Label("Working…", 14.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite })
-    m.online.error?.let { Label(it, 14.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite }, color = LocalPalette.current.accent) }
+    if (errors) m.online.error?.let { Label(it, 14.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite }, color = LocalPalette.current.accent) }
     m.online.notice?.let { Label(it, 14.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite }, color = LocalPalette.current.muted) }
 }
 
@@ -67,9 +69,10 @@ internal fun OnlineMessages(m: GameModel) {
 internal fun OnlineField(label: String, value: String, password: Boolean = false, keyboard: KeyboardType = KeyboardType.Text, enabled: Boolean = true, onChange: (String) -> Unit) {
     val p = LocalPalette.current
     var passwordVisible by remember { mutableStateOf(false) }
+    val feedback = LocalFeedback.current
     OutlinedTextField(value, onChange, Modifier.fillMaxWidth().heightIn(min = 56.dp), enabled = enabled, singleLine = true,
         label = { Label(label, 12.sp) }, visualTransformation = if (password && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
-        trailingIcon = if (password) ({ IconButton(onClick = { passwordVisible = !passwordVisible }, enabled = enabled,
+        trailingIcon = if (password) ({ IconButton(onClick = { feedback(Cue.PRESS); passwordVisible = !passwordVisible }, enabled = enabled,
             modifier = Modifier.size(48.dp).semantics { contentDescription = if (passwordVisible) "Hide password" else "Show password" }) {
             Label(if (passwordVisible) "Hide" else "Show", 12.sp)
         } }) else null,
@@ -93,7 +96,7 @@ fun AuthScreen(m: GameModel, destination: Route?) {
         var previewName by rememberSaveable { mutableStateOf("Quiet Cove") }
         OnlinePage(m, "Your Worlds preview") {
             Label("Explore a world of your own", 24.sp, serif = true)
-            Label("These players and worlds are examples. Publishing, play, and XP are saved only on this device. Real accounts use the separate service build.", 14.sp, color = LocalPalette.current.muted)
+            Label("These players and puzzles are examples. Publishing, play, and XP are saved only on this device. Real accounts use the separate service build.", 14.sp, color = LocalPalette.current.muted)
             OnlineField("Username", previewName, enabled = !o.busy) { previewName = it.take(128) }
             Label("Choose your own username. Names are unique, ignoring letter case.", 12.sp, color = LocalPalette.current.muted)
             MenuButton("Enter local preview", primary = true, enabled = !o.busy) { o.login("preview@insight.local", previewName, destination) }
@@ -134,27 +137,6 @@ fun AuthScreen(m: GameModel, destination: Route?) {
     }
 }
 
-/** Cached data remains visible when refreshing fails; a failed load offers a retry. */
-@Composable
-private fun Remote(m: GameModel, path: String, refresh: Int = 0, content: @Composable (JSONObject) -> Unit) {
-    val account = m.online.user?.id ?: return
-    var data by remember(path, account) { mutableStateOf<JSONObject?>(null) }
-    var loading by remember(path, account) { mutableStateOf(true) }
-    var failed by remember(path, account) { mutableStateOf(false) }
-    var retry by remember(path, account) { mutableIntStateOf(0) }
-    LaunchedEffect(path, account, refresh, retry) {
-        loading = true; failed = false
-        try {
-            data = m.online.repository.cached(account, path)
-            data = m.online.repository.fetch(path, account)
-        } catch (error: Exception) { failed = true; m.online.report(error) }
-        finally { loading = false }
-    }
-    if (loading) Label("Loading…", 14.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite })
-    data?.let { content(it) }
-    if (failed && !loading) MenuButton("Try again", enabled = !m.online.busy) { m.online.clearMessages(); retry++ }
-}
-
 private fun number(value: Int) = NumberFormat.getIntegerInstance().format(value)
 
 @Composable
@@ -170,163 +152,139 @@ fun ProfileScreen(m: GameModel, requestedId: String?) {
     val account = m.online.user?.id ?: return
     val id = requestedId ?: account
     val own = id == account
+    val p = LocalPalette.current
+    val scope = rememberCoroutineScope()
     var revision by remember { mutableIntStateOf(0) }
+    var pulling by remember { mutableStateOf(false) }
+    var detail by remember { mutableStateOf<JSONObject?>(null) }
+    var confirmLogout by remember { mutableStateOf(false) }
     var outcomes by remember(account) { mutableStateOf(emptyList<OnlineDatabase.Pending>()) }
+    // The viewer's local date tells the server whether a daily streak is still alive.
+    val path = "/v1/profiles/$id?today=${java.time.LocalDate.now()}"
+    var profile by remember(id, account) { mutableStateOf<JSONObject?>(null) }
+    val puzzles = m.playDiscovery.collection(id)
     LaunchedEffect(account, revision) { outcomes = m.online.repository.outcomes(account) }
     // Opening your own profile syncs quietly, then reloads so new XP shows without any button.
     LaunchedEffect(account, own) { if (own) { m.online.refreshProgress(); revision++ } }
-    OnlinePage(m, if (own) "Your profile" else "Player profile") {
-        Remote(m, "/v1/profiles/$id", revision) { profile ->
-            Label(profile.getString("username"), 24.sp, Modifier.semantics { heading() }, serif = true)
-            OnlineCard {
-                Label("Level ${number(profile.getInt("level"))}", 20.sp, color = LocalPalette.current.accent)
-                val xp = profile.getString("xpMilli").toBigInteger(); val start = profile.getString("levelStartMilli").toBigInteger()
-                if (!profile.isNull("nextLevelMilli")) {
-                    val next = profile.getString("nextLevelMilli").toBigInteger()
-                    val ratio = ((xp - start).toDouble() / (next - start).toDouble()).toFloat().coerceIn(0f, 1f)
-                    LinearProgressIndicator(progress = { ratio }, modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Progress to next level" }, color = LocalPalette.current.accent, trackColor = LocalPalette.current.line)
-                    Label("${NumberFormat.getIntegerInstance().format(xp / java.math.BigInteger.valueOf(1000))} XP · ${NumberFormat.getIntegerInstance().format(next / java.math.BigInteger.valueOf(1000))} for next level", 12.sp, color = LocalPalette.current.muted)
-                } else Label("Level 100 · Yours to keep", 14.sp)
-                Box(Modifier.fillMaxWidth().padding(top = 4.dp).height(1.dp).background(LocalPalette.current.line))
-                Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Stat("Worlds created", number(profile.getInt("worldCount")), Modifier.weight(1f))
-                    Stat("Grids designed", number(profile.getInt("gridCount")), Modifier.weight(1f))
-                    Stat("Grids beaten", number(profile.getInt("beatenCount")), Modifier.weight(1f))
-                }
-            }
-            Label("${number(profile.getInt("campaignCount"))} campaign · ${number(profile.getInt("communityCount"))} community", 12.sp, color = LocalPalette.current.muted)
-            val badges = profile.getJSONArray("badges").strings().toSet()
-            InfoRow("Achievements", "${m.achievements.catalog.count { it.id in badges }} / ${m.achievements.catalog.size}")
-            InfoRow(if (own) "Your worlds" else "Worlds", number(profile.getInt("worldCount")), onClick = { m.push(Route.ProfileWorlds(id)) })
-        }
-        if (own) {
-            if (outcomes.isNotEmpty()) {
-                Label("${outcomes.count { it.state == "pending" }} pending submissions", 12.sp, color = LocalPalette.current.muted)
-                outcomes.filter { it.state == "failed" }.forEach { Label("Submission needs attention: ${it.error}", 12.sp, color = LocalPalette.current.accent) }
-            }
-            MenuButton("Log out", enabled = !m.online.busy) { m.online.logout() }
-        }
-    }
-}
-
-/** The worlds behind the profile's "Worlds" row: yours (with Manage) or a player's published ones. */
-@Composable
-fun ProfileWorldsScreen(m: GameModel, id: String) {
-    val account = m.online.user?.id ?: return
-    val own = id == account
-    var revision by remember { mutableIntStateOf(0) }
-    var editingWorld by remember { mutableStateOf<JSONObject?>(null) }
-    OnlinePage(m, if (own) "Your worlds" else "Published worlds") {
-        WorldListing(m, owner = if (own) null else id, mine = own, revision = revision, onManage = if (own) ({ editingWorld = it }) else null)
-    }
-    editingWorld?.let { world -> WorldSheet(m, world, { editingWorld = null }) { editingWorld = null; revision++ } }
-}
-
-@Composable
-private fun WorldListing(m: GameModel, owner: String? = null, mine: Boolean = false, query: String = "", revision: Int = 0, onManage: ((JSONObject) -> Unit)? = null) {
-    val account = m.online.user?.id ?: return
-    var page by remember(owner, mine, query, revision) { mutableIntStateOf(0) }
-    var items by remember(owner, mine, query, revision) { mutableStateOf(emptyList<JSONObject>()) }
-    var next by remember(owner, mine, query, revision) { mutableStateOf<Int?>(null) }
-    var loading by remember { mutableStateOf(true) }
-    var failed by remember(owner, mine, query, revision) { mutableStateOf(false) }
-    var retry by remember { mutableIntStateOf(0) }
-    LaunchedEffect(account, owner, mine, query, page, revision, retry) {
-        loading = true; failed = false
-        val path = "/v1/worlds?page=$page&mine=$mine&query=${URLEncoder.encode(query, "UTF-8")}" + (owner?.let { "&owner=$it" } ?: "")
+    LaunchedEffect(path, account, revision) {
         try {
-            val cached = m.online.repository.cached(account, path)
-            if (cached != null) items = (if (page == 0) emptyList() else items) + cached.getJSONArray("items").objects()
-            val json = m.online.repository.fetch(path, account)
-            items = ((if (page == 0) emptyList() else items) + json.getJSONArray("items").objects()).distinctBy { it.getString("id") }
-            next = if (json.isNull("nextPage")) null else json.getInt("nextPage")
-        } catch (error: Exception) { failed = true; m.online.report(error) }
-        finally { loading = false }
+            if (profile == null) profile = m.online.repository.cached(account, path)
+            profile = m.online.repository.fetch(path, account); m.online.offline = false
+        } catch (error: Exception) { if (error is kotlinx.coroutines.CancellationException) throw error; m.online.quiet(error) }
+        finally { pulling = false }
     }
-    if (!loading && items.isEmpty()) Label(if (failed) "Worlds could not be loaded. Please try again." else if (mine) "Your first world starts here." else "No worlds found yet.", 14.sp)
-    items.forEach { world ->
-        OnlineCard {
-            Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).clickable(role = Role.Button) { m.push(Route.CommunityWorld(world.getString("id"))) },
-                horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                TileIcon(world.getString("icon")[0], 40.dp, m.finish, Modifier.semantics { contentDescription = "${Art.NAME[world.getString("icon")[0]]} world icon" })
-                Column(Modifier.weight(1f)) {
-                    Label(world.getString("name"), 18.sp, serif = true)
-                    Label("${number(world.getInt("gridCount"))} grids · ${number(world.getInt("popularity"))} plays", 12.sp, color = LocalPalette.current.muted)
-                    if (world.optBoolean("hidden")) Label("Hidden", 12.sp, color = LocalPalette.current.muted)
-                    if (world.optBoolean("moderated")) Label("Unavailable · Contact the test operator", 12.sp, color = LocalPalette.current.muted)
+    LoadDiscovery(m, puzzles, "/v1/grids?owner=$id&sort=number&query=", resetScroll = false)
+    // Everything appears together: the card, the rows and the puzzles, never the card first and the rest a moment later.
+    fun loaded(state: DiscoveryListState) = state.items.isNotEmpty() || (!state.loading && state.settled)
+    val ready = profile != null && loaded(puzzles)
+    fun pull() {
+        pulling = true; m.online.clearMessages(); puzzles.refresh()
+        scope.launch { if (own) m.online.refreshProgress(); revision++ }
+    }
+    fun toggleFollow(current: JSONObject) {
+        val on = !current.optBoolean("following")
+        profile = JSONObject(current.toString()).put("following", on).put("followerCount", current.optInt("followerCount") + if (on) 1 else -1)
+        scope.launch {
+            try {
+                val result = m.online.repository.command("follow:$id", "POST", "/v1/users/$id/follow", JSONObject().put("on", on))
+                profile = JSONObject((profile ?: current).toString()).put("following", result.getBoolean("following")).put("followerCount", result.getInt("followerCount"))
+            } catch (error: Exception) { if (error is kotlinx.coroutines.CancellationException) throw error; profile = current; m.online.quiet(error) }
+        }
+    }
+    Page(if (own) "Your profile" else "Player profile", 560.dp) {
+        // Top-left: a crossed-out signal while the server can't be reached. Top-right: Log out, on your own profile only, confirmed in a tiny popup.
+        Box(Modifier.fillMaxWidth().height(48.dp)) {
+            if (m.online.offline) androidx.compose.foundation.Canvas(Modifier.align(Alignment.CenterStart).padding(start = 14.dp).size(20.dp).semantics { contentDescription = "Offline. Pull down to retry." }) { offlineIcon(p.muted) }
+            if (own) Box(Modifier.align(Alignment.CenterEnd)) {
+                HomeIconButton("Log out", Modifier, { confirmLogout = true }, logoutIcon, Cue.PRESS, enabled = !m.online.busy)
+                if (confirmLogout) {
+                    val shift = with(androidx.compose.ui.platform.LocalDensity.current) { 52.dp.roundToPx() }
+                    androidx.compose.ui.window.Popup(Alignment.CenterEnd, androidx.compose.ui.unit.IntOffset(-shift, 0), { confirmLogout = false }, androidx.compose.ui.window.PopupProperties(focusable = true)) {
+                        val shape = RoundedCornerShape(12.dp)
+                        Box(Modifier.clip(shape).background(p.paper2).border(1.dp, p.line, shape)
+                            .clickable(role = Role.Button) { m.feedback(Cue.DELETE); confirmLogout = false; m.online.logout() }.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                            Label("Log out", 13.sp, weight = FontWeight.SemiBold)
+                        }
+                    }
                 }
             }
-            if (onManage != null && !world.optBoolean("moderated")) MenuButton("Manage world", enabled = !m.online.busy) { onManage(world) }
         }
-    }
-    if (loading) Label("Loading worlds…", 14.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite })
-    if (!loading) {
-        next?.let { following -> MenuButton("More worlds") { page = following } }
-        if (failed) MenuButton("Try again", enabled = !m.online.busy) { m.online.clearMessages(); retry++ }
-    }
-}
-
-@Composable
-internal fun IconPicker(m: GameModel, icon: String, onSelect: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-      Rules.TYPES.chunked(3).forEach { group ->
-       Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-        group.forEach { type ->
-            Box(Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).border(if (icon == type.toString()) 3.dp else 2.dp,
-                if (icon == type.toString()) LocalPalette.current.accent else LocalPalette.current.line, RoundedCornerShape(12.dp))
-                .clickable(role = Role.RadioButton, enabled = !m.online.busy) { onSelect(type.toString()) }
-                .semantics { contentDescription = "${Art.NAME[type]} world icon${if (icon == type.toString()) ", selected" else ""}" }, contentAlignment = Alignment.Center) {
-                TileIcon(type, 32.dp, m.finish)
+        Refreshable(pulling, ::pull, Modifier.weight(1f).fillMaxWidth()) {
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OnlineMessages(m, errors = false)
+                androidx.compose.animation.AnimatedVisibility(ready, enter = androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(180))) {
+                    val data = profile ?: return@AnimatedVisibility
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        ProfileCard(data)
+                        if (!own) MenuButton(if (data.optBoolean("following")) "Following" else "Follow", primary = !data.optBoolean("following"), cue = Cue.CHECK) { toggleFollow(data) }
+                        val badges = data.getJSONArray("badges").strings().toSet()
+                        InfoRow("Achievements", "${m.achievements.catalog.count { it.id in badges }} / ${m.achievements.catalog.size}", arrow = false,
+                            onClick = if (own) ({ m.push(Route.Achievements) }) else null)
+                        // Your own lists each open their own screen, like Achievements.
+                        if (own) {
+                            InfoRow("Bookmarked", number(data.optInt("bookmarkCount")), arrow = false, onClick = { m.push(Route.Bookmarks) })
+                            InfoRow("Following", number(data.optInt("followingCount")), arrow = false, onClick = { m.push(Route.Players("following")) })
+                            InfoRow("Followers", number(data.optInt("followerCount")), arrow = false, onClick = { m.push(Route.Players("followers")) })
+                        }
+                        // The player's own puzzles, in the same four-column cards as Levels and Worlds.
+                        PuzzleCardList(m, puzzles, "No puzzles yet.") { detail = it }
+                        if (own && outcomes.isNotEmpty()) {
+                            Label("${outcomes.count { it.state == "pending" }} pending submissions", 12.sp, color = p.muted)
+                            outcomes.filter { it.state == "failed" }.forEach { Label("Submission needs attention: ${it.error}", 12.sp, color = p.accent) }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
             }
         }
-       }
-      }
     }
+    detail?.let { grid -> PuzzleDetails(m, grid) { detail = null } }
 }
 
+/** Username and level, the level bar, then created / solved and followers / daily streak. */
 @Composable
-private fun WorldSheet(m: GameModel, world: JSONObject, dismiss: () -> Unit, saved: () -> Unit) {
-    val filter = NameFilter.get(LocalContext.current)
-    var name by remember { mutableStateOf(world.getString("name")) }
-    var icon by remember { mutableStateOf(world.getString("icon")) }
-    val problem = if (name.isBlank()) null else filter.problem(name)
-    var hidden by remember { mutableStateOf(world.optBoolean("hidden")) }
-    Overlay("Manage world", { if (!m.online.busy) dismiss() }) {
-        Column(Modifier.fillMaxWidth().imePadding().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Label("Manage world", 24.sp, serif = true)
-            OnlineMessages(m)
-            OnlineField("World name", name, enabled = !m.online.busy) { name = it.take(64) }
-            Label(problem ?: "1–32 characters. Respectful names only.", 12.sp, color = if (problem != null) LocalPalette.current.accent else LocalPalette.current.muted)
-            IconPicker(m, icon) { icon = it }
-            ToggleRow("Hide world", hidden) { if (!m.online.busy) hidden = it }
-            MenuButton("Save world", primary = true, enabled = !m.online.busy && name.isNotBlank() && problem == null) { m.online.task {
-                val body = JSONObject().put("name", filter.normalize(name)).put("icon", icon)
-                m.online.repository.command("world:${world.getString("id")}", "PATCH", "/v1/worlds/${world.getString("id")}", body.put("hidden", hidden))
-                saved()
-            } }
-            MenuButton("Cancel", enabled = !m.online.busy, onClick = dismiss)
+private fun ProfileCard(profile: JSONObject) {
+    val p = LocalPalette.current
+    OnlineCard {
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Label(profile.getString("username"), 24.sp, Modifier.semantics { heading() }, serif = true, align = TextAlign.Center)
+            Label("Level ${number(profile.getInt("level"))}", 16.sp, color = p.accent)
+        }
+        val xp = profile.getString("xpMilli").toBigInteger(); val start = profile.getString("levelStartMilli").toBigInteger()
+        if (!profile.isNull("nextLevelMilli")) {
+            val next = profile.getString("nextLevelMilli").toBigInteger()
+            val ratio = ((xp - start).toDouble() / (next - start).toDouble()).toFloat().coerceIn(0f, 1f)
+            ProgressBar(ratio, Modifier.padding(top = 6.dp))
+            Label("${NumberFormat.getIntegerInstance().format(xp / java.math.BigInteger.valueOf(1000))} XP · ${NumberFormat.getIntegerInstance().format(next / java.math.BigInteger.valueOf(1000))} for next level", 12.sp, Modifier.fillMaxWidth(), color = p.muted, align = TextAlign.Center)
+        } else Label("Level 100 · Yours to keep", 14.sp, Modifier.fillMaxWidth(), align = TextAlign.Center)
+        Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Stat("Puzzles created", number(profile.getInt("gridCount")), Modifier.weight(1f))
+            Stat("Puzzles solved", number(profile.getInt("beatenCount")), Modifier.weight(1f))
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Stat("Followers", number(profile.optInt("followerCount")), Modifier.weight(1f))
+            Stat("Daily streak", number(profile.optInt("streak")), Modifier.weight(1f))
         }
     }
 }
 
+/** No connection: signal arcs with a line through them. */
+internal fun androidx.compose.ui.graphics.drawscope.DrawScope.offlineIcon(c: Color) {
+    val u = size.width / 24f
+    val line = androidx.compose.ui.graphics.drawscope.Stroke(1.8f * u, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    for (r in listOf(9f, 6f, 3f)) drawArc(c, 225f, 90f, false, androidx.compose.ui.geometry.Offset((12 - r) * u, (17 - r) * u), androidx.compose.ui.geometry.Size(2 * r * u, 2 * r * u), style = line)
+    drawCircle(c, 1.4f * u, androidx.compose.ui.geometry.Offset(12 * u, 17 * u))
+    drawLine(c, androidx.compose.ui.geometry.Offset(4 * u, 4 * u), androidx.compose.ui.geometry.Offset(20 * u, 20 * u), 1.8f * u, androidx.compose.ui.graphics.StrokeCap.Round)
+}
+
+/** Level progress: one rounded track, filled from the left to exactly [ratio]. No gap and no end marker. */
 @Composable
-internal fun GridSheet(m: GameModel, grid: JSONObject, dismiss: () -> Unit, saved: () -> Unit) {
-    val filter = NameFilter.get(LocalContext.current)
-    var name by remember { mutableStateOf(grid.getString("name")) }
-    val problem = if (name.isBlank()) null else filter.problem(name)
-    var hidden by remember { mutableStateOf(grid.optBoolean("hidden")) }
-    Overlay("Manage grid", { if (!m.online.busy) dismiss() }) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Label("Manage grid", 24.sp, serif = true)
-            OnlineMessages(m)
-            OnlineField("Level name", name, enabled = !m.online.busy) { name = it.take(64) }
-            Label(problem ?: "1–32 characters. Respectful names only.", 12.sp, color = if (problem != null) LocalPalette.current.accent else LocalPalette.current.muted)
-            ToggleRow("Hide grid", hidden) { if (!m.online.busy) hidden = it }
-            Label("Published arrangements stay fixed. Hiding keeps the grid's place in its world.", 12.sp, color = LocalPalette.current.muted)
-            MenuButton("Save", primary = true, enabled = !m.online.busy && name.isNotBlank() && problem == null) { m.online.task {
-                m.online.repository.command("grid:${grid.getString("id")}", "PATCH", "/v1/grids/${grid.getString("id")}", JSONObject().put("name", filter.normalize(name)).put("hidden", hidden)); saved()
-            } }
-            MenuButton("Cancel", enabled = !m.online.busy, onClick = dismiss)
-        }
+private fun ProgressBar(ratio: Float, modifier: Modifier = Modifier) {
+    val p = LocalPalette.current
+    val shape = RoundedCornerShape(6.dp)
+    Box(modifier.fillMaxWidth().height(12.dp).clip(shape).background(p.line).semantics {
+        contentDescription = "Progress to next level"; stateDescription = "${(ratio * 100).roundToInt()} percent"
+    }) {
+        if (ratio > 0f) Box(Modifier.fillMaxWidth(ratio).fillMaxHeight().clip(shape).background(p.accent))
     }
 }

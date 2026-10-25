@@ -32,7 +32,7 @@ class DemoBackend(context: Context) {
         val worlds = JSONArray(); val grids = JSONArray()
         listOf("Silver Grove", "Warm Fern").forEachIndexed { index, name ->
             val author = id(); val world = id()
-            users.put(JSONObject().put("id", author).put("username", name).put("verified", true).put("done", JSONArray((1..(10 + index * 15)).toList())).put("badges", JSONArray(listOf("first", "first-clean", "flow", "steady"))).put("sampleXp", 850000 + index * 500000))
+            users.put(JSONObject().put("id", author).put("username", name).put("verified", true).put("done", JSONArray((1..(10 + index * 15)).toList())).put("badges", JSONArray(listOf("first"))).put("sampleXp", 850000 + index * 500000))
             worlds.put(JSONObject().put("id", world).put("ownerId", author).put("name", if (index == 0) "Silver Tide" else "Warm Grove").put("icon", if (index == 0) "B" else "G").put("hidden", false).put("moderated", false).put("samplePopularity", 24 - index * 7))
             listOf(0, 3, 8).forEachIndexed { n, level ->
                 val spec = levels[level + index]
@@ -72,13 +72,19 @@ class DemoBackend(context: Context) {
         fun list(key: String) = root.getJSONArray(key).objects()
         var upgraded = false
         if (!root.has("attemptOutcomes")) { root.put("attemptOutcomes", JSONArray()); upgraded = true }
-        list("worlds").forEach { w ->
-            val unnumbered = list("grids").filter { it.optString("worldId") == w.getString("id") && !it.isNull("publishedAt") && !it.has("levelNumber") }
-            val numbered = list("grids").count { it.optString("worldId") == w.getString("id") && !it.isNull("publishedAt") && it.has("levelNumber") }
-            unnumbered.forEachIndexed { i, g -> g.put("levelNumber", numbered + i + 1); upgraded = true }
-        }
-        list("worlds").forEachIndexed { index, world ->
-            if (!world.has("createdAt")) { world.put("createdAt", Instant.now().minusSeconds(index * 8 * 86400L).toString()); upgraded = true }
+        // Likes, bookmarks, follows and the days the player solved something (daily streak).
+        for (key in listOf("likes", "bookmarks", "follows", "activity")) if (!root.has(key)) { root.put(key, JSONArray()); upgraded = true }
+        // Flatten historical preview collections once, preserving puzzle identities and completions.
+        if (!root.optBoolean("flatPuzzles")) {
+            list("grids").groupBy { it.getString("ownerId") }.values.forEach { owned ->
+                owned.filter { !it.isNull("publishedAt") }.forEachIndexed { index, g ->
+                    val world = list("worlds").firstOrNull { it.getString("id") == g.optString("worldId") }
+                    g.put("levelNumber", index + 1)
+                    if (world?.optBoolean("hidden") == true) g.put("hidden", true)
+                    if (world?.optBoolean("moderated") == true) g.put("moderated", true)
+                }
+            }
+            root.put("flatPuzzles", true); upgraded = true
         }
         fun entity(key: String, value: String) = list(key).firstOrNull { it.getString("id") == value } ?: failure("NOT_FOUND", "Preview item unavailable.", 404)
         fun own(key: String, value: String): JSONObject = entity(key, value).also { if (it.optString("ownerId") != player || it.optBoolean("moderated")) failure("NOT_FOUND", "Item unavailable.", 404) }
@@ -91,19 +97,17 @@ class DemoBackend(context: Context) {
             person(player).put("username", name)
         }
         fun publicUser(value: String) = person(value).let { JSONObject().put("id", value).put("username", it.getString("username")).put("verified", true) }
-        fun visible(g: JSONObject): Boolean = !g.isNull("publishedAt") && !g.optBoolean("hidden") && !g.optBoolean("moderated") && entity("worlds", g.getString("worldId")).let { !it.optBoolean("hidden") && !it.optBoolean("moderated") }
+        fun visible(g: JSONObject): Boolean = !g.isNull("publishedAt") && !g.optBoolean("hidden") && !g.optBoolean("moderated")
         fun grid(g: JSONObject): JSONObject = JSONObject(g.toString()).apply {
-            remove("hash"); put("username", person(g.getString("ownerId")).getString("username"))
+            remove("hash"); remove("worldId"); remove("name")
+            put("username", person(g.getString("ownerId")).getString("username"))
             put("completed", list("gridCompletions").any { it.getString("userId") == player && it.getString("gridId") == g.getString("id") })
             put("beatenCount", list("gridCompletions").filter { it.getString("gridId") == g.getString("id") && it.getString("userId") != g.getString("ownerId") }.map { it.getString("userId") }.distinct().size)
             put("failedAttemptCount", list("attemptOutcomes").count { it.getString("gridId") == g.getString("id") && it.getString("outcome") == "failed" && it.getString("userId") != g.getString("ownerId") })
-            put("worldName", if (g.isNull("worldId")) JSONObject.NULL else entity("worlds", g.getString("worldId")).getString("name"))
-        }
-        fun world(w: JSONObject): JSONObject = JSONObject(w.toString()).apply {
-            val gs = list("grids").filter { it.optString("worldId") == w.getString("id") && !it.isNull("publishedAt") }
-            val shown = gs.filter { visible(it) }.map { it.getString("id") }.toSet()
-            put("username", person(w.getString("ownerId")).getString("username")); put("usedSlots", gs.size); put("gridCount", gs.count { !it.optBoolean("hidden") && !it.optBoolean("moderated") })
-            put("popularity", w.optInt("samplePopularity") + list("plays").count { it.getString("gridId") in shown })
+            put("popularity", list("plays").count { it.getString("gridId") == g.getString("id") })
+            put("likeCount", list("likes").count { it.getString("gridId") == g.getString("id") })
+            put("liked", list("likes").any { it.getString("gridId") == g.getString("id") && it.getString("userId") == player })
+            put("bookmarked", list("bookmarks").any { it.getString("gridId") == g.getString("id") && it.getString("userId") == player })
         }
         val day = LocalDate.now(ZoneOffset.UTC).toString()
         fun award(owner: String, reason: String, source: String, amount: Long, cap: Long = Long.MAX_VALUE): Long {
@@ -120,25 +124,40 @@ class DemoBackend(context: Context) {
             var level = 1; while (level < 100 && total >= threshold(level + 1)) level++
             return JSONObject().put("level", level).put("xpMilli", total.toString()).put("levelStartMilli", threshold(level).toString()).put("nextLevelMilli", if (level == 100) JSONObject.NULL else threshold(level + 1).toString())
         }
-        fun publishInto(g: JSONObject, w: JSONObject): Long {
-            val used = list("grids").count { it.optString("worldId") == w.getString("id") && !it.isNull("publishedAt") }
-            if (used >= 20) failure("WORLD_FULL", "This world already contains 20 levels. Create another world.", 409)
-            g.put("worldId", w.getString("id")).put("publishedAt", "${day}T00:00:00Z").put("levelNumber", used + 1)
-            if (g.getString("name").isEmpty()) g.put("name", "Level ${used + 1}")
-            if (g.getString("hash") in root.getJSONArray("claims").strings()) return 0L
-            root.getJSONArray("claims").put(g.getString("hash"))
-            return award(player, "create", g.getString("hash"), 25000, 50000)
+        fun days(who: String) = list("activity").filter { it.getString("userId") == who }.map { LocalDate.parse(it.getString("day")) }.toSet()
+        fun stats(who: String): OnlineStats {
+            val solved = list("gridCompletions").filter { it.getString("userId") == who }.map { it.getString("gridId") }.distinct()
+                .count { g -> list("grids").any { it.getString("id") == g && it.getString("ownerId") != who } }
+            val designed = list("grids").count { it.getString("ownerId") == who && !it.isNull("publishedAt") }
+            val sorted = days(who).sorted(); var best = 0; var run = 0
+            sorted.forEachIndexed { i, d -> run = if (i > 0 && sorted[i - 1].plusDays(1) == d) run + 1 else 1; best = maxOf(best, run) }
+            return OnlineStats(solved, designed, best)
         }
+        fun streak(who: String, today: LocalDate): Int {
+            val set = days(who); var d = if (today in set) today else today.minusDays(1); var run = 0
+            while (d in set) { run++; d = d.minusDays(1) }
+            return run
+        }
+        fun awardSocial(who: String) {
+            val s = stats(who)
+            val earned = Achievements(levels).catalog.filter { it.metric != Metric.CAMPAIGN && Achievements(levels).progress(it, emptySet(), s) >= it.goal }.map { it.id }
+            person(who).put("badges", JSONArray((person(who).getJSONArray("badges").strings() + earned).distinct()))
+        }
+        val clientToday = uri.getQueryParameter("today")?.let { runCatching { LocalDate.parse(it) }.getOrNull() } ?: LocalDate.now(ZoneOffset.UTC)
         fun profile(who: String): JSONObject {
-                val p = person(who); val ws = list("worlds").filter { it.getString("ownerId") == who && !it.optBoolean("hidden") }
+                val p = person(who)
                 val gs = list("grids").filter { it.getString("ownerId") == who && visible(it) }
                 val done = p.getJSONArray("done").let { a -> List(a.length()) { a.getInt(it) } }
                 val campaignHashes = done.map { hash(levels[it - 1].start, levels[it - 1].target) }.toSet()
                 val community = list("gridCompletions").filter { it.getString("userId") == who }.map { entity("grids", it.getString("gridId")) }.filter { it.getString("ownerId") != who && it.getString("hash") !in campaignHashes }.distinctBy { it.getString("hash") }
-                return xp(who).put("id", who).put("username", p.getString("username")).put("worldCount", ws.count { w -> gs.any { it.getString("worldId") == w.getString("id") } })
+                return xp(who).put("id", who).put("username", p.getString("username"))
                     .put("gridCount", gs.size).put("campaignCount", done.size).put("communityCount", community.size).put("beatenCount", done.size + community.size).put("badges", p.getJSONArray("badges"))
+                    .put("followerCount", list("follows").count { it.getString("followee") == who }).put("following", list("follows").any { it.getString("followee") == who && it.getString("follower") == player })
+                    .put("streak", streak(who, clientToday)).put("followingCount", list("follows").count { it.getString("follower") == who })
+                    .put("bookmarkCount", if (who != player) 0 else list("bookmarks").count { b -> b.getString("userId") == who && list("grids").any { it.getString("id") == b.getString("gridId") && visible(it) } })
         }
         fun progress(): JSONObject = xp(player).put("done", person(player).getJSONArray("done")).put("badges", person(player).getJSONArray("badges"))
+            .put("onlineSolved", stats(player).onlineSolved).put("designedCount", stats(player).designedCount).put("bestStreak", stats(player).bestStreak)
             .put("communityDone", JSONArray(list("gridCompletions").filter { it.getString("userId") == player }.map { it.getString("gridId") }))
         fun qualify(g: JSONObject) {
             if (g.getString("ownerId") == player || list("plays").any { it.getString("gridId") == g.getString("id") && it.getString("userId") == player }) return
@@ -158,7 +177,16 @@ class DemoBackend(context: Context) {
             root.getJSONArray("attemptOutcomes").put(JSONObject().put("userId", player).put("attemptId", attempt).put("gridId", g.getString("id")).put("sessionId", sessionId).put("outcome", result).put("reason", body.optString("reason")))
             return true
         }
-        val public = route == "/v1/capabilities" || route.startsWith("/v1/auth/")
+        fun since(period: String?): Instant? {
+            val today = LocalDate.now(ZoneOffset.UTC)
+            return when (period) {
+                "today" -> today; "week" -> today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)); "month" -> today.withDayOfMonth(1); "year" -> today.withDayOfYear(1); else -> null
+            }?.atStartOfDay(ZoneOffset.UTC)?.toInstant()
+        }
+        fun creator(who: String, likedSince: Instant?): JSONObject = profile(who).put("likeCount", list("likes").count { l ->
+            list("grids").any { it.getString("id") == l.getString("gridId") && it.getString("ownerId") == who && visible(it) } && (likedSince == null || !Instant.parse(l.getString("at")).isBefore(likedSince))
+        })
+        val public = route == "/v1/capabilities" || route.startsWith("/v1/auth/") || route == "/v1/feedback"
         if (!public && access == null) failure("AUTH_REQUIRED", "Enter the local preview first.", 401)
         val operation = body.optString("operationId")
         val operationKey = "$player:$operation"
@@ -189,52 +217,84 @@ class DemoBackend(context: Context) {
                 val query = uri.getQueryParameter("query").orEmpty()
                 val page = uri.getQueryParameter("page")?.toIntOrNull() ?: 0
                 val sort = uri.getQueryParameter("sort") ?: "level"
-                val rows = list("users").map { profile(it.getString("id")) }.filter { it.getInt("gridCount") > 0 && it.getString("username").contains(query, ignoreCase = true) }
+                val since = since(uri.getQueryParameter("period"))
+                val rows = list("users").map { creator(it.getString("id"), since) }.filter { it.getInt("gridCount") > 0 && it.getString("username").contains(query, ignoreCase = true) }
                     .sortedWith(compareByDescending<JSONObject> {
-                        when (sort) { "designed" -> it.getInt("gridCount").toBigInteger(); "played" -> it.getInt("beatenCount").toBigInteger(); else -> it.getString("xpMilli").toBigInteger() }
+                        when (sort) { "designed" -> it.getInt("gridCount").toBigInteger(); "played" -> it.getInt("beatenCount").toBigInteger(); "liked" -> it.getInt("likeCount").toBigInteger(); else -> it.getString("xpMilli").toBigInteger() }
                     }.thenByDescending { it.getString("xpMilli").toBigInteger() }.thenBy { it.getString("id") })
                 JSONObject().put("items", JSONArray(rows.drop(page * 20).take(20))).put("nextPage", if ((page + 1) * 20 < rows.size) page + 1 else JSONObject.NULL)
             }
-            route == "/v1/worlds" && method == "GET" -> {
-                val mine = uri.getQueryParameter("mine") == "true"; val owner = uri.getQueryParameter("owner"); val query = uri.getQueryParameter("query").orEmpty(); val page = uri.getQueryParameter("page")?.toIntOrNull() ?: 0
-                val today = LocalDate.now(ZoneOffset.UTC)
-                val since = when (uri.getQueryParameter("period")) {
-                    "today" -> today; "week" -> today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)); "month" -> today.withDayOfMonth(1); "year" -> today.withDayOfYear(1); else -> null
-                }?.atStartOfDay(ZoneOffset.UTC)?.toInstant()
-                val comparator = if (uri.getQueryParameter("sort") == "newest") compareByDescending<JSONObject> { Instant.parse(it.getString("createdAt")) }.thenBy { it.getString("id") }
-                    else compareByDescending<JSONObject> { it.getInt("popularity") }.thenBy { it.getString("id") }
-                val ws = list("worlds").filter { w -> (if (mine) w.getString("ownerId") == player else !w.optBoolean("hidden") && !w.optBoolean("moderated") && list("grids").any { it.optString("worldId") == w.getString("id") && visible(it) }) &&
-                    (owner == null || w.getString("ownerId") == owner) && w.getString("name").contains(query, ignoreCase = true) && (since == null || !Instant.parse(w.getString("createdAt")).isBefore(since))
-                }.map { world(it) }.sortedWith(comparator)
-                JSONObject().put("items", JSONArray(ws.drop(page * 20).take(20))).put("nextPage", if ((page + 1) * 20 < ws.size) page + 1 else JSONObject.NULL)
+            route == "/v1/following" || route == "/v1/followers" -> {
+                val mine = route == "/v1/following"
+                val rows = list("follows").filter { it.getString(if (mine) "follower" else "followee") == player }.map { creator(it.getString(if (mine) "followee" else "follower"), null) }.sortedByDescending { it.getString("xpMilli").toBigInteger() }
+                val page = uri.getQueryParameter("page")?.toIntOrNull() ?: 0
+                JSONObject().put("items", JSONArray(rows.drop(page * 20).take(20))).put("nextPage", if ((page + 1) * 20 < rows.size) page + 1 else JSONObject.NULL)
             }
-            route == "/v1/worlds" && method == "POST" -> JSONObject().put("id", id()).put("ownerId", player).put("name", cleanName(body.getString("name"))).put("icon", body.getString("icon")).put("hidden", false).put("moderated", false).put("createdAt", Instant.now().toString()).also { root.getJSONArray("worlds").put(it) }.let { world(it) }
-            parts.size == 3 && parts[1] == "worlds" && method == "PATCH" -> { own("worlds", parts[2]).put("name", cleanName(body.getString("name"))).put("icon", body.getString("icon")).put("hidden", body.getBoolean("hidden")); JSONObject().put("accepted", true) }
-            parts.size == 4 && parts[1] == "worlds" && parts[3] == "grids" -> {
-                val w = entity("worlds", parts[2]); val gs = list("grids").filter { it.optString("worldId") == parts[2] && !it.isNull("publishedAt") && (visible(it) || it.getString("ownerId") == player) }.sortedBy { it.optInt("levelNumber") }
-                JSONObject().put("world", world(w)).put("items", JSONArray(gs.map { grid(it) }))
+            // The preview keeps feedback on the device; the real server emails it.
+            route == "/v1/feedback" && method == "POST" -> {
+                if (body.optString("text").isBlank()) failure("INVALID_REQUEST", "Write something first.", 400)
+                if (!root.has("feedback")) root.put("feedback", JSONArray())
+                root.getJSONArray("feedback").put(JSONObject().put("kind", body.optString("kind")).put("text", body.optString("text")).put("at", Instant.now().toString()))
+                JSONObject().put("accepted", true)
             }
-            route == "/v1/grids/drafts" && method == "GET" -> JSONObject().put("items", JSONArray(list("grids").filter { it.getString("ownerId") == player && it.isNull("publishedAt") }.map { grid(it) }))
-            route == "/v1/grids/drafts" && method == "POST" -> {
+            parts.size == 4 && parts[1] == "users" && parts[3] == "follow" && method == "POST" -> {
+                val who = parts[2]; person(who)
+                if (who == player) failure("SELF_FOLLOW", "You cannot follow yourself.")
+                val follows = root.getJSONArray("follows")
+                val existing = (0 until follows.length()).firstOrNull { follows.getJSONObject(it).getString("follower") == player && follows.getJSONObject(it).getString("followee") == who }
+                if (body.getBoolean("on") && existing == null) follows.put(JSONObject().put("follower", player).put("followee", who).put("at", Instant.now().toString()))
+                if (!body.getBoolean("on") && existing != null) follows.remove(existing)
+                JSONObject().put("following", body.getBoolean("on")).put("followerCount", list("follows").count { it.getString("followee") == who })
+            }
+            parts.size == 4 && parts[1] == "grids" && (parts[3] == "like" || parts[3] == "bookmark") && method == "POST" -> {
+                val g = entity("grids", parts[2]); if (!visible(g)) failure("NOT_FOUND", "Grid unavailable.", 404)
+                val like = parts[3] == "like"
+                if (like && g.getString("ownerId") == player) failure("OWN_PUZZLE", "You cannot like your own puzzle.")
+                val rows = root.getJSONArray(if (like) "likes" else "bookmarks")
+                val existing = (0 until rows.length()).firstOrNull { rows.getJSONObject(it).getString("userId") == player && rows.getJSONObject(it).getString("gridId") == g.getString("id") }
+                if (body.getBoolean("on") && existing == null) rows.put(JSONObject().put("userId", player).put("gridId", g.getString("id")).put("at", Instant.now().toString()))
+                if (!body.getBoolean("on") && existing != null) rows.remove(existing)
+                if (like) JSONObject().put("liked", body.getBoolean("on")).put("likeCount", list("likes").count { it.getString("gridId") == g.getString("id") })
+                else JSONObject().put("bookmarked", body.getBoolean("on"))
+            }
+            route == "/v1/grids" && method == "GET" -> {
+                val owner = uri.getQueryParameter("owner")
+                val query = uri.getQueryParameter("query").orEmpty().trim()
+                val page = (uri.getQueryParameter("page")?.toIntOrNull() ?: 0).coerceAtLeast(0)
+                val since = since(uri.getQueryParameter("period"))
+                val bookmarked = uri.getQueryParameter("bookmarked") == "true"
+                fun bookmarkedAt(g: JSONObject) = list("bookmarks").firstOrNull { it.getString("userId") == player && it.getString("gridId") == g.getString("id") }?.getString("at")
+                val comparator = if (bookmarked) compareByDescending<JSONObject> { bookmarkedAt(it) }.thenBy { it.getString("id") } else when (uri.getQueryParameter("sort")) {
+                    "liked" -> compareByDescending<JSONObject> { it.getInt("likeCount") }.thenBy { it.getString("id") }
+                    "number" -> compareBy<JSONObject> { it.getInt("levelNumber") }.thenBy { it.getString("id") }
+                    "newest" -> compareByDescending<JSONObject> { Instant.parse(it.getString("publishedAt")) }.thenBy { it.getString("id") }
+                    else -> compareByDescending<JSONObject> { it.getInt("popularity") }.thenByDescending { it.getString("publishedAt") }.thenBy { it.getString("id") }
+                }
+                val rows = list("grids").filter { g -> !g.isNull("publishedAt") &&
+                    (visible(g) || owner == player && g.getString("ownerId") == player) &&
+                    (owner == null || g.getString("ownerId") == owner) &&
+                    (query.isEmpty() || if (query.all { it.isDigit() }) g.getInt("levelNumber") == query.toIntOrNull() else person(g.getString("ownerId")).getString("username").contains(query, true)) &&
+                    (since == null || !Instant.parse(g.getString("publishedAt")).isBefore(since)) &&
+                    (!bookmarked || bookmarkedAt(g) != null)
+                }.map { grid(it) }.sortedWith(comparator)
+                JSONObject().put("items", JSONArray(rows.drop(page * 20).take(20))).put("nextPage", if ((page + 1) * 20 < rows.size) page + 1 else JSONObject.NULL)
+            }
+            route == "/v1/grids" && method == "POST" -> {
                 val start = body.board("start"); val target = body.board("target"); checked(start, target, body.getJSONArray("path"))
-                val g = JSONObject().put("id", id()).put("ownerId", player).put("worldId", JSONObject.NULL).put("levelNumber", JSONObject.NULL).put("name", cleanName(body.getString("name"))).put("code", UUID.randomUUID().toString().replace("-", "").take(16).uppercase())
-                    .put("start", JSONArray(start)).put("target", JSONArray(target)).put("hash", hash(start, target)).put("publishedAt", JSONObject.NULL).put("hidden", false).put("moderated", false)
-                root.getJSONArray("grids").put(g); grid(g)
+                val number = (list("grids").filter { it.getString("ownerId") == player && !it.isNull("publishedAt") }.maxOfOrNull { it.getInt("levelNumber") } ?: 0) + 1
+                val g = JSONObject().put("id", id()).put("ownerId", player).put("levelNumber", number)
+                    .put("code", UUID.randomUUID().toString().replace("-", "").take(16).uppercase(Locale.ROOT))
+                    .put("start", JSONArray(start)).put("target", JSONArray(target)).put("hash", hash(start, target))
+                    .put("publishedAt", Instant.now().toString()).put("hidden", false).put("moderated", false)
+                var reward = 0L
+                if (g.getString("hash") !in root.getJSONArray("claims").strings()) {
+                    root.getJSONArray("claims").put(g.getString("hash")); reward = award(player, "create", g.getString("hash"), 25000, 50000)
+                }
+                root.getJSONArray("grids").put(g)
+                awardSocial(player)
+                JSONObject().put("id", g.getString("id")).put("code", g.getString("code")).put("levelNumber", number).put("awardedMilli", reward.toString())
             }
-            parts.size == 4 && parts[1] == "grids" && parts[3] == "publish" -> {
-                val g = own("grids", parts[2]); val w = own("worlds", body.getString("worldId"))
-                val reward = if (g.isNull("publishedAt")) publishInto(g, w) else 0L
-                JSONObject().put("id", g.getString("id")).put("code", g.getString("code")).put("levelNumber", g.getInt("levelNumber")).put("awardedMilli", reward.toString())
-            }
-            parts.size == 4 && parts[1] == "worlds" && parts[3] == "levels" && method == "POST" -> {
-                val w = own("worlds", parts[2]); val start = body.board("start"); val target = body.board("target"); checked(start, target, body.getJSONArray("path"))
-                val label = body.optString("name"); val title = if (label.isBlank()) "" else cleanName(label)
-                val g = JSONObject().put("id", id()).put("ownerId", player).put("worldId", JSONObject.NULL).put("levelNumber", JSONObject.NULL).put("name", title).put("code", UUID.randomUUID().toString().replace("-", "").take(16).uppercase())
-                    .put("start", JSONArray(start)).put("target", JSONArray(target)).put("hash", hash(start, target)).put("publishedAt", JSONObject.NULL).put("hidden", false).put("moderated", false)
-                val reward = publishInto(g, w); root.getJSONArray("grids").put(g)
-                JSONObject().put("id", g.getString("id")).put("code", g.getString("code")).put("name", g.getString("name")).put("levelNumber", g.getInt("levelNumber")).put("awardedMilli", reward.toString())
-            }
-            parts.size == 3 && parts[1] == "grids" && method == "PATCH" -> { own("grids", parts[2]).put("name", cleanName(body.getString("name"))).put("hidden", body.getBoolean("hidden")); JSONObject().put("accepted", true) }
+            parts.size == 3 && parts[1] == "grids" && method == "PATCH" -> { own("grids", parts[2]).put("hidden", body.getBoolean("hidden")); JSONObject().put("accepted", true) }
             parts.size == 4 && parts[1] == "grids" && parts[2] == "code" -> JSONObject().put("grid", list("grids").firstOrNull { it.getString("code") == parts[3] && visible(it) }?.let { grid(it) } ?: failure("NOT_FOUND", "Preview grid not found.", 404))
             route == "/v1/casual/sessions" -> {
                 if (!root.has("casualCycle")) {
@@ -278,6 +338,11 @@ class DemoBackend(context: Context) {
                 val level = if (community) null else levels[body.getInt("levelId") - 1]
                 val start = g?.board("start") ?: level!!.start; val target = g?.board("target") ?: level!!.target
                 checked(start, target, body.getJSONArray("path")); val hash = hash(start, target)
+                // Any solve keeps the daily streak, dated by the player's calendar (within a day of UTC).
+                val solvedOn = body.optString("day").let { runCatching { LocalDate.parse(it) }.getOrNull() }
+                    ?.takeIf { kotlin.math.abs(it.toEpochDay() - LocalDate.now(ZoneOffset.UTC).toEpochDay()) <= 1 } ?: LocalDate.now(ZoneOffset.UTC)
+                if (list("activity").none { it.getString("userId") == player && it.getString("day") == solvedOn.toString() })
+                    root.getJSONArray("activity").put(JSONObject().put("userId", player).put("day", solvedOn.toString()))
                 val freshAttempt = g == null || outcome(g, body.getString("sessionId"), "solved")
                 if (g != null) {
                     qualify(g)
@@ -300,6 +365,7 @@ class DemoBackend(context: Context) {
                         root.getJSONArray("completions").put(JSONObject().put("userId", player).put("hash", hash)); reward = award(player, "first", hash, 100000)
                     } else reward = award(player, "replay", "$hash:$day", 10000, 50000)
                 }
+                awardSocial(player)
                 xp(player).put("accepted", true).put("awardedMilli", reward.toString())
             }
             else -> failure("NOT_FOUND", "This action is not part of the local preview.", 404)

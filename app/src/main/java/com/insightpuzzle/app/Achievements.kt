@@ -1,44 +1,35 @@
 package com.insightpuzzle.app
 
-// Legacy clean badges keep their IDs and completion requirements for saved progress.
-data class Badge(val id: String, val name: String, val requirement: String, val goal: Int, val mark: String, val world: Int = 0, val metric: Metric)
-enum class Metric { COMPLETED, WORLD, CLEAN, CLEAN_WORLD }
-data class Cosmetic(val id: String, val kind: String, val name: String, val description: String, val badge: String? = null)
+enum class Metric { CAMPAIGN, ONLINE, DESIGNED, STREAK }
+data class Badge(val id: String, val name: String, val requirement: String, val goal: Int, val metric: Metric = Metric.CAMPAIGN)
+/** Online numbers from the last /v1/progress: distinct community puzzles solved, puzzles published, longest daily streak. */
+data class OnlineStats(val onlineSolved: Int = 0, val designedCount: Int = 0, val bestStreak: Int = 0)
 
-val COSMETICS = listOf(
-    Cosmetic("original", "finish", "Original", "The familiar warm tile surface."),
-    Cosmetic("obsidian", "finish", "Obsidian", "Dark satin tiles with vivid coloured symbols.", "pristine"),
-)
-
+/**
+ * Journey: the first level, every 30 levels, and the whole campaign. Online: puzzles solved, puzzles designed, daily streak.
+ * Must match server/src/campaign.ts and server/src/badges.ts.
+ */
 class Achievements(private val levels: List<Level>) {
-    private val worlds = levels.map { it.world }.distinct()
     val catalog: List<Badge> = buildList {
-        add(Badge("first", "First Step", "Complete 1 campaign level.", 1, "Ⅰ", metric = Metric.COMPLETED))
-        add(Badge("flow", "Finding Flow", "Complete 10 campaign levels.", 10, "≈", metric = Metric.COMPLETED))
-        add(Badge("halfway", "Halfway Home", "Complete 50 campaign levels.", 50, "◐", metric = Metric.COMPLETED))
-        add(Badge("complete", "INSIGHT Complete", "Complete all ${levels.size} campaign levels.", levels.size, "✦", metric = Metric.COMPLETED))
-        worlds.forEach { w -> add(Badge("world-$w", "World $w Master", "Complete every level in World $w.", levels.count { it.world == w }, "$w", w, Metric.WORLD)) }
-        add(Badge("first-clean", "First Clean Solve", "Complete 1 campaign level.", 1, "★", metric = Metric.CLEAN))
-        add(Badge("steady", "Steady Hand", "Complete 10 levels.", 10, "⌁", metric = Metric.CLEAN))
-        add(Badge("unbroken", "Unbroken", "Complete 25 levels.", 25, "✧", metric = Metric.CLEAN))
-        add(Badge("flawless", "Flawless", "Complete 50 levels.", 50, "◇", metric = Metric.CLEAN))
-        add(Badge("clean-sweep", "Clean Sweep", "Complete every level in one world.", 1, "⋈", metric = Metric.CLEAN_WORLD))
-        add(Badge("pristine", "Pristine", "Complete all ${levels.size} campaign levels.", levels.size, "⊞", metric = Metric.CLEAN))
+        add(Badge("first", "First Level", "Complete 1 level.", 1))
+        for (n in 30 until levels.size step 30) add(Badge("levels-$n", "$n Levels", "Complete $n levels.", n))
+        add(Badge("complete", "All ${levels.size} Levels", "Complete all ${levels.size} levels.", levels.size))
+        for (n in listOf(1, 10, 20, 50, 100, 200, 500, 1000)) add(Badge("online-$n", if (n == 1) "First Online Puzzle" else "$n Online Puzzles", if (n == 1) "Solve 1 online puzzle." else "Solve $n online puzzles.", n, Metric.ONLINE))
+        for (n in listOf(1, 10, 20)) add(Badge("designed-$n", if (n == 1) "First Puzzle Designed" else "$n Puzzles Designed", if (n == 1) "Publish 1 online puzzle." else "Publish $n online puzzles.", n, Metric.DESIGNED))
+        for (n in listOf(7, 14, 30, 50, 70, 100)) add(Badge("streak-$n", "$n-Day Streak", "Solve a puzzle $n days in a row.", n, Metric.STREAK))
     }
 
-    /** Progress toward a badge given the solved level numbers (1-based). */
-    fun progress(badge: Badge, done: Set<Int>): Int = minOf(badge.goal, when (badge.metric) {
-        Metric.COMPLETED, Metric.CLEAN -> done.size
-        Metric.WORLD -> done.count { levels.getOrNull(it - 1)?.world == badge.world }
-        Metric.CLEAN_WORLD -> worlds.count { w -> levels.withIndex().all { (i, l) -> l.world != w || (i + 1) in done } }
+    /** Progress toward a badge. Journey counts solved level numbers (1-based); numbers of retired levels don't count. */
+    fun progress(badge: Badge, done: Set<Int>, stats: OnlineStats = OnlineStats()): Int = minOf(badge.goal, when (badge.metric) {
+        Metric.CAMPAIGN -> done.count { it in 1..levels.size }
+        Metric.ONLINE -> stats.onlineSolved
+        Metric.DESIGNED -> stats.designedCount
+        Metric.STREAK -> stats.bestStreak
     })
 
-    /** Badges newly reached with these solves, not yet in [earned]. */
-    fun newlyEarned(done: Set<Int>, earned: Map<String, Long>) = catalog.filter { it.id !in earned && progress(it, done) >= it.goal }
+    /** Journey badges newly reached with these solves, not yet in [earned]. Online badges arrive from the server. */
+    fun newlyEarned(done: Set<Int>, earned: Map<String, Long>) = catalog.filter { it.metric == Metric.CAMPAIGN && it.id !in earned && progress(it, done) >= it.goal }
 
-    fun reward(badge: Badge) = COSMETICS.find { it.badge == badge.id }?.name
-    fun owns(cosmetic: Cosmetic, earned: Map<String, Long>, dev: Boolean = false) = dev || cosmetic.badge == null || cosmetic.badge in earned
-
-    fun equippedFinish(id: String, earned: Map<String, Long>, dev: Boolean) =
-        COSMETICS.find { it.id == id && owns(it, earned, dev) }?.id ?: "original"
+    /** How many current badges are in [earned]; ids of retired badges are ignored. */
+    fun earnedCount(earned: Map<String, Long>) = catalog.count { it.id in earned }
 }

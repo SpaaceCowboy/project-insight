@@ -69,8 +69,6 @@ class Store(context: Context) {
     var sound by bool("sound", true)
     var dark by bool("dark", true)
     var haptics by bool("haptics", true)
-    var pauseOverOthers by bool("pauseOverOthers", true)
-    var silenceOnUnplug by bool("silenceOnUnplug", true)
     /** Not in Options: the instrumented tests set "on" to freeze decorative animation. */
     var motion by string("motion", "system")
     /** "light" or "dark". Older installs stored "system" or only the dark/light boolean; both fall back to dark unless light was chosen. */
@@ -81,9 +79,9 @@ class Store(context: Context) {
     var effects by float("effects", .8f)
     var ambience by float("ambience", .8f)
     var background by string("background", "forest")
-    var finish by string("finish", "original")
+    var colorblind by bool("colorblind", false)
 
-    /** Clears solved levels and unfinished attempts. Badges, cosmetics and settings are kept: rewards are permanent. */
+    /** Clears solved levels and unfinished attempts. Badges and settings are kept. */
     fun resetProgress() = prefs.edit().apply {
           remove(scoped("done")); remove(scoped("lastLevel"))
           prefs.all.keys.filter { it.startsWith(scoped("attempt_")) }.forEach { remove(it) }

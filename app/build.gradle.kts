@@ -12,14 +12,14 @@ android {
         applicationId = "com.insightpuzzle.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 10
-        versionName = "0.1.9"
+        versionCode = 22
+        versionName = "0.2.11"
         buildConfigField("boolean", "ONLINE_DEMO", onlineDemo.toString())
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         if (onlineDemo) {
             applicationIdSuffix = ".preview"
             versionNameSuffix = "-preview"
-            resValue("string", "app_name", "INSIGHT Preview")
+            resValue("string", "app_name", "Insight Preview")
         }
     }
     buildTypes {

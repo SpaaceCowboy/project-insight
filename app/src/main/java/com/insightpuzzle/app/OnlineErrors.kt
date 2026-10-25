@@ -5,6 +5,9 @@ import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import javax.net.ssl.SSLException
 
+/** A failure to reach the server at all, as opposed to the server refusing the request. */
+fun isConnectionError(error: Throwable) = error is IOException && error !is OnlineException
+
 /** Shared wording for failures from forms, community screens and progress sync. */
 fun playerErrorMessage(error: Throwable): String = when (error) {
     is OnlineException -> when {

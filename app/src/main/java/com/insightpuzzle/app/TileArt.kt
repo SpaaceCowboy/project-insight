@@ -33,11 +33,6 @@ private val SEGMENTS: Map<Char, List<FloatArray>> = mapOf(
 )
 private fun f(vararg v: Number) = FloatArray(v.size) { v[it].toFloat() }
 private val WHITE_INK = Color(0xFF45474C)
-private val OBSIDIAN_INK = mapOf(
-    'R' to Color(0xFFFF4055), 'B' to Color(0xFF408CFF), 'G' to Color(0xFF25D78A),
-    'Y' to Color(0xFFFFC526), 'P' to Color(0xFFC576FF), 'W' to Color.White,
-)
-
 
 /** Draws the tile symbol centred in [size] at [scale] of the box (the web game uses 44% on board tiles). */
 fun DrawScope.symbol(type: Char, origin: Offset, size: Float, scale: Float, color: Color = if (type == 'W') WHITE_INK else Color.White) {
@@ -53,35 +48,33 @@ fun DrawScope.symbol(type: Char, origin: Offset, size: Float, scale: Float, colo
  * The game tile: gradient body, soft lift shadow and a restrained satin sheen.
  * [glow] adds the selection ring; [ring] draws a coloured outline (arrival, rejection).
  */
-fun DrawScope.tile(type: Char, origin: Offset, size: Float, finish: String, glow: Color? = null, ring: Color? = null, highlight: Float = 0f) {
+fun DrawScope.tile(type: Char, origin: Offset, size: Float, glow: Color? = null, ring: Color? = null, highlight: Float = 0f) {
     val radius = CornerRadius(size * .23f)
-    val obsidian = finish == "obsidian"
-    val (light, deep) = if (obsidian) Color(0xFF34363B) to Color(0xFF111216) else Art.TILE.getValue(type)
+    val (light, deep) = Art.TILE.getValue(type)
     drawRoundRect(Color(0x3D000000), origin + Offset(0f, size * .06f), Size(size, size), radius)
     if (glow != null) drawRoundRect(glow.copy(alpha = glow.alpha * .35f), origin - Offset(size * .08f, size * .08f), Size(size * 1.16f, size * 1.16f), CornerRadius(size * .3f))
     val angle = Math.toRadians(145.0 - 90.0)
     val dx = (cos(angle) * size / 2).toFloat(); val dy = (sin(angle) * size / 2).toFloat()
     val center = origin + Offset(size / 2, size / 2)
     drawRoundRect(Brush.linearGradient(listOf(light, deep), center - Offset(dx, dy), center + Offset(dx, dy)), origin, Size(size, size), radius)
-    val sheen = if (obsidian) listOf(Color(0x1FFFFFFF), Color.Transparent, Color(0x33000000))
-        else listOf(Color.White.copy(alpha = .28f), Color.Transparent, Color(0x29000000))
+    val sheen = listOf(Color.White.copy(alpha = .28f), Color.Transparent, Color(0x29000000))
     drawRoundRect(Brush.linearGradient(sheen, origin, origin + Offset(size, size)), origin, Size(size, size), radius)
     if (highlight > 0f) drawRoundRect(Color.White.copy(alpha = highlight), origin, Size(size, size), radius)
-    drawRoundRect(if (obsidian) Color(0x40FFFFFF) else Color(0x73FFFFFF), origin, Size(size, size), radius, style = Stroke(1.5f))
+    drawRoundRect(Color(0x73FFFFFF), origin, Size(size, size), radius, style = Stroke(1.5f))
     if (glow != null) drawRoundRect(glow, origin - Offset(3f, 3f), Size(size + 6f, size + 6f), CornerRadius(size * .23f + 3f), style = Stroke(5f))
     if (ring != null) drawRoundRect(ring, origin - Offset(2f, 2f), Size(size + 4f, size + 4f), CornerRadius(size * .23f + 2f), style = Stroke(4f))
-    symbol(type, origin, size, .44f, if (obsidian) OBSIDIAN_INK.getValue(type) else if (type == 'W') WHITE_INK else Color.White)
+    symbol(type, origin, size, .44f, Art.ink(type))
 }
 
 /** A standalone tile (palette, hero) of [size]. */
 @Composable
-fun TileIcon(type: Char, size: Dp, finish: String, modifier: Modifier = Modifier, glow: Color? = null) {
-    Canvas(modifier.size(size)) { tile(type, Offset.Zero, this.size.width, finish, glow) }
+fun TileIcon(type: Char, size: Dp, modifier: Modifier = Modifier, glow: Color? = null) {
+    Canvas(modifier.size(size)) { tile(type, Offset.Zero, this.size.width, glow) }
 }
 
-/** Mini target preview (src/views.jsx Target): flat colour squares with dark symbols; holes stay empty. */
+/** Mini target preview: flat colour squares, no arrows (only the main board shows symbols); holes stay empty. */
 @Composable
-fun TargetMini(board: Board, cell: Dp, gap: Dp, modifier: Modifier = Modifier) {
+fun TargetMini(board: Board, cell: Dp, gap: Dp, modifier: Modifier = Modifier, symbols: Boolean = false) {
     val rows = board.size; val cols = board.firstOrNull()?.length ?: 0
     Canvas(modifier.size(cell * cols + gap * (cols - 1).coerceAtLeast(0), cell * rows + gap * (rows - 1).coerceAtLeast(0))) {
         val c = cell.toPx(); val g = gap.toPx()
@@ -89,7 +82,7 @@ fun TargetMini(board: Board, cell: Dp, gap: Dp, modifier: Modifier = Modifier) {
             if (t == '.') return@forEachIndexed
             val o = Offset(col * (c + g), r * (c + g))
             drawRoundRect(Art.LIGHT.getValue(t), o, Size(c, c), CornerRadius(c * .25f))
-            if (c >= 9f) symbol(t, o, c, .8f, if (t == 'W') WHITE_INK else Color(0xFF2B2D31))
+            if (symbols && c >= 9f) symbol(t, o, c, .8f, if (t == 'W') WHITE_INK else Color(0xFF2B2D31))
         } }
     }
 }

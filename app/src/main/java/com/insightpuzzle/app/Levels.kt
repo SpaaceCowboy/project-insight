@@ -11,7 +11,7 @@ object Levels {
         return List(array.length()) { i ->
             val item = array.getJSONObject(i)
             fun rows(key: String) = item.getJSONArray(key).let { a -> List(a.length()) { a.getString(it) } }
-            Level(item.getString("name"), rows("start"), rows("target"), item.getInt("world"), item.optInt("par"))
+            Level(item.optString("name", ""), rows("start"), rows("target"), item.optInt("world", i / 20 + 1), item.optInt("par"))
         }
     }
 }

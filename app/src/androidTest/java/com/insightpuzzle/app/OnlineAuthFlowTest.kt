@@ -17,8 +17,17 @@ import java.util.UUID
 class OnlineAuthFlowTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private fun nodes(): List<AccessibilityNodeInfo> {
-        fun collect(node: AccessibilityNodeInfo): List<AccessibilityNodeInfo> = listOf(node) + (0 until node.childCount).flatMap { node.getChild(it)?.let(::collect) ?: emptyList() }
-        return instrumentation.uiAutomation.rootInActiveWindow?.let(::collect) ?: emptyList()
+        if (android.os.Build.VERSION.SDK_INT >= 33) instrumentation.uiAutomation.clearCache()
+        fun collect(node: AccessibilityNodeInfo): List<AccessibilityNodeInfo> = if (!node.refresh()) emptyList() else listOf(node) + (0 until node.childCount).flatMap { node.getChild(it)?.let(::collect) ?: emptyList() }
+        val automation = instrumentation.uiAutomation
+        val info = automation.serviceInfo
+        if (info.flags and android.accessibilityservice.AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS == 0) {
+            info.flags = info.flags or android.accessibilityservice.AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
+            automation.serviceInfo = info
+        }
+        val root = automation.windows.firstOrNull { it.isFocused && it.type == android.view.accessibility.AccessibilityWindowInfo.TYPE_APPLICATION }?.root
+            ?: automation.rootInActiveWindow
+        return root?.let(::collect) ?: emptyList()
     }
     private fun await(message: String, condition: () -> Boolean) {
         val deadline = SystemClock.uptimeMillis() + 20000
@@ -26,12 +35,15 @@ class OnlineAuthFlowTest {
             if (condition()) return
             SystemClock.sleep(80)
         }
-        throw AssertionError(message)
+        throw AssertionError(message + ": " + nodes().mapNotNull { it.text?.toString() ?: it.contentDescription?.toString() }.joinToString(" | "))
     }
-    private fun text(value: String) = nodes().any { it.text?.toString() == value }
+    private fun text(value: String) = nodes().any {
+        it.text?.toString() == value || it.contentDescription?.toString() == value ||
+            (android.os.Build.VERSION.SDK_INT >= 28 && it.paneTitle?.toString() == value)
+    }
     private fun tap(value: String) {
         await("Control unavailable: $value") {
-            val found = nodes().lastOrNull { it.text?.toString() == value }
+            val found = nodes().lastOrNull { it.text?.toString() == value || it.contentDescription?.toString() == value }
             if (found == null) {
                 nodes().lastOrNull { it.isScrollable }?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
                 return@await false
@@ -49,7 +61,7 @@ class OnlineAuthFlowTest {
                 putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, value)
             }) == true
         }
-        instrumentation.waitForIdleSync()
+        SystemClock.sleep(80)
     }
 
     @Test fun registerWithoutCodeThenLoginAndKeepRejectedPassword() {
@@ -64,14 +76,16 @@ class OnlineAuthFlowTest {
             val id = UUID.randomUUID().toString().take(12)
             val email = "android-$id@example.test"
             val password = "Puzzle pass! \u067e\u0627\u0632\u0644 123"
-            tap("Log In"); tap("Register")
+            tap("Profile"); tap("Register")
             fill(0, email); fill(1, password); fill(2, "Android $id")
             tap("Create account")
-            await("Registration must immediately open the profile") { text("Your profile") }
+            await("Registration must immediately open the profile") { text("Android $id") && repository.client.user != null }
             assertTrue(repository.client.user != null)
             tap("Log out")
-            await("Logout must return home") { text("Log In") }
-            tap("Log In")
+            assertTrue("Opening logout confirmation must keep the account signed in", repository.client.user != null)
+            tap("Log out")
+            await("Logout must return home") { text("Journey") }
+            tap("Profile")
             fill(0, email)
             val rejected = "An incorrect password"
             fill(1, rejected); tap("Log in")
@@ -80,7 +94,7 @@ class OnlineAuthFlowTest {
             tap("Show")
             await("A rejected password must remain editable") { fields().getOrNull(1)?.text?.contains(rejected) == true }
             fill(1, password); tap("Hide"); tap("Log in")
-            await("Verified credentials must open the account profile") { text("Your profile") }
+            await("Verified credentials must open the account profile") { text("Android $id") && repository.client.user != null }
             assertTrue("Registration and login must use the same password", repository.client.user?.verified == true)
         } finally {
             runBlocking { repository.client.logout() }

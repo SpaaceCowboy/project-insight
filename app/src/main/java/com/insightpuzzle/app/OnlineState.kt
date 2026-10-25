@@ -18,7 +18,12 @@ class OnlineState(private val model: GameModel, app: Application, private val sc
     var busy by mutableStateOf(false); private set
     var error by mutableStateOf(repository.client.credentialError); private set
     var notice by mutableStateOf<String?>(null); private set
+    /** The last background load could not reach the server. Worlds and Profile show a small mark instead of a message; pulling down retries. */
+    var offline by mutableStateOf(false)
+    /** Background loads: a connection failure only marks [offline]; anything else is reported as usual. */
+    fun quiet(error: Throwable) { if (isConnectionError(error)) offline = true else report(error) }
     fun clearMessages() { error = null; notice = null }
+    fun inform(text: String) { notice = text }
     fun dismissError() { error = null }
     fun report(error: Throwable) {
         if (error is CancellationException) throw error
@@ -28,7 +33,12 @@ class OnlineState(private val model: GameModel, app: Application, private val sc
     fun task(block: suspend () -> Unit) {
         if (busy) return
         busy = true; clearMessages()
-        scope.launch { try { block() } catch (error: Exception) { report(error) } finally { busy = false } }
+        scope.launch {
+            try { block() }
+            // On Worlds and Profile a lost connection is shown by their offline mark, not a dialog.
+            catch (error: Exception) { if (isConnectionError(error) && (model.top == Route.Online || model.top is Route.Profile || model.top == Route.Bookmarks || model.top is Route.Players)) { if (error is CancellationException) throw error; offline = true } else report(error) }
+            finally { busy = false }
+        }
     }
     /** Startup sync runs in the background: it must never hold [busy], or Make and every other button would do nothing while the network is slow. */
     fun initialize() {
@@ -78,7 +88,10 @@ class OnlineState(private val model: GameModel, app: Application, private val sc
         if (model.store.importedInto == account) {
             var imported = repository.cached(account, "guest-import")
             if (imported == null) {
-                imported = OnlineRepository.operation().put("done", JSONArray(model.store.guestProgress().sorted())).put("badges", JSONArray(model.store.guestBadges()))
+                // Only current levels and badges: the server rejects retired ones.
+                val badgeIds = model.achievements.catalog.map { it.id }.toSet()
+                imported = OnlineRepository.operation().put("done", JSONArray(model.store.guestProgress().filter { it in 1..model.levels.size }.sorted()))
+                    .put("badges", JSONArray(model.store.guestBadges().filter { it in badgeIds }))
                 // Enqueue before marking; repeating an import after a killed process cannot award XP.
                 repository.enqueue(account, "/v1/progress/import", imported)
                 repository.save(account, "guest-import", imported)

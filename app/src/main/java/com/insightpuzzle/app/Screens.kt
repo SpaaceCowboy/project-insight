@@ -55,8 +55,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -69,16 +73,17 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -88,163 +93,96 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun HomeScreen(m: GameModel) {
     val p = LocalPalette.current
-    BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp), contentAlignment = Alignment.Center) {
-        // Short phones (about 640dp tall) get a smaller hero and buttons so nothing touches.
+    BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp)) {
         val compact = maxHeight < 640.dp
-        val buttonHeight = if (compact) 56.dp else 64.dp
-        // Side cubes are squares; the Profile cube between them is 1.6 times as wide and the same height.
-        val cubeHeight = (minOf(maxWidth, 360.dp) - 20.dp) / 3.6f
-        Column(Modifier.widthIn(max = 360.dp).fillMaxHeight().heightIn(max = 760.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Label("INSIGHT", if (compact) 26.sp else 29.sp, Modifier.padding(top = if (compact) 16.dp else 26.dp), color = p.accent, weight = FontWeight.SemiBold, spacing = .3.em)
-            Hero(m.finish, Modifier.padding(top = if (compact) 12.dp else 20.dp, bottom = if (compact) 10.dp else 0.dp), if (compact) 96.dp else 125.dp)
-            Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(if (compact) 10.dp else 14.dp, Alignment.CenterVertically)) {
-                m.continueLevel?.let { next ->
-                    MenuButton("Continue", height = buttonHeight, primary = true, fontSize = 17.sp, subtitle = "${m.levelTitle(next)} · ${m.levels[next].name}") { m.start(next); m.audio.play("select") }
+        // Fit the letter-spaced wordmark between the touch targets, including at large font scales.
+        val titleSize = minOf(if (compact) 26f else 29f, (minOf(maxWidth, 360.dp).value - 96f) / 6.35f / LocalDensity.current.fontScale).sp
+        // The two modes split the space below the header: Journey the top half, Worlds the bottom half.
+        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(if (compact) 10.dp else 14.dp)) {
+            // These two shortcuts have physical left/right positions even in RTL layouts.
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                Box(Modifier.fillMaxWidth().heightIn(min = 48.dp), contentAlignment = Alignment.Center) {
+                    HomeIconButton("Options", Modifier.align(Alignment.CenterStart), { m.push(Route.Options) }, optionsIcon, Cue.STOP)
+                    Label("INSIGHT", titleSize, Modifier.padding(horizontal = 48.dp).semantics { heading() }, color = p.accent, weight = FontWeight.SemiBold, spacing = .3.em, align = TextAlign.Center, lines = 1)
+                    HomeIconButton("Profile", Modifier.align(Alignment.CenterEnd), { m.openOnline(Route.Profile()) }, personIcon, Cue.START)
                 }
-                MenuButton("Journey", height = buttonHeight, fontSize = 17.sp) { m.push(Route.Worlds) }
-                MenuButton("Worlds", Modifier.crystalGlow(), height = buttonHeight, fontSize = 17.sp) { m.push(Route.Online) }
-                MenuButton("Options", height = buttonHeight, fontSize = 17.sp) { m.push(Route.Options) }
             }
-            Row(Modifier.fillMaxWidth().height(cubeHeight), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Cube("Achievements", trophyIcon, Modifier.weight(1f)) { m.push(Route.Achievements) }
-                Cube(m.online.user?.username ?: if (BuildConfig.ONLINE_DEMO) "Preview" else "Log In", personIcon, Modifier.weight(1.6f)) { m.openOnline(Route.Profile()) }
-                Cube("What's Next", sparkIcon, Modifier.weight(1f), null)
-            }
+            MenuButton("Journey", Modifier.weight(1f), fontSize = 30.sp, weight = FontWeight.ExtraBold, raised = true, cue = Cue.FORWARD) { m.startJourney() }
+            MenuButton("Worlds", Modifier.weight(1f), fontSize = 30.sp, weight = FontWeight.ExtraBold, raised = true, cue = Cue.FORWARD) { m.openOnline(Route.Online) }
         }
     }
 }
 
-/** The tilted 3x3 of floating tiles on the home screen. */
-@Composable
-fun Hero(finish: String, modifier: Modifier = Modifier, size: Dp = 125.dp) {
-    val reduce = LocalReduceMotion.current
-    val float = rememberInfiniteTransition(label = "hero")
-    val lift by float.animateFloat(0f, 1f, infiniteRepeatable(tween(7000), RepeatMode.Reverse), label = "lift")
-    Canvas(modifier.size(size).rotate(-9f)) {
-        val gap = size.toPx() * .056f; val cell = (this.size.width - 2 * gap) / 3
-        "RBGPWYBGR".forEachIndexed { i, t ->
-            val dy = if (reduce) 0f else -4.dp.toPx() * (if (i % 3 == 2) 1 - lift else lift)
-            tile(t, Offset((i % 3) * (cell + gap), (i / 3) * (cell + gap) + dy), cell, finish)
-        }
-    }
-}
+/** Line art that moves with its button: [draw] gets how far the button is pressed (0..1). [stays] keeps it at 1 after a tap, while the screen it opens comes up. */
+class AnimatedIcon(val stays: Boolean, val draw: DrawScope.(Color, Float) -> Unit)
 
-/** Home shortcut tile. A null [onClick] is a feature that isn't built yet: dimmed, labelled "Soon", announced as coming soon. */
+/** Small raised plush button with line art: it sinks when touched; a border shows only while keyboard-focused. */
 @Composable
-private fun Cube(label: String, icon: DrawScope.(Color) -> Unit, modifier: Modifier, onClick: (() -> Unit)?) {
+fun HomeIconButton(label: String, modifier: Modifier, onClick: () -> Unit, icon: DrawScope.(Color) -> Unit, cue: Cue?, enabled: Boolean = true) =
+    PlushIconButton(label, modifier, onClick, cue, enabled, false) { c, _ -> icon(c) }
+
+/** The same button with icon art that animates as it is pressed (Options' knobs swap sides, Profile's head bobs). */
+@Composable
+fun HomeIconButton(label: String, modifier: Modifier, onClick: () -> Unit, icon: AnimatedIcon, cue: Cue?, enabled: Boolean = true) =
+    PlushIconButton(label, modifier, onClick, cue, enabled, icon.stays, icon.draw)
+
+@Composable
+private fun PlushIconButton(label: String, modifier: Modifier, onClick: () -> Unit, cue: Cue?, enabled: Boolean, stays: Boolean, icon: DrawScope.(Color, Float) -> Unit) {
     val p = LocalPalette.current
-    Column(
-        modifier.alpha(if (onClick == null) .6f else 1f).fillMaxHeight().clip(RoundedCornerShape(14.dp)).background(p.paper).border(2.dp, p.line, RoundedCornerShape(14.dp))
-            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier.semantics { role = Role.Button; disabled(); stateDescription = "Coming soon" }).padding(6.dp),
-        verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally,
+    val feedback = LocalFeedback.current
+    val interactions = remember { MutableInteractionSource() }
+    val focused by interactions.collectIsFocusedAsState()
+    var tapped by remember { mutableStateOf(false) }
+    val press = pressProgress(interactions)
+    // The icon follows the press; an icon that [stays] finishes its move after the tap instead of springing back.
+    val art by androidx.compose.animation.core.animateFloatAsState(if (tapped && stays) 1f else press, if (LocalReduceMotion.current) androidx.compose.animation.core.snap()
+        else androidx.compose.animation.core.spring(dampingRatio = .5f, stiffness = 500f), label = "icon")
+    val shape = RoundedCornerShape(14.dp)
+    Box(modifier.size(48.dp).padding(2.dp)
+        .plush(shape, press, p.paper2, if (focused) p.accent else p.line, rest = 4.dp)
+        .clickable(enabled = enabled, interactionSource = interactions, indication = null, role = Role.Button, onClickLabel = label) { tapped = true; feedback(cue); onClick() }
+        .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center,
     ) {
-        Canvas(Modifier.size(26.dp)) { icon(p.ink) }
-        Spacer(Modifier.height(7.dp))
-        Label(label, 11.sp, weight = FontWeight.SemiBold, align = TextAlign.Center, lines = 1)
-        if (onClick == null) Label("Soon", 11.sp, color = p.muted, align = TextAlign.Center)
+        Canvas(Modifier.size(20.dp)) { icon(p.ink, if (stays) art else press) }
     }
 }
 
 private fun DrawScope.stroke(color: Color, path: androidx.compose.ui.graphics.Path) =
     drawPath(path, color, style = Stroke(1.7f * size.width / 24f, cap = StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
 private fun DrawScope.path(build: androidx.compose.ui.graphics.Path.(Float) -> Unit) = androidx.compose.ui.graphics.Path().apply { build(size.width / 24f) }
-private val trophyIcon: DrawScope.(Color) -> Unit = { c ->
-    stroke(c, path { u -> moveTo(8 * u, 4 * u); lineTo(16 * u, 4 * u); lineTo(16 * u, 9 * u); quadraticTo(16 * u, 13 * u, 12 * u, 13 * u); quadraticTo(8 * u, 13 * u, 8 * u, 9 * u); close()
-        moveTo(8 * u, 6 * u); lineTo(4.5f * u, 6 * u); lineTo(4.5f * u, 7.5f * u); quadraticTo(4.5f * u, 10.5f * u, 8 * u, 10.5f * u)
-        moveTo(16 * u, 6 * u); lineTo(19.5f * u, 6 * u); lineTo(19.5f * u, 7.5f * u); quadraticTo(19.5f * u, 10.5f * u, 16 * u, 10.5f * u)
-        moveTo(12 * u, 13 * u); lineTo(12 * u, 17 * u); moveTo(8.5f * u, 20 * u); lineTo(15.5f * u, 20 * u); moveTo(10 * u, 17 * u); lineTo(14 * u, 17 * u) })
-}
-private val personIcon: DrawScope.(Color) -> Unit = { c ->
+/** Two sliders; pressing slides each knob to where the other one sits (top 10 → 14, bottom 14 → 10). */
+val optionsIcon = AnimatedIcon(stays = true) { c, t ->
     val u = size.width / 24f
-    drawCircle(c, 3.5f * u, Offset(12 * u, 8.5f * u), style = Stroke(1.7f * u))
+    for ((y, knob) in listOf(7f to 10f + 4f * t, 17f to 14f - 4f * t)) {
+        polyline(c, 4f, y, knob - 3f, y); polyline(c, knob + 3f, y, 20f, y)
+        drawCircle(c, 3f * u, Offset(knob * u, y * u), style = Stroke(1.7f * u))
+    }
+}
+/** A person; pressing lifts the head a little and it settles back with a small bob. */
+val personIcon = AnimatedIcon(stays = false) { c, t ->
+    val u = size.width / 24f
+    drawCircle(c, 3.5f * u, Offset(12 * u, (8.5f - 2f * t) * u), style = Stroke(1.7f * u))
     drawArc(c, 180f, 180f, false, Offset(5 * u, 13 * u), Size(14 * u, 14 * u), style = Stroke(1.7f * u, cap = StrokeCap.Round))
 }
-private val sparkIcon: DrawScope.(Color) -> Unit = { c ->
-    stroke(c, path { u -> moveTo(12 * u, 3.5f * u); lineTo(13.9f * u, 9 * u); lineTo(19.5f * u, 10.9f * u); lineTo(13.9f * u, 12.8f * u); lineTo(12 * u, 18.3f * u); lineTo(10.1f * u, 12.8f * u); lineTo(4.5f * u, 10.9f * u); lineTo(10.1f * u, 9 * u); close()
-        moveTo(19 * u, 16.5f * u); lineTo(19 * u, 19.5f * u); moveTo(17.5f * u, 18 * u); lineTo(20.5f * u, 18 * u) })
+/** Players: two people, the one behind smaller. */
+val peopleIcon: DrawScope.(Color) -> Unit = { c ->
+    val u = size.width / 24f
+    val line = Stroke(1.7f * u, cap = StrokeCap.Round)
+    drawCircle(c, 3f * u, Offset(9 * u, 8.5f * u), style = line)
+    drawArc(c, 180f, 180f, false, Offset(3 * u, 14 * u), Size(12 * u, 12 * u), style = line)
+    drawCircle(c, 2.5f * u, Offset(16.5f * u, 9 * u), style = line)
+    drawArc(c, 270f, 90f, false, Offset(11.5f * u, 15 * u), Size(10 * u, 10 * u), style = line)
 }
-
-@Composable
-fun WorldsScreen(m: GameModel) {
-    val worlds = m.worlds()
-    Page("Choose a world", 460.dp) {
-        Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            for (w in worlds) WorldCard(w) { m.push(Route.Levels(w.world)) }
-            Spacer(Modifier.height(12.dp))
-        }
-    }
+/** Puzzles: four outlined squares, in the same margins as the other icons. */
+val gridIcon: DrawScope.(Color) -> Unit = { c ->
+    val u = size.width / 24f
+    for (r in 0..1) for (col in 0..1) drawRoundRect(c, Offset((4.5f + col * 8.5f) * u, (4.5f + r * 8.5f) * u), Size(6.5f * u, 6.5f * u), CornerRadius(1.6f * u), style = Stroke(1.7f * u))
 }
-
-@Composable
-private fun WorldCard(w: WorldStat, onClick: () -> Unit) {
-    val p = LocalPalette.current
-    val (light, deep) = Art.WORLD[(w.world - 1) % Art.WORLD.size]
-    val reduce = LocalReduceMotion.current
-    val pulse = rememberInfiniteTransition(label = "glow")
-    val glow by pulse.animateFloat(0f, 1f, infiniteRepeatable(tween(3200), RepeatMode.Reverse), label = "glow")
-    val shape = RoundedCornerShape(16.dp)
-    Row(
-        Modifier.fillMaxWidth().heightIn(min = 64.dp)
-            .drawBehind { if (w.complete) { val g = if (reduce) .5f else glow; drawRoundRect(light.copy(alpha = .25f + .2f * g), Offset(-8.dp.toPx() * (1 + g), -8.dp.toPx() * (1 + g)), Size(size.width + 16.dp.toPx() * (1 + g), size.height + 16.dp.toPx() * (1 + g)), CornerRadius(24.dp.toPx())) } }
-            .clip(shape).background(Brush.horizontalGradient(listOf(lerp(p.paper2, light, .24f), p.paper2), 0f, 900f))
-            .border(2.dp, if (w.complete) light else lerp(p.line, light, .55f), shape)
-            .then(if (w.locked) Modifier.alpha(.5f).semantics { disabled() } else Modifier.clickable(role = Role.Button, onClick = onClick))
-            .semantics { contentDescription = "World ${w.world}, ${w.solved} of ${w.total} solved" + if (w.locked) ", locked" else if (w.complete) ", complete" else "" }
-            .drawBehind { drawRoundRect(Brush.verticalGradient(listOf(light, deep)), Offset(0f, 10.dp.toPx()), Size(6.dp.toPx(), size.height - 20.dp.toPx()), CornerRadius(6.dp.toPx())) }
-            .padding(start = 22.dp, end = 18.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Label("World ${w.world}", 16.sp, weight = FontWeight.SemiBold, spacing = .04.em)
-        Label(if (w.locked) "Locked" else if (w.complete) "Complete" else "${w.solved} / ${w.total}", 12.sp, color = if (w.complete) light else p.muted, weight = FontWeight.SemiBold)
-    }
-}
-
-@Composable
-fun LevelsScreen(m: GameModel, world: Int) {
-    val p = LocalPalette.current
-    val entries = m.levels.withIndex().filter { it.value.world == world }
-    val reduce = LocalReduceMotion.current
-    val pulse = rememberInfiniteTransition(label = "solved")
-    val breathe by pulse.animateFloat(0f, 1f, infiniteRepeatable(tween(3200), RepeatMode.Reverse), label = "solved")
-    val glow = { if (reduce) .5f else breathe }
-    Page("World $world") {
-        val columns = 4
-        val rows = (entries.size + columns - 1) / columns
-        // Cells keep one shape in every world (a 6-level world must not stretch) and the list scrolls if large text needs the room.
-        // The vertical padding keeps a solved cell's glow from being clipped at the top and bottom of the list.
-        Column(Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            for (r in 0 until rows) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                for (c in 0 until columns) {
-                    val item = entries.getOrNull(r * columns + c)
-                    if (item == null) { Spacer(Modifier.weight(1f).aspectRatio(.6f)); continue }
-                    val i = item.index; val level = item.value; val number = r * columns + c + 1
-                    val done = (i + 1) in m.done; val locked = !m.canAccess(i); val current = i == m.level
-                    val shape = RoundedCornerShape(12.dp)
-                    Column(
-                        Modifier.weight(1f).aspectRatio(.6f)
-                            .drawBehind { if (done) { val k = glow(); val g = (3 + 3 * k).dp.toPx(); drawRoundRect(p.accent.copy(alpha = .16f + .14f * k), Offset(-g, -g), Size(size.width + 2 * g, size.height + 2 * g), CornerRadius(12.dp.toPx() + g)) } }
-                            .clip(shape).background(if (done) lerp(p.paper2, p.accent, .14f) else p.paper)
-                            .border(if (current) 3.dp else 2.dp, if (current) p.accent else if (done) p.accent.copy(alpha = .7f) else p.line, shape)
-                            .then(if (locked) Modifier.alpha(.4f).semantics { disabled() } else Modifier.clickable(role = Role.Button) { m.start(i); m.audio.play("select") })
-                            .semantics { contentDescription = "Level $number, ${level.name}" + if (locked) ", locked" else if (done) ", solved" else "" }
-                            .padding(8.dp),
-                    ) {
-                        Label("%02d".format(number), 13.sp, Modifier.fillMaxWidth(), color = p.muted, weight = FontWeight.SemiBold, align = TextAlign.Center)
-                        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            // One cell size for every level: what a 4x4 target gets. Larger targets shrink to fit, smaller ones do not grow.
-                            val target = Rules.crop(level.target)
-                            fun fit(n: Int, room: Dp) = (room - 3.dp * (n - 1)) / n
-                            val cell = minOf(minOf(fit(4, maxWidth), fit(4, maxHeight)), minOf(fit(target[0].length, maxWidth), fit(target.size, maxHeight)))
-                            if (cell > 3.dp) TargetMini(target, cell, 3.dp)
-                        }
-                        val density = LocalDensity.current
-                        CompositionLocalProvider(LocalDensity provides Density(density.density, minOf(density.fontScale, 1.15f))) { Label(level.name, 13.sp, Modifier.fillMaxWidth(), align = TextAlign.Center, lines = 2) }
-                        Label(if (locked) "Locked" else "", 12.sp, Modifier.fillMaxWidth(), color = p.muted, align = TextAlign.Center)
-                    }
-                }
-            }
-        }
-    }
+/** Log out: an open door bracket with an arrow leaving it. */
+val logoutIcon: DrawScope.(Color) -> Unit = { c ->
+    stroke(c, path { u -> moveTo(10 * u, 4 * u); lineTo(5 * u, 4 * u); lineTo(5 * u, 20 * u); lineTo(10 * u, 20 * u)
+        moveTo(11 * u, 12 * u); lineTo(20 * u, 12 * u); moveTo(16.5f * u, 8.5f * u); lineTo(20 * u, 12 * u); lineTo(16.5f * u, 15.5f * u) })
 }
 
 /** Real values go here before release. A row is shown only when its value is set, so nothing broken ships. */
@@ -255,67 +193,46 @@ object AppLinks {
 
 @Composable
 fun OptionsScreen(m: GameModel) {
-    val tabs = buildList { add("play" to "Play"); add("sound" to "Sound"); add("appearance" to "Appearance") }
-    var tab by remember { mutableStateOf("play") }
-    var confirmReset by remember { mutableStateOf(false) }
+    val tabs = listOf("options" to "Options", "rulebook" to "Rulebook", "about" to "About")
+    var tab by m::optionsTab
     var showLicences by remember { mutableStateOf(false) }
     val p = LocalPalette.current
     val context = LocalContext.current
-    BackHandler(enabled = confirmReset || showLicences) { confirmReset = false; showLicences = false }
+    val feedback = LocalFeedback.current
+    BackHandler(enabled = showLicences) { feedback(Cue.BACK); showLicences = false }
     Box(Modifier.fillMaxSize()) {
         Page("Options", 520.dp) {
             Tabs(tabs, tab) { tab = it }
-            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (tab == "rulebook") RulebookTab(m)
+            else Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 when (tab) {
-                    "play" -> {
-                        SectionTitle("Feel")
+                    "options" -> {
                         ToggleRow("Haptics", m.haptics) { m.toggleHaptics() }
-
-                        SectionTitle("Progress")
-                        MenuButton("Reset level progress") { confirmReset = true }
-                        Label("Starts again at level 1. Your badges and cosmetics are yours to keep.", 12.sp, color = p.muted)
-
-                        SectionTitle("About")
+                        ToggleRow("Sound", m.sound) { m.toggleSound() }
+                        VolumeSlider("Ambience", m.ambience) { m.changeAmbience(it) }
+                        VolumeSlider("Effects", m.effects) { m.changeEffects(it) }
+                        Label("Theme", 14.sp, weight = FontWeight.SemiBold)
+                        Tabs(listOf("light" to "Light", "dark" to "Dark"), m.theme, Cue.CHECK) { m.changeTheme(it) }
+                        ToggleRow("Colourblind mode", m.colorblind) { m.toggleColorblind() }
+                    }
+                    else -> {
+                        // Both open a page to write in; Send mails it to the team.
+                        InfoRow("Share feedback", "", onClick = { m.push(Route.Feedback("feedback")) })
+                        InfoRow("Report a bug", "", onClick = { m.push(Route.Feedback("bug")) })
                         val info = remember { context.packageManager.getPackageInfo(context.packageName, 0) }
                         InfoRow("Version", "${info.versionName} (${androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(info)})")
                         InfoRow("Open-source licences", "Fonts", onClick = { showLicences = true })
                         if (AppLinks.PRIVACY_URL.isNotEmpty()) InfoRow("Privacy policy", "Open", onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(AppLinks.PRIVACY_URL))) })
                         if (AppLinks.CONTACT_EMAIL.isNotEmpty()) InfoRow("Contact", AppLinks.CONTACT_EMAIL, onClick = { context.startActivity(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:${AppLinks.CONTACT_EMAIL}"))) })
 
-                        if (BuildConfig.DEBUG) {
-                            SectionTitle("Developer")
-                            ToggleRow("Developer mode", m.dev) { m.toggleDev() }
-                            Label("Developer Mode opens every campaign level. Achievements pause while it is on. (Debug builds only.)", 12.sp, color = p.muted)
-                        }
-                    }
-                    "sound" -> {
-                        ToggleRow("Sound", m.sound) { m.toggleSound() }
-                        VolumeSlider("Ambience", m.ambience) { m.changeAmbience(it) }
-                        VolumeSlider("Effects", m.effects) { m.changeEffects(it) }
-                        SectionTitle("With other audio")
-                        ToggleRow("Pause ambience over other audio", m.pauseOverOthers) { m.togglePauseOverOthers() }
-                        ToggleRow("Silence when headphones unplug", m.silenceOnUnplug) { m.toggleSilenceOnUnplug() }
-                        Label("Ambience will not start while another app is playing music. After unplugging, it stays off until you reopen the app or toggle Sound.", 12.sp, color = p.muted)
-                    }
-                    else -> {
-                        Label("Theme", 14.sp, weight = FontWeight.SemiBold)
-                        Tabs(listOf("light" to "Light", "dark" to "Dark"), m.theme) { m.changeTheme(it) }
-                        CosmeticPicker(m)
+                        if (BuildConfig.DEBUG) ToggleRow("Developer mode", m.dev) { m.toggleDev() }
                     }
                 }
             }
         }
-        if (confirmReset) Overlay("Reset level progress", { confirmReset = false }) {
-            Label("Reset level progress?", 22.sp, Modifier.semantics { heading() }, serif = true, align = TextAlign.Center)
-            Label("This clears your solved levels and unfinished attempts. Your badges and cosmetics stay.", 13.sp, Modifier.padding(top = 8.dp, bottom = 16.dp), color = p.muted, align = TextAlign.Center)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                MenuButton("Cancel", Modifier.weight(1f)) { confirmReset = false }
-                MenuButton("Reset", Modifier.weight(1f), primary = true) { m.resetProgress(); confirmReset = false }
-            }
-        }
         if (showLicences) Overlay("Open-source licences", { showLicences = false }) {
             Label("Open-source licences", 22.sp, Modifier.semantics { heading() }, serif = true, align = TextAlign.Center)
-            val texts = remember { listOf("Source Sans 3" to "licenses/source-sans-3-OFL.txt", "Source Serif 4" to "licenses/source-serif-4-OFL.txt").map { (name, path) -> name to context.assets.open(path).bufferedReader().use { it.readText() } } }
+            val texts = remember { listOf("JetBrains Mono" to "licenses/jetbrains-mono-OFL.txt", "Source Serif 4" to "licenses/source-serif-4-OFL.txt").map { (name, path) -> name to context.assets.open(path).bufferedReader().use { it.readText() } } }
             Column(Modifier.padding(vertical = 12.dp).heightIn(max = 380.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 for ((name, text) in texts) { Label(name, 14.sp, weight = FontWeight.SemiBold); Label(text.trim(), 11.sp, color = p.muted) }
             }
@@ -329,6 +246,7 @@ fun OptionsScreen(m: GameModel) {
 private fun VolumeSlider(label: String, value: Float, onChange: (Float) -> Unit) {
     val p = LocalPalette.current
     val source = remember { MutableInteractionSource() }
+    val feedback by androidx.compose.runtime.rememberUpdatedState(LocalFeedback.current)
     val colors = SliderDefaults.colors(thumbColor = p.accent, activeTrackColor = p.accent, inactiveTrackColor = p.muted.copy(alpha = .35f))
     Column {
         Row { Label(label, 13.sp, weight = FontWeight.SemiBold); Spacer(Modifier.weight(1f)); Label("${(value * 100).toInt()}%", 13.sp, color = p.muted) }
@@ -336,7 +254,12 @@ private fun VolumeSlider(label: String, value: Float, onChange: (Float) -> Unit)
         Slider(value, onChange, interactionSource = source, colors = colors,
             thumb = { SliderDefaults.Thumb(source, colors = colors, thumbSize = DpSize(24.dp, 24.dp)) },
             track = { state -> SliderDefaults.Track(state, colors = colors, drawStopIndicator = null, thumbTrackGapSize = 0.dp) },
-            modifier = Modifier.semantics { contentDescription = "$label volume" })
+            // One swipe cue per touch, wherever it lands on the slider (track or thumb), seen before the slider takes it.
+            modifier = Modifier.pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false, pass = androidx.compose.ui.input.pointer.PointerEventPass.Initial); feedback(Cue.SWIPE)
+                }
+            }.semantics { contentDescription = "$label volume" })
     }
 }
 
@@ -349,13 +272,11 @@ fun AchievementsScreen(m: GameModel) {
     Page("Achievements") {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 for (badge in badges) {
-                    val earned = badge.id in m.earned; val progress = m.achievements.progress(badge, m.done)
+                    val earned = badge.id in m.earned; val progress = m.achievements.progress(badge, m.done, m.onlineStats)
                     val shape = RoundedCornerShape(16.dp)
                     Row(Modifier.fillMaxWidth().clip(shape).background(if (earned) lerp(p.paper2, p.accent, .14f) else p.paper).border(1.dp, if (earned) p.accent else p.line, shape).padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                        BadgeMark(badge, earned)
-                        Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
-                            Eyebrow(if (earned) "Earned" else "Locked")
+                            if (earned) Eyebrow("Earned")
                             Label(badge.name, 15.sp, weight = FontWeight.SemiBold)
                             Label(badge.requirement, 12.sp, color = p.muted)
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp)) {
@@ -364,7 +285,6 @@ fun AchievementsScreen(m: GameModel) {
                                 }
                                 Spacer(Modifier.width(8.dp)); Label("$progress / ${badge.goal}", 11.sp, color = p.muted)
                             }
-                            m.achievements.reward(badge)?.let { Label("Unlocks $it", 12.sp, Modifier.padding(top = 4.dp), color = p.accent) }
                         }
                     }
                 }
@@ -373,122 +293,41 @@ fun AchievementsScreen(m: GameModel) {
     }
 }
 
-/** Tile-finish choices: Options → Appearance. */
+/** The result: two text-free bars along the bottom (restart left, next right), in the page colours, with the solved board still visible above. GameScreen animates it in. */
 @Composable
-private fun CosmeticPicker(m: GameModel) {
-    val p = LocalPalette.current
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Label("Tile finish", 15.sp, weight = FontWeight.SemiBold)
-        // IntrinsicSize.Min + fillMaxHeight keeps both cards as tall as the longest caption.
-        Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            for (c in COSMETICS) {
-                val owned = m.achievements.owns(c, m.earned, m.dev); val on = m.finish == c.id
-                val shape = RoundedCornerShape(14.dp)
-                Column(Modifier.weight(1f).fillMaxHeight().clip(shape).background(p.paper).border(if (on) 3.dp else 2.dp, if (on) p.accent else p.line, shape)
-                    .then(if (owned) Modifier.clickable(role = Role.Button) { m.equip(c) } else Modifier.alpha(.45f).semantics { disabled() }).padding(10.dp)) {
-                    Box(Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(10.dp)).drawBehind { cosmeticPreview(c.id) })
-                    Label(c.name, 13.sp, Modifier.padding(top = 6.dp), weight = FontWeight.SemiBold)
-                    val badge = m.achievements.catalog.find { it.id == c.badge }
-                    Label(if (!owned) "Earn ${badge?.name ?: "a badge"}" else if (on) "Equipped" else c.description, 12.sp, color = p.muted)
-                }
-            }
-        }
-        Label("Keep your light or dark setting. Rewards change the look; your puzzle stays the same.", 12.sp, color = p.muted)
-    }
-}
-
-/** Badge mark drawn as line art (the old Unicode glyphs depended on whatever fallback font the phone had). World badges show their number. */
-@Composable
-private fun BadgeMark(badge: Badge, earned: Boolean) {
-    val p = LocalPalette.current
-    val ink = if (earned) p.accentInk else p.muted
-    Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(if (earned) p.accent else p.line), contentAlignment = Alignment.Center) {
-        if (badge.world > 0) Label("${badge.world}", 20.sp, color = ink, weight = FontWeight.SemiBold)
-        else Canvas(Modifier.size(22.dp)) { badgeIcon(badge.id, ink) }
-    }
-}
-
-private fun DrawScope.badgeIcon(id: String, c: Color) {
-    val u = size.width / 24f
-    val line = Stroke(1.8f * u, cap = StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round)
-    val mid = Offset(12 * u, 12 * u)
-    when (id) {
-        "first" -> { drawCircle(c, 9 * u, mid, style = line); drawCircle(c, 3 * u, mid) }
-        "flow" -> stroke(c, path { k -> moveTo(3 * k, 9 * k); quadraticTo(7.5f * k, 4 * k, 12 * k, 9 * k); quadraticTo(16.5f * k, 14 * k, 21 * k, 9 * k); moveTo(3 * k, 16 * k); quadraticTo(7.5f * k, 11 * k, 12 * k, 16 * k); quadraticTo(16.5f * k, 21 * k, 21 * k, 16 * k) })
-        "halfway" -> { drawCircle(c, 9 * u, mid, style = line); drawArc(c, 90f, 180f, true, Offset(3 * u, 3 * u), Size(18 * u, 18 * u)) }
-        "complete" -> sparkIcon(c)
-        "steady" -> polyline(c, 7f, 3f, 15f, 3f, 9f, 12f, 17f, 12f, 10f, 21f)
-        "first-clean" -> drawPath(androidx.compose.ui.graphics.Path().apply {
-            for (k in 0 until 10) { val r = if (k % 2 == 0) 10f else 4.3f; val a = Math.toRadians(-90.0 + k * 36.0); val x = 12f + r * kotlin.math.cos(a).toFloat(); val y = 12.5f + r * kotlin.math.sin(a).toFloat(); if (k == 0) moveTo(x * u, y * u) else lineTo(x * u, y * u) }
-            close() }, c)
-        "unbroken" -> { drawCircle(c, 6 * u, Offset(8.5f * u, 12 * u), style = line); drawCircle(c, 6 * u, Offset(15.5f * u, 12 * u), style = line) }
-        "flawless" -> stroke(c, path { k -> moveTo(12 * k, 3 * k); lineTo(20 * k, 12 * k); lineTo(12 * k, 21 * k); lineTo(4 * k, 12 * k); close() })
-        "clean-sweep" -> stroke(c, path { k -> moveTo(4 * k, 6 * k); lineTo(12 * k, 12 * k); lineTo(4 * k, 18 * k); close(); moveTo(20 * k, 6 * k); lineTo(12 * k, 12 * k); lineTo(20 * k, 18 * k); close() })
-        "pristine" -> for (cx in listOf(4f, 13.5f)) for (cy in listOf(4f, 13.5f)) drawRoundRect(c, Offset(cx * u, cy * u), Size(6.5f * u, 6.5f * u), CornerRadius(1.5f * u), style = line)
-        else -> drawCircle(c, 4 * u, mid)
-    }
-}
-
-private fun DrawScope.cosmeticPreview(id: String) {
-    drawRect(Color(0xFF26272A))
-    val s = size.height * .8f
-    tile('B', Offset((size.width - s) / 2, size.height * .1f), s, id)
-}
-
-@Composable
-fun OnlineScreen(m: GameModel) {
-    Page("Worlds", 420.dp) {
-        if (BuildConfig.ONLINE_DEMO) Eyebrow("Local preview · Everything stays on this device")
-        Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically)) {
-            MenuButton(m.online.user?.username ?: "Profile", height = 64.dp, fontSize = 17.sp) { m.openOnline(Route.Profile()) }
-            MenuButton("Create", height = 64.dp, fontSize = 17.sp) { m.push(Route.Create) }
-            MenuButton("Play", height = 64.dp, fontSize = 17.sp, onClick = { m.openOnline(Route.Casual) })
-            MenuButton("Find", height = 64.dp, fontSize = 17.sp) { m.openOnline(Route.Browse) }
-        }
-    }
-}
-
-@Composable
-fun PauseOverlay(m: GameModel) {
-    Overlay("Menu", { m.resume() }) {
-        Label("Menu", 24.sp, Modifier.semantics { heading() }, serif = true)
-        Label(m.community?.let { c -> "${c.grid.optString("worldName")} · Level ${c.grid.optInt("levelNumber")}" + if (m.spec.name != "Level ${c.grid.optInt("levelNumber")}") " · ${m.spec.name}" else "" } ?: "${m.levelTitle(m.level)} · ${m.spec.name}", 12.sp, Modifier.padding(top = 4.dp, bottom = 16.dp), color = LocalPalette.current.muted, align = TextAlign.Center)
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            MenuButton(if (m.solved) "View result" else "Resume", primary = true) { m.resume() }
-            MenuButton("Levels") { m.showLevels() }
-            MenuButton("Options") { m.push(Route.Options) }
-            MenuButton("Achievements") { m.push(Route.Achievements) }
-            MenuButton("Main Menu") { m.mainMenu() }
-        }
-    }
-}
-
-/** The result, docked under the board so the solved arrangement remains visible. */
-@Composable
-fun WinStrip(m: GameModel) {
-    val p = LocalPalette.current
+fun WinPopup(m: GameModel) {
     val final = m.level == m.levels.size - 1
-    val shape = RoundedCornerShape(24.dp)
+    val casual = m.community?.casual == true
+    val nextEnabled = if (casual) !m.online.busy else if (m.community != null || final) true else m.canAccess(m.level + 1)
+    val p = LocalPalette.current
+    val ink = p.ink
+    val shape = RoundedCornerShape(14.dp)
     Column(
-        Modifier.padding(top = 10.dp).widthIn(max = 420.dp).fillMaxWidth().clip(shape).background(p.paper2).border(1.dp, p.line, shape)
-            .semantics { paneTitle = "Grid solved"; liveRegion = LiveRegionMode.Polite }.padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, bottom = 24.dp)
+            .semantics { paneTitle = "Grid solved"; liveRegion = LiveRegionMode.Polite },
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Label("Grid solved", 26.sp, Modifier.padding(bottom = 12.dp).semantics { heading() }, serif = true, align = TextAlign.Center)
-        val badges = m.winBadges
-        if (badges.isNotEmpty()) {
-            Column(Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(14.dp)).background(p.paper).padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Label(if (badges.size == 1) "${badges[0].name} earned" else "${badges.size} achievements earned", 14.sp, weight = FontWeight.SemiBold)
-                Label(badges.mapNotNull { m.achievements.reward(it) }.joinToString(" · ").ifEmpty { "A new badge for your collection." }, 12.sp, color = p.muted, align = TextAlign.Center)
-                MenuButton("View collection →", Modifier.padding(top = 8.dp), height = 48.dp, fontSize = 12.sp) { m.push(Route.Achievements) }
-            }
+        m.winBadges.firstOrNull()?.let { badge ->
+            Label(badge.name, 12.sp, Modifier.heightIn(min = 32.dp).clip(shape).background(p.paper2).border(1.dp, p.line, shape)
+                .clickable(role = Role.Button, onClickLabel = "Open achievements") { m.feedback(Cue.CHECK); m.push(Route.Achievements) }
+                .semantics { contentDescription = "Achievement earned: ${badge.name}" }.padding(horizontal = 14.dp, vertical = 8.dp),
+                color = ink, weight = FontWeight.SemiBold)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            MenuButton("Replay", Modifier.weight(1f)) { m.restart() }
-            if (m.community?.casual == true) MenuButton("Next →", Modifier.weight(1f), primary = true, enabled = !m.online.busy) { m.next() }
-            else if (m.community != null) MenuButton("World", Modifier.weight(1f), primary = true) { m.next() }
-            else if (final) MenuButton("Choose level", Modifier.weight(1f), primary = true) { m.showLevels() }
-            else MenuButton("Next →", Modifier.weight(1f), primary = true, enabled = m.canAccess(m.level + 1)) { m.next() }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            WinButton("Restart level", Modifier.weight(1f), true, { m.restart() }) { restartIcon(ink) }
+            WinButton("Next level", Modifier.weight(1f), nextEnabled, { m.next() }) { polyline(ink, 4f, 12f, 20f, 12f); polyline(ink, 14f, 6f, 20f, 12f); polyline(ink, 14f, 18f, 20f, 12f) }
         }
+    }
+}
+
+@Composable
+private fun WinButton(label: String, modifier: Modifier, enabled: Boolean, onClick: () -> Unit, icon: DrawScope.() -> Unit) {
+    val feedback = LocalFeedback.current
+    val p = LocalPalette.current
+    val shape = RoundedCornerShape(14.dp)
+    Box(modifier.height(64.dp).alpha(if (enabled) 1f else .4f).clip(shape).background(p.paper2).border(1.dp, p.line, shape)
+        .then(if (enabled) Modifier.clickable(role = Role.Button, onClickLabel = label) { feedback(Cue.PRESS); onClick() } else Modifier.semantics { disabled() })
+        .semantics { contentDescription = label }, contentAlignment = Alignment.Center) {
+        Canvas(Modifier.size(28.dp)) { icon() }
     }
 }
