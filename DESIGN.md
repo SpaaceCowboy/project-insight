@@ -54,7 +54,7 @@ colors:
   tile-pearl-flat: "#E4ECDF"
 typography:
   wordmark:
-    fontFamily: "Source Sans 3, sans-serif"
+    fontFamily: "JetBrains Mono, monospace"
     fontSize: "29sp"
     fontWeight: 600
     lineHeight: 1.2
@@ -75,40 +75,40 @@ typography:
     fontWeight: 400
     lineHeight: 1.2
   button-hero:
-    fontFamily: "Source Sans 3, sans-serif"
+    fontFamily: "JetBrains Mono, monospace"
     fontSize: "17sp"
     fontWeight: 600
     lineHeight: 1.2
     letterSpacing: "0.05em"
   title:
-    fontFamily: "Source Sans 3, sans-serif"
+    fontFamily: "JetBrains Mono, monospace"
     fontSize: "16sp"
     fontWeight: 600
     lineHeight: 1.2
     letterSpacing: "0.04em"
   button:
-    fontFamily: "Source Sans 3, sans-serif"
+    fontFamily: "JetBrains Mono, monospace"
     fontSize: "14sp"
     fontWeight: 600
     lineHeight: 1.2
     letterSpacing: "0.05em"
   body:
-    fontFamily: "Source Sans 3, sans-serif"
+    fontFamily: "JetBrains Mono, monospace"
     fontSize: "14sp"
     fontWeight: 400
     lineHeight: 1.2
   label:
-    fontFamily: "Source Sans 3, sans-serif"
+    fontFamily: "JetBrains Mono, monospace"
     fontSize: "12sp"
     fontWeight: 600
     lineHeight: 1.2
   support:
-    fontFamily: "Source Sans 3, sans-serif"
+    fontFamily: "JetBrains Mono, monospace"
     fontSize: "12sp"
     fontWeight: 400
     lineHeight: 1.2
   eyebrow:
-    fontFamily: "Source Sans 3, sans-serif"
+    fontFamily: "JetBrains Mono, monospace"
     fontSize: "11sp"
     fontWeight: 700
     lineHeight: 1.2
@@ -293,7 +293,7 @@ The backdrop is a 165° three-stop base with two radial glows (top-left at 65% a
 ## Typography
 
 **Display / Headline Font:** Source Serif 4 (fallback: system serif)
-**Body / Label Font:** Source Sans 3 (fallback: system sans-serif)
+**Body / Label Font:** JetBrains Mono (fallback: system monospace)
 
 **Character:** A literary serif for the moments the player pauses on, and a humanist sans for everything they touch. The serif is always regular weight (400); it never shouts in bold. The sans does the work at 600.
 
@@ -327,7 +327,7 @@ Portrait only (`screenOrientation="portrait"`), edge-to-edge, with transparent s
 |---|---|
 | Home | 360dp (and max 760dp tall) |
 | Online, overlay sheet | 420dp |
-| Worlds | 460dp |
+| Worlds | 560dp |
 | Options | 520dp |
 | Creator | 560dp |
 | Default `Page` (Levels, Achievements) | 640dp |
@@ -456,3 +456,96 @@ A 125dp 3×3 of tiles rotated −9°, with the outer columns floating ±4dp out 
 ## Android v0.1.9 implementation notes
 
 Theme.kt defines the shipped neutral light/dark palettes. Original and Pristine-unlocked Obsidian are the only tile finishes; the background has no selectable cosmetics. Obsidian uses charcoal/black bodies and saturated coloured symbols, with a white designator for White. Buttons and selectable cards have 2dp borders, selected states 3dp. Creator previews and level-card numbers are centered. Gameplay targets use 13dp cells, 2.6dp gaps and 6.5dp panel padding. The result has one Grid solved heading; the 900ms solve wave fades over 350ms and reduced motion skips it. This snapshot retains the original world-based campaign and community navigation.
+
+
+## Problem 15 — Main menu and launcher
+
+The home header has an Options line icon physically left, the centered INSIGHT wordmark, and a Profile line icon physically right, including in RTL. Icons are 20dp inside labelled 48dp touch targets; a 2dp accent outline appears on keyboard focus. The wordmark fits the available header width at enlarged font sizes. Journey and Worlds remain a centered stack with the existing 56/64dp responsive button heights and 10/14dp gaps; Worlds retains its crystal glow. The hero grid, Continue, central Options and footer cubes are removed. The spark artwork remains in achievement badges.
+
+Journey resumes the active account's unfinished campaign save, otherwise opens the first accessible unsolved level, or the v0.2.0 level selector after full completion. The pause menu retains Levels and Achievements. Only the user's own profile achievement-count row opens their collection. Profile still requires login.
+
+The installed labels are Insight / Insight Preview. The adaptive launcher uses one Original Pearl tile on the existing dark ground: the game's gradient, sheen, dark ring and four ticks. A separate alpha-only Pearl designator supports themed launcher icons. The in-game INSIGHT wordmark remains uppercase.
+
+The v0.2.1 recovery retains the flat v0.2.0 campaign selector and community collections. Campaign names are global Level NN labels. Options includes the interactive rulebook; Make publishes a puzzle directly using its saved construction proof.
+
+## Android v0.2.3 gameplay and collection updates
+
+Gameplay uses Options and Profile shortcuts above an unframed target and the board. Holding empty space restarts an unfinished attempt after 450ms; the outline and tile rewind respect reduced motion, and feedback respects Haptics. A screen-reader restart action is available without requiring the gesture. Wins use a modal overlay with a 96dp next action, 48dp replay action, and an earned-badge shortcut. Back returns to the appropriate collection; finishing the campaign returns to the campaign selector. Collection cards are square with equal miniature tile sizes across boards, a number below, and solved-state glows; number space scales with text size. Rulebook practice resumes across tab changes during the current session. The launcher fills its mask with the Pearl tile gradient and a larger designator.
+
+## Android v0.2.2 Options
+
+Options has Options / Rulebook / About tabs. Options combines play, sound, theme, and Colourblind mode controls; About contains version, licences, and debug developer controls. Tile finishes, reward instructions, and Reset progress are removed. Badges remain permanent. Colourblind mode uses the alternative palette from Claude's changes and dark ink on Yellow, while preserving every tile's symbol. Targets and creator tiles use the same palette. Rulebook places six tile rules above a free 3×3 board, using the gameplay board's controls and feedback without a target or progress changes. The rules scroll when they exceed their space, including at enlarged text sizes; the practice board stays visible.
+
+## Game screen (Problem 17; supersedes the older game-board, pause, result and level-cell notes above)
+- **Header:** Options (top-left) and Profile (top-right) icons, the same as Home. No Menu, Restart or pause sheet. System Back goes Game → Levels → Home (community games return to their list).
+- **Restart:** touch and hold anywhere that is not a tile or a button. The board outline glows over about 450ms, then the tiles slide back to the start in about 320ms.
+- **Target:** the bare miniature; no panel, no "Target" eyebrow and no level title above it. Community games keep only the small "By <creator>" button.
+- **Result:** no particles and no card. A scrim holds a big white circle (next level, arrow) with a smaller white circle below (restart); a small badge mark sits above when a badge was just earned. No text.
+- **Level and puzzle cards:** square, four per row, one miniature tile size for the whole list, number at the bottom centre, no Locked/Solved text. Solved cards glow; locked cards are dimmed.
+
+## Worlds (Problem 18)
+- **One screen:** Home → Worlds opens the community puzzle grid directly (guests sign in first). No hub of buttons and no separate Find screen.
+- **Header:** Options top-left, Profile top-right (same icons as Home and the game), and a split capsule in the middle. Left half toggles puzzles / players; right half (↕) opens the sort sheet, which also holds search and Open code.
+- **Grid:** the same four-column square cards as Levels, one miniature size for all (5x5 fit). Tap plays; long-press opens puzzle details (creator, counts, code). Solved puzzles glow; hidden or moderated ones are dimmed.
+- **Players:** the toggle swaps the grid for a list of players (level, designed, solved); a row opens that profile.
+- **Bottom:** Random (left) and Create (right).
+
+## Creator (Problem 19)
+- **One button:** a single full-width button walks the phases: Start (fix the start grid) → Target (fix the target) → Create (publish). System Back steps back Create → Target → Start, then leaves.
+- **No instructions:** the line above the strip only shows a refusal or result ("Place at least two tiles first.", "Puzzle created.").
+- **Strip:** tile palette while building, empty while choosing the target, the target miniature while testing.
+- **Slots:** empty cells are one unbroken rounded outline over a faint fill.
+- **Resize:** the drawn size follows rows x cols over about 170ms; new cells grow in, removed cells shrink out, and the grid glides to stay centred.
+- **Hold outside the grid:** the outline glows as in the game, then building clears every tile, choosing the target slides back to the start grid, and testing restarts the puzzle.
+
+## Profile, refresh and Random (Problem 20)
+- **Profile:** one card with the username and level centred, a 12dp one-piece progress bar filled to exactly the share of the level reached (no gap, no end marker), and Puzzles created / Puzzles solved (solved counts campaign and community). Achievements below, then the player's puzzles in the same four-column cards as Levels and Worlds. Log out is an icon top-right on your own profile.
+- **Pull to refresh:** profile, Worlds puzzles and the players list refresh by pulling down; the content drops slightly, a small spinner turns, then it springs back. There are no Refresh, Retry or Try again buttons.
+- **Random:** loads in the background and opens the game directly; Back returns to Worlds. No loading screen.
+
+## Polish hotfixes (Problem 21)
+- **Options:** no section headings and no explanation lines. Haptics, Sound, Ambience, Effects, Theme and Colourblind mode are plain rows; Developer mode (debug only) sits in About without a heading. "Pause ambience over other audio" and "Silence when headphones unplug" are removed: ambience plays whenever Sound is on, and unplugging headphones does not silence it.
+- **Home:** the header (Options, INSIGHT, Profile) stays on top; Journey fills the top half and Worlds the bottom half of the remaining space.
+- **Levels:** no on-screen title. The campaign is exactly 200 levels.
+- **Win:** no modal. Two equal white rectangles slide up at the bottom: restart (left) and next (right), icons only. A newly earned achievement shows as a small white pill with its name above them; it opens Achievements.
+- **Community game:** the creator is plain muted text above the target, "username N" (N = that creator's puzzle number); tapping it opens the profile.
+- **Worlds cards:** numbered 1, 2, 3… by position in the current sort, not by the creator's puzzle number. Long-press details show only By username, Code, Copy code, Share code and Close.
+- **Players:** one compact row each: username, then "Lv N", "N made", "N solved".
+- **Sort sheet:** no title, no "Created" heading and no UTC note; a divider separates Most played / Newest from the date filters. The puzzle search reads "Search creator or code".
+- **Loading:** no "Loading…" or "Working…" text anywhere; screens and lists appear when their data arrives, and empty states show only after a load finishes.
+- **Achievements:** text-only rows (no marks): First Level, 30, 60, 90, 120, 150 and 180 Levels, and All 200 Levels. Retired badge ids stay in saves but are not shown or counted.
+
+## Haptics and sound (Problem 22)
+- **Haptic:** every touch gives one 6 ms one-shot vibration (`VibrationEffect.createOneShot(6, DEFAULT_AMPLITUDE)`), the same on simple and high-definition actuators, and only while Haptics is on. Compose's generic haptic types are no longer used.
+- **Sounds:** the uisfx "zen" pack (CC0, uisfx.com), Ogg Opus on Android 10+ and MP3 before. Effects follow the Effects volume and Sound; the forest and mountain ambience is unchanged. The old tile notes and select/move/deny/win effects are gone.
+- **Cues:** drag start = touching a tile (game, Rulebook, creator); reorder = hold-to-restart and creator reset; invalid drop = an illegal move; start = Profile icon and the creator's Start; stop = Options icon; processing = loop while the creator is open; toggle on/off = Options switches; swipe = touching a volume slider; focus = Options tabs; long press = puzzle details; check = Light/Dark, Licences, Achievements, a player or creator name, and the details sheet's buttons; delete = Log out; select = opening a level or puzzle card; back = system Back; forward = Journey and Worlds; press = Sort, the players/puzzles toggle, Create, Random, the creator's resize handle and other plain buttons; seek = Target; unlock = Create (publish); success = a solved grid. A tile landing after a swap is haptic only.
+
+## Journey, social and polish (Problem 23)
+- **Journey:** Journey opens the game directly (stack Home → Game). "Journey N" above the target opens the level screen on top; its header has Options, "Now Playing" (back to the level) and Profile. Back goes Levels → Game → Home. The level screen stays composed, invisible, under a Journey game so it opens instantly.
+- **Targets and minis:** no arrows on any miniature (game and creator targets, level, Worlds and profile cards). The game and creator targets are 16dp per tile (+25%).
+- **Board outline:** game, Rulebook and creator share one height (65% of the screen since Problem 24, never more than the room), anchored to the bottom so it is shorter from the top.
+- **Creator:** Start drops empty outer rows and columns, so a puzzle is only as big as the tiles it uses.
+- **Offline:** Worlds and Profile never show connection dialogs or messages. Worlds shows a red dot over Profile; Profile shows a crossed-out signal top-left. Pulling down retries.
+- **Profile:** appears all at once (card, rows, puzzles). The card adds Followers and Daily streak. Other players have a Follow / Following button. Your own profile lists Bookmarked puzzles and Following players under Achievements (no arrow). Log out asks in a tiny popup beside the icon.
+- **Worlds:** player rows read "Level N · Designed N · Solved N". Most popular (likes) sorts puzzles; Most popular puzzles sorts creators by likes received in the chosen period. Long-press details are one row: creator, code, small Copy and Share; Back closes it. Pull-to-refresh shows a plain ring, no arrow.
+- **Online play:** a heart (like, not on your own puzzles) under Options and a bookmark under Profile. In Random, swiping right on empty space skips to a new puzzle. Next after solving a Worlds or profile puzzle plays the next one in that list.
+- **Achievements:** First Online Puzzle and 10/20/50/100/200/500/1000 Online Puzzles; First / 10 / 20 Puzzles Designed; 7/14/30/50/70/100-Day Streak. A day counts when any puzzle is solved, by the player's local date. "Locked" is gone; earned rows say Earned.
+
+## Polish (Problem 24)
+- **Feedback:** Options → About has Share feedback and Report a bug. Each opens a page with one large text box and a centred Send; the text goes to the server, which mails it to the team. "Sent. Thank you." shows briefly, then Back to About.
+- **Profile:** Bookmarked, Following and Followers are rows under Achievements (with counts, no arrows), each opening its own list screen; the profile itself shows only the card, the rows and the player's puzzles.
+- **Swiping:** in Random and in puzzles opened from Worlds, a profile or Bookmarked, swiping right to left on empty space plays the next puzzle in that list and left to right the previous one; at either end the swipe is refused. Random keeps a trail for the visit, so swiping back returns to its first puzzle; pressing Random again starts a new trail. Journey has no swipe.
+- **Dropping tiles:** a dragged tile swaps only when its centre is over a cell it can swap with (within 0.6 of a cell of that cell's centre). Heading in the right direction is no longer enough. The creator uses the same rule after Start.
+- **Sound:** turning Sound off plays its off cue before muting. Touching a volume slider anywhere (track or thumb) plays the swipe cue.
+- **Board outline:** 65% of the screen height.
+- **Cards:** the mini sits in the exact centre of each level and puzzle card; the number is lower, along the bottom edge.
+- **Win bar:** grows in from below while the board area shrinks, so the outline lifts with it. The bars and achievement chip use the page colours (dark or light) instead of white. The sort sheets have no Done button; swipe down or Back closes them.
+- **Worlds pill:** players are shown by a two-person icon (not the Profile icon); puzzles by four outlined squares at the same size as the other icons.
+- **Creator:** the Start / Target / Create button grows (56–120dp tall, full width) to fill the space under the board.
+
+## Type and raised buttons (Problem 25)
+- **Type:** JetBrains Mono (OFL, bundled Regular, SemiBold, Bold and ExtraBold) replaces Source Sans 3 everywhere the sans was used; Source Serif 4 stays for names and titles. Journey and Worlds are ExtraBold at 30sp.
+- **Raised buttons:** Journey, Worlds and every corner icon (Options, Profile, Like, Bookmark, Log out) are minimal "plush" faces on a soft shadow, with a faint light top and darker bottom edge in the page colours. Touching one sinks it about 3dp, shrinks it slightly and almost flattens its shadow; it springs back on release. No ripple. With reduce motion the press is instant.
+- **Icon motion:** pressing Options slides each slider knob to where the other one sits, and it stays there while Options opens; pressing Profile lifts the head, which bobs back on release.
+- **Screens:** Options and every Profile rise from the bottom over the screen they were opened from (320ms), on their own opaque page, and sink back down on Back. Other screens switch instantly.
+- **Worlds glow:** the crystal halo and glint are gone; Journey and Worlds are identical.

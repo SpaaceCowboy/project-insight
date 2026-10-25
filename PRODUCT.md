@@ -21,8 +21,8 @@ The rules are the tiles themselves: each colour moves in its own fixed direction
 ## Operating Context
 
 - Native Android port (Kotlin + Jetpack Compose) of the web game in `../project-insight`, which it never modifies. Level data and sounds are imported from it with `tools/export-assets.mjs`.
-- Campaign: 206 levels across 11 worlds (20 per world, 6 in world 11). Solving a level unlocks the next.
-- Achievements: a permanent collection of campaign and skill badges. Pristine unlocks Obsidian; other badges have no cosmetic rewards.
+- Campaign: 200 levels. Solving a level unlocks the next.
+- Achievements: eight text-only campaign milestones (first level, every 30 levels, all 200). Badges have no cosmetic rewards; tile finishes are removed in v0.2.2.
 - A level creator (Create) for building start and target arrangements.
 - Sound is part of the experience: each tile colour plays a pitched note from one pentatonic scale, with ambience, effects and an optional spoken celebration, each with its own setting.
 
@@ -30,15 +30,15 @@ The rules are the tiles themselves: each colour moves in its own fixed direction
 
 - **Portrait only.**
 - **No undo on Android, deliberately.** Every solve counts as a clean solve, so the no-undo badges behave differently from the web game. This is intentional and should not be "fixed".
-- **Gameplay fits on one screen.** No tutorials, help dialogs, rule explanations or legal-destination hints, by explicit decision on the web game, carried into the port. Players learn the rules by playing.
+- **Gameplay fits on one screen.** Options → Rulebook explains the six tile rules with a practice board outside the puzzle flow. Practice never changes campaign progress or awards badges.
 - **No pressure mechanics:** no move limits, timers or star ratings. The web game removed stars and tile limits in revision 3.
 - **Dev Mode** (all levels unlocked, achievements paused) exists only in debug builds.
-- **Private Online test:** verified email/password accounts, profiles, community worlds and grids, legal-solution publishing, discovery, code lookup, and server-owned XP. The creator's Make step publishes a successfully checked grid. Guests retain the campaign and local creator.
+- **Private Online test:** verified email/password accounts, profiles, community worlds and grids, legal-solution publishing, discovery, code lookup, and server-owned XP. The creator's Create step publishes a successfully checked grid. Guests retain the campaign and local creator.
 - **Local Online preview:** a separate installable build demonstrates the same flows on-device with labelled sample players/worlds. It makes no network calls and is not a real account service.
-- **Deferred:** Casual, What's Next, profile search, additional discovery filters, and billing.
+- **Deferred:** What's Next, profile search, additional discovery filters, and billing.
 - **Distribution:** Google Play. The campaign is free. Online play is the paid part. The purchase mechanism (IAP and its price) is undecided.
 - `applicationId` `com.insightpuzzle.app` becomes permanent once published.
-- Online menu order: Profile, Create, Casual (Coming soon), Play. World/grid titles use curated English word combinations and six tile icons. Registration requires no invitation. Players choose free-text unique nicknames (1–32 characters, case-insensitive) without a generated suffix, and can change them on their profile. Worlds hold at most 20 immutable published grids, including hidden grids; owners can rename and hide/restore content.
+- Worlds is one screen: a four-column grid of community puzzles (toggle to a players list, sort/search sheet), with Random and Create at the bottom and Options/Profile in the corners. World/grid titles use curated English word combinations and six tile icons. Registration requires no invitation. Players choose free-text unique nicknames (1–32 characters, case-insensitive) without a generated suffix, and can change them on their profile. Worlds hold at most 20 immutable published grids, including hidden grids; owners can rename and hide/restore content.
 - Completed community grids show a small themed checkmark and Solved badge, with Play again available. Completion history is separate from campaign progress, persists per account, and is restored after login.
 - Level 100 requires 106,920 XP. First verified solve: 100 XP; replay: 10 XP once per content/day, up to 50 daily; original publication: 25 XP, up to 50 daily; distinct other player/grid: 0.001 XP after a legal move. Existing progress/badges import without XP. Campaign and community progress remain separate.
 
@@ -51,7 +51,7 @@ The rules are the tiles themselves: each colour moves in its own fixed direction
 
 ## Evidence on Hand
 
-- 206 levels with verified optimal solutions, replayed by `./gradlew testDebugUnitTest`.
+- 200 levels with verified optimal solutions, replayed by `./gradlew testDebugUnitTest`.
 - Difficulty audit of Game 2 against published puzzle-difficulty research, in `../project-insight/level-design.md`.
 - A five-person playtest protocol in `../project-insight/playtest.md`. **No human playtest has been run yet.** Do not claim player feedback, ratings, reviews or download numbers.
 
