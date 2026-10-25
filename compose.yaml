@@ -32,6 +32,8 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       MAIL_FROM: ${MAIL_FROM:-INSIGHT <accounts@localhost>}
+      FEEDBACK_TO: ${FEEDBACK_TO:-Insight.correspondence@gmail.com}
+      FEEDBACK_DELIVERY_MODE: ${FEEDBACK_DELIVERY_MODE:-store}
       MAIL_DELIVERY_MODE: ${MAIL_DELIVERY_MODE:-smtp}
       TRUST_PROXY: ${TRUST_PROXY:-}
     command: ["sh", "-c", "node dist/migrate.js && exec node dist/main.js"]

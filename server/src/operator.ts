@@ -25,7 +25,7 @@ try {
     // Deliberate operator credential output. Redirect to a chmod-600 file; never application logs.
     process.stdout.write(JSON.stringify({ email, password, userId, username }) + '\n');
   } else {
-    requireValue(subject && /^[0-9a-f-]{36}$/i.test(subject), 'USAGE', 'Usage: operator invite | hide-world ID | hide-grid ID | suspend ID');
+    requireValue(subject && /^[0-9a-f-]{36}$/i.test(subject), 'USAGE', 'Usage: operator invite | hide-grid ID | suspend ID');
     const sql: Record<string, string> = {
       'hide-world': 'UPDATE worlds SET moderated=true WHERE id=$1',
       'hide-grid': 'UPDATE grids SET moderated=true WHERE id=$1',

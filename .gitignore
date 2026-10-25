@@ -17,5 +17,6 @@ server/dist/
 server/.env
 tls/
 secrets/
+server/.seed-community/
 backups/
 acme/

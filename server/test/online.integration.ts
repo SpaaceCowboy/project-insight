@@ -39,43 +39,20 @@ function custom(n = 0) {
   [cells[0], cells[5]] = [cells[5]!, cells[0]!];
   return { start, target: Array.from({ length: 5 }, (_, r) => cells.slice(r * 5, r * 5 + 5).join('')), path: [[0, 5]] as Move[] };
 }
-async function draft(account: any, n = 1) { return call('POST', '/v1/grids/drafts', { operationId: op(), name: 'Quiet Cove', ...custom(n) }, account); }
-async function world(account: any) { return call('POST', '/v1/worlds', { operationId: op(), name: 'Calm Pool', icon: 'R' }, account); }
-async function complete(account: any, levelId: number, operationId = op()) { return call('POST', '/v1/completions', { operationId, kind: 'campaign', levelId, path: routes[levelId - 1] }, account); }
 
-test('two accounts publish, discover, play, earn XP, and expose only public profile fields', async () => {
-  const creator = await makeAccount(); const player = await makeAccount(); const w = await world(creator); const d = await draft(creator);
-  const publish = { operationId: op(), worldId: w.id };
-  const published = await call('POST', `/v1/grids/${d.id}/publish`, publish, creator);
-  assert.equal(published.awardedMilli, '25000');
-  assert.deepEqual(await call('POST', `/v1/grids/${d.id}/publish`, publish, creator), published);
-  const found = await call('GET', '/v1/worlds?query=Calm', undefined, player); assert.equal(found.items[0].id, w.id);
-  const session = await call('POST', `/v1/grids/${d.id}/sessions`, { operationId: op() }, player);
-  assert.equal((await call('GET', `/v1/worlds/${w.id}/grids`, undefined, player)).items[0].completed, false);
-  const proof = { operationId: op(), kind: 'community', sessionId: session.sessionId, path: custom(1).path };
-  const result = await call('POST', '/v1/completions', proof, player); assert.equal(result.awardedMilli, '100000');
-  assert.deepEqual(await call('POST', '/v1/completions', proof, player), result);
-  assert.equal((await call('GET', `/v1/worlds/${w.id}/grids`, undefined, player)).items[0].completed, true);
-  assert.equal((await call('GET', `/v1/worlds/${w.id}/grids`, undefined, creator)).items[0].completed, false);
-  const playerProgress = await call('GET', '/v1/progress', undefined, player);
-  assert.deepEqual(playerProgress.communityDone, [d.id]); assert.deepEqual(playerProgress.done, []);
-  const ownerProfile = await call('GET', `/v1/profiles/${creator.user.id}`, undefined, player);
-  assert.equal(ownerProfile.xpMilli, '25001'); assert.equal(ownerProfile.worldCount, 1); assert.equal(ownerProfile.gridCount, 1);
-  assert.equal('email' in ownerProfile, false); assert.equal('password_hash' in ownerProfile, false);
-  assert.equal((await call('GET', '/v1/worlds', undefined, player)).items[0].popularity, 1);
-  await call('POST', `/v1/play-sessions/${session.sessionId}/move`, { operationId: op(), path: custom(1).path }, player);
-  assert.equal((await call('GET', `/v1/profiles/${creator.user.id}`, undefined, creator)).xpMilli, '25001');
-  const replayed = await call('POST', '/v1/completions', { ...proof, operationId: op() }, player); assert.equal(replayed.awardedMilli, '10000');
-  assert.equal((await call('POST', '/v1/completions', { ...proof, operationId: op() }, player)).awardedMilli, '0');
-  const ownSession = await call('POST', `/v1/grids/${d.id}/sessions`, { operationId: op() }, creator);
-  assert.equal((await call('POST', '/v1/completions', { ...proof, operationId: op(), sessionId: ownSession.sessionId }, creator)).awardedMilli, '0');
-  assert.equal((await call('GET', `/v1/profiles/${player.user.id}`, undefined, player)).communityCount, 1);
-  await call('PATCH', `/v1/grids/${d.id}`, { operationId: op(), name: 'Soft Tide', hidden: true }, player, 404);
-  await call('PATCH', `/v1/grids/${d.id}`, { operationId: op(), name: 'Soft Tide', hidden: true }, creator);
-  await call('POST', `/v1/grids/${d.id}/sessions`, { operationId: op() }, player, 404);
-  await call('GET', `/v1/grids/code/${d.code}`, undefined, player, 404);
-  await call('PATCH', `/v1/grids/${d.id}`, { operationId: op(), name: 'Soft Tide', hidden: false }, creator);
-  assert.equal((await call('GET', `/v1/grids/code/${d.code}`, undefined, player)).grid.id, d.id);
+async function create(account: any, n=1, operationId=op()) { return call('POST','/v1/grids',{operationId,...custom(n)},account); }
+async function complete(account: any, levelId: number, operationId=op()) { return call('POST','/v1/completions',{operationId,kind:'campaign',levelId,path:routes[levelId-1]},account); }
+test('older APK imports retain current progress without retired IDs or XP', async () => {
+  const account = await makeAccount();
+  const request = { operationId: op(), done: Array.from({length:206},(_,i)=>i+1), badges: ['first','first-clean','world-1','world-11','pristine','complete'] };
+  const accepted = await call('POST','/v1/progress/import',request,account);
+  assert.deepEqual(await call('POST','/v1/progress/import',request,account),accepted);
+  const progress = await call('GET','/v1/progress',undefined,account);
+  assert.equal(progress.done.length,200); assert.equal(progress.xpMilli,'0');
+  assert.deepEqual(progress.badges.sort(),['first','levels-30','levels-60','levels-90','levels-120','levels-150','levels-180','complete'].sort());
+  assert.equal((await call('GET',`/v1/profiles/${account.user.id}`,undefined,account)).campaignCount,200);
+  await call('POST','/v1/progress/import',{operationId:op(),done:[207],badges:[]},account,400);
+  await call('POST','/v1/progress/import',{operationId:op(),done:[],badges:['unknown']},account,400);
 });
 
 test('campaign imports grant no XP, completion retries deduplicate, replay caps serialize', async () => {
@@ -93,20 +70,6 @@ test('campaign imports grant no XP, completion retries deduplicate, replay caps 
   assert.equal((await complete(a, 1)).awardedMilli, '10000');
   const progress = await call('GET', '/v1/progress', undefined, a); assert.equal(progress.done.length, 6); assert.ok(progress.badges.includes('first'));
   await call('POST', '/v1/completions', { operationId: op(), kind: 'campaign', levelId: 1, path: routes[0], debug: true }, a, 400);
-});
-
-test('world twentieth-slot race is atomic; hidden grids retain their slots', async () => {
-  const a = await makeAccount(); const w = await world(a);
-  const drafts = [];
-  for (let n = 1; n <= 21; n++) drafts.push(await draft(a, n));
-  for (const d of drafts.slice(0, 19)) await call('POST', `/v1/grids/${d.id}/publish`, { operationId: op(), worldId: w.id }, a);
-  const responses = await Promise.all(drafts.slice(19).map(d => app.inject({ method: 'POST', url: `/v1/grids/${d.id}/publish`, headers: { authorization: `Bearer ${a.accessToken}` }, payload: { operationId: op(), worldId: w.id } })));
-  assert.deepEqual(responses.map(r => r.statusCode).sort(), [200, 409]);
-  await call('PATCH', `/v1/grids/${drafts[0].id}`, { operationId: op(), name: 'Quiet Cove', hidden: true }, a);
-  const failed = responses.findIndex(r => r.statusCode === 409);
-  await call('POST', `/v1/grids/${drafts[19 + failed].id}/publish`, { operationId: op(), worldId: w.id }, a, 409);
-  const worlds = await call('GET', '/v1/worlds?mine=true', undefined, a); assert.equal(worlds.items.find((x: any) => x.id === w.id).usedSlots, 20);
-  assert.equal((await db.query("SELECT coalesce(sum(amount),0)::text AS xp FROM xp_ledger WHERE user_id=$1 AND reason='create'", [a.user.id])).rows[0].xp, '50000');
 });
 
 test('password-only registration, refresh recovery, and revocation', async () => {
@@ -134,7 +97,7 @@ test('email verification is not required, login is throttled, and OpenAPI is ava
   assert.equal(malformed.statusCode, 400);
   assert.equal(malformed.json().code, 'INVALID_REQUEST');
   const a = await makeAccount(); await db.query('UPDATE users SET verified=false WHERE id=$1', [a.user.id]);
-  await call('GET', '/v1/worlds', undefined, a);
+  await call('GET', '/v1/grids', undefined, a);
   for (let n = 0; n < 8; n++) await call('POST', '/v1/auth/login', { email: 'unknown@example.test', password: 'bad' }, undefined, 401, '192.0.2.1');
   await call('POST', '/v1/auth/login', { email: 'unknown@example.test', password: 'bad' }, undefined, 429, '192.0.2.1');
   const spec = await call('GET', '/docs/json'); assert.ok(spec.paths['/v1/completions']);
@@ -161,217 +124,188 @@ test('open registration, Unicode unique nicknames, concurrent claims and idempot
   await call('POST', '/v1/auth/register', { email: `${op()}@example.test`, password: 'long-test-password', name: 'Another player' });
 });
 
-function unfinished(p: Puzzle): Move[] {
-  const length = p.start.length * p.start[0]!.length;
-  for (let a = 0; a < length; a++) for (let b = 0; b < length; b++) {
-    try { if (replay(p, [[a,b]], false).join('') !== p.target.join('')) return [[a,b]]; } catch { /* Try another legal move. */ }
-  }
-  throw new Error('Fixture needs an unfinished legal move');
-}
-async function publishIn(account: any, w: any, n = 40) {
-  const d = await draft(account, n);
-  await call('POST', `/v1/grids/${d.id}/publish`, { operationId: op(), worldId: w.id }, account);
-  return d;
-}
-
-test('creator discovery aggregates profiles, ranks all modes and respects visibility and literal search', async () => {
-  const a = await makeAccount(); const b = await makeAccount(); const viewer = await makeAccount();
-  const tag = `Rank ${op().slice(0,8)}`;
-  await call('PATCH', '/v1/account/name', {operationId:op(), name:`${tag} A%_\\`}, a);
-  await call('PATCH', '/v1/account/name', {operationId:op(), name:`${tag} B`}, b);
-  const wa = await world(a); const wb = await world(b);
-  await publishIn(a,wa,41); await publishIn(b,wb,42); await publishIn(b,wb,43);
-  await complete(a,1); await complete(a,2); await complete(b,3);
-  // Completing campaign-identical community content must not inflate the profile's solved count.
-  const same = await call('POST','/v1/grids/drafts',{operationId:op(),name:'Quiet Cove',start:campaign[0]!.start,target:campaign[0]!.target,path:routes[0]},b);
-  await call('POST',`/v1/grids/${same.id}/publish`,{operationId:op(),worldId:wb.id},b);
-  const play = await call('POST',`/v1/grids/${same.id}/sessions`,{operationId:op()},a);
-  await call('POST','/v1/completions',{operationId:op(),kind:'community',sessionId:play.sessionId,path:routes[0]},a);
-  const root = `/v1/creators?query=${encodeURIComponent(tag)}`;
-  for (const [sort, expected] of [['level',a.user.id],['designed',b.user.id],['played',a.user.id]]) {
-    const result = await call('GET',`${root}&sort=${sort}`,undefined,viewer);
-    assert.equal(result.items[0].id,expected);
-    for (const row of result.items) {
-      const profile = await call('GET',`/v1/profiles/${row.id}`,undefined,viewer);
-      for (const key of ['level','xpMilli','gridCount','worldCount','beatenCount']) assert.equal(row[key],profile[key],key);
-      assert.equal('email' in row,false); assert.equal('password_hash' in row,false);
-    }
-  }
-  for (const literal of ['%','_','\\']) {
-    const result = await call('GET',`/v1/creators?query=${encodeURIComponent(`${tag} A${literal === '%' ? '%' : literal === '_' ? '%_' : '%_\\'}`)}`,undefined,viewer);
-    assert.deepEqual(result.items.map((r:any)=>r.id),[a.user.id]);
-  }
-  await call('GET',`${root}&sort=unsupported`,undefined,viewer,400);
-  await db.query('UPDATE worlds SET hidden=true WHERE id=$1',[wb.id]);
-  assert.deepEqual((await call('GET',root,undefined,viewer)).items.map((r:any)=>r.id),[a.user.id]);
-  await db.query('UPDATE worlds SET hidden=false,moderated=true WHERE id=$1',[wb.id]);
-  assert.deepEqual((await call('GET',root,undefined,viewer)).items.map((r:any)=>r.id),[a.user.id]);
-  await db.query('UPDATE worlds SET moderated=false WHERE id=$1',[wb.id]);
-  await db.query('UPDATE users SET suspended=true WHERE id=$1',[a.user.id]);
-  assert.deepEqual((await call('GET',root,undefined,viewer)).items.map((r:any)=>r.id),[b.user.id]);
+test('worldless creation is atomic, needs only construction proof, and retries do not duplicate puzzles or XP',async()=>{
+ const owner=await makeAccount(), viewer=await makeAccount(), operationId=op();
+ const a=await create(owner,4,operationId);
+ assert.equal(a.levelNumber,1); assert.equal(a.awardedMilli,'25000');
+ assert.deepEqual(await create(owner,4,operationId),a);
+ assert.equal((await call('GET','/v1/progress',undefined,owner)).communityDone.length,0);
+ assert.equal((await call('GET',`/v1/profiles/${owner.user.id}`,undefined,viewer)).gridCount,1);
+ const listing=await call('GET',`/v1/grids?owner=${owner.user.id}&sort=number`,undefined,viewer);
+ assert.equal(listing.items[0].id,a.id); assert.equal(listing.items[0].completed,false);
+ for(const key of ['name','worldId','worldName']) assert.equal(key in listing.items[0],false);
+ assert.equal((await call('GET',`/v1/grids/code/${a.code}`,undefined,viewer)).grid.id,a.id);
+ await call('POST','/v1/grids',{operationId:op(),...custom(4),path:[[0,1]]},owner,400);
+ await call('POST','/v1/grids',{operationId:op(),...custom(4),path:[]},owner,400);
+ await call('POST','/v1/grids',{operationId:op(),...custom(4)},undefined,401);
+ await call('POST','/v1/worlds',{operationId:op(),name:'Old',icon:'R'},owner,404);
 });
 
-test('world discovery has stable pagination, pair popularity and exact UTC calendar boundaries', async () => {
-  const owner = await makeAccount(); const viewer = await makeAccount(); const second = await makeAccount();
-  const tag = `Discovery ${op().slice(0,8)}`;
-  const worlds = []; const grids = [];
-  for(let n=0;n<23;n++) {
-    const w=await world(owner); worlds.push(w); grids.push(await publishIn(owner,w,60+n));
-    await db.query("UPDATE worlds SET name=$1,created_at='2020-01-01'::timestamptz WHERE id=$2",[`${tag} ${n}`,w.id]);
-  }
-  const root=`/v1/worlds?query=${encodeURIComponent(tag)}`;
-  const first=await call('GET',root,undefined,viewer); const last=await call('GET',`${root}&page=1`,undefined,viewer);
-  assert.equal(first.items.length,20); assert.equal(first.nextPage,1); assert.equal(last.items.length,3); assert.equal(last.nextPage,null);
-  assert.deepEqual([...first.items,...last.items].map((r:any)=>r.id),worlds.map(w=>w.id).sort());
-  for(const player of [viewer,second]) {
-    const session=await call('POST',`/v1/grids/${grids[0].id}/sessions`,{operationId:op()},player);
-    for(let repeat=0;repeat<2;repeat++) await call('POST',`/v1/play-sessions/${session.sessionId}/move`,{operationId:op(),path:unfinished(custom(60))},player);
-  }
-  const popular=await call('GET',root,undefined,viewer);
-  assert.equal(popular.items[0].id,worlds[0].id); assert.equal(popular.items[0].popularity,2);
-  for(const [period,unit] of [['today','day'],['week','week'],['month','month'],['year','year']]) {
-    await db.query("UPDATE worlds SET created_at='2020-01-01'::timestamptz WHERE name LIKE $1",[`${tag}%`]);
-    await db.query(`UPDATE worlds SET created_at=(date_trunc('${unit}',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC') WHERE id=$1`,[worlds[0].id]);
-    await db.query(`UPDATE worlds SET created_at=(date_trunc('${unit}',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')-interval '1 microsecond' WHERE id=$1`,[worlds[1].id]);
-    const page=await call('GET',`${root}&period=${period}&sort=newest`,undefined,viewer);
-    assert.deepEqual(page.items.map((r:any)=>r.id),[worlds[0].id],period);
-  }
-  await db.query('UPDATE worlds SET created_at=now() WHERE id=$1',[worlds[2].id]);
-  assert.equal((await call('GET',`${root}&sort=newest`,undefined,viewer)).items[0].id,worlds[2].id);
-  assert.equal((await call('GET','/v1/worlds?query=%25',undefined,viewer)).items.length,0);
-  assert.equal((await call('GET','/v1/worlds?query=%5C',undefined,viewer)).items.length,0);
-  await call('GET',`${root}&period=rolling`,undefined,viewer,400);
+test('concurrent creation gives unique stable creator numbers beyond twenty and pagination never repeats',async()=>{
+ const a=await makeAccount();
+ const results=await Promise.all(Array.from({length:23},(_,i)=>create(a,i+10)));
+ assert.deepEqual(results.map(r=>r.levelNumber).sort((a,b)=>a-b),Array.from({length:23},(_,i)=>i+1));
+ const url=`/v1/grids?owner=${a.user.id}&sort=number`;
+ const first=await call('GET',url,undefined,a),last=await call('GET',url+'&page=1',undefined,a);
+ assert.equal(first.items.length,20); assert.equal(last.items.length,3);
+ assert.equal(new Set([...first.items,...last.items].map(g=>g.id)).size,23);
+ await call('PATCH',`/v1/grids/${first.items[0].id}`,{operationId:op(),hidden:true},a);
+ assert.equal((await create(a,90)).levelNumber,24);
+ assert.equal((await db.query("SELECT sum(amount)::text AS n FROM xp_ledger WHERE user_id=$1 AND reason='create'",[a.user.id])).rows[0].n,'50000');
 });
 
-test('attempt outcomes deduplicate retries, reject contradictions, and expose distinct solver statistics', async () => {
-  const owner=await makeAccount(); const player=await makeAccount(); const other=await makeAccount();
-  const w=await world(owner); const d=await publishIn(owner,w,110);
-  const session=await call('POST',`/v1/grids/${d.id}/sessions`,{operationId:op()},player);
-  const endpoint=`/v1/play-sessions/${session.sessionId}/failures`;
-  const failure={operationId:op(),attemptId:op(),path:unfinished(custom(110)),reason:'restart'};
-  await call('POST',endpoint,failure,player);
-  await call('POST',endpoint,failure,player);
-  await call('POST',endpoint,{...failure,operationId:op()},player);
-  assert.equal((await call('GET',`/v1/profiles/${player.user.id}`,undefined,player)).xpMilli,'0');
-  assert.equal((await call('GET',`/v1/worlds/${w.id}/grids`,undefined,player)).items[0].failedAttemptCount,1);
-  await call('POST',endpoint,{...failure,operationId:op()},other,404);
-  await call('POST',endpoint,{...failure,operationId:op(),attemptId:op(),path:custom(110).path},player,400);
-  await call('POST',endpoint,{...failure,operationId:op(),attemptId:op(),path:[[0,24]]},player,400);
-  await call('POST','/v1/completions',{operationId:op(),kind:'community',sessionId:session.sessionId,attemptId:failure.attemptId,path:custom(110).path},player,409);
-  await call('POST',endpoint,{...failure,operationId:op(),attemptId:op(),reason:'leave'},player);
-  const solved={operationId:op(),kind:'community',sessionId:session.sessionId,attemptId:op(),path:custom(110).path};
-  const reward=await call('POST','/v1/completions',solved,player);
-  assert.deepEqual(await call('POST','/v1/completions',solved,player),reward);
-  assert.equal((await call('POST','/v1/completions',{...solved,operationId:op()},player)).awardedMilli,'0');
-  await call('POST',endpoint,{...failure,operationId:op(),attemptId:solved.attemptId},player,409);
-  await call('POST','/v1/completions',{...solved,operationId:op(),attemptId:op()},player);
-  const own=await call('POST',`/v1/grids/${d.id}/sessions`,{operationId:op()},owner);
-  await call('POST','/v1/completions',{operationId:op(),kind:'community',sessionId:own.sessionId,path:custom(110).path},owner);
-  await call('POST',`/v1/play-sessions/${own.sessionId}/failures`,{...failure,operationId:op(),attemptId:op()},owner);
-  const stats=(await call('GET',`/v1/worlds/${w.id}/grids`,undefined,player)).items[0];
-  assert.equal(stats.beatenCount,1); assert.equal(stats.failedAttemptCount,2);
-  const raced=op();
-  const responses=await Promise.all(['solved','failed'].map(outcome=>app.inject({method:'POST',url:outcome==='solved'?'/v1/completions':endpoint,
-    headers:{authorization:`Bearer ${player.accessToken}`},payload:outcome==='solved'?{...solved,operationId:op(),attemptId:raced}:{...failure,operationId:op(),attemptId:raced}})));
-  assert.deepEqual(responses.map(r=>r.statusCode).sort(),[200,409]);
-  assert.equal((await db.query('SELECT count(*)::int AS n FROM play_attempt_outcomes WHERE user_id=$1 AND attempt_id=$2',[player.user.id,raced])).rows[0].n,1);
+test('visibility, own profile collection, moderation and creator discovery agree',async()=>{
+ const owner=await makeAccount(),viewer=await makeAccount(); const d=await create(owner,95);
+ await call('PATCH',`/v1/grids/${d.id}`,{operationId:op(),hidden:true},viewer,404);
+ await call('PATCH',`/v1/grids/${d.id}`,{operationId:op(),hidden:true},owner);
+ assert.equal((await call('GET',`/v1/grids?owner=${owner.user.id}`,undefined,viewer)).items.length,0);
+ assert.equal((await call('GET',`/v1/grids?owner=${owner.user.id}`,undefined,owner)).items[0].id,d.id);
+ await call('GET',`/v1/grids/code/${d.code}`,undefined,viewer,404);
+ await call('POST',`/v1/grids/${d.id}/sessions`,{operationId:op()},viewer,404);
+ await call('PATCH',`/v1/grids/${d.id}`,{operationId:op(),hidden:false},owner);
+ const creators=await call('GET','/v1/creators?query='+encodeURIComponent(owner.user.username),undefined,viewer);
+ assert.equal(creators.items[0].gridCount,1); assert.equal('worldCount' in creators.items[0],false);
+ await db.query('UPDATE grids SET moderated=true WHERE id=$1',[d.id]);
+ await call('PATCH',`/v1/grids/${d.id}`,{operationId:op(),hidden:false},owner,404);
+ assert.equal((await call('GET',`/v1/grids?owner=${owner.user.id}`,undefined,viewer)).items.length,0);
 });
 
-test('worlds take free-text filtered names and levels are added atomically with numbers 1 to 20', async () => {
-  const a = await makeAccount(); const other = await makeAccount();
-  await call('POST', '/v1/worlds', { operationId: op(), name: 'Kill Zone', icon: 'R' }, a, 400);
-  const w = await call('POST', '/v1/worlds', { operationId: op(), name: 'Fire Garden', icon: 'P' }, a);
-  assert.equal(w.name, 'Fire Garden');
-  await call('PATCH', `/v1/worlds/${w.id}`, { operationId: op(), name: 'Big B1tch', icon: 'P', hidden: false }, a, 400);
-  const add = (n: number, name = '', account: any = a, status = 200, operationId = op()) => call('POST', `/v1/worlds/${w.id}/levels`, { operationId, name, ...custom(n) }, account, status);
-  const first = await add(1);
-  assert.equal(first.levelNumber, 1); assert.equal(first.name, 'Level 1');
-  const replayed = { operationId: op() };
-  const second = await call('POST', `/v1/worlds/${w.id}/levels`, { ...replayed, name: 'First Steps', ...custom(2) }, a);
-  assert.equal(second.levelNumber, 2); assert.equal(second.name, 'First Steps');
-  assert.deepEqual(await call('POST', `/v1/worlds/${w.id}/levels`, { ...replayed, name: 'First Steps', ...custom(2) }, a), second);
-  await add(3, 'Murder Hill', a, 400);
-  await add(3, '', other, 404);
-  assert.equal((await call('GET', '/v1/grids/drafts', undefined, a)).items.length, 0, 'failed adds leave no draft behind');
-  for (let n = 3; n <= 20; n++) assert.equal((await add(n)).levelNumber, n);
-  await add(21, '', a, 409);
-  assert.equal((await call('GET', '/v1/grids/drafts', undefined, a)).items.length, 0);
-  const listed = await call('GET', `/v1/worlds/${w.id}/grids`, undefined, a);
-  assert.deepEqual(listed.items.map((g: any) => g.levelNumber), Array.from({ length: 20 }, (_, i) => i + 1));
-  assert.equal(listed.world.usedSlots, 20);
+test('community sessions preserve distinct completions, attempt outcomes, XP and profile counts',async()=>{
+ const owner=await makeAccount(),player=await makeAccount(); const d=await create(owner,110);
+ const session=await call('POST',`/v1/grids/${d.id}/sessions`,{operationId:op()},player);
+ const start=custom(110).start,target=custom(110).target;
+ let partial: Move[]|undefined;
+ for(let a=0;a<25&&!partial;a++) for(let b=0;b<25&&!partial;b++) {
+   try { if(replay({start,target},[[a,b]],false).join('')!==target.join('')) partial=[[a,b]]; } catch {}
+ }
+ assert.ok(partial);
+ const failure={operationId:op(),attemptId:op(),reason:'restart',path:partial};
+ await call('POST',`/v1/play-sessions/${session.sessionId}/failures`,failure,player);
+ await call('POST',`/v1/play-sessions/${session.sessionId}/failures`,{...failure,operationId:op()},player);
+ const proof={operationId:op(),attemptId:op(),kind:'community',sessionId:session.sessionId,path:custom(110).path};
+ const result=await call('POST','/v1/completions',proof,player); assert.equal(result.awardedMilli,'100000');
+ assert.deepEqual(await call('POST','/v1/completions',proof,player),result);
+ await call('POST',`/v1/play-sessions/${session.sessionId}/failures`,{...failure,attemptId:proof.attemptId,operationId:op()},player,409);
+ const row=(await call('GET',`/v1/grids?owner=${owner.user.id}`,undefined,player)).items[0];
+ assert.equal(row.completed,true); assert.equal(row.failedAttemptCount,1); assert.equal(row.beatenCount,1); assert.equal(row.popularity,1);
+ const profile=await call('GET',`/v1/profiles/${player.user.id}`,undefined,player); assert.equal(profile.communityCount,1);
+ assert.equal((await call('GET',`/v1/profiles/${owner.user.id}`,undefined,owner)).xpMilli,'25001');
 });
 
-test('concurrent level adds receive distinct consecutive numbers', async () => {
-  const a = await makeAccount(); const w = await world(a);
-  const results = await Promise.all([1, 2, 3, 4, 5].map(n => app.inject({ method: 'POST', url: `/v1/worlds/${w.id}/levels`, headers: { authorization: `Bearer ${a.accessToken}` }, payload: { operationId: op(), name: '', ...custom(n) } })));
-  assert.deepEqual(results.map(r => r.statusCode), [200, 200, 200, 200, 200]);
-  assert.deepEqual(results.map(r => r.json().levelNumber).sort(), [1, 2, 3, 4, 5]);
+test('puzzle discovery filters creators, numbers, literal search and UTC publication dates',async()=>{
+ const a=await makeAccount(),b=await makeAccount(); const first=await create(a,120),second=await create(a,121);
+ await db.query("UPDATE grids SET published_at='2020-01-01' WHERE id=$1",[first.id]);
+ const url=`/v1/grids?owner=${a.user.id}`;
+ assert.equal((await call('GET',url+'&period=today',undefined,b)).items[0].id,second.id);
+ assert.equal((await call('GET',url+'&query=1',undefined,b)).items[0].id,first.id);
+ assert.equal((await call('GET','/v1/grids?query='+encodeURIComponent(a.user.username),undefined,b)).items.length,2);
+ assert.equal((await call('GET','/v1/grids?query=%25',undefined,b)).items.length,0);
+ await call('GET',url+'&sort=unsupported',undefined,b,400);
+ for(const [period,unit] of [['today','day'],['week','week'],['month','month'],['year','year']]) {
+   await db.query(`UPDATE grids SET published_at=(date_trunc('${unit}',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC') WHERE id=$1`,[first.id]);
+   await db.query(`UPDATE grids SET published_at=(date_trunc('${unit}',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')-interval '1 microsecond' WHERE id=$1`,[second.id]);
+   assert.deepEqual((await call('GET',url+'&period='+period,undefined,b)).items.map((g:any)=>g.id),[first.id]);
+ }
 });
 
-test('publishing an old draft also assigns the next level number', async () => {
-  const a = await makeAccount(); const w = await world(a);
-  const d = await draft(a, 1); const published = await call('POST', `/v1/grids/${d.id}/publish`, { operationId: op(), worldId: w.id }, a);
-  assert.equal(published.levelNumber, 1);
+test('Casual excludes own and hidden puzzles, records solves and cycles without clearing history',async()=>{
+ const hidden=(await db.query('UPDATE grids SET hidden=true WHERE NOT hidden RETURNING id')).rows;
+ try {
+   const owner=await makeAccount(),player=await makeAccount(); const a=await create(owner,201); await create(player,202);
+   const first=await call('POST','/v1/casual/sessions',{operationId:op()},player); assert.equal(first.grid.id,a.id);
+   await call('POST','/v1/completions',{operationId:op(),kind:'community',sessionId:first.sessionId,attemptId:op(),path:custom(201).path},player);
+   assert.equal((await call('POST','/v1/casual/sessions',{operationId:op()},player)).grid.id,a.id);
+   assert.equal((await call('GET','/v1/progress',undefined,player)).communityDone.length,1);
+   await call('PATCH',`/v1/grids/${a.id}`,{operationId:op(),hidden:true},owner);
+   assert.equal((await call('POST','/v1/casual/sessions',{operationId:op()},player)).grid,null);
+ } finally { await db.query('UPDATE grids SET hidden=false WHERE id=ANY($1::uuid[])',[hidden.map(r=>r.id)]); }
 });
 
-test('casual cycles seed online solves, reset safely, and retain normal rewards', async () => {
-  const hidden = (await db.query('UPDATE worlds SET hidden=true WHERE NOT hidden RETURNING id')).rows;
-  try {
-    const creator = await makeAccount(); const player = await makeAccount(); const other = await makeAccount();
-    const w = await world(creator); const own = await world(player);
-    const publish = async (owner: any, worldId: string, n: number) => {
-      const d = await draft(owner, n);
-      await call('POST', `/v1/grids/${d.id}/publish`, { operationId: op(), worldId }, owner);
-      return d;
-    };
-    const a = await publish(creator, w.id, 201); const b = await publish(creator, w.id, 202);
-    await publish(player, own.id, 203);
-    const select = (account = player, operationId = op()) => call('POST', '/v1/casual/sessions', { operationId }, account);
-    const solve = (account: any, sessionId: string, n: number, attemptId = op()) => call('POST', '/v1/completions', { operationId: op(), kind: 'community', sessionId, attemptId, path: custom(n).path }, account);
-    await call('POST', '/v1/casual/sessions', { operationId: op() }, undefined, 401);
-    const online = await call('POST', `/v1/grids/${a.id}/sessions`, { operationId: op() }, player);
-    await solve(player, online.sessionId, 201);
-    const retry = op(); const first = await select(player, retry);
-    assert.equal(first.grid.id, b.id);
-    assert.deepEqual(await select(player, retry), first);
-    const concurrent = await Promise.all([select(), select()]);
-    assert.ok(concurrent.every(s => s.grid.id === b.id));
-    await call('POST', '/v1/completions', { operationId: op(), kind: 'community', sessionId: first.sessionId, path: [] }, player, 400);
-    assert.equal((await select()).grid.id, b.id);
-    const result = await solve(player, first.sessionId, 202);
-    assert.equal(result.awardedMilli, '100000');
-    const reset = await select();
-    assert.ok([a.id, b.id].includes(reset.grid.id));
-    assert.equal((await db.query('SELECT cycle FROM casual_cycles WHERE user_id=$1', [player.user.id])).rows[0].cycle, 2);
-    await solve(player, concurrent[0]!.sessionId, 202);
-    assert.equal((await db.query('SELECT count(*)::int AS n FROM casual_completions WHERE user_id=$1', [player.user.id])).rows[0].n, 0);
-    const replay = await solve(player, reset.sessionId, reset.grid.id === a.id ? 201 : 202);
-    assert.equal(replay.awardedMilli, reset.grid.id === b.id ? '0' : '10000');
-    assert.equal((await call('GET', '/v1/progress', undefined, player)).communityDone.length, 2);
-    const c = await publish(creator, w.id, 204);
-    const remainingId = reset.grid.id === a.id ? b.id : a.id;
-    await db.query('UPDATE grids SET hidden=true WHERE id=$1', [remainingId]);
-    assert.equal((await select()).grid.id, c.id);
-    await db.query('UPDATE grids SET hidden=false WHERE id=$1', [remainingId]);
-    const live = await call('POST', `/v1/grids/${c.id}/sessions`, { operationId: op() }, player);
-    await solve(player, live.sessionId, 204);
-    const next = await select();
-    assert.equal(next.grid.id, reset.grid.id === a.id ? b.id : a.id);
-    const isolated = await select(other);
-    assert.ok([a.id, b.id, c.id].includes(isolated.grid.id) || isolated.grid.ownerId === player.user.id);
-    await db.query('UPDATE users SET suspended=true WHERE id=$1', [creator.user.id]);
-    assert.equal((await select()).grid, null);
-    await db.query('UPDATE users SET suspended=false WHERE id=$1', [creator.user.id]);
-    await db.query('UPDATE worlds SET hidden=true WHERE id=$1', [w.id]);
-    assert.equal((await select()).sessionId, null);
-    await db.query('UPDATE worlds SET hidden=false,moderated=true WHERE id=$1', [w.id]);
-    assert.equal((await select()).grid, null);
-    await db.query('UPDATE worlds SET moderated=false WHERE id=$1', [w.id]);
-    await db.query('UPDATE grids SET hidden=true WHERE world_id=$1', [w.id]);
-    assert.equal((await select()).grid, null);
-    await db.query('UPDATE grids SET hidden=false,moderated=true WHERE world_id=$1', [w.id]);
-    assert.equal((await select()).grid, null);
-  } finally {
-    await db.query('UPDATE worlds SET hidden=false WHERE id=ANY($1::uuid[])', [hidden.map(r => r.id)]);
-  }
+test('likes, bookmarks, follows, streaks and online badges', async () => {
+  const maker = await makeAccount(), player = await makeAccount();
+  const grid = await create(maker, 401);
+  const session = await call('POST', `/v1/grids/${grid.id}/sessions`, { operationId: op() }, player);
+  assert.deepEqual([session.grid.likeCount, session.grid.liked, session.grid.bookmarked], [0, false, false]);
+  // Likes: idempotent per operation, own puzzles refused, counted in the list and the Most popular sort.
+  const likeOp = op();
+  assert.deepEqual(await call('POST', `/v1/grids/${grid.id}/like`, { operationId: likeOp, on: true }, player), { liked: true, likeCount: 1 });
+  assert.deepEqual(await call('POST', `/v1/grids/${grid.id}/like`, { operationId: likeOp, on: true }, player), { liked: true, likeCount: 1 });
+  await call('POST', `/v1/grids/${grid.id}/like`, { operationId: op(), on: true }, maker, 400);
+  const liked = (await call('GET', `/v1/grids?sort=liked&owner=${maker.user.id}`, undefined, player)).items[0];
+  assert.deepEqual([liked.likeCount, liked.liked, liked.bookmarked], [1, true, false]);
+  const creators = (await call('GET', `/v1/creators?sort=liked&period=today&query=${encodeURIComponent(maker.user.username)}`, undefined, player)).items;
+  assert.equal(creators[0].likeCount, 1);
+  await db.query("UPDATE grid_likes SET created_at=now()-interval '400 days' WHERE grid_id=$1", [grid.id]);
+  assert.equal((await call('GET', `/v1/creators?sort=liked&period=year&query=${encodeURIComponent(maker.user.username)}`, undefined, player)).items[0].likeCount, 0);
+  // Bookmarks: only the caller's own list.
+  await call('POST', `/v1/grids/${grid.id}/bookmark`, { operationId: op(), on: true }, player);
+  assert.deepEqual((await call('GET', '/v1/grids?bookmarked=true', undefined, player)).items.map((g: any) => g.id), [grid.id]);
+  assert.equal((await call('GET', '/v1/grids?bookmarked=true', undefined, maker)).items.length, 0);
+  await call('POST', `/v1/grids/${grid.id}/bookmark`, { operationId: op(), on: false }, player);
+  assert.equal((await call('GET', '/v1/grids?bookmarked=true', undefined, player)).items.length, 0);
+  // Follows: counts on the profile, the private following list, no self-follow.
+  assert.deepEqual(await call('POST', `/v1/users/${maker.user.id}/follow`, { operationId: op(), on: true }, player), { following: true, followerCount: 1 });
+  await call('POST', `/v1/users/${player.user.id}/follow`, { operationId: op(), on: true }, player, 400);
+  const profile = await call('GET', `/v1/profiles/${maker.user.id}`, undefined, player);
+  assert.deepEqual([profile.followerCount, profile.following], [1, true]);
+  assert.deepEqual((await call('GET', '/v1/following', undefined, player)).items.map((u: any) => u.id), [maker.user.id]);
+  assert.equal((await call('GET', '/v1/following', undefined, maker)).items.length, 0);
+  // Streak and badges: a community solve dated by the player's calendar, earlier days backfilled.
+  const today = new Date().toISOString().slice(0, 10);
+  await call('POST', '/v1/completions', { operationId: op(), kind: 'community', sessionId: session.sessionId, path: custom(401).path, day: today }, player);
+  for (let i = 1; i < 7; i++) await db.query("INSERT INTO activity_days(user_id,day) VALUES($1,$2::date - $3::int)", [player.user.id, today, i]);
+  await complete(player, 1);
+  const progress = await call('GET', '/v1/progress', undefined, player);
+  assert.deepEqual([progress.onlineSolved, progress.bestStreak], [1, 7]);
+  assert.ok(progress.badges.includes('online-1') && progress.badges.includes('streak-7'));
+  assert.equal((await call('GET', `/v1/profiles/${player.user.id}?today=${today}`, undefined, maker)).streak, 7);
+  assert.ok((await call('GET', '/v1/progress', undefined, maker)).badges.includes('designed-1'));
+});
+
+test('followers list, profile list counts and private bookmark count', async () => {
+  const maker = await makeAccount(), fan = await makeAccount();
+  const grid = await create(maker, 402);
+  await call('POST', `/v1/users/${maker.user.id}/follow`, { operationId: op(), on: true }, fan);
+  await call('POST', `/v1/grids/${grid.id}/bookmark`, { operationId: op(), on: true }, fan);
+  assert.deepEqual((await call('GET', '/v1/followers', undefined, maker)).items.map((u: any) => u.id), [fan.user.id]);
+  assert.deepEqual(await call('GET', '/v1/followers?page=0', undefined, fan), { items: [], nextPage: null });
+  const own = await call('GET', `/v1/profiles/${fan.user.id}`, undefined, fan);
+  assert.deepEqual([own.followingCount, own.followerCount, own.bookmarkCount], [1, 0, 1]);
+  // Someone else's bookmarks are never counted for you.
+  assert.equal((await call('GET', `/v1/profiles/${fan.user.id}`, undefined, maker)).bookmarkCount, 0);
+  await db.query('UPDATE users SET suspended=true WHERE id=$1', [maker.user.id]);
+  assert.equal((await call('GET', `/v1/profiles/${fan.user.id}`, undefined, fan)).bookmarkCount, 0);
+  assert.equal((await call('GET', '/v1/grids?bookmarked=true', undefined, fan)).items.length, 0);
+  await db.query('UPDATE users SET suspended=false WHERE id=$1', [maker.user.id]);
+  await call('GET', '/v1/followers', undefined, undefined, 401);
+});
+
+test('feedback is stored once, works signed out, is rate limited and mailed to the team', async () => {
+  const player = await makeAccount();
+  const anonymous = op(), signed = op();
+  assert.deepEqual(await call('POST', '/v1/feedback', { operationId: anonymous, kind: 'bug', text: '  Tiles froze  ', appVersion: '0.2.9' }), { accepted: true });
+  await call('POST', '/v1/feedback', { operationId: anonymous, kind: 'bug', text: 'Tiles froze', appVersion: '0.2.9' });
+  await call('POST', '/v1/feedback', { operationId: signed, kind: 'feedback', text: 'Lovely game' }, player);
+  await call('POST', '/v1/feedback', { operationId: op(), kind: 'feedback', text: '   ' }, undefined, 400);
+  await call('POST', '/v1/feedback', { operationId: op(), kind: 'other', text: 'x' }, undefined, 400);
+  const rows = (await db.query('SELECT id,kind,body,user_id FROM feedback WHERE id = ANY($1) ORDER BY kind', [[anonymous, signed]])).rows;
+  assert.deepEqual(rows.map(r => [r.kind, r.body, r.user_id]), [['bug', 'Tiles froze', null], ['feedback', 'Lovely game', player.user.id]]);
+  for (let i = 0; i < 5; i++) await call('POST', '/v1/feedback', { operationId: op(), kind: 'feedback', text: `spam ${i}` }, undefined, 200, '10.9.9.9');
+  await call('POST', '/v1/feedback', { operationId: op(), kind: 'feedback', text: 'one too many' }, undefined, 429, '10.9.9.9');
+  // Delivery: every pending report goes to FEEDBACK_TO, then its text is dropped.
+  const sent: any[] = [];
+  const transport = { sendMail: async (m: any) => { sent.push(m); return { accepted: [m.to], rejected: [] }; } };
+  const { deliverFeedback } = await import('../src/feedback.js');
+  const silent = { info() {}, warn() {} } as any;
+  assert.equal(await deliverFeedback(db, { ...config, feedbackDeliveryMode: 'store' }, silent, transport), false);
+  assert.equal(sent.length, 0);
+  assert.equal((await db.query("SELECT count(*)::int AS n FROM feedback WHERE status='pending' AND attempts=0 AND body<>''")).rows[0].n, 7);
+  while (await deliverFeedback(db, { ...config, feedbackTo: 'team@example.test' }, silent, transport));
+  const mine = sent.filter(m => m.messageId === `<${anonymous}@insight-feedback>` || m.messageId === `<${signed}@insight-feedback>`);
+  assert.equal(mine.length, 2);
+  assert.ok(mine.every(m => m.to === 'team@example.test'));
+  const bug = mine.find(m => m.subject === '[INSIGHT] Bug report');
+  assert.ok(bug.text.startsWith('Tiles froze') && bug.text.includes('not signed in') && bug.text.includes('0.2.9'));
+  assert.ok(mine.find(m => m.subject === '[INSIGHT] Feedback').text.includes(player.user.username));
+  assert.equal((await db.query("SELECT count(*)::int AS n FROM feedback WHERE status<>'accepted' OR body<>''")).rows[0].n, 0);
 });

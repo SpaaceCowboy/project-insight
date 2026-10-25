@@ -10,33 +10,59 @@ import { progression } from './progression.js';
 export const searchPattern = (query: string) => `%${query.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_')}%`;
 const campaignHashes = JSON.stringify(campaign.map((p, i) => ({ level_id: i + 1, hash: contentHash(p) })));
 
-/** Same public publication counts and campaign/community overlap rules as individual profiles. */
-export async function creators(app: FastifyInstance, db: Db, config: Config) {
-  app.get('/v1/creators', { preHandler: authentication(db, config), schema: { querystring: objectSchema({
-    query: { type: 'string', maxLength: 80, default: '' },
-    sort: { type: 'string', enum: ['level', 'designed', 'played'], default: 'level' },
-    page: { type: 'integer', minimum: 0, maximum: 100000, default: 0 },
-  }, []) } }, async req => {
-    const q = req.query as { query: string; sort: string; page: number };
-    const order = q.sort === 'designed' ? '"gridCount" DESC,xp DESC' : q.sort === 'played' ? '"beatenCount" DESC,xp DESC' : 'xp DESC';
-    const rows = (await db.query(`WITH
+const periodUnits: Record<string, string> = { today: 'day', week: 'week', month: 'month', year: 'year' };
+
+/**
+ * Creator rows with the same public publication counts and campaign/community overlap rules as individual profiles.
+ * [follower] limits the rows to people that account follows, [followee] to people following that account (with or without public puzzles); [period] limits counted likes.
+ */
+async function creatorRows(db: Db, o: { query: string; sort: string; period: string; page: number; follower?: string; followee?: string }) {
+  const unit = periodUnits[o.period];
+  const likedSince = unit ? `AND l.created_at >= (date_trunc('${unit}',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')` : '';
+  const order = o.sort === 'designed' ? '"gridCount" DESC,xp DESC' : o.sort === 'played' ? '"beatenCount" DESC,xp DESC'
+    : o.sort === 'liked' ? '"likeCount" DESC,xp DESC' : 'xp DESC';
+  const join = o.follower ? 'JOIN follows f ON f.followee_id=u.id AND f.follower_id=$4 LEFT JOIN publications p ON p.owner_id=u.id'
+    : o.followee ? 'JOIN follows f ON f.follower_id=u.id AND f.followee_id=$4 LEFT JOIN publications p ON p.owner_id=u.id' : 'JOIN publications p ON p.owner_id=u.id';
+  const related = o.follower ?? o.followee;
+  return (await db.query(`WITH
       campaign_hashes AS (SELECT * FROM json_to_recordset($1::json) AS x(level_id int,hash text)),
-      public_grids AS (SELECT g.owner_id,g.world_id FROM grids g JOIN worlds w ON w.id=g.world_id
-        WHERE g.published_at IS NOT NULL AND NOT g.hidden AND NOT g.moderated AND NOT w.hidden AND NOT w.moderated),
-      publications AS (SELECT owner_id,count(*)::int AS "gridCount",count(DISTINCT world_id)::int AS "worldCount" FROM public_grids GROUP BY owner_id),
+      public_grids AS (SELECT g.id,g.owner_id FROM grids g
+        WHERE g.published_at IS NOT NULL AND NOT g.hidden AND NOT g.moderated),
+      publications AS (SELECT owner_id,count(*)::int AS "gridCount" FROM public_grids GROUP BY owner_id),
+      likes AS (SELECT pg.owner_id,count(*)::int AS n FROM grid_likes l JOIN public_grids pg ON pg.id=l.grid_id WHERE true ${likedSince} GROUP BY pg.owner_id),
       xp_totals AS (SELECT user_id,sum(amount) AS xp FROM xp_ledger GROUP BY user_id),
       campaign_totals AS (SELECT user_id,count(*)::int AS n FROM campaign_progress GROUP BY user_id),
       community_totals AS (SELECT gc.user_id,count(DISTINCT g.content_hash)::int AS n FROM grid_completions gc JOIN grids g ON g.id=gc.grid_id
         WHERE g.owner_id<>gc.user_id AND NOT EXISTS (SELECT 1 FROM campaign_progress cp JOIN campaign_hashes ch ON ch.level_id=cp.level_id
           WHERE cp.user_id=gc.user_id AND ch.hash=g.content_hash) GROUP BY gc.user_id)
-      SELECT u.id,u.username,p."gridCount",p."worldCount",coalesce(x.xp,0)::text AS "xpMilli",coalesce(x.xp,0) AS xp,
-        (coalesce(c.n,0)+coalesce(t.n,0))::int AS "beatenCount"
-      FROM users u JOIN publications p ON p.owner_id=u.id LEFT JOIN xp_totals x ON x.user_id=u.id
-      LEFT JOIN campaign_totals c ON c.user_id=u.id LEFT JOIN community_totals t ON t.user_id=u.id
+      SELECT u.id,u.username,coalesce(p."gridCount",0)::int AS "gridCount",coalesce(x.xp,0)::text AS "xpMilli",coalesce(x.xp,0) AS xp,
+        (coalesce(c.n,0)+coalesce(t.n,0))::int AS "beatenCount",coalesce(lk.n,0)::int AS "likeCount"
+      FROM users u ${join} LEFT JOIN xp_totals x ON x.user_id=u.id
+      LEFT JOIN campaign_totals c ON c.user_id=u.id LEFT JOIN community_totals t ON t.user_id=u.id LEFT JOIN likes lk ON lk.owner_id=u.id
       WHERE NOT u.suspended AND u.username ILIKE $2 ORDER BY ${order},u.id ASC LIMIT 21 OFFSET $3`,
-    [campaignHashes, searchPattern(q.query), q.page * 20])).rows;
-    return { items: rows.slice(0, 20).map(({ xp, ...row }) => ({ ...row, ...progression(BigInt(row.xpMilli)) })), nextPage: rows.length > 20 ? q.page + 1 : null };
+    [campaignHashes, searchPattern(o.query), o.page * 20, ...(related ? [related] : [])])).rows
+    .map(({ xp, ...row }) => ({ ...row, ...progression(BigInt(row.xpMilli)) }));
+}
+
+export async function creators(app: FastifyInstance, db: Db, config: Config) {
+  app.get('/v1/creators', { preHandler: authentication(db, config), schema: { querystring: objectSchema({
+    query: { type: 'string', maxLength: 80, default: '' },
+    sort: { type: 'string', enum: ['level', 'designed', 'played', 'liked'], default: 'level' },
+    period: { type: 'string', enum: ['all', 'today', 'week', 'month', 'year'], default: 'all' },
+    page: { type: 'integer', minimum: 0, maximum: 100000, default: 0 },
+  }, []) } }, async req => {
+    const q = req.query as { query: string; sort: string; period: string; page: number };
+    const rows = await creatorRows(db, q);
+    return { items: rows.slice(0, 20), nextPage: rows.length > 20 ? q.page + 1 : null };
   });
+  // Only the signed-in player's own lists: whom they follow, and who follows them. Nobody can see someone else's.
+  const pageOnly = { querystring: objectSchema({ page: { type: 'integer', minimum: 0, maximum: 100000, default: 0 } }, []) };
+  for (const [path, side] of [['/v1/following', 'follower'], ['/v1/followers', 'followee']] as const)
+    app.get(path, { preHandler: authentication(db, config), schema: pageOnly }, async req => {
+      const page = (req.query as { page: number }).page;
+      const rows = await creatorRows(db, { query: '', sort: 'level', period: 'all', page, [side]: req.account!.id });
+      return { items: rows.slice(0, 20), nextPage: rows.length > 20 ? page + 1 : null };
+    });
 }
 
 /** Called under operation()'s account lock, so conflicting terminal reports serialize. */

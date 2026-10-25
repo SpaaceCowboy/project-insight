@@ -12,6 +12,7 @@
     "start": "node dist/main.js",
     "migrate": "tsx src/migrate.ts",
     "operator": "tsx src/operator.ts",
+    "seed:community": "tsx src/seed-community.ts",
     "test": "node --import tsx test/unit.ts",
     "test:integration": "node --import tsx --test test/*.integration.ts"
   },

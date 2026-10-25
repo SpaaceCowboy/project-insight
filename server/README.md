@@ -66,7 +66,7 @@ npm run build
 TEST_DATABASE_URL=postgresql://localhost/insight_test npm run test:integration
 ```
 
-Integration tests create and drop only a randomly named schema inside the supplied database. They cover publishing/play, idempotency, the twentieth-slot race, replay/creation caps, imports, simplified authentication, refresh rotation and throttling, plus creator eligibility/ranking, pagination ties, literal search escaping, UTC date boundaries, distinct solvers and terminal-attempt races. Rules replay the same 206 campaign solutions used by Kotlin.
+Integration tests create and drop only a randomly named schema inside the supplied database. They cover publishing/play, idempotency, the twentieth-slot race, replay/creation caps, imports, simplified authentication, refresh rotation and throttling, plus creator eligibility/ranking, pagination ties, literal search escaping, UTC date boundaries, distinct solvers and terminal-attempt races. Rules replay the same 200 campaign solutions used by Kotlin.
 
 The Android form regression test uses a loopback-only fixture with a temporary database schema. Start `TEST_DATABASE_URL=postgresql://localhost/insight_test node --import tsx test/android-fixture.ts` from `server/`, then run the following from the repository root with an emulator available:
 
@@ -92,3 +92,37 @@ docker compose exec -T db pg_dump -U insight -d insight -Fc > insight-backup.dum
 ```
 
 Operator actions are recorded in `operator_audit`; owners cannot undo moderation. Store backups encrypted off-host and periodically restore into an isolated database. Retain operation/reward records when performing maintenance: deleting them can break retry safety. Session/challenge housekeeping must never remove active refresh recovery records. Domain, certificates, mail delivery reputation, live secrets, billing, and public-release hardening remain deployment responsibilities.
+
+### Social features (migration 009)
+- `POST /v1/grids/:id/like`, `POST /v1/grids/:id/bookmark`, `POST /v1/users/:id/follow` take `{operationId, on}` and are idempotent per operation. Liking your own puzzle and following yourself are refused.
+- `GET /v1/grids` adds `sort=liked` (Most popular) and `bookmarked=true` (your bookmarks, newest first); items carry `likeCount`, `liked` and `bookmarked`, as do session, Random and code lookups.
+- `GET /v1/creators` adds `sort=liked` with `period`, counting likes received in that UTC period. `GET /v1/following` lists the caller's follows only.
+- `GET /v1/profiles/:id?today=YYYY-MM-DD` adds `followerCount`, `following` and `streak` (consecutive solve days ending today or yesterday in the viewer's calendar). `GET /v1/progress` adds `onlineSolved`, `designedCount` and `bestStreak`.
+- `POST /v1/completions` accepts the player's local `day` (trusted within a day of UTC) and records it in `activity_days`. Online, design and streak badges (`server/src/badges.ts`) are stored on completion and on publish; imports still accept campaign badges only.
+
+### Followers and feedback (migration 010)
+- `GET /v1/followers` lists who follows the caller; it and `GET /v1/following` take `page` and return `nextPage`. Profiles add `followingCount` and `bookmarkCount` (your own profile only; 0 for anyone else's).
+- `POST /v1/feedback {operationId, kind: feedback|bug, text, appVersion?}` works signed in or out, is limited to five per hour per address, and stores one row per operation. The server mails each report to `FEEDBACK_TO` (default `Insight.correspondence@gmail.com`) through the normal SMTP settings, retries for a while, and drops the text once the mail server accepts it. With the VPS default `SMTP_HOST=mailpit`, reports stay in Mailpit until real SMTP settings are set.
+
+### Feedback reports
+
+Feedback and bug reports are accepted at `POST /v1/feedback`, including without an account. `FEEDBACK_DELIVERY_MODE=store` (the default) retains their text privately on the server without sending mail or consuming delivery attempts. After SMTP is configured, set `FEEDBACK_DELIVERY_MODE=smtp` to deliver queued reports to `FEEDBACK_TO`; text is cleared only after SMTP acceptance. The live v0.2.10 rollout uses store mode.
+
+### Private community seed command
+
+From `server/`, with the intended database and encryption key configured:
+
+```sh
+npm run seed:community -- .seed-community/manifest.json
+# Review the ten identities and 80-puzzle distribution, then make an encrypted database backup.
+npm run seed:community -- .seed-community/manifest.json --apply
+```
+
+Production can use `node --env-file=/opt/insight-online/.env dist/seed-community.js /root/insight-seeds/community-v1/manifest.json [--apply]`.
+The default is a database-read-only preview that persists a private plan. Use the same manifest on every retry. It contains passwords and solution proofs: keep its directory private (0700), files 0600, and never publish or commit it. On Windows restrict the directory ACL to the operator. The command binds the batch to its database/schema and serializes operator runs with an advisory lock.
+
+This creates Seed Creator 01–10, each with two fresh puzzles of each size 2–5, numbered 1–8. All proofs and canonical hashes are checked before registration. The temporary in-process app for each creator reuses normal registration, publication, rewards and rate limits without opening a listener. Registration ownership is recovered with the saved random password; publication retries reuse saved operation IDs. Foreign identity/content collisions stop the run without overwriting accounts. Do not delete the manifest to recover a partial run.
+
+Verification covers profiles, share codes, numbered lists, Worlds pagination and Random eligibility without opening live play sessions. No solves, follows, likes, bookmarks or streaks are generated. Normal creation XP (including its daily cap) and design achievements apply. Generated proof lengths are 4/8/12/16; these are not difficulty ratings or shortest-solution guarantees. Integration tests exercise lost registration/publication responses and repeat execution in isolated schemas. No APK rebuild is required.
+
+If withdrawing the batch, use `node dist/operator.js suspend USER_UUID` for each recorded `creators[].userId`. This hides only those creators' publications and preserves all histories. Never truncate tables or restore a backup over newer user activity to remove seed data.

@@ -6,6 +6,7 @@ import { authRoutes } from './auth.js';
 import type { Config } from './config.js';
 import type { Db } from './db.js';
 import { onlineRoutes } from './online.js';
+import { feedbackRoutes } from './feedback.js';
 import { DomainError } from './rules.js';
 import { responseSchema } from './contracts.js';
 
@@ -33,10 +34,11 @@ export async function buildApp(db: Db, config: Config, logging = true) {
     const method = Array.isArray(route.method) ? route.method[0]! : route.method;
     const response = responseSchema(method, route.url);
     if (response) route.schema = { ...route.schema, response: { 200: response },
-      ...(route.url.startsWith('/v1/') && !route.url.startsWith('/v1/auth/') && route.url !== '/v1/capabilities' ? { security: [{ bearerAuth: [] }] } : {}) };
+      ...(route.url.startsWith('/v1/') && !route.url.startsWith('/v1/auth/') && route.url !== '/v1/capabilities' && route.url !== '/v1/feedback' ? { security: [{ bearerAuth: [] }] } : {}) };
   });
   app.get('/health', async () => { await db.query('SELECT 1'); return { status: 'ok' }; });
   await authRoutes(app, db, config);
   await onlineRoutes(app, db, config);
+  await feedbackRoutes(app, db, config);
   return app;
 }

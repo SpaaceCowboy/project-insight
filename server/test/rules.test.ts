@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { campaign } from '../src/campaign.js';
+import { badgeIds, campaign, earnedBadges } from '../src/campaign.js';
 import { contentHash, replay, type Move } from '../src/rules.js';
 import { progression, threshold } from '../src/progression.js';
 import { nickname } from '../src/nickname.js';
@@ -11,6 +11,14 @@ test('TypeScript rules replay every Kotlin campaign fixture', () => {
   assert.ok(campaign.length > 0); assert.equal(routes.length, campaign.length);
   campaign.forEach((p, i) => assert.deepEqual(replay(p, routes[i]!), p.target, `campaign ${i + 1}`));
 });
+test('200-level campaign awards only current milestones and ignores retired solves', () => {
+  assert.equal(campaign.length, 200);
+  assert.deepEqual(badgeIds, ['first','levels-30','levels-60','levels-90','levels-120','levels-150','levels-180','complete']);
+  assert.deepEqual(earnedBadges([201,206]), []);
+  assert.deepEqual(earnedBadges(Array.from({length:30},(_,i)=>i+1).concat([1,201,206])), ['first','levels-30']);
+  assert.deepEqual(earnedBadges(Array.from({length:200},(_,i)=>i+1)), badgeIds);
+});
+
 test('reject malformed grids, illegal moves, moved holes, and trailing moves', () => {
   const p = { start: ['RB', 'YW'], target: ['YB', 'RW'] };
   assert.deepEqual(replay(p, [[0, 2]]), p.target);

@@ -8,23 +8,21 @@ import { digest } from './crypto.js';
 import { operation, type Db } from './db.js';
 import { CREATE_DAILY_CAP, CREATE_XP, FIRST_XP, progression, REPLAY_DAILY_CAP, REPLAY_XP } from './progression.js';
 import { contentHash, replay, requireValue, type Move, type Puzzle } from './rules.js';
-import { levelName, worldName } from './names.js';
 import { creators, recordAttempt, searchPattern } from './discovery.js';
+import { acceptedDay, currentRun, longestRun, socialBadges } from './badges.js';
+
+// Older APKs and saved import commands still contain the retired campaign and badge IDs.
+const importBadgeIds = [...new Set([...badgeIds, 'flow', 'halfway', 'first-clean', 'steady', 'unbroken', 'flawless', 'clean-sweep', 'pristine', ...Array.from({ length: 11 }, (_, i) => `world-${i + 1}`)])];
 
 const pathSchema = { type: 'array', minItems: 1, maxItems: 10000, items: { type: 'array', minItems: 2, maxItems: 2, items: { type: 'integer', minimum: 0, maximum: 24 } } };
 const boardSchema = { type: 'array', minItems: 1, maxItems: 5, items: { type: 'string', minLength: 1, maxLength: 5, pattern: '^[RBGYWP.]+$' } };
-const nameSchema = { type: 'string', maxLength: 40 };
 const idParams = objectSchema({ id: uuidSchema });
-const visible = 'NOT w.hidden AND NOT w.moderated AND NOT u.suspended';
-const publishedVisible = `g.published_at IS NOT NULL AND NOT g.hidden AND NOT g.moderated AND ${visible}`;
-const gridSelect = `SELECT g.id,g.owner_id AS "ownerId",g.world_id AS "worldId",g.name,g.code,
+const daySchema = { type: 'string', pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' };
+const toggleBody = objectSchema({ operationId: operationSchema, on: { type: 'boolean' } });
+const publishedVisible = 'g.published_at IS NOT NULL AND NOT g.hidden AND NOT g.moderated AND NOT u.suspended';
+const gridSelect = `SELECT g.id,g.owner_id AS "ownerId",g.code,
  g.level_number AS "levelNumber",g.start_board AS start,g.target_board AS target,g.hidden,g.moderated,g.published_at AS "publishedAt",
- w.name AS "worldName",u.username FROM grids g LEFT JOIN worlds w ON w.id=g.world_id JOIN users u ON u.id=g.owner_id`;
-const worldSelect = `SELECT w.id,w.owner_id AS "ownerId",w.name,w.icon,w.hidden,w.moderated,u.username,
- (SELECT count(*)::int FROM grids g WHERE g.world_id=w.id AND g.published_at IS NOT NULL AND NOT g.hidden AND NOT g.moderated) AS "gridCount",
- (SELECT count(*)::int FROM grids g WHERE g.world_id=w.id AND g.published_at IS NOT NULL) AS "usedSlots",
- (SELECT count(*)::int FROM qualifying_plays p JOIN grids g ON g.id=p.grid_id WHERE g.world_id=w.id AND NOT g.hidden AND NOT g.moderated) AS popularity
- FROM worlds w JOIN users u ON u.id=w.owner_id`;
+ u.username FROM grids g JOIN users u ON u.id=g.owner_id`;
 function puzzle(row: any): Puzzle { return { start: row.start_board, target: row.target_board }; }
 async function award(c: PoolClient, user: string, reason: string, source: string, amount: bigint, cap?: bigint) {
   if (cap !== undefined) {
@@ -44,9 +42,28 @@ async function qualify(c: PoolClient, user: string, grid: any) {
   const added = await c.query('INSERT INTO qualifying_plays(user_id,grid_id) VALUES($1,$2) ON CONFLICT DO NOTHING', [user, grid.id]);
   if (added.rowCount) await award(c, grid.owner_id, 'play', `${user}:${grid.id}`, 1n);
 }
+/** Counts behind the online, design and streak achievements. */
+async function socialStats(c: PoolClient | Db, user: string) {
+  const counts = (await c.query(`SELECT
+    (SELECT count(DISTINCT gc.grid_id)::int FROM grid_completions gc JOIN grids g ON g.id=gc.grid_id WHERE gc.user_id=$1 AND g.owner_id<>$1) AS "onlineSolved",
+    (SELECT count(*)::int FROM grids WHERE owner_id=$1 AND published_at IS NOT NULL) AS "designedCount"`, [user])).rows[0];
+  return { onlineSolved: counts.onlineSolved as number, designedCount: counts.designedCount as number, bestStreak: longestRun(await activityDays(c, user)) };
+}
+async function activityDays(c: PoolClient | Db, user: string): Promise<string[]> {
+  return (await c.query(`SELECT to_char(day,'YYYY-MM-DD') AS day FROM activity_days WHERE user_id=$1 ORDER BY day`, [user])).rows.map(r => r.day);
+}
+async function awardSocial(c: PoolClient, user: string) {
+  for (const badge of socialBadges(await socialStats(c, user))) await c.query('INSERT INTO imported_badges(user_id,badge_id) VALUES($1,$2) ON CONFLICT DO NOTHING', [user, badge]);
+}
+/** The caller's like and bookmark state plus the like count, for a grid shown in play. */
+async function socialFields(c: PoolClient | Db, user: string, gridId: string) {
+  return (await c.query(`SELECT (SELECT count(*)::int FROM grid_likes WHERE grid_id=$2) AS "likeCount",
+    EXISTS(SELECT 1 FROM grid_likes WHERE grid_id=$2 AND user_id=$1) AS liked,
+    EXISTS(SELECT 1 FROM grid_bookmarks WHERE grid_id=$2 AND user_id=$1) AS bookmarked`, [user, gridId])).rows[0];
+}
 async function sessionGrid(db: PoolClient | Db, user: string, sessionId: string) {
-  const row = (await db.query(`SELECT g.*,s.casual_cycle FROM play_sessions s JOIN grids g ON g.id=s.grid_id JOIN worlds w ON w.id=g.world_id
-    JOIN users u ON u.id=g.owner_id WHERE s.id=$1 AND s.user_id=$2 AND s.expires_at>now() AND NOT u.suspended AND NOT g.moderated AND NOT w.moderated`, [sessionId, user])).rows[0];
+  const row = (await db.query(`SELECT g.*,s.casual_cycle FROM play_sessions s JOIN grids g ON g.id=s.grid_id
+    JOIN users u ON u.id=g.owner_id WHERE s.id=$1 AND s.user_id=$2 AND s.expires_at>now() AND NOT u.suspended AND NOT g.moderated`, [sessionId, user])).rows[0];
   requireValue(row, 'SESSION_UNAVAILABLE', 'This play session is unavailable. Open the grid again.', 404);
   return row;
 }
@@ -72,7 +89,7 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
     if (!grid) return { sessionId: null, grid: null };
     const sessionId = randomUUID();
     await c.query('INSERT INTO play_sessions(id,user_id,grid_id,casual_cycle) SELECT $1,$2,$3,cycle FROM casual_cycles WHERE user_id=$2', [sessionId, account, grid.id]);
-    return { sessionId, grid };
+    return { sessionId, grid: { ...grid, ...(await socialFields(c, account, grid.id)) } };
   }));
   app.get('/v1/capabilities', async () => ({ emailDelivery: 'disabled' }));
 
@@ -80,132 +97,139 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
     const done = (await db.query('SELECT level_id FROM campaign_progress WHERE user_id=$1 ORDER BY level_id', [user(req)])).rows.map(r => r.level_id);
     const communityDone = (await db.query('SELECT grid_id FROM grid_completions WHERE user_id=$1 ORDER BY grid_id', [user(req)])).rows.map(r => r.grid_id);
     const badges = new Set([...earnedBadges(done), ...(await db.query('SELECT badge_id FROM imported_badges WHERE user_id=$1', [user(req)])).rows.map(r => r.badge_id)]);
-    return { done, communityDone, badges: [...badges], ...(await xp(db, user(req))) };
+    return { done, communityDone, badges: [...badges], ...(await socialStats(db, user(req))), ...(await xp(db, user(req))) };
   });
   app.post('/v1/progress/import', { preHandler: ready, schema: { body: objectSchema({ operationId: operationSchema,
-    done: { type: 'array', maxItems: campaign.length, uniqueItems: true, items: { type: 'integer', minimum: 1, maximum: campaign.length } },
-    badges: { type: 'array', maxItems: badgeIds.length, uniqueItems: true, items: { type: 'string', enum: badgeIds } } }) } }, req => write(req, 'import', async c => {
+    done: { type: 'array', maxItems: Math.max(campaign.length, 206), uniqueItems: true, items: { type: 'integer', minimum: 1, maximum: Math.max(campaign.length, 206) } },
+    badges: { type: 'array', maxItems: importBadgeIds.length, uniqueItems: true, items: { type: 'string', enum: importBadgeIds } } }) } }, req => write(req, 'import', async c => {
     const b = req.body as any;
-    for (const id of b.done) await c.query('INSERT INTO campaign_progress(user_id,level_id) VALUES($1,$2) ON CONFLICT DO NOTHING', [user(req), id]);
-    for (const id of [...new Set([...b.badges, ...earnedBadges(b.done)])]) await c.query('INSERT INTO imported_badges(user_id,badge_id) VALUES($1,$2) ON CONFLICT DO NOTHING', [user(req), id]);
+    for (const id of b.done.filter((id: number) => id <= campaign.length)) await c.query('INSERT INTO campaign_progress(user_id,level_id) VALUES($1,$2) ON CONFLICT DO NOTHING', [user(req), id]);
+    for (const id of [...new Set([...b.badges.filter((id: string) => badgeIds.includes(id)), ...earnedBadges(b.done)])]) await c.query('INSERT INTO imported_badges(user_id,badge_id) VALUES($1,$2) ON CONFLICT DO NOTHING', [user(req), id]);
     return { accepted: true, awardedMilli: '0' };
   }));
 
-  app.get('/v1/profiles/:id', { preHandler: ready, schema: { params: idParams } }, async req => {
+  app.get('/v1/profiles/:id', { preHandler: ready, schema: { params: idParams, querystring: objectSchema({ today: daySchema }, []) } }, async req => {
     const id = (req.params as any).id;
+    // The viewer's local date decides whether the streak is still alive; without it, the server's UTC date.
+    const today = acceptedDay((req.query as any).today);
     const person = (await db.query('SELECT id,username FROM users WHERE id=$1 AND NOT suspended', [id])).rows[0];
     requireValue(person, 'NOT_FOUND', 'Profile unavailable.', 404);
     const done = (await db.query('SELECT level_id FROM campaign_progress WHERE user_id=$1', [id])).rows.map(r => r.level_id);
     const badges = [...new Set([...earnedBadges(done), ...(await db.query('SELECT badge_id FROM imported_badges WHERE user_id=$1', [id])).rows.map(r => r.badge_id)])];
-    const counts = (await db.query(`SELECT
-      (SELECT count(*)::int FROM worlds w WHERE owner_id=$1 AND NOT hidden AND NOT moderated AND EXISTS(SELECT 1 FROM grids g WHERE g.world_id=w.id AND g.published_at IS NOT NULL AND NOT g.hidden AND NOT g.moderated)) AS "worldCount",
-      (SELECT count(*)::int FROM grids g JOIN worlds w ON w.id=g.world_id WHERE g.owner_id=$1 AND g.published_at IS NOT NULL AND NOT g.hidden AND NOT g.moderated AND NOT w.hidden AND NOT w.moderated) AS "gridCount"`, [id])).rows[0];
+    const counts = (await db.query(`SELECT count(*)::int AS "gridCount" FROM grids g
+      WHERE g.owner_id=$1 AND g.published_at IS NOT NULL AND NOT g.hidden AND NOT g.moderated`, [id])).rows[0];
     // Community count excludes hashes already represented by completed campaign grids.
     const completedHashes = new Set(done.map((n: number) => contentHash(campaign[n - 1]!)));
     const communityHashes = (await db.query('SELECT DISTINCT g.content_hash FROM grid_completions gc JOIN grids g ON g.id=gc.grid_id WHERE gc.user_id=$1 AND g.owner_id<>$1', [id])).rows.map(r => r.content_hash);
     const communityCount = communityHashes.filter(h => !completedHashes.has(h)).length;
-    return { ...person, worldCount: counts.worldCount, gridCount: counts.gridCount, campaignCount: done.length, communityCount, beatenCount: done.length + communityCount, badges, ...(await xp(db, id)) };
+    // Bookmarks are private: only your own profile counts them.
+    const follow = (await db.query(`SELECT (SELECT count(*)::int FROM follows WHERE followee_id=$1) AS "followerCount",
+      (SELECT count(*)::int FROM follows WHERE follower_id=$1) AS "followingCount",
+      CASE WHEN $1=$2 THEN (SELECT count(*)::int FROM grid_bookmarks b JOIN grids g ON g.id=b.grid_id JOIN users bu ON bu.id=g.owner_id AND NOT bu.suspended
+        WHERE b.user_id=$1 AND g.published_at IS NOT NULL AND NOT g.hidden AND NOT g.moderated) ELSE 0 END AS "bookmarkCount",
+      EXISTS(SELECT 1 FROM follows WHERE followee_id=$1 AND follower_id=$2) AS following`, [id, user(req)])).rows[0];
+    const streak = currentRun(await activityDays(db, id), today);
+    return { ...person, gridCount: counts.gridCount, campaignCount: done.length, communityCount, beatenCount: done.length + communityCount, badges,
+      followerCount: follow.followerCount, followingCount: follow.followingCount, bookmarkCount: follow.bookmarkCount, following: follow.following, streak, ...(await xp(db, id)) };
   });
 
-  app.get('/v1/worlds', { preHandler: ready, schema: { querystring: objectSchema({ query: { type: 'string', maxLength: 80, default: '' }, owner: uuidSchema, mine: { type: 'boolean', default: false }, sort: { type: 'string', enum: ['popular','newest'], default: 'popular' }, period: { type: 'string', enum: ['all','today','week','month','year'], default: 'all' }, page: { type: 'integer', minimum: 0, maximum: 100000, default: 0 } }, []) } }, async req => {
-    const q = req.query as any; const own = !!q.mine;
+  app.post('/v1/users/:id/follow', { preHandler: ready, schema: { params: idParams, body: toggleBody } }, req => write(req, 'follow', async c => {
+    const id = (req.params as any).id, on = (req.body as any).on;
+    requireValue(id !== user(req), 'SELF_FOLLOW', 'You cannot follow yourself.');
+    requireValue((await c.query('SELECT 1 FROM users WHERE id=$1 AND NOT suspended', [id])).rowCount, 'NOT_FOUND', 'Profile unavailable.', 404);
+    if (on) await c.query('INSERT INTO follows(follower_id,followee_id) VALUES($1,$2) ON CONFLICT DO NOTHING', [user(req), id]);
+    else await c.query('DELETE FROM follows WHERE follower_id=$1 AND followee_id=$2', [user(req), id]);
+    const followerCount = (await c.query('SELECT count(*)::int AS n FROM follows WHERE followee_id=$1', [id])).rows[0].n;
+    return { following: on, followerCount };
+  }));
+  const likeable = async (c: PoolClient, id: string) => {
+    const g = (await c.query(`SELECT g.id,g.owner_id FROM grids g JOIN users u ON u.id=g.owner_id WHERE g.id=$1 AND ${publishedVisible}`, [id])).rows[0];
+    requireValue(g, 'NOT_FOUND', 'Grid unavailable.', 404);
+    return g;
+  };
+  app.post('/v1/grids/:id/like', { preHandler: ready, schema: { params: idParams, body: toggleBody } }, req => write(req, 'grid-like', async c => {
+    const g = await likeable(c, (req.params as any).id), on = (req.body as any).on;
+    requireValue(g.owner_id !== user(req), 'OWN_PUZZLE', 'You cannot like your own puzzle.');
+    if (on) await c.query('INSERT INTO grid_likes(user_id,grid_id) VALUES($1,$2) ON CONFLICT DO NOTHING', [user(req), g.id]);
+    else await c.query('DELETE FROM grid_likes WHERE user_id=$1 AND grid_id=$2', [user(req), g.id]);
+    const likeCount = (await c.query('SELECT count(*)::int AS n FROM grid_likes WHERE grid_id=$1', [g.id])).rows[0].n;
+    return { liked: on, likeCount };
+  }));
+  app.post('/v1/grids/:id/bookmark', { preHandler: ready, schema: { params: idParams, body: toggleBody } }, req => write(req, 'grid-bookmark', async c => {
+    const g = await likeable(c, (req.params as any).id), on = (req.body as any).on;
+    if (on) await c.query('INSERT INTO grid_bookmarks(user_id,grid_id) VALUES($1,$2) ON CONFLICT DO NOTHING', [user(req), g.id]);
+    else await c.query('DELETE FROM grid_bookmarks WHERE user_id=$1 AND grid_id=$2', [user(req), g.id]);
+    return { bookmarked: on };
+  }));
+
+  app.get('/v1/grids', { preHandler: ready, schema: { querystring: objectSchema({
+    owner: uuidSchema, query: { type: 'string', maxLength: 80, default: '' },
+    sort: { type: 'string', enum: ['popular','newest','number','liked'], default: 'popular' },
+    period: { type: 'string', enum: ['all','today','week','month','year'], default: 'all' },
+    bookmarked: { type: 'boolean', default: false },
+    page: { type: 'integer', minimum: 0, maximum: 100000, default: 0 }
+  }, []) } }, async req => {
+    const q = req.query as any;
     const unit = ({ today: 'day', week: 'week', month: 'month', year: 'year' } as Record<string,string>)[q.period];
-    const period = unit ? `AND w.created_at >= (date_trunc('${unit}',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC') AND w.created_at <= now()` : '';
-    const order = q.sort === 'newest' ? 'w.created_at DESC' : 'popularity DESC';
-    const rows = (await db.query(`${worldSelect} WHERE ${own ? 'w.owner_id=$1' : `$1::uuid IS NOT NULL AND ${visible} AND EXISTS(SELECT 1 FROM grids g WHERE g.world_id=w.id AND g.published_at IS NOT NULL AND NOT g.hidden AND NOT g.moderated)`}
-      AND ($2::uuid IS NULL OR w.owner_id=$2) AND w.name ILIKE $3
-      ${period} ORDER BY ${order},w.id ASC LIMIT 21 OFFSET $4`, [user(req), q.owner ?? null, searchPattern(q.query ?? ''), (q.page ?? 0) * 20])).rows;
-    return { items: rows.slice(0, 20), nextPage: rows.length > 20 ? (q.page ?? 0) + 1 : null };
+    const period = unit ? `AND g.published_at >= (date_trunc('${unit}',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC') AND g.published_at <= now()` : '';
+    // Bookmarks list newest bookmark first; "liked" is the Most popular sort.
+    const order = q.bookmarked ? '(SELECT b.created_at FROM grid_bookmarks b WHERE b.grid_id=g.id AND b.user_id=$1) DESC'
+      : q.sort === 'number' ? 'g.level_number ASC' : q.sort === 'newest' ? 'g.published_at DESC' : q.sort === 'liked' ? '"likeCount" DESC' : 'popularity DESC';
+    const rows = (await db.query(`SELECT p.*,
+      EXISTS(SELECT 1 FROM grid_completions gc WHERE gc.grid_id=p.id AND gc.user_id=$1) AS completed,
+      EXISTS(SELECT 1 FROM grid_likes l WHERE l.grid_id=p.id AND l.user_id=$1) AS liked,
+      EXISTS(SELECT 1 FROM grid_bookmarks b WHERE b.grid_id=p.id AND b.user_id=$1) AS bookmarked
+      FROM (SELECT g.id,g.owner_id AS "ownerId",g.code,g.level_number AS "levelNumber",g.start_board AS start,g.target_board AS target,
+        g.hidden,g.moderated,g.published_at AS "publishedAt",u.username,
+        (SELECT count(*)::int FROM qualifying_plays qp WHERE qp.grid_id=g.id) AS popularity,
+        (SELECT count(*)::int FROM grid_likes l WHERE l.grid_id=g.id) AS "likeCount",
+        (SELECT count(*)::int FROM grid_completions gc WHERE gc.grid_id=g.id AND gc.user_id<>g.owner_id) AS "beatenCount",
+        (SELECT count(*)::int FROM play_attempt_outcomes a WHERE a.grid_id=g.id AND a.outcome='failed' AND a.user_id<>g.owner_id) AS "failedAttemptCount"
+        FROM grids g JOIN users u ON u.id=g.owner_id
+        WHERE g.published_at IS NOT NULL AND NOT u.suspended AND
+          ((NOT g.hidden AND NOT g.moderated) OR (g.owner_id=$1 AND $2::uuid=$1))
+          AND ($2::uuid IS NULL OR g.owner_id=$2) AND (CASE WHEN $4 ~ '^[0-9]+$' THEN g.level_number::text=$4 ELSE u.username ILIKE $3 END)
+          AND (NOT $6::boolean OR EXISTS(SELECT 1 FROM grid_bookmarks b WHERE b.grid_id=g.id AND b.user_id=$1))
+          ${period} ORDER BY ${order},g.id ASC LIMIT 21 OFFSET $5) p`,
+      [user(req),q.owner ?? null,searchPattern(q.query),q.query,q.page*20,q.bookmarked])).rows;
+    return { items: rows.slice(0,20), nextPage: rows.length > 20 ? q.page+1 : null };
   });
-  app.post('/v1/worlds', { preHandler: ready, schema: { body: objectSchema({ operationId: operationSchema, name: nameSchema, icon: { type: 'string', enum: ['R', 'B', 'G', 'Y', 'W', 'P'] } }) } }, req => write(req, 'world-create', async c => {
-    const b = req.body as any; const id = randomUUID();
-    await c.query('INSERT INTO worlds(id,owner_id,name,icon) VALUES($1,$2,$3,$4)', [id, user(req), worldName(b.name), b.icon]);
-    return (await c.query(`${worldSelect} WHERE w.id=$1`, [id])).rows[0];
-  }));
-  app.patch('/v1/worlds/:id', { preHandler: ready, schema: { params: idParams, body: objectSchema({ operationId: operationSchema, name: nameSchema, icon: { type: 'string', enum: ['R', 'B', 'G', 'Y', 'W', 'P'] }, hidden: { type: 'boolean' } }) } }, req => write(req, 'world-update', async c => {
-    const b = req.body as any;
-    const result = await c.query('UPDATE worlds SET name=$1,icon=$2,hidden=$3 WHERE id=$4 AND owner_id=$5 AND NOT moderated RETURNING id', [worldName(b.name), b.icon, b.hidden, (req.params as any).id, user(req)]);
-    requireValue(result.rowCount, 'NOT_FOUND', 'World unavailable or cannot be changed.', 404);
-    return { accepted: true };
-  }));
-  app.get('/v1/worlds/:id/grids', { preHandler: ready, schema: { params: idParams } }, async req => {
-    const id = (req.params as any).id;
-    const w = (await db.query(`${worldSelect} WHERE w.id=$1 AND (${visible} OR w.owner_id=$2)`, [id, user(req)])).rows[0];
-    requireValue(w, 'NOT_FOUND', 'World unavailable.', 404);
-    const items = (await db.query(`${gridSelect} WHERE g.world_id=$1 AND g.published_at IS NOT NULL
-      AND ((${publishedVisible}) OR g.owner_id=$2) ORDER BY g.level_number,g.id`, [id, user(req)])).rows;
-    const completed = new Set((await db.query('SELECT grid_id FROM grid_completions WHERE user_id=$1 AND grid_id=ANY($2::uuid[])', [user(req), items.map(g => g.id)])).rows.map(r => r.grid_id));
-    const stats = (await db.query(`SELECT g.id,
-      (SELECT count(*)::int FROM grid_completions gc WHERE gc.grid_id=g.id AND gc.user_id<>g.owner_id) AS "beatenCount",
-      (SELECT count(*)::int FROM play_attempt_outcomes a WHERE a.grid_id=g.id AND a.outcome='failed' AND a.user_id<>g.owner_id) AS "failedAttemptCount"
-      FROM grids g WHERE g.id=ANY($1::uuid[])`, [items.map(g => g.id)])).rows;
-    const byId = new Map(stats.map(s => [s.id, s]));
-    return { world: w, items: items.map(g => ({ ...g, ...byId.get(g.id), completed: completed.has(g.id) })) };
-  });
-  app.get('/v1/grids/drafts', { preHandler: ready }, async req => ({ items: (await db.query(`${gridSelect} WHERE g.owner_id=$1 AND g.published_at IS NULL ORDER BY g.created_at DESC LIMIT 100`, [user(req)])).rows }));
-  async function insertDraft(c: PoolClient, owner: string, b: any, name: string) {
-    replay(b, b.path);
-    const count = (await c.query('SELECT count(*)::int AS count FROM grids WHERE owner_id=$1 AND published_at IS NULL', [owner])).rows[0].count;
-    requireValue(count < 100, 'DRAFT_LIMIT', 'Publish an existing draft before saving more.', 409);
-    const id = randomUUID(); let code = '';
-    for (let i = 0; i < 10; i++) {
+  app.post('/v1/grids', { preHandler: ready, schema: { body: objectSchema({ operationId: operationSchema,
+    start: boardSchema, target: boardSchema, path: pathSchema }) } }, req => write(req, 'puzzle-create', async c => {
+    const b = req.body as any; replay(b,b.path);
+    const owner = user(req), id = randomUUID();
+    // operation() holds the account lock, serializing creator numbers and retries.
+    const number = (await c.query('SELECT coalesce(max(level_number),0)+1 AS n FROM grids WHERE owner_id=$1',[owner])).rows[0].n;
+    let code = '';
+    for (let i=0;i<10;i++) {
       code = randomBytes(8).toString('hex').toUpperCase();
-      await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [`code:${code}`]);
-      if (!(await c.query('SELECT 1 FROM grids WHERE code=$1', [code])).rowCount) break;
+      await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`code:${code}`]);
+      if (!(await c.query('SELECT 1 FROM grids WHERE code=$1',[code])).rowCount) break;
       code = '';
     }
-    requireValue(code, 'CODE_BUSY', 'Could not allocate a code. Please retry.', 503);
-    await c.query('INSERT INTO grids(id,owner_id,name,code,start_board,target_board,content_hash) VALUES($1,$2,$3,$4,$5,$6,$7)', [id, owner, name, code, JSON.stringify(b.start), JSON.stringify(b.target), contentHash(b)]);
-    return { id, code };
-  }
-  async function publishInto(c: PoolClient, owner: string, id: string, worldId: string) {
-    const g = (await c.query('SELECT * FROM grids WHERE id=$1 AND owner_id=$2 AND NOT moderated FOR UPDATE', [id, owner])).rows[0];
-    requireValue(g, 'NOT_FOUND', 'Draft unavailable.', 404);
-    if (g.published_at) {
-      requireValue(g.world_id === worldId, 'ALREADY_PUBLISHED', 'Published grids cannot move between worlds.', 409);
-      return { id, code: g.code as string, name: g.name as string, levelNumber: g.level_number as number, awardedMilli: '0' };
-    }
-    const w = (await c.query('SELECT * FROM worlds WHERE id=$1 AND owner_id=$2 AND NOT moderated FOR UPDATE', [worldId, owner])).rows[0];
-    requireValue(w, 'NOT_FOUND', 'World unavailable.', 404);
-    const count = (await c.query('SELECT count(*)::int AS count FROM grids WHERE world_id=$1 AND published_at IS NOT NULL', [worldId])).rows[0].count;
-    requireValue(count < 20, 'WORLD_FULL', 'This world already contains 20 levels. Create another world.', 409);
-    const levelNumber = count + 1;
-    const name = g.name === '' ? `Level ${levelNumber}` : g.name as string;
-    await c.query('UPDATE grids SET world_id=$1,published_at=now(),level_number=$2,name=$3 WHERE id=$4', [worldId, levelNumber, name, id]);
-    const original = await c.query('INSERT INTO content_claims(content_hash,creator_id) VALUES($1,$2) ON CONFLICT DO NOTHING', [g.content_hash, owner]);
-    const reward = original.rowCount ? await award(c, owner, 'create', g.content_hash, CREATE_XP, CREATE_DAILY_CAP) : 0n;
-    return { id, code: g.code as string, name, levelNumber, awardedMilli: reward.toString() };
-  }
-  app.post('/v1/grids/drafts', { preHandler: ready, schema: { body: objectSchema({ operationId: operationSchema, name: nameSchema, start: boardSchema, target: boardSchema, path: pathSchema }) } }, req => write(req, 'draft-create', async c => {
-    const b = req.body as any; const name = worldName(b.name);
-    const { id, code } = await insertDraft(c, user(req), b, name);
-    return { id, code, name, publishedAt: null };
+    requireValue(code,'CODE_BUSY','Could not allocate a code. Please retry.',503);
+    const hash = contentHash(b);
+    await c.query(`INSERT INTO grids(id,owner_id,code,start_board,target_board,content_hash,published_at,level_number)
+      VALUES($1,$2,$3,$4,$5,$6,now(),$7)`,[id,owner,code,JSON.stringify(b.start),JSON.stringify(b.target),hash,number]);
+    const original = await c.query('INSERT INTO content_claims(content_hash,creator_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[hash,owner]);
+    const reward = original.rowCount ? await award(c,owner,'create',hash,CREATE_XP,CREATE_DAILY_CAP) : 0n;
+    await awardSocial(c, owner);
+    return { id,code,levelNumber:number,awardedMilli:reward.toString() };
   }));
-  app.post('/v1/worlds/:id/levels', { preHandler: ready, schema: { params: idParams, body: objectSchema({ operationId: operationSchema, name: nameSchema, start: boardSchema, target: boardSchema, path: pathSchema }) } }, req => write(req, 'level-add', async c => {
-    const b = req.body as any;
-    const label = b.name.trim() === '' ? '' : levelName(b.name, 0);
-    const { id } = await insertDraft(c, user(req), b, label);
-    return publishInto(c, user(req), id, (req.params as any).id);
-  }));
-  app.post('/v1/grids/:id/publish', { preHandler: ready, schema: { params: idParams, body: objectSchema({ operationId: operationSchema, worldId: uuidSchema }) } }, req => write(req, 'publish', async c => {
-    const { id, code, levelNumber, awardedMilli } = await publishInto(c, user(req), (req.params as any).id, (req.body as any).worldId);
-    return { id, code, levelNumber, awardedMilli };
-  }));
-  app.patch('/v1/grids/:id', { preHandler: ready, schema: { params: idParams, body: objectSchema({ operationId: operationSchema, name: nameSchema, hidden: { type: 'boolean' } }) } }, req => write(req, 'grid-update', async c => {
-    const b = req.body as any;
-    const updated = await c.query('UPDATE grids SET name=$1,hidden=$2 WHERE id=$3 AND owner_id=$4 AND NOT moderated RETURNING id', [worldName(b.name), b.hidden, (req.params as any).id, user(req)]);
-    requireValue(updated.rowCount, 'NOT_FOUND', 'Grid unavailable or cannot be changed.', 404);
-    return { accepted: true };
+  app.patch('/v1/grids/:id', { preHandler: ready, schema: { params: idParams, body: objectSchema({ operationId: operationSchema, hidden: { type: 'boolean' } }) } }, req => write(req, 'grid-update', async c => {
+    const result = await c.query('UPDATE grids SET hidden=$1 WHERE id=$2 AND owner_id=$3 AND NOT moderated RETURNING id',[(req.body as any).hidden,(req.params as any).id,user(req)]);
+    requireValue(result.rowCount,'NOT_FOUND','Puzzle unavailable or cannot be changed.',404);
+    return { accepted:true };
   }));
   app.get('/v1/grids/code/:code', { preHandler: ready, schema: { params: objectSchema({ code: { type: 'string', pattern: '^[A-Fa-f0-9]{16}$' } }) } }, async req => {
     const grid = (await db.query(`${gridSelect} WHERE g.code=$1 AND ${publishedVisible}`, [(req.params as any).code.toUpperCase()])).rows[0];
-    requireValue(grid, 'NOT_FOUND', 'Published grid not found.', 404); return { grid };
+    requireValue(grid, 'NOT_FOUND', 'Published grid not found.', 404); return { grid: { ...grid, ...(await socialFields(db, user(req), grid.id)) } };
   });
   app.post('/v1/grids/:id/sessions', { preHandler: ready, schema: { params: idParams, body: objectSchema({ operationId: operationSchema }) } }, req => write(req, 'session', async c => {
     const g = (await c.query(`${gridSelect} WHERE g.id=$1 AND ${publishedVisible}`, [(req.params as any).id])).rows[0];
     requireValue(g, 'NOT_FOUND', 'Grid unavailable.', 404);
     const id = randomUUID(); await c.query('INSERT INTO play_sessions(id,user_id,grid_id) VALUES($1,$2,$3)', [id, user(req), g.id]);
-    return { sessionId: id, grid: g };
+    return { sessionId: id, grid: { ...g, ...(await socialFields(c, user(req), g.id)) } };
   }));
   app.post('/v1/play-sessions/:id/move', { preHandler: ready, schema: { params: idParams, body: objectSchema({ operationId: operationSchema, path: pathSchema }) } }, async req => {
     const g = await sessionGrid(db, user(req), (req.params as any).id);
@@ -225,7 +249,8 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
     }, [g.owner_id]);
   });
   app.post('/v1/completions', { preHandler: ready, schema: { body: objectSchema({ operationId: operationSchema, kind: { type: 'string', enum: ['campaign', 'community'] },
-    levelId: { type: 'integer', minimum: 1, maximum: campaign.length }, sessionId: uuidSchema, attemptId: uuidSchema, path: pathSchema, debug: { type: 'boolean', default: false } }, ['operationId', 'kind', 'path']) } }, async req => {
+    levelId: { type: 'integer', minimum: 1, maximum: campaign.length }, sessionId: uuidSchema, attemptId: uuidSchema, path: pathSchema, debug: { type: 'boolean', default: false },
+    day: daySchema }, ['operationId', 'kind', 'path']) } }, async req => {
     const b = req.body as any;
     requireValue(!b.debug, 'DEBUG_ACTIVITY', 'Debug activity cannot earn XP.');
     requireValue(b.kind === 'campaign' ? !!b.levelId && !b.sessionId : !!b.sessionId && !b.levelId, 'INVALID_PUZZLE', 'Choose one campaign level or community session.');
@@ -233,6 +258,8 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
     const p: Puzzle = g ? puzzle(g) : campaign[b.levelId - 1]!;
     replay(p, b.path); const hash = contentHash(p);
     return write(req, 'complete', async c => {
+      // Any solve keeps the daily streak going, dated by the player's own calendar.
+      await c.query('INSERT INTO activity_days(user_id,day) VALUES($1,$2) ON CONFLICT DO NOTHING', [user(req), acceptedDay(b.day)]);
       if (g && !await recordAttempt(c, user(req), b.attemptId, b.sessionId, g.id, 'solved')) return { accepted: true, awardedMilli: '0', ...(await xp(c, user(req))) };
       if (g) {
         await qualify(c, user(req), g);
@@ -243,6 +270,7 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
         const done = (await c.query('SELECT level_id FROM campaign_progress WHERE user_id=$1', [user(req)])).rows.map(r => r.level_id);
         for (const badge of earnedBadges(done)) await c.query('INSERT INTO imported_badges(user_id,badge_id) VALUES($1,$2) ON CONFLICT DO NOTHING', [user(req), badge]);
       }
+      await awardSocial(c, user(req));
       let reward = 0n;
       const self = (await c.query('SELECT 1 FROM grids WHERE owner_id=$1 AND content_hash=$2 AND published_at IS NOT NULL LIMIT 1', [user(req), hash])).rowCount;
       if (!self) {

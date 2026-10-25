@@ -18,15 +18,17 @@ const db = database(config.databaseUrl);
 await migrate(db);
 const app = await buildApp(db, config, false);
 const paths = JSON.parse(readFileSync(new URL('../../app/src/test/resources/solutions.json', import.meta.url), 'utf8'));
-let fixtureWorld: any; let fixtureGrid: any;
+let fixtureGrid: any;
+const fixtureSolutions: Record<string, number[][]> = {};
 let offline = false;
 app.addHook('onRequest',async(req,reply)=>{
   if(offline && (req.url.startsWith('/v1/creators') || req.url.startsWith('/v1/casual/sessions'))) { reply.hijack(); req.raw.socket.destroy(); }
 });
 app.post('/test/outage',async req=>{ offline=!!(req.body as any).offline; return {accepted:true}; });
 const fixtureLevel = paths.findIndex((p: any[]) => p.length > 1);
-app.get('/test/discovery',async()=>({worldId:fixtureWorld.id,gridId:fixtureGrid.id,solution:paths[fixtureLevel]}));
+app.get('/test/discovery',async()=>({gridId:fixtureGrid.id,solution:paths[fixtureLevel],solutions:fixtureSolutions}));
 app.get('/test/discovery-stats',async()=>({failures:(await db.query("SELECT count(*)::int AS n FROM play_attempt_outcomes WHERE grid_id=$1 AND outcome='failed'",[fixtureGrid.id])).rows[0].n}));
+app.get('/test/feedback',async()=>({reports:(await db.query('SELECT kind,body,user_id,app_version,status,attempts FROM feedback ORDER BY created_at DESC LIMIT 1')).rows}));
 await app.ready();
 async function seedCall(path: string, body: object, access?: string) {
   const response = await app.inject({ method: 'POST', url: path, payload: body, headers: access ? {authorization:`Bearer ${access}`} : {}, remoteAddress: '192.0.2.200' });
@@ -37,13 +39,10 @@ const fixturePassword = 'fixture-password';
 const maker = await seedCall('/v1/auth/register',{email:'qa-maker@example.test',password:fixturePassword,name:'QA Maker'});
 const designer = await seedCall('/v1/auth/register',{email:'qa-designer@example.test',password:fixturePassword,name:'QA Designer'});
 await seedCall('/v1/auth/register',{email:'qa-player@example.test',password:fixturePassword,name:'QA Player'});
-const world = await seedCall('/v1/worlds',{operationId:randomUUID(),name:'Calm Pool',icon:'R'},maker.accessToken);
-fixtureWorld = world;
-const second = await seedCall('/v1/worlds',{operationId:randomUUID(),name:'Warm Grove',icon:'B'},designer.accessToken);
-for(const [owner,w,n,name] of [[maker,world,fixtureLevel,'Quiet Cove'],[designer,second,fixtureLevel+1,'Silver Grove'],[designer,second,fixtureLevel+2,'Warm Fern']] as const) {
-  const puzzle = campaign[n]!;
-  const grid = await seedCall('/v1/grids/drafts',{operationId:randomUUID(),name,start:puzzle.start,target:puzzle.target,path:paths[n]},owner.accessToken);
-  await seedCall(`/v1/grids/${grid.id}/publish`,{operationId:randomUUID(),worldId:w.id},owner.accessToken);
+for(const [owner,n] of [[maker,fixtureLevel],[designer,fixtureLevel+1],[designer,fixtureLevel+2]] as const) {
+  const puzzle=campaign[n]!;
+  const grid=await seedCall('/v1/grids',{operationId:randomUUID(),start:puzzle.start,target:puzzle.target,path:paths[n]},owner.accessToken);
+  fixtureSolutions[grid.id] = paths[n];
   if(owner===maker) fixtureGrid=grid;
 }
 await seedCall('/v1/completions',{operationId:randomUUID(),kind:'campaign',levelId:1,path:paths[0]},maker.accessToken);
