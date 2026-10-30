@@ -215,7 +215,7 @@ class PlayDiscoveryFlowTest {
             tap("Worlds")
             await("Worlds requires sign-in and retains its destination") { model.top == Route.Auth(Route.Online) }
             instrumentation.runOnMainSync { model.online.login(email, "fixture-password-long", Route.Online) }
-            await("Worlds opens after sign-in") { model.top == Route.Online }
+            await("Worlds opens after sign-in finishes") { model.top == Route.Online && !model.online.busy }
             tap("Random")
             await("Casual opens a community game") { model.top == Route.Game && model.community?.casual == true }
             val initialSession = model.community!!.sessionId

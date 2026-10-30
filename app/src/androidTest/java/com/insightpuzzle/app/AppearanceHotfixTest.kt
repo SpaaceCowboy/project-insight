@@ -83,8 +83,9 @@ class AppearanceHotfixTest {
         } finally { Art.colorblind = originalPalette }
         val bright = render('R', Color.Red)
         val fading = render('R', Color.Red.copy(alpha = .1f))
-        assertTrue("Glow halo must respect fading alpha", AndroidColor.alpha(bright.getPixel(18, 64)) > AndroidColor.alpha(fading.getPixel(18, 64)))
-        assertEquals(0, AndroidColor.alpha(render('R').getPixel(18, 64)))
+        assertTrue("Selection ring must respect fading alpha", AndroidColor.alpha(bright.getPixel(21, 64)) > AndroidColor.alpha(fading.getPixel(21, 64)))
+        assertEquals(0, AndroidColor.alpha(render('R').getPixel(21, 64)))
+        assertEquals("Selection has no outer halo", 0, AndroidColor.alpha(bright.getPixel(18, 64)))
     }
 
     @Test fun previewLayoutsAndSolveLifecycle() {
