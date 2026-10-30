@@ -126,9 +126,9 @@ class AppearanceHotfixTest {
             }
             SystemClock.sleep(600); capture("creator-six-symbols")
             main { model.creator.pressStart() }
-            await("Target phase shows the Target button") { nodes().any { it.text?.toString() == "Target" } }
+            await("Target stage shows its heading and the Next button") { nodes().any { it.text?.toString() == "Next" } && nodes().any { it.text?.toString() == "Find your target" } }
             assertFalse("No start preview while choosing the target", nodes().any { it.contentDescription?.toString() == "Start arrangement" })
-            assertEquals("Only the Target button should have a caption", 1, nodes().count { it.text?.toString()?.equals("Target", ignoreCase = true) == true })
+            assertEquals("Only the Next button should have a caption", 1, nodes().count { it.text?.toString()?.equals("Next", ignoreCase = true) == true })
             capture("creator-start-preview")
             main { model.creator.move(Pos(0, 0), Pos(1, 0)); model.creator.pressTarget() }
             await("Target preview must be announced") { nodes().any { it.contentDescription?.toString() == "Target arrangement" } }

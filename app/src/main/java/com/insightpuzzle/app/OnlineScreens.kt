@@ -96,16 +96,27 @@ internal fun OnlineField(label: String, value: String, password: Boolean = false
     }
 }
 
-/** An eye for the password field: open when the text is readable, crossed out when it is hidden. */
+/**
+ * A small, quiet eye for the password field: a slim almond and a dot for a pupil while the text is readable; while it is hidden, the lid closed to a
+ * gentle curve with three short lashes. No slash, no heavy outline.
+ */
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.eyeIcon(c: Color, visible: Boolean) {
     val u = size.width / 24f
-    val line = androidx.compose.ui.graphics.drawscope.Stroke(1.8f * u, cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round)
-    val lid = androidx.compose.ui.graphics.Path().apply {
-        moveTo(2 * u, 12 * u); quadraticBezierTo(12 * u, 3 * u, 22 * u, 12 * u); quadraticBezierTo(12 * u, 21 * u, 2 * u, 12 * u); close()
+    val width = 1.4f * u
+    val line = androidx.compose.ui.graphics.drawscope.Stroke(width, cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round)
+    fun at(x: Float, y: Float) = androidx.compose.ui.geometry.Offset(x * u, y * u)
+    if (visible) {
+        val lid = androidx.compose.ui.graphics.Path().apply {
+            moveTo(4 * u, 12 * u); quadraticBezierTo(12 * u, 5.5f * u, 20 * u, 12 * u); quadraticBezierTo(12 * u, 18.5f * u, 4 * u, 12 * u); close()
+        }
+        drawPath(lid, c, style = line)
+        drawCircle(c, 1.9f * u, at(12f, 12f))
+    } else {
+        val lid = androidx.compose.ui.graphics.Path().apply { moveTo(4 * u, 11 * u); quadraticBezierTo(12 * u, 17 * u, 20 * u, 11 * u) }
+        drawPath(lid, c, style = line)
+        for ((a, b) in listOf(at(8f, 13.6f) to at(7f, 16f), at(12f, 14.5f) to at(12f, 17f), at(16f, 13.6f) to at(17f, 16f)))
+            drawLine(c, a, b, width, androidx.compose.ui.graphics.StrokeCap.Round)
     }
-    drawPath(lid, c, style = line)
-    drawCircle(c, 3.2f * u, androidx.compose.ui.geometry.Offset(12 * u, 12 * u), style = line)
-    if (!visible) drawLine(c, androidx.compose.ui.geometry.Offset(4 * u, 4 * u), androidx.compose.ui.geometry.Offset(20 * u, 20 * u), 1.8f * u, androidx.compose.ui.graphics.StrokeCap.Round)
 }
 
 @Composable
@@ -113,8 +124,9 @@ internal fun OnlineCard(modifier: Modifier = Modifier, pushable: Boolean = false
     // Not a button, but it sits on the same pedestal as the buttons below it. A [pushable] card sinks under a finger like a key and does nothing else.
     val p = LocalPalette.current; val shape = RoundedCornerShape(14.dp)
     val source = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val feedback = LocalFeedback.current
     Column(modifier.fillMaxWidth().plush(shape, if (pushable) pressProgress(source) else 0f, p.paper2)
-        .then(if (pushable) Modifier.pressOnTouch(source) else Modifier).padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
+        .then(if (pushable) Modifier.pressOnTouch(source).clickable(source, null) { feedback(null) } else Modifier).padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
 }
 
 @Composable
@@ -137,19 +149,22 @@ fun AuthScreen(m: GameModel, destination: Route?) {
     var mode by rememberSaveable { mutableStateOf("login") }
     var email by rememberSaveable { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var repeat by remember { mutableStateOf("") }
     var name by rememberSaveable { mutableStateOf("") }
     OnlinePage(m, if (mode == "register") "Make yourself at home" else "Login", messages = false) {
         Tabs(listOf("login" to "Login", "register" to "Register"), mode) {
-            if (!o.busy) { mode = it; password = ""; o.clearMessages() }
+            if (!o.busy) { mode = it; password = ""; repeat = ""; o.clearMessages() }
         }
         OnlineField("Email", email, keyboard = KeyboardType.Email, enabled = !o.busy) { email = it.take(254) }
         OnlineField("Password", password, password = true, enabled = !o.busy) { password = it.take(128) }
         if (mode == "register") {
-            // A name already in use is refused by the server (NAME_TAKEN) and shown in the message line below; the other rules are explained as the player types.
+            // Typed twice, so a slip of the finger can't lock the player out of a new account.
+            OnlineField("Repeat password", repeat, password = true, enabled = !o.busy) { repeat = it.take(128) }
+            // A name already in use is refused by the server (NAME_TAKEN) and shown in the message line below. The rules show only once the name breaks one.
             OnlineField("Username", name, enabled = !o.busy) { name = Nicknames.clip(it) }
             val problem = if (name.isBlank()) null else usernames.problem(name)
-            Label(problem?.let { Nicknames.message(it) } ?: "${Nicknames.MIN_LENGTH}–${Nicknames.MAX_LENGTH} characters: English letters, numbers, spaces, _ and -",
-                12.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite }, color = if (problem != null && problem != NameProblem.LENGTH) LocalPalette.current.accent else LocalPalette.current.muted)
+            if (problem != null) Label(Nicknames.message(problem), 12.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                color = if (problem != NameProblem.LENGTH) LocalPalette.current.accent else LocalPalette.current.muted)
         }
         OnlineMessages(m)
         MenuButton(if (mode == "register") "Create account" else "Login", primary = true, enabled = !o.busy) {
@@ -157,17 +172,17 @@ fun AuthScreen(m: GameModel, destination: Route?) {
                 !android.util.Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches() -> tr("Enter a valid email address.")
                 password.isBlank() -> tr("Enter your password.")
                 mode == "register" && password.length < 12 -> tr("Choose a password with at least 12 characters.")
+                mode == "register" && repeat != password -> tr("The passwords don't match.")
                 mode == "register" && usernames.problem(name) != null -> Nicknames.message(usernames.problem(name)!!)
                 else -> null
             }
             if (validation != null) o.report(OnlineException(400, "INVALID_INPUT", validation))
             else {
                 focus.clearFocus(); keyboard?.hide()
-                if (mode == "register") o.register(email, password, Nicknames.normalize(name), destination) { password = "" }
+                if (mode == "register") o.register(email, password, Nicknames.normalize(name), destination) { password = ""; repeat = "" }
                 else o.login(email, password, destination) { password = "" }
             }
         }
-        if (o.user != null) MenuButton("Logout", enabled = !o.busy) { o.logout() }
     }
 }
 
@@ -257,11 +272,12 @@ fun ProfileScreen(m: GameModel, requestedId: String?) {
             }
         }
         Spacer(Modifier.height(ScreenGap))
-        Refreshable(pulling, ::pull, Modifier.weight(1f).fillMaxWidth()) {
+        Refreshable(pulling, ::pull, Modifier.weight(1f).fillMaxWidth().bleed()) {
             // The buttons grow downwards to take the height the card and the three rows of puzzles leave, so the rows end exactly at the bottom of the screen.
             // Your profile and another player's share this geometry: Follow plus Achievements fill the same space as the three buttons.
-            // The side inset leaves room for the raised shadows, which the scroll area would otherwise clip.
-            FillColumn(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 6.dp), gap = 12.dp) {
+            // The side inset leaves room for the raised shadows, which the scroll area would otherwise clip; the area bleeds out by the same amount,
+            // so the card, the buttons and the puzzles line up with the keys above.
+            FillColumn(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = ShadowRoom), gap = 12.dp) {
                 OnlineMessages(m, errors = false)
                 // Only a fade: nothing here grows or slides into place.
                 val shown by androidx.compose.animation.core.animateFloatAsState(if (ready) 1f else 0f, androidx.compose.animation.core.tween(180), label = "profile")
@@ -269,15 +285,17 @@ fun ProfileScreen(m: GameModel, requestedId: String?) {
                 val data = profile
                 if (ready && data != null) {
                     ProfileCard(data, fade)
-                    val badges = data.getJSONArray("badges").strings().toSet()
+                    val badges = data.getJSONArray("badges").strings()
+                    val badgeCount = "${m.achievements.earnedCount(badges)} / ${m.achievements.catalog.size}"
                     // Achievements, and on your own profile your bookmarks and whom you follow, side by side; each opens its own screen.
                     if (own) Row(Modifier.fillMaxWidth().fillRest().then(fade), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         ProfileButton("Following", number(data.optInt("followingCount")), Modifier.weight(1f).fillMaxHeight()) { m.push(Route.Players("following")) }
-                        ProfileButton("Achievements", "${m.achievements.catalog.count { it.id in badges }} / ${m.achievements.catalog.size}", Modifier.weight(1f).fillMaxHeight()) { m.push(Route.Achievements) }
+                        ProfileButton("Achievements", badgeCount, Modifier.weight(1f).fillMaxHeight()) { m.push(Route.Achievements) }
                         ProfileButton("Bookmarked", number(data.optInt("bookmarkCount")), Modifier.weight(1f).fillMaxHeight()) { m.push(Route.Bookmarks) }
                     } else Column(Modifier.fillMaxWidth().fillRest().then(fade), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         MenuButton(if (data.optBoolean("following")) "Following" else "Follow", primary = !data.optBoolean("following"), cue = Cue.CHECK) { toggleFollow(data) }
-                        ProfileButton("Achievements", "${m.achievements.catalog.count { it.id in badges }} / ${m.achievements.catalog.size}", Modifier.fillMaxWidth().weight(1f), null)
+                        // Another player's achievements open read-only: which badges they have, without their progress.
+                        ProfileButton("Achievements", badgeCount, Modifier.fillMaxWidth().weight(1f)) { m.push(Route.PlayerAchievements(data.getString("username"), badges)) }
                     }
                     // The player's own puzzles, in the same four-column cards as Levels and Worlds.
                     Box(fade) { PuzzleCardList(m, puzzles, "No puzzles yet.") { detail = it } }

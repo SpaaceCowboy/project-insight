@@ -57,6 +57,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.addOutline
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -114,6 +116,20 @@ private val Mono = FontFamily(Font(R.font.jetbrains_mono_regular, FontWeight.Nor
 
 /** Space between a screen's top icon row and what comes under it (Home: icons to Journey). */
 val ScreenGap = 14.dp
+
+/** Room a scroll area or pager leaves at its sides for the raised keys' shadows, which it would otherwise clip. */
+val ShadowRoom = 6.dp
+
+/**
+ * Widens this element by [amount] on both sides, past its parent's edges. A scroll area that pads its content by the same [amount] (so the shadows fit inside
+ * its clip) then lines its keys up with the page edge, the same edge as the icon keys above and the buttons below.
+ */
+fun Modifier.bleed(amount: Dp = ShadowRoom): Modifier = this.layout { measurable, constraints ->
+    val extra = amount.roundToPx() * 2
+    val wide = constraints.copy(minWidth = (constraints.minWidth + extra).coerceAtLeast(0), maxWidth = if (constraints.hasBoundedWidth) constraints.maxWidth + extra else constraints.maxWidth)
+    val placeable = measurable.measure(wide)
+    layout((placeable.width - extra).coerceAtLeast(0), placeable.height) { placeable.place(-amount.roundToPx(), 0) }
+}
 
 @Composable fun Eyebrow(text: String, modifier: Modifier = Modifier) = Label(tr(text).uppercase(), 11.sp, modifier, LocalPalette.current.muted, FontWeight.Bold, .16.em, translate = false)
 
@@ -182,30 +198,38 @@ fun Modifier.pressOnTouch(source: MutableInteractionSource): Modifier = pointerI
 /**
  * A raised "plush" key: a soft shadow on the background, a slightly darker side showing under the face, no border. At [press] 1
  * the face sinks onto its side, the shadow nearly disappears and it shrinks a hair, like a soft key pushed down.
+ * With [shrink] off (a large platform such as the board) it only sinks: scaling a big shape would pull its bottom edge up.
  */
 @Composable
 fun Modifier.plush(shape: androidx.compose.ui.graphics.Shape, press: Float, face: Color, rest: Dp = 6.dp, depth: Dp = 3.dp, side: Color = LocalPalette.current.side, sheen: Boolean = true,
-                   travel: Float = 1f, sideLight: Float = 0f, sideLightColor: Color? = null): Modifier {
+                   travel: Float = 1f, sideLight: Float = 0f, sideLightColor: Color? = null, shrink: Boolean = true): Modifier {
     val p = LocalPalette.current
     val shade = Color.Black.copy(alpha = if (p.dark) .6f else .26f)
     // [sideLight] lights the side wall (hold to restart, the current level) towards [sideLightColor] (the ink colour by default); [travel] is how much of the wall the face may sink onto.
-    val wall = if (sideLight > 0f) lerp(side, sideLightColor ?: p.shellInk, sideLight.coerceIn(0f, 1f)) else side
+    val light = sideLight.coerceIn(0f, 1f)
+    val lit = if (light > 0f) lerp(side, sideLightColor ?: p.shellInk, light) else null
+    val sheenAlpha = if (p.dark) .035f else .12f
     return this
-        .graphicsLayer { val s = 1f - .03f * press; scaleX = s; scaleY = s }
+        .then(if (shrink) Modifier.graphicsLayer { val s = 1f - .03f * press; scaleX = s; scaleY = s } else Modifier)
         .shadow(rest - (rest - 1.dp) * press, shape, clip = false, ambientColor = shade, spotColor = shade)
         .drawBehind {
             // The side: the same shape fixed a little lower; the face covers more of it as it sinks onto it.
             val outline = shape.createOutline(size, layoutDirection, this)
-            translate(0f, depth.toPx()) { drawOutline(outline, wall) }
+            translate(0f, depth.toPx()) { drawOutline(outline, side) }
+            if (lit != null) {
+                // The light stays on the visible wall: never under the face, where its anti-aliased edge would show as a halo around the outline.
+                val top = androidx.compose.ui.graphics.Path().apply { addOutline(outline); translate(Offset(0f, press * travel * depth.toPx())) }
+                clipPath(top, androidx.compose.ui.graphics.ClipOp.Difference) { translate(0f, depth.toPx()) { drawOutline(outline, lit) } }
+            }
         }
         .graphicsLayer { translationY = press * travel * depth.toPx() }
         .clip(shape)
         .background(face)
         .drawWithContent {
             // Light from above, kept very faint so the face stays matte. With [sheen] off it lies under the content (a platform with tiles on it).
-            if (!sheen) drawRect(Brush.verticalGradient(0f to Color.White.copy(alpha = (if (p.dark) .035f else .35f) * (1f - press)), .5f to Color.Transparent))
+            if (!sheen) drawRect(Brush.verticalGradient(0f to Color.White.copy(alpha = sheenAlpha * (1f - press)), .5f to Color.Transparent))
             drawContent()
-            if (sheen) drawRect(Brush.verticalGradient(0f to Color.White.copy(alpha = (if (p.dark) .035f else .35f) * (1f - press)), .5f to Color.Transparent))
+            if (sheen) drawRect(Brush.verticalGradient(0f to Color.White.copy(alpha = sheenAlpha * (1f - press)), .5f to Color.Transparent))
         }
 }
 
@@ -221,11 +245,11 @@ fun sideFor(face: Color): Color {
 /** Rounded button with the web game's .menu-main-btn look. A null [onClick] means "not built yet": it is dimmed and labelled "Coming soon". */
 @Composable
 fun MenuButton(text: String, modifier: Modifier = Modifier, height: Dp = 48.dp, primary: Boolean = false, enabled: Boolean = true, fontSize: TextUnit = 14.sp, description: String? = null, subtitle: String? = null, cue: Cue? = Cue.PRESS,
-               weight: FontWeight = FontWeight.SemiBold, raised: Boolean = true, depth: Dp = 3.dp, onClick: (() -> Unit)?) {
+               weight: FontWeight = FontWeight.SemiBold, raised: Boolean = true, depth: Dp = 3.dp, shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(14.dp),
+               textColor: Color? = null, onClick: (() -> Unit)?) {
     val p = LocalPalette.current
     val feedback = LocalFeedback.current
     val soon = onClick == null
-    val shape = RoundedCornerShape(14.dp)
     val source = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     // A raised button shows its press by sinking, not by a ripple.
     val face = if (raised) Modifier.plush(shape, pressProgress(source), if (primary) p.accent else p.paper2, depth = depth)
@@ -239,7 +263,7 @@ fun MenuButton(text: String, modifier: Modifier = Modifier, height: Dp = 48.dp, 
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Label(text, fontSize, color = if (primary) p.accentInk else p.ink, weight = weight, spacing = .05.em, align = TextAlign.Center)
+            Label(text, fontSize, color = textColor ?: if (primary) p.accentInk else p.ink, weight = weight, spacing = .05.em, align = TextAlign.Center)
             val sub = subtitle ?: if (soon) "Coming soon" else null
             if (sub != null) Label(sub, 12.sp, Modifier.padding(top = 2.dp), color = if (primary) p.accentInk else p.muted, align = TextAlign.Center)
         }
@@ -258,11 +282,11 @@ fun InfoRow(label: String, value: String, modifier: Modifier = Modifier, cue: Cu
     val feedback = LocalFeedback.current
     val shape = RoundedCornerShape(14.dp)
     val source = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-    // A row with no action only sinks when pressed (no sound, no button role); one with an action is a button.
+    // A row with no action only sinks when pressed (a haptic tick, no sound, no button role); one with an action is a button.
     BoxWithConstraints(
         modifier.fillMaxWidth().heightIn(min = 56.dp).plush(shape, if (onClick != null || pressable) pressProgress(source) else 0f, p.paper2)
             .then(if (onClick != null) Modifier.pressOnTouch(source).clickable(source, null, role = Role.Button) { feedback(cue); onClick() }
-                else if (pressable) Modifier.pressOnTouch(source).clickable(source, null) {} else Modifier)
+                else if (pressable) Modifier.pressOnTouch(source).clickable(source, null) { feedback(null) } else Modifier)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center,
     ) {

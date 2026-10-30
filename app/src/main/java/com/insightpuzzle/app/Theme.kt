@@ -6,7 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
-// Neutral greys: dark mode is near-black, light mode is white with dark grey ink. No hue tint anywhere.
+// Dark mode is neutral near-black greys. Light mode is a warm cream key (face F4EDE5, wall E1D4C4) on near-white, with warm charcoal ink.
 data class Palette(
     val ink: Color, val muted: Color, val line: Color, val paper: Color, val paper2: Color,
     val accent: Color, val accentInk: Color, val shadow: Color, val side: Color, val shell: List<Color>, val shellInk: Color, val dark: Boolean,
@@ -18,9 +18,9 @@ val DarkPalette = Palette(
     shell = listOf(Color(0xFF252525), Color(0xFF222222)), shellInk = Color(0xFFEDEDED), dark = true,
 )
 val LightPalette = Palette(
-    ink = Color(0xFF26282C), muted = Color(0xFF5E6168), line = Color(0x3326282C), paper = Color(0xFFF1F1F2), paper2 = Color(0xFFF3F3F4),
-    accent = Color(0xFF3A3D42), accentInk = Color(0xFFFFFFFF), shadow = Color(0x24000000), side = Color(0xFFCDCDD1),
-    shell = listOf(Color(0xFFDFDFE2), Color(0xFFDBDBDE)), shellInk = Color(0xFF26282C), dark = false,
+    ink = Color(0xFF3B342D), muted = Color(0xFF7C7166), line = Color(0x333B342D), paper = Color(0xFFFAF6F1), paper2 = Color(0xFFF4EDE5),
+    accent = Color(0xFF3B342D), accentInk = Color(0xFFF4EDE5), shadow = Color(0x242A1E12), side = Color(0xFFE1D4C4),
+    shell = listOf(Color(0xFFF4EDE5), Color(0xFFF1E9DF)), shellInk = Color(0xFF3B342D), dark = false,
 )
 
 val LocalPalette = staticCompositionLocalOf { DarkPalette }
@@ -28,7 +28,7 @@ val LocalPalette = staticCompositionLocalOf { DarkPalette }
 /** The matte background: one barely-there diagonal gradient, no glows or lights. */
 fun backdrop(dark: Boolean): List<Color> = if (dark)
     listOf(Color(0xFF1D1D1D), Color(0xFF1E1E1E), Color(0xFF1F1F1F), Color(0xFF1F1F1F))
-else listOf(Color(0xFFE8E8EA), Color(0xFFE9E9EB), Color(0xFFEAEAEC), Color(0xFFEBEBED))
+else listOf(Color(0xFFFEFEFE), Color(0xFFFDFCFA), Color(0xFFFBF8F5), Color(0xFFF9F5F0))
 
 object Art {
     /** Colourblind-friendly palette on (Options). Compose state, so tiles redraw the moment it flips. */
@@ -67,8 +67,8 @@ object Art {
     private val CB_TILE = CB_COLOR.mapValues { (_, c) -> androidx.compose.ui.graphics.lerp(c, Color.White, .06f) to androidx.compose.ui.graphics.lerp(c, Color.Black, .1f) }
     private val CB_LIGHT = CB_COLOR
     val NAME = mapOf('R' to "Red", 'B' to "Blue", 'G' to "Green", 'Y' to "Yellow", 'W' to "White", 'P' to "Purple")
-    /** The standard names of the colour-blind palette's colours (Okabe-Ito); Okabe-Ito has no white, so the sixth is plain off-white. */
-    val CB_NAME = mapOf('R' to "Vermillion", 'B' to "Blue", 'G' to "Bluish green", 'Y' to "Yellow", 'W' to "Off-white", 'P' to "Reddish purple")
+    /** Plain names for the colour-blind palette's colours (its tiles no longer look like "Red" or "Green"). */
+    val CB_NAME = mapOf('R' to "Vermillion", 'B' to "Blue", 'G' to "Teal green", 'Y' to "Yellow", 'W' to "White", 'P' to "Pink")
     /** A tile's colour name: its plain name, or its standard name in the colour-blind palette (the tile is no longer what "Red" would say). In the chosen language; null for an empty cell. */
     fun name(type: Char): String? = (if (colorblind) CB_NAME else NAME)[type]?.let { tr(it) }
     val WORLD = listOf(

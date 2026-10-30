@@ -73,9 +73,9 @@ class TranslationsTest {
         Art.colorblind = true
         try {
             assertEquals("Bermellón", Art.name('R'))
-            assertEquals("Púrpura rojizo", Art.name('P'))
+            assertEquals("Rosa", Art.name('P'))
             L10n.language = "en"
-            assertEquals(listOf("Vermillion", "Blue", "Bluish green", "Yellow", "Off-white", "Reddish purple"), "RBGYWP".map { Art.name(it) })
+            assertEquals(listOf("Vermillion", "Blue", "Teal green", "Yellow", "White", "Pink"), "RBGYWP".map { Art.name(it) })
         } finally { Art.colorblind = false }
     }
 }

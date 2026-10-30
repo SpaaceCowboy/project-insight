@@ -85,4 +85,26 @@ class HotfixLogicTest {
         assertEquals(16.dp, creatorTargetCell(2, fits))
         assertTrue(creatorTargetCell(5, fits) * 5 + 3.dp * 4 <= fits)
     }
+
+    @Test fun solvedBloomIsOverBeforeTheResultBar() {
+        assertTrue(BLOOM_MS + GLOW_FADE_MS <= WIN_DELAY_MS)
+        assertEquals(0f, solveSwell(0f, 0), 0f)
+        // Even the farthest tile of a 5x5 board has finished its swell when the bloom ends.
+        assertEquals(1f, solveSwell(1f, 8), 0f)
+        assertTrue(solveSwell(.5f, 0) > solveSwell(.5f, 8))
+    }
+
+    @Test fun creatorTipsHaveAStepForEachPartOfEveryStage() {
+        assertEquals(4, creatorGuideSteps(Phase.BUILD).size)
+        // Building has no stage before it, so it has no swipe step; the later stages do.
+        assertTrue(creatorGuideSteps(Phase.BUILD).none { "Swipe" in it })
+        assertTrue(creatorGuideSteps(Phase.SHAPE).any { "Swipe" in it } && creatorGuideSteps(Phase.CHECK).any { "Swipe" in it })
+        assertEquals(listOf("Build your start", "Find your target", "Preview and create"), Phase.entries.map { creatorHeading(it) })
+    }
+
+    @Test fun fourCardsSpanThePageEdgeToEdge() {
+        // A list bleeds past the page by the shadow room on both sides: its four cards and three gaps cover exactly the page width.
+        val page = 328.dp
+        assertEquals(page.value, (cardSide(page + ShadowRoom * 2) * 4 + CARD_GAP * 3).value, .001f)
+    }
 }

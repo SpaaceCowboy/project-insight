@@ -98,6 +98,9 @@ import androidx.compose.ui.unit.sp
 
 /** Sidewall height of the Journey and Worlds keys; the board frame uses the same deep wall. */
 private val MODE_WALL = 8.dp
+/** The two mode keys fill this share of the half each owns, with corners as round as a squircle app key (18 % of the shorter side). */
+private const val MODE_SCALE = .88f
+private val MODE_SHAPE = RoundedCornerShape(18)
 
 @Composable
 fun HomeScreen(m: GameModel) {
@@ -108,6 +111,8 @@ fun HomeScreen(m: GameModel) {
         val titleSize = minOf(if (compact) 26f else 29f, (minOf(maxWidth, 360.dp).value - 96f) / 6.35f / LocalDensity.current.fontScale).sp
         // The wordmark and the two mode buttons share one size, so the wordmark's narrow-screen fit sets it for all three.
         val homeSize = minOf(30f, titleSize.value).sp
+        // On the dark keys the words are a touch below pure white, so they read as etched into the face.
+        val modeText = if (p.dark) p.ink.copy(alpha = .86f) else p.ink
         // The two modes split the space below the header: Journey the top half, Worlds the bottom half.
         Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(if (compact) 10.dp else 14.dp)) {
             // These two shortcuts have physical left/right positions even in RTL layouts.
@@ -120,10 +125,10 @@ fun HomeScreen(m: GameModel) {
             }
             // Slightly smaller than the half each mode owns, with room under it for the tall sidewall.
             Box(Modifier.weight(1f).fillMaxWidth().padding(bottom = MODE_WALL), contentAlignment = Alignment.Center) {
-                MenuButton(tr("Journey").uppercase(), Modifier.fillMaxWidth(.94f).fillMaxHeight(.94f), fontSize = homeSize, description = "Journey", weight = FontWeight.Bold, raised = true, depth = MODE_WALL, cue = Cue.FORWARD) { m.startJourney() }
+                MenuButton(tr("Journey").uppercase(), Modifier.fillMaxWidth(MODE_SCALE).fillMaxHeight(MODE_SCALE), fontSize = homeSize, shape = MODE_SHAPE, textColor = modeText, description = "Journey", weight = FontWeight.Bold, raised = true, depth = MODE_WALL, cue = Cue.FORWARD) { m.startJourney() }
             }
             Box(Modifier.weight(1f).fillMaxWidth().padding(bottom = MODE_WALL), contentAlignment = Alignment.Center) {
-                MenuButton(tr("Worlds").uppercase(), Modifier.fillMaxWidth(.94f).fillMaxHeight(.94f), fontSize = homeSize, description = "Worlds", weight = FontWeight.Bold, raised = true, depth = MODE_WALL, cue = Cue.FORWARD) { m.openOnline(Route.Online) }
+                MenuButton(tr("Worlds").uppercase(), Modifier.fillMaxWidth(MODE_SCALE).fillMaxHeight(MODE_SCALE), fontSize = homeSize, shape = MODE_SHAPE, textColor = modeText, description = "Worlds", weight = FontWeight.Bold, raised = true, depth = MODE_WALL, cue = Cue.FORWARD) { m.openOnline(Route.Online) }
             }
         }
     }
@@ -155,7 +160,8 @@ private fun PlushIconButton(label: String, modifier: Modifier, onClick: () -> Un
         else androidx.compose.animation.core.spring(dampingRatio = .5f, stiffness = 500f), label = "icon")
     val shape = RoundedCornerShape(14.dp)
     // The bare variant (Back) has no face at all: only the line art, which moves with the press.
-    val face = if (plush) Modifier.padding(2.dp).plush(shape, press, p.paper2, rest = 4.dp).then(if (focused) Modifier.border(2.dp, p.accent, shape) else Modifier) else Modifier
+    // The face fills the whole 48dp box, so its outer edge is the page edge that lists, grids and the board line up with.
+    val face = if (plush) Modifier.plush(shape, press, p.paper2, rest = 4.dp).then(if (focused) Modifier.border(2.dp, p.accent, shape) else Modifier) else Modifier
     Box(modifier.size(48.dp).then(face)
         .then(if (enabled) Modifier.pressOnTouch(interactions) else Modifier)
         .clickable(enabled = enabled, interactionSource = interactions, indication = null, role = Role.Button, onClickLabel = tr(label)) { tapped = true; feedback(cue); onClick() }
@@ -208,23 +214,34 @@ val logoutIcon = AnimatedIcon(stays = false) { c, t ->
     stroke(c, path { u -> moveTo(10 * u, 4 * u); lineTo(5 * u, 4 * u); lineTo(5 * u, 20 * u); lineTo(10 * u, 20 * u)
         moveTo((11 + x) * u, 12 * u); lineTo((20 + x) * u, 12 * u); moveTo((16.5f + x) * u, 8.5f * u); lineTo((20 + x) * u, 12 * u); lineTo((16.5f + x) * u, 15.5f * u) })
 }
-/** Gameplay tips: a plain lamp (bulb, neck and two base lines); pressing dips it a little. */
-val guideIcon = AnimatedIcon(stays = false) { c, t ->
-    val u = size.width / 24f
-    translate(0f, 1.5f * u * t) {
-        drawArc(c, 130f, 280f, false, Offset(6.5f * u, 3.5f * u), Size(11f * u, 11f * u), style = Stroke(1.7f * u, cap = StrokeCap.Round))
-        polyline(c, 8.46f, 13.2f, 9.5f, 16f, 14.5f, 16f, 15.54f, 13.2f)
-        polyline(c, 10f, 19f, 14f, 19f)
+/**
+ * Gameplay tips: a plain lamp (bulb, neck and two base lines) in the [side]-wide square at [at]. [lit] (the tips are showing) fills the bulb and neck with white,
+ * the same lamp switched on: no glow round it.
+ */
+fun DrawScope.lampArt(c: Color, lit: Boolean, at: Offset, side: Float) {
+    val u = side / 24f
+    fun pt(x: Float, y: Float) = Offset(at.x + x * u, at.y + y * u)
+    if (lit) {
+        val bulb = androidx.compose.ui.graphics.Path().apply {
+            addOval(androidx.compose.ui.geometry.Rect(pt(6.5f, 3.5f), Size(11f * u, 11f * u)))
+            moveTo(pt(8.46f, 13.2f).x, pt(8.46f, 13.2f).y); lineTo(pt(9.5f, 16f).x, pt(9.5f, 16f).y)
+            lineTo(pt(14.5f, 16f).x, pt(14.5f, 16f).y); lineTo(pt(15.54f, 13.2f).x, pt(15.54f, 13.2f).y); close()
+        }
+        drawPath(bulb, Color.White)
     }
+    val line = 1.7f * u
+    drawArc(c, 130f, 280f, false, pt(6.5f, 3.5f), Size(11f * u, 11f * u), style = Stroke(line, cap = StrokeCap.Round))
+    for ((a, b) in listOf(pt(8.46f, 13.2f) to pt(9.5f, 16f), pt(9.5f, 16f) to pt(14.5f, 16f), pt(14.5f, 16f) to pt(15.54f, 13.2f), pt(10f, 19f) to pt(14f, 19f)))
+        drawLine(c, a, b, line, StrokeCap.Round)
 }
 /** Back: a chevron pointing down; pressing dips it. */
 val chevronIcon = AnimatedIcon(stays = false) { c, t ->
     val y = 2f * t
     stroke(c, path { u -> moveTo(5 * u, (9 + y) * u); lineTo(12 * u, (16 + y) * u); lineTo(19 * u, (9 + y) * u) })
 }
-/** Sort: three bars, each shorter than the one above; pressing flips the order (the top bar shortens while the bottom one grows). */
-val sortIcon = AnimatedIcon(stays = false) { c, t ->
-    polyline(c, 4f, 7f, 20f - 10f * t, 7f); polyline(c, 4f, 12f, 15f, 12f); polyline(c, 4f, 17f, 10f + 10f * t, 17f)
+/** Sort: three bars, each shorter than the one above. It does not animate; the key just sinks. */
+val sortIcon: DrawScope.(Color) -> Unit = { c ->
+    polyline(c, 4f, 7f, 20f, 7f); polyline(c, 4f, 12f, 15f, 12f); polyline(c, 4f, 17f, 10f, 17f)
 }
 /** Share feedback: a speech bubble. */
 val feedbackIcon: DrawScope.(Color) -> Unit = { c ->
@@ -246,17 +263,15 @@ val documentIcon: DrawScope.(Color) -> Unit = { c ->
 
 /** The Back button every screen but Home has, centred between Options and Profile. Tap it, or pull it down to bring the screen down with it. */
 @Composable
-fun BackChevron(m: GameModel, modifier: Modifier = Modifier) = PlushIconButton("Back", modifier.sheetDrag(m), { m.back() }, Cue.BACK, true, false, false, chevronIcon.draw)
+fun BackChevron(m: GameModel, modifier: Modifier = Modifier) = PlushIconButton("Back", modifier.sheetDrag(m), { m.close() }, Cue.BACK, true, false, false, chevronIcon.draw)
 
 /**
- * The gameplay-tips lamp, etched into the top right of the board's outline: line art only, no key, and greyer than the other icons.
- * [onClick] opens the tips (the game screen and the creator each decide what that means).
+ * The gameplay-tips lamp's touch area over the top right of the board's outline. Its art ([lampArt]) is drawn on the board itself, under the tiles, so this
+ * draws nothing. [onClick] opens the tips (the game screen and the creator each decide what that means); [enabled] off while the level is solved.
  */
 @Composable
-fun GuideButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
-    val p = LocalPalette.current
-    PlushIconButton("Gameplay tips", modifier, onClick, Cue.SELECT, true, false, false, guideIcon.draw, tint = lerp(p.paper2, p.ink, .5f))
-}
+fun GuideButton(modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) =
+    PlushIconButton("Gameplay tips", modifier, onClick, Cue.SELECT, enabled, false, false, { _, _ -> })
 
 /** Where the lamp sits for an outline [shell]: its 48dp touch area has the icon about 28dp in from the outline's top and right edges. */
 fun Density.guideLampOffset(shell: androidx.compose.ui.geometry.Rect) = IntOffset((shell.right - 52.dp.toPx()).roundToInt(), (shell.top + 4.dp.toPx()).roundToInt())
@@ -282,10 +297,11 @@ fun OptionsScreen(m: GameModel) {
     Box(Modifier.fillMaxSize()) {
         Page("Options", 520.dp) {
             ChevronBar(m)
-            // The raised rows cast a shadow past their edges, which the scroll area would clip; this inset leaves it room.
-            Tabs(tabs, tab, modifier = Modifier.padding(horizontal = 6.dp)) { tab = it }
+            // Tabs, rows and the Rulebook's board all run to the page edge. The raised rows cast a shadow past their edges, which the scroll area would clip:
+            // it bleeds past the page by the room it pads them with.
+            Tabs(tabs, tab) { tab = it }
             if (tab == "rulebook") RulebookTab(m)
-            else Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 6.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            else Column(Modifier.bleed().verticalScroll(rememberScrollState()).padding(horizontal = ShadowRoom, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 when (tab) {
                     "options" -> {
                         ToggleRow("Haptics", m.haptics) { m.toggleHaptics() }
@@ -421,32 +437,40 @@ private fun VolumeSlider(label: String, value: Float, onChange: (Float) -> Unit)
     }
 }
 
+/**
+ * Your achievements with their progress, or (with [player]) another player's: the server only lists which badges they have, so their rows show earned or not, no progress.
+ */
 @Composable
-fun AchievementsScreen(m: GameModel) {
+fun AchievementsScreen(m: GameModel, player: Route.PlayerAchievements? = null) {
     val p = LocalPalette.current
     val badges = m.achievements.catalog
     val account = m.online.user?.id
-    LaunchedEffect(account) { if (account != null) m.online.refreshProgress() }
-    Page("Achievements") {
+    LaunchedEffect(account, player) { if (account != null && player == null) m.online.refreshProgress() }
+    val earnedIds: Collection<String> = player?.badges ?: m.earned.keys
+    Page(if (player == null) "Achievements" else tr("{0}'s achievements", player.name)) {
             ChevronBar(m)
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 for (badge in badges) {
-                    val earned = badge.id in m.earned; val progress = m.achievements.progress(badge, m.done, m.onlineStats)
+                    val earned = m.achievements.has(badge, earnedIds)
                     val shape = RoundedCornerShape(16.dp)
-                    // The rows do nothing when tapped, but they sink like every other key.
+                    // The rows do nothing when tapped, but they sink like every other key, with a haptic tick and no sound.
                     val source = remember { MutableInteractionSource() }
                     Row(Modifier.fillMaxWidth().plush(shape, pressProgress(source), if (earned) lerp(p.paper2, p.accent, .14f) else p.paper2, rest = 4.dp)
-                        .pressOnTouch(source).clickable(source, null) {}.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                        .pressOnTouch(source).clickable(source, null) { m.feedback(null) }.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Label(tr(badge.nameTemplate, badge.goal), 15.sp, weight = FontWeight.SemiBold, translate = false)
                             Label(tr(badge.requirementTemplate, badge.goal), 12.sp, color = p.muted, translate = false)
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp)) {
-                                Box(Modifier.weight(1f).height(6.dp).clip(RoundedCornerShape(3.dp)).background(p.line)) {
-                                    Box(Modifier.fillMaxWidth(progress / badge.goal.toFloat()).height(6.dp).background(p.accent))
+                            if (player == null) {
+                                val progress = m.achievements.progress(badge, m.done, m.onlineStats, earnedIds)
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp)) {
+                                    Box(Modifier.weight(1f).height(6.dp).clip(RoundedCornerShape(3.dp)).background(p.line)) {
+                                        Box(Modifier.fillMaxWidth(progress / badge.goal.toFloat()).height(6.dp).background(p.accent))
+                                    }
+                                    Spacer(Modifier.width(8.dp)); Label("$progress / ${badge.goal}", 11.sp, color = p.muted)
                                 }
-                                Spacer(Modifier.width(8.dp)); Label("$progress / ${badge.goal}", 11.sp, color = p.muted)
                             }
                         }
+                        if (player != null) Label(if (earned) "earned" else "locked", 11.sp, Modifier.padding(start = 8.dp), color = if (earned) p.ink else p.muted, weight = FontWeight.SemiBold)
                     }
                 }
                 Spacer(Modifier.height(12.dp))

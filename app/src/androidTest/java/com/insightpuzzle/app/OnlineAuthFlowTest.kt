@@ -77,7 +77,7 @@ class OnlineAuthFlowTest {
             val email = "android-$id@example.test"
             val password = "Puzzle pass! \u067e\u0627\u0632\u0644 123"
             tap("Profile"); tap("Register")
-            fill(0, email); fill(1, password); fill(2, "Android $id")
+            fill(0, email); fill(1, password); fill(2, password); fill(3, "Android $id")
             tap("Create account")
             await("Registration must immediately open the profile") { text("Android $id") && repository.client.user != null }
             assertTrue(repository.client.user != null)

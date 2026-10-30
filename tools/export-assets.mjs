@@ -1,6 +1,6 @@
 // Copies game data and sounds from the web project (read-only) into the Android app.
 // Usage: node tools/export-assets.mjs [path-to-web-project]   (default: ../project-insight)
-import {mkdirSync,writeFileSync,copyFileSync} from 'node:fs';
+import {mkdirSync,writeFileSync} from 'node:fs';
 import {resolve,dirname,join} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 
@@ -21,8 +21,6 @@ writeFileSync(join(root,'app/src/main/assets/levels.json'),JSON.stringify(levels
 mkdirSync(join(root,'app/src/test/resources'),{recursive:true});
 writeFileSync(join(root,'app/src/test/resources/solutions.json'),JSON.stringify(solutions)+'\n');
 
-const raw=join(root,'app/src/main/res/raw');
-mkdirSync(raw,{recursive:true});
-// Only the forest ambience comes from the web game. Interface cues are the uisfx "zen" pack (CC0), kept in res/raw (MP3) and res/raw-v29 (Ogg Opus); zen_drop and minimal_checkout come from tools/build-cues.mjs.
-copyFileSync(join(web,'public/sounds/ambient.wav'),join(raw,'sfx_ambient.wav'));
-console.log(`Exported ${levels.length} levels, ${solutions.length} solutions, sounds from ${web}`);
+// No sounds come from the web game any more. Interface cues and the music loop are the uisfx "zen" pack (CC0), kept in res/raw (MP3) and res/raw-v29 (Ogg Opus);
+// zen_drop, zen_streak and zen_streaming come from tools/build-cues.mjs.
+console.log(`Exported ${levels.length} levels, ${solutions.length} solutions from ${web}`);

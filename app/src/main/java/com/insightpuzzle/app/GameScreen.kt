@@ -59,6 +59,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotateRad
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -135,23 +136,53 @@ internal const val REWIND_MS = 320
 private val TARGET_DROP = 20.dp
 /** Sidewall of the board's outline: deep like the menu keys', so holding to restart sinks it a long way and lights the wall. */
 internal val BOARD_WALL = 10.dp
+/** How much of its wall the board sinks onto when held. */
+internal const val BOARD_TRAVEL = .5f
+
+/** The lamp's art on the outline: [LAMP_ART] square, its right edge [LAMP_INSET] in from the outline's and its top [LAMP_TOP] down (the middle of the 48dp touch area). */
+internal val LAMP_ART = 20.dp
+internal val LAMP_INSET = 18.dp
+internal val LAMP_TOP = 18.dp
+
+/** The solved bloom: [BLOOM_MS] of swelling, then [GLOW_FADE_MS] for the rings to go; together they end before the result bar comes up. */
+internal const val BLOOM_MS = 650
+internal const val GLOW_FADE_MS = 180
+private const val BLOOM_STAGGER_MS = 16f
+private const val SOLVE_RING_ALPHA = .35f
+
+/** How far through its swell a tile at [diagonal] (row + column) is at [bloom] (0..1): tiles start [BLOOM_STAGGER_MS] apart and the last one ends with the bloom. */
+internal fun solveSwell(bloom: Float, diagonal: Int, maxDiagonal: Int = 8): Float {
+    val window = BLOOM_MS - maxDiagonal * BLOOM_STAGGER_MS
+    return ((bloom * BLOOM_MS - diagonal * BLOOM_STAGGER_MS) / window).coerceIn(0f, 1f)
+}
+
+/** What the game screen shows of the model: frozen while the screen slides away, so leaving an online puzzle never flashes the Journey board. */
+private class GameView(val spec: Level, val board: Board, val community: CommunityAttempt?, val level: Int, val solved: Boolean)
+private class GameViewHolder { var view: GameView? = null }
 
 @Composable
 fun GameScreen(m: GameModel) {
-    val spec = m.spec
+    val exiting = LocalExiting.current
+    val held = remember { GameViewHolder() }
+    val now = GameView(m.spec, m.board, m.community, m.level, m.solved)
+    val view = if (exiting) held.view ?: now else now.also { held.view = it }
+    val spec = view.spec
+    val community = view.community
+    val solved = view.solved
     val target = Rules.crop(spec.target)
     val targetCell = 16.dp
     val scope = rememberCoroutineScope()
     val glow = remember { Animatable(0f) }
     val rewind = remember { Animatable(0f) }
     var rewinding by remember { mutableStateOf(false) }
-    val canRewind by rememberUpdatedState(m.changed && !m.solved && !rewinding)
+    val canRewind by rememberUpdatedState(!exiting && m.changed && !m.solved && !rewinding)
     val canSwipe by rememberUpdatedState(m.community.let { it == null || it.casual || it.source != null } && Route.Win !in m.stack && !m.online.busy && !rewinding && m.guidePhase == 0)
     val reduceMotion by rememberUpdatedState(LocalReduceMotion.current)
     // Where things are, for telling the hold zone and the swipe zones apart.
     var root by remember { mutableStateOf<LayoutCoordinates?>(null) }
     var shellBox by remember { mutableStateOf<LayoutCoordinates?>(null) }
     var titleBox by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    var titleKey by remember { mutableStateOf<LayoutCoordinates?>(null) }
     var gridRect by remember { mutableStateOf(Rect.Zero) }
     fun rect(c: LayoutCoordinates?): Rect? = c?.takeIf { it.isAttached }?.let { root?.takeIf { r -> r.isAttached }?.localBoundingBoxOf(it) }
     /** The outline's rectangle as state, so the guide icon and the guide's borders follow it. */
@@ -174,7 +205,8 @@ fun GameScreen(m: GameModel) {
         isTraversalGroup = true
         customActions = if (canRewind) listOf(CustomAccessibilityAction(tr("Restart level")) { m.restart(); true }) else emptyList()
     }
-        // Touch and hold inside the outline but off the grid: the outline glows, then the tiles slide back to the start.
+        // Touch and hold anywhere on the outline but on a tile (its edges, the gaps, an empty cell): the outline glows, then the tiles slide back to the start.
+        // Tiles take their own touches first (the board consumes them), so they never reach this.
         // A swipe from anywhere but the grid itself (inside the outline above or below the grid, or below the outline) moves along:
         // right to left for the next puzzle or level, left to right for the previous one. The glow waits [GLOW_DELAY_MS] of holding still, so a swipe never lights it.
         .pointerInput(Unit) {
@@ -186,7 +218,7 @@ fun GameScreen(m: GameModel) {
                 val inShell = shell?.contains(at) == true
                 val onGrid = shell != null && gridRect.translate(shell.topLeft).contains(at)
                 val swipeable = canSwipe && shell != null && !onGrid && (inShell || at.y >= shell.bottom)
-                var still = canRewind && inShell && !onGrid
+                var still = canRewind && inShell
                 if (!still && !swipeable) return@awaitEachGesture
                 var held = false; var skipped = 0; var glowing = false
                 while (true) {
@@ -218,21 +250,22 @@ fun GameScreen(m: GameModel) {
         }) {
         // On tablets and landscape windows the play area stays board-sized and centred instead of stretching edge to edge.
         Column(Modifier.align(Alignment.TopCenter).widthIn(max = 720.dp).fillMaxSize()) {
-            Column(Modifier.weight(1f).fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 64.dp, bottom = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            // 16dp at the sides: the outline's edges line up with Options and Profile above it.
+            Column(Modifier.weight(1f).fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 64.dp, bottom = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 // Journey: "Journey N" above the target opens the level screen.
-                if (m.community == null) {
+                if (community == null) {
                     val p = LocalPalette.current
                     val source = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                     Box(Modifier.height(48.dp).onGloballyPositioned { titleBox = it }.pressOnTouch(source)
                         .clickable(source, null, role = Role.Button, onClickLabel = tr("Open levels")) { m.feedback(Cue.FORWARD); m.showLevels() }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
                         // A small raised key that covers the whole "Journey" and its number (1 to 200).
-                        Box(Modifier.plush(RoundedCornerShape(10.dp), pressProgress(source), p.paper2, rest = 3.dp, depth = 2.dp).padding(horizontal = 12.dp, vertical = 5.dp)) {
-                            Label(tr("Journey {0}", m.level + 1), 13.sp, weight = FontWeight.SemiBold, lines = 1, translate = false)
+                        Box(Modifier.onGloballyPositioned { titleKey = it }.plush(RoundedCornerShape(10.dp), pressProgress(source), p.paper2, rest = 3.dp, depth = TITLE_WALL).padding(horizontal = 12.dp, vertical = 5.dp)) {
+                            Label(tr("Journey {0}", view.level + 1), 13.sp, weight = FontWeight.SemiBold, lines = 1, translate = false)
                         }
                     }
                 }
                 // Creator and their puzzle number on a small raised key like Journey's above the target; tapping it opens their profile.
-                m.community?.let { c ->
+                community?.let { c ->
                     val p = LocalPalette.current
                     val source = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                     val number = c.grid.optInt("levelNumber")
@@ -240,7 +273,7 @@ fun GameScreen(m: GameModel) {
                     Box(Modifier.height(48.dp).onGloballyPositioned { titleBox = it }.pressOnTouch(source)
                         .clickable(source, null, role = Role.Button, onClickLabel = tr("Open profile")) { m.feedback(Cue.FORWARD); m.push(Route.Profile(c.grid.getString("ownerId"))) }
                         .padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
-                        Box(Modifier.widthIn(max = 300.dp).plush(RoundedCornerShape(10.dp), pressProgress(source), p.paper2, rest = 3.dp, depth = 2.dp).padding(horizontal = 12.dp, vertical = 5.dp)) {
+                        Box(Modifier.widthIn(max = 300.dp).onGloballyPositioned { titleKey = it }.plush(RoundedCornerShape(10.dp), pressProgress(source), p.paper2, rest = 3.dp, depth = TITLE_WALL).padding(horizontal = 12.dp, vertical = 5.dp)) {
                             Label(creator, 13.sp, weight = FontWeight.SemiBold, lines = 1, translate = false)
                         }
                     }
@@ -253,8 +286,15 @@ fun GameScreen(m: GameModel) {
                 Spacer(Modifier.height(12.dp))
                 // The outline keeps the shared board height and sits at the bottom, so it is shorter from the top.
                 BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
-                    Board(Modifier.fillMaxWidth().height(boardShellHeight(maxHeight)).onGloballyPositioned { shellBox = it; refresh() }, m.board, Pair(m.level, m.community?.id), spec.target, m.solved, { m.board },
-                        holdGlow = glow.value, rewindTo = if (rewinding) spec.start else null, rewindProgress = rewind.value, onGrid = { gridRect = it }) { a, b -> m.move(a, b) }
+                    val p = LocalPalette.current
+                    // The lamp is etched into the outline under the tiles, so a tile dragged over it covers it; it sinks with the platform.
+                    val lampInk = lerp(p.paper2, p.ink, .5f).copy(alpha = if (solved) .45f else 1f)
+                    val lit = m.guidePhase != 0
+                    val lamp: (DrawScope.() -> Unit)? = if (m.guideOn && !exiting) {
+                        { lampArt(lampInk, lit, Offset(size.width - LAMP_INSET.toPx() - LAMP_ART.toPx(), LAMP_TOP.toPx()), LAMP_ART.toPx()) }
+                    } else null
+                    Board(Modifier.fillMaxWidth().height(boardShellHeight(maxHeight)).onGloballyPositioned { shellBox = it; refresh() }, view.board, Pair(view.level, community?.id), spec.target, solved, { m.board },
+                        holdGlow = glow.value, rewindTo = if (rewinding) spec.start else null, rewindProgress = rewind.value, onGrid = { gridRect = it }, beneath = lamp) { a, b -> m.move(a, b) }
                 }
             }
             // The bar grows in from below while the board area shrinks, so the outline's bottom lifts in step with it; Next and Restart send it back down the same way.
@@ -270,20 +310,23 @@ fun GameScreen(m: GameModel) {
         HomeIconButton("Options", Modifier.align(Alignment.TopStart).padding(16.dp).semantics { traversalIndex = -3f }, { m.push(Route.Options) }, optionsIcon, Cue.STOP)
         BackChevron(m, Modifier.align(Alignment.TopCenter).padding(top = 16.dp).semantics { traversalIndex = -2f })
         HomeIconButton("Profile", Modifier.align(Alignment.TopEnd).padding(16.dp).semantics { traversalIndex = -1f }, { m.openOnline(Route.Profile()) }, personIcon, Cue.START)
-        // The gameplay tips: the lamp etched into the top right of the outline (while Options has it on and the level is not solved) and, while a step is showing, its borders and text.
+        // The gameplay tips: the lamp's touch area over the top right of the outline (its art is drawn on the board, under the tiles; dimmed and off while the
+        // level is solved) and, while a step is showing, its borders and text. The touch area follows the platform as a hold sinks it.
         LaunchedEffect(m.solved) { if (m.solved) m.endGuide() }
         shellRect?.let { shell ->
-            if (m.guideOn && !m.solved) GuideButton(Modifier.offset { guideLampOffset(shell) }) { m.tapGuide() }
-            if (m.guidePhase != 0 && !m.solved) {
+            val dp = LocalDensity.current.density
+            val sink = glow.value * BOARD_TRAVEL * BOARD_WALL.value * dp
+            val lampAt = Rect(shell.right - 52 * dp, shell.top + 4 * dp + sink, shell.right - 4 * dp, shell.top + 52 * dp + sink)
+            if (m.guideOn && !exiting) GuideButton(Modifier.offset { guideLampOffset(shell).let { IntOffset(it.x, it.y + sink.roundToInt()) } }, enabled = !solved) { m.tapGuide() }
+            if (m.guidePhase != 0 && !solved && !exiting) {
                 val size = root?.size
-                val dp = LocalDensity.current.density
-                val like = if (m.community?.grid?.optString("ownerId") != m.online.user?.id) Rect(16 * dp, 64 * dp, 64 * dp, 112 * dp) else null
+                val like = if (community?.grid?.optString("ownerId") != m.online.user?.id) Rect(16 * dp, 64 * dp, 64 * dp, 112 * dp) else null
                 val bookmark = size?.let { Rect(it.width - 64 * dp, 64 * dp, it.width - 16 * dp, 112 * dp) }
-                GameGuide(m, shell, gridRect.translate(shell.topLeft), rect(titleBox), like.takeIf { m.community != null }, bookmark.takeIf { m.community != null })
+                GameGuide(m, shell, gridRect.translate(shell.topLeft), rect(titleKey), like.takeIf { community != null }, bookmark.takeIf { community != null }, lampAt)
             }
         }
         // Online puzzles: like (under Options, not on your own puzzles) and bookmark (under Profile). Filled when on.
-        m.community?.let { c ->
+        community?.let { c ->
             if (c.grid.optString("ownerId") != m.online.user?.id)
                 HomeIconButton(if (m.liked) "Unlike puzzle" else "Like puzzle", Modifier.align(Alignment.TopStart).padding(start = 16.dp, top = 64.dp), { m.toggleLike() }, heartIcon(m.liked), Cue.CHECK)
             HomeIconButton(if (m.bookmarked) "Remove bookmark" else "Bookmark puzzle", Modifier.align(Alignment.TopEnd).padding(end = 16.dp, top = 64.dp), { m.toggleBookmark() }, bookmarkIcon(m.bookmarked), Cue.CHECK)
@@ -344,7 +387,8 @@ class Grid(val rows: Int, val cols: Int, val cell: Float, val gap: Float, val or
 @Composable
 fun Board(
     modifier: Modifier, board: Board, key: Any, target: Board?, solved: Boolean,
-    latest: () -> Board, holdGlow: Float = 0f, rewindTo: Board? = null, rewindProgress: Float = 0f, onGrid: ((Rect) -> Unit)? = null, onMove: (Pos, Pos) -> Unit,
+    latest: () -> Board, holdGlow: Float = 0f, rewindTo: Board? = null, rewindProgress: Float = 0f, onGrid: ((Rect) -> Unit)? = null,
+    beneath: (DrawScope.() -> Unit)? = null, onMove: (Pos, Pos) -> Unit,
 ) {
     val rewindPlan = remember(key, rewindTo) { rewindTo?.let { rewindMoves(latest(), it) } }
     val busy by rememberUpdatedState(rewindTo != null)
@@ -376,14 +420,16 @@ fun Board(
         bloom.snapTo(0f)
         solveGlow.snapTo(0f)
         if (solved && !reduceMotion) {
+            // Over before the result bar comes up (GameModel shows it [WIN_DELAY_MS] after the winning move): the board is settled when it arrives.
             solveGlow.snapTo(1f)
-            bloom.animateTo(1f, tween(900, easing = LinearEasing))
-            solveGlow.animateTo(0f, tween(350))
+            bloom.animateTo(1f, tween(BLOOM_MS, easing = LinearEasing))
+            solveGlow.animateTo(0f, tween(GLOW_FADE_MS))
         }
     }
 
-    // The board is a raised platform like the app's keys: holding to restart pushes it half way down while its side wall lights up.
-    BoxWithConstraints(modifier.plush(RoundedCornerShape(24.dp), holdGlow, p.paper2, rest = 6.dp, depth = BOARD_WALL, sheen = false, travel = .5f, sideLight = holdGlow)) {
+    // The board is a raised platform like the app's keys: holding to restart sinks it half way down onto its wall (it does not shrink, so no edge rises)
+    // while the wall lights up.
+    BoxWithConstraints(modifier.plush(RoundedCornerShape(24.dp), holdGlow, p.paper2, rest = 6.dp, depth = BOARD_WALL, sheen = false, travel = BOARD_TRAVEL, sideLight = holdGlow, shrink = false)) {
         val gap = with(density) { 5.dp.toPx() }
         val w = constraints.maxWidth.toFloat(); val h = constraints.maxHeight.toFloat()
         val pad = with(density) { 32.dp.toPx() }
@@ -475,6 +521,7 @@ fun Board(
                 }
             }
         }) {
+            beneath?.invoke(this)
             for (ink in inks) ink(ink, ink.t.value)
             val mv = moving
             val late = mutableListOf<() -> Unit>()
@@ -490,14 +537,14 @@ fun Board(
                 if (pos == selected) { o -= Offset(cell * .0175f, cell * .0175f + 5.dp.toPx()); size *= 1.035f; glow = p.shellInk }
                 if (pos == dragFrom) { o += dragOffset - Offset(cell * .0225f, cell * .0225f); size *= 1.045f }
                 if (pos == rejected) ring = Color(0xFFFFB4A8).copy(alpha = sin(reject.value * Math.PI).toFloat() * .85f)
-                if (pos in arrived) ring = Color(0xFFF5FFEA).copy(alpha = sin(arrive.value * Math.PI).toFloat() * .65f)
+                if (pos in arrived) ring = (if (p.dark) Color(0xFFF5FFEA) else p.ink).copy(alpha = sin(arrive.value * Math.PI).toFloat() * .65f)
                 if (pos == focused && ring == null) ring = p.shellInk.copy(alpha = .9f)
                 if (solved && !reduceMotion && solveGlow.value > 0f) {
-                    // Solved bloom: each tile swells in turn, ordered by r + c (src/styles.css solvedBloom).
-                    val t = ((bloom.value * 900f - (r + c) * 16f) / 650f).coerceIn(0f, 1f)
+                    // Solved bloom: each tile swells in turn, ordered by r + c (src/styles.css solvedBloom), with a thin ring of its own colour.
+                    val t = solveSwell(bloom.value, r + c)
                     val s = 1f + .035f * sin(t * Math.PI).toFloat()
                     o -= Offset(cell * (s - 1) / 2, cell * (s - 1) / 2); size *= s
-                    glow = Art.LIGHT.getValue(type).copy(alpha = .5f * solveGlow.value)
+                    glow = Art.LIGHT.getValue(type).copy(alpha = SOLVE_RING_ALPHA * solveGlow.value)
                 }
                 val highlight = if (pos == hover) .1f else 0f
                 val draw = { tile(type, o, size, glow, ring, highlight) }

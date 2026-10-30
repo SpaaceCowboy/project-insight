@@ -21,6 +21,8 @@ sealed interface Route {
     data object Win : Route
     data object Options : Route
     data object Achievements : Route
+    /** Another player's achievements, from their profile: [badges] are the ids the server lists for them (earned or not, no progress). */
+    data class PlayerAchievements(val name: String, val badges: List<String>) : Route
     data object Online : Route
     data object Create : Route
     data class Auth(val destination: Route? = null) : Route
@@ -50,6 +52,9 @@ class RandomTrail<T> {
     /** The puzzle [step] away from the current one, if the trail has it. */
     fun at(step: Int): T? = items.getOrNull(index + step)
 }
+
+/** How long after the winning move the result bar comes up; the board's solved bloom ([BLOOM_MS] + [GLOW_FADE_MS]) is over by then. */
+internal const val WIN_DELAY_MS = 850L
 
 /** The Journey level a swipe from [level] by [step] opens, or null at either end or when that level is still locked. */
 internal fun journeyStep(level: Int, step: Int, count: Int, canAccess: (Int) -> Boolean): Int? =
@@ -98,7 +103,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     var rulebookBoard by mutableStateOf(listOf("RBG", "PWY", "BGR"))
     var colorblind by mutableStateOf(store.colorblind.also { Art.colorblind = it }); private set
     var language by mutableStateOf(store.language.also { L10n.language = it }); private set
-    /** The gameplay-tips icon is on, and the step of the tips on show (0 = none, 1 grid, 2 restart, 3 swipe, 4 title key, 5 like and bookmark; the creator just uses 1 for "showing"). */
+    /** The gameplay-tips icon is on, and the step of the tips on show (0 = none, 1 grid, 2 restart, 3 swipe, 4 title key, 5 like and bookmark; the creator numbers its own steps per stage). */
     var guideOn by mutableStateOf(store.guide); private set
     var guidePhase by mutableIntStateOf(0); private set
 
@@ -368,12 +373,25 @@ class GameModel(app: Application) : AndroidViewModel(app) {
             if (winBadges.isNotEmpty()) { earned = earned + winBadges.associate { it.id to System.currentTimeMillis() }; store.earned = earned; online.refreshProgressAsync() }
         } else winBadges = emptyList()
         winJob = viewModelScope.launch {
-            delay(850)
+            delay(WIN_DELAY_MS)
             if (top == Route.Game) { stack += Route.Win; audio.play(Cue.SUCCESS) }
         }
     }
 
-    fun push(route: Route) { if (top != route) { if (route == Route.Options) optionsTab = "options"; stack += route } }
+    fun push(route: Route) {
+        if (top == route) return
+        // A profile already open further down (a creator's profile → their puzzle → their name again): go back down to it, so the screens on top
+        // slide away as they do on Back, instead of the same profile opening a second time over the puzzle.
+        if (route is Route.Profile && route in stack) { returnTo(stack.lastIndexOf(route)); return }
+        if (route == Route.Options) optionsTab = "options"; stack += route
+    }
+
+    /** Pops every screen above [index]. Leaving an online puzzle that way counts as leaving it, like Back does. */
+    private fun returnTo(index: Int) {
+        val above = stack.drop(index + 1)
+        if (community != null && (Route.Game in above || Route.Win in above)) { failureProof("leave"); load(level); playDiscovery.refresh() }
+        while (stack.size > index + 1) stack.removeAt(stack.lastIndex)
+    }
     /** Options' open tab, kept while a page opened from it (feedback) is on top, so Back returns to the same tab. */
     var optionsTab by mutableStateOf("options")
 
@@ -423,6 +441,11 @@ class GameModel(app: Application) : AndroidViewModel(app) {
         return true
     }
 
+    /** The Back chevron: like system Back, except that the creator closes from any stage (Back and a swipe step through its stages). */
+    fun close() {
+        if (top == Route.Create) { creator.cancelSelection(); guidePhase = 0; stack.removeAt(stack.lastIndex) } else back()
+    }
+
     // Settings
     fun toggleSound() { sound = !sound; store.sound = sound; audio.enabled = sound }
     val dark get() = theme != "light"
@@ -430,6 +453,8 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     fun toggleHaptics() { haptics = !haptics; store.haptics = haptics }
     /** Touch feedback: the 10 ms haptic when Haptics is on, then [cue]'s sound when Sound is on. */
     fun feedback(cue: Cue?) { if (haptics) vibration.tick(); cue?.let(audio::play) }
+    /** The short, silent tick for each step of a continuous drag (a row or column added or removed while resizing the creator's grid). */
+    fun fineTick() { if (haptics) vibration.tick(Haptics.FINE_TICK_MS) }
 
     /** Back to level 1 with nothing solved. Badges stay. */
     fun resetProgress() {
@@ -443,8 +468,12 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     /** The guide icon: plays the guide from its first step, or sends it away if it is showing. */
     fun tapGuide() { guidePhase = if (guidePhase == 0) 1 else 0 }
     fun endGuide() { guidePhase = 0 }
-    /** The steps of the tips on this screen, in order: Journey has four; an online puzzle adds its creator and like/bookmark keys and drops the swipe where it doesn't work. */
+    /**
+     * The steps of the tips on this screen, in order: Journey has four; an online puzzle adds its creator and like/bookmark keys and drops the swipe where it
+     * doesn't work. The creator has its own steps for each stage ([creatorGuideSteps]).
+     */
     fun guideSteps(): List<Int> {
+        if (top == Route.Create) return (1..creatorGuideSteps(creator.phase).size).toList()
         val c = community ?: return listOf(1, 2, 3, 4)
         return buildList { add(1); add(2); if (c.casual || c.source != null) add(3); add(4); add(5) }
     }

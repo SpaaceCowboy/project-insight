@@ -226,10 +226,12 @@ class MainMenuFlowTest {
         val otherId = other.getString("id")
         main { model.push(Route.Profile(otherId)) }
         await("other profile") { has(other.getString("username")) && has("Achievements") }
-        assertFalse("Other players' collection must not open our achievements", nodes().first { it.text?.toString() == "Achievements" }.isClickable)
-        // Check the whole row, not just its text node.
-        var row = nodes().first { it.text?.toString() == "Achievements" }
-        while (row.parent != null) { assertFalse("Public achievement row must be read-only", row.isClickable); row = row.parent }
+        // Another player's achievements row opens their achievements, read-only: earned or locked, never our own progress.
+        tap("Achievements")
+        await("other player's achievements") { model.top is Route.PlayerAchievements }
+        assertEquals(other.getString("username"), (model.top as Route.PlayerAchievements).name)
+        assertFalse("Another player's achievements show no progress counts", nodes().any { it.text?.toString()?.contains(" / ") == true })
+        back(); assertEquals(Route.Profile(otherId), model.top)
         main {
             model.resetProgress(); progress(setOf(1)); model.store.lastLevel = 1; model.mainMenu(); model.startJourney()
             model.move(Pos(0, 1), Pos(1, 1))
@@ -288,11 +290,11 @@ class MainMenuFlowTest {
             assertTrue(node.performAction(AccessibilityNodeInfo.ACTION_CLICK))
             instrumentation.waitForIdleSync()
         }
-        // Colourblind mode is on: the tiles go by the palette's standard names (Okabe-Ito), in the Rulebook and for TalkBack.
-        await("practice board") { color(1, 1) == "Vermillion" && color(2, 1) == "Reddish purple" }
-        select(2, 2); assertEquals("Off-white", color(2, 2))
+        // Colourblind mode is on: the tiles go by the palette's colour-blind names, in the Rulebook and for TalkBack.
+        await("practice board") { color(1, 1) == "Vermillion" && color(2, 1) == "Pink" }
+        select(2, 2); assertEquals("White", color(2, 2))
         select(1, 1); select(2, 1)
-        await("first practice swap") { color(1, 1) == "Reddish purple" && color(2, 1) == "Vermillion" }
+        await("first practice swap") { color(1, 1) == "Pink" && color(2, 1) == "Vermillion" }
         select(2, 1); select(3, 1)
         await("second practice swap") { color(2, 1) == "Blue" && color(3, 1) == "Vermillion" }
         assertEquals(campaign, model.board); assertEquals(done, model.done); assertEquals(badges, model.earned)
@@ -301,10 +303,10 @@ class MainMenuFlowTest {
         assertEquals(practice, model.rulebookBoard)
         await("practice resumes after switching tabs") { color(3, 1) == "Vermillion" }
         await("White rule remains accessible at enlarged text sizes") {
-            if (nodes().any { it.contentDescription?.toString()?.startsWith("Off-white never") == true && it.isVisibleToUser }) true
+            if (nodes().any { it.contentDescription?.toString()?.startsWith("White never") == true && it.isVisibleToUser }) true
             else { nodes().lastOrNull { it.isScrollable }?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD); false }
         }
-        val whiteBounds = Rect().also { bounds -> nodes().first { it.contentDescription?.toString()?.startsWith("Off-white never") == true }.getBoundsInScreen(bounds) }
+        val whiteBounds = Rect().also { bounds -> nodes().first { it.contentDescription?.toString()?.startsWith("White never") == true }.getBoundsInScreen(bounds) }
         val tileBounds = Rect().also { tile(1, 1)!!.getBoundsInScreen(it) }
         assertTrue("Rules must not overlap the practice board", whiteBounds.bottom <= tileBounds.top)
         val folder = File(context.getExternalFilesDir(null), "options-v022").apply { mkdirs() }

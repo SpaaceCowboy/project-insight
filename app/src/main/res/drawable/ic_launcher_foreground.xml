@@ -2,11 +2,11 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
-    <!-- Pearl designator from TileArt.kt, large and centred: the symbol spans about 61 of the 66-unit safe zone. -->
-    <group android:translateX="13.2" android:translateY="13.2" android:scaleX="1.7" android:scaleY="1.7">
-        <path android:fillColor="#00000000" android:strokeColor="#45474C" android:strokeWidth="4"
+    <!-- The white tile's symbol from TileArt.kt in the light theme's charcoal ink, centred: about 44 units, 60 % of the 72-unit visible area, so its arms stay clear of the mask. -->
+    <group android:translateX="27.6" android:translateY="27.6" android:scaleX="1.1" android:scaleY="1.1">
+        <path android:fillColor="#00000000" android:strokeColor="#3B342D" android:strokeWidth="4"
             android:pathData="M24,14 A10,10 0,1 1,24 34 A10,10 0,1 1,24 14"/>
-        <path android:fillColor="#00000000" android:strokeColor="#45474C" android:strokeWidth="3.6" android:strokeLineCap="round"
+        <path android:fillColor="#00000000" android:strokeColor="#3B342D" android:strokeWidth="3.6" android:strokeLineCap="round"
             android:pathData="M24,6 V14 M24,34 V42 M6,24 H14 M34,24 H42"/>
     </group>
 </vector>

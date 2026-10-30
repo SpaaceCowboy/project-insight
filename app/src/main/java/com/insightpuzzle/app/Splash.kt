@@ -68,7 +68,8 @@ fun SplashGate(m: GameModel) {
     Box(Modifier.fillMaxSize().graphicsLayer { this.alpha = alpha.value }.background(SplashGrey)
         .pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent().changes.forEach { it.consume() } } }
         .clearAndSetSemantics { }, contentAlignment = Alignment.Center) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        // A small gap: the squeezed name and the symbol's own margin inside its box already add about 6dp of air.
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             // Condensed: the family's extra bold, tightened and squeezed a little.
             androidx.compose.material3.Text("MIDORI", Modifier.graphicsLayer { scaleX = .9f }, color = Color.White, fontSize = 34.sp, fontWeight = FontWeight.ExtraBold,
                 letterSpacing = (-.04).em, fontFamily = MonoFamily, maxLines = 1)

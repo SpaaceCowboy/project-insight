@@ -264,7 +264,7 @@ fun WorldsScreen(m: GameModel) {
             if (puzzles) PuzzleGrid(m, state, Modifier.fillMaxSize(), header = search, scroll = reveal.connection, minTop = if (reveal.height > 0f) 8.dp else 0.dp) { detail = it }
             else Refreshable(state.pulling, { m.online.clearMessages(); state.pull() }, Modifier.fillMaxSize()) { Column(Modifier.fillMaxSize()) {
                 search()
-                PlayerPages(m, state, Modifier.weight(1f).fillMaxWidth().nestedScroll(reveal.connection))
+                PlayerPages(m, state, Modifier.weight(1f).fillMaxWidth().nestedScroll(reveal.connection), reserved = with(density) { reveal.height.toDp() })
             } }
         }
         Spacer(Modifier.height(8.dp))
@@ -319,14 +319,18 @@ private fun SplitPill(puzzles: Boolean, select: (Boolean) -> Unit, modifier: Mod
     }
 }
 
-/** Eight players to a page, one line each; swipe sideways for the next page, up and down inside a page that is taller than the screen. */
+/**
+ * Eight players to a page, one line each; swipe sideways for the next page, up and down inside a page that is taller than the screen.
+ * [reserved] is height lent to something above the list for now (Worlds' search bar coming down): the rows keep their size and move down instead of shrinking.
+ */
 @Composable
-internal fun PlayerPages(m: GameModel, state: DiscoveryListState, modifier: Modifier = Modifier, empty: String = "No results for these settings.") {
-    PagedItems(state, PLAYER_ROWS, modifier) { rows, _ ->
+internal fun PlayerPages(m: GameModel, state: DiscoveryListState, modifier: Modifier = Modifier, empty: String = "No results for these settings.", reserved: Dp = 0.dp) {
+    // The rows reach the page edge; the page pads them by the shadow room it adds.
+    PagedItems(state, PLAYER_ROWS, modifier.bleed()) { rows, _ ->
         // Eight rows share the page's height, so the last row ends at the bottom; a screen too short for that keeps the minimum height and scrolls.
         BoxWithConstraints(Modifier.fillMaxSize()) {
-            val slot = ((maxHeight - 16.dp - 8.dp * (PLAYER_ROWS - 1)) / PLAYER_ROWS).coerceAtLeast(52.dp)
-            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 6.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            val slot = ((maxHeight + reserved - 16.dp - 8.dp * (PLAYER_ROWS - 1)) / PLAYER_ROWS).coerceAtLeast(52.dp)
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = ShadowRoom, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 rows.forEach { PlayerRow(m, it, slot) }
                 if (rows.isEmpty()) DiscoveryFooter(m, state, empty)
             }

@@ -49,6 +49,9 @@ class SheetHandle(start: Float) {
 /** The sheet the composable is drawn in; null on Home, which does not slide. */
 val LocalSheet = staticCompositionLocalOf<SheetHandle?> { null }
 
+/** True while the screen is composed only to slide away (it has left the stack): it should keep showing what it showed, not the model's new state. */
+val LocalExiting = staticCompositionLocalOf { false }
+
 /** The game and its win bar are one screen. */
 private fun slot(route: Route): Route = if (route == Route.Win) Route.Game else route
 
@@ -139,7 +142,7 @@ private fun Layer(route: Route, handle: SheetHandle, exiting: Boolean, covered: 
                 else -> Modifier
             }),
     ) {
-        CompositionLocalProvider(LocalSheet provides handle.takeIf { rises(route) }) {
+        CompositionLocalProvider(LocalSheet provides handle.takeIf { rises(route) }, LocalExiting provides exiting) {
             // A rising screen carries its own page background, so the screen beneath never shows through while it moves.
             if (route == Route.Home) content() else Backdrop { content() }
         }
@@ -154,6 +157,7 @@ private fun RouteContent(m: GameModel, route: Route) {
         Route.Game, Route.Win -> GameScreen(m)
         Route.Options -> OptionsScreen(m)
         Route.Achievements -> AchievementsScreen(m)
+        is Route.PlayerAchievements -> AchievementsScreen(m, route)
         Route.Online -> WorldsScreen(m)
         Route.Create -> CreatorScreen(m)
         is Route.Auth -> AuthScreen(m, route.destination)
@@ -202,8 +206,9 @@ fun Modifier.sheetDrag(m: GameModel): Modifier {
                                 sheet.progress.animateTo(0f, tween(160))
                                 feedback(Cue.BACK)
                                 val depth = m.stack.size; val before = m.top
-                                m.back()
-                                // Back may only have stepped back inside the screen (the creator's phases): then it comes back up.
+                                // The chevron's own action: it closes the screen (the creator from any stage).
+                                m.close()
+                                // If the screen is still there after all, it comes back up.
                                 if (m.stack.size == depth && m.top == before) sheet.progress.animateTo(1f, spring(dampingRatio = .8f, stiffness = 400f))
                             } else sheet.progress.animateTo(1f, spring(dampingRatio = .8f, stiffness = 400f))
                         }

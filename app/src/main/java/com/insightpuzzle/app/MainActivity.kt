@@ -63,6 +63,9 @@ class MainActivity : ComponentActivity() {
 fun App(m: GameModel) {
     // At the bottom of the stack on Home, Back falls through to the system and closes the app.
     BackHandler(enabled = !(m.stack.size == 1 && m.top == Route.Home)) { m.feedback(Cue.BACK); m.back() }
+    // The music plays everywhere but while a puzzle is played (Journey or online) and in the creator, which has its own bed.
+    val quiet = m.top == Route.Game || m.top == Route.Win || m.top == Route.Create
+    androidx.compose.runtime.SideEffect { m.audio.music(!quiet) }
     CompositionLocalProvider(LocalFeedback provides m::feedback) { Backdrop {
         // Every screen with a chevron rises from the bottom over the screen it was opened from and sinks back on Back (see Sheets.kt); only Home does not slide.
         // The Journey level screen rises over the game; choosing a level there sinks it again onto the game, which is already on the new level.

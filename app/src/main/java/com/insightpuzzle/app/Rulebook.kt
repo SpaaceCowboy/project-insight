@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.heightIn
@@ -43,8 +43,8 @@ fun ColumnScope.RulebookTab(m: GameModel) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         // The rules take only the room they need, with open lines, so the board below gets the rest and stays a true square.
         // Keep room for the board at enlarged text sizes; the rules scroll when they need more.
-        // The 6dp side inset matches the tabs above, so each sentence runs from the left edge of the first tab to the right edge of the last.
-        Column(Modifier.fillMaxWidth().heightIn(max = rulesHeight).verticalScroll(rememberScrollState()).padding(start = 9.dp, end = 6.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // A hair of inset from the page edge, which the tabs above and the board below both reach.
+        Column(Modifier.fillMaxWidth().heightIn(max = rulesHeight).verticalScroll(rememberScrollState()).padding(start = 3.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             for ((type, template) in RULES) {
                 // The tile's name is written in that tile's own colour, wherever the sentence puts it.
                 val name = Art.name(type)!!
@@ -58,10 +58,11 @@ fun ColumnScope.RulebookTab(m: GameModel) {
                 Label(styled, 13.sp, Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = text }, lineHeight = 1.4f)
             }
         }
-        // The board sits at the bottom of the screen; any spare height goes between it and the rules, not under it.
+        // The board sits at the bottom of the screen; any spare height goes between it and the rules, not under it. Like the game's outline it spans the
+        // page from edge to edge, in line with the tabs above.
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
-            val side = minOf(maxWidth, maxHeight, boardShellHeight())
-            Board(Modifier.size(side), board, "rulebook", null, false, { m.rulebookBoard }) { a, b -> m.rulebookBoard = Rules.swap(m.rulebookBoard, a, b) }
+            val height = minOf(maxWidth, maxHeight, boardShellHeight())
+            Board(Modifier.fillMaxWidth().height(height), board, "rulebook", null, false, { m.rulebookBoard }) { a, b -> m.rulebookBoard = Rules.swap(m.rulebookBoard, a, b) }
         }
     }
     }
