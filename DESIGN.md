@@ -60,17 +60,17 @@ typography:
     lineHeight: 1.2
     letterSpacing: "0.3em"
   display:
-    fontFamily: "Source Serif 4, serif"
+    fontFamily: "JetBrains Mono, monospace"
     fontSize: "30sp"
     fontWeight: 400
     lineHeight: 1.2
   headline:
-    fontFamily: "Source Serif 4, serif"
+    fontFamily: "JetBrains Mono, monospace"
     fontSize: "24sp"
     fontWeight: 400
     lineHeight: 1.2
   lede:
-    fontFamily: "Source Serif 4, serif"
+    fontFamily: "JetBrains Mono, monospace"
     fontSize: "16sp"
     fontWeight: 400
     lineHeight: 1.2
@@ -233,7 +233,7 @@ components:
 
 INSIGHT is a pool of still teal water at dusk. The board is the pool's floor. The tiles are polished stones: the only solid, weighted objects in the world. You lift one, it rises toward you with a faint halo, and you set it down somewhere else. Everything around the stones is water and glass: translucent panels, hairline edges, and two slow lights that drift across the background over 42 and 57 seconds. When you move a stone, the water takes on its colour. The last tile you moved tints the ambient light, crossfading over 1.6 seconds.
 
-Density is low and deliberate. A screen holds one idea: a menu column, a list of worlds, a grid of levels, or one board with its target. Serif type marks the moments worth pausing on, such as titles, level names and "Beautifully solved." A quiet sans carries everything you act on. Colour stays muted and sea-washed. The six tile hues are the only saturated objects on screen, and they never compete with the interface for attention, because the interface has almost no colour of its own.
+Density is low and deliberate. A screen holds one idea: a menu column, a list of worlds, a grid of levels, or one board with its target. Large regular-weight titles mark the moments worth pausing on; the same quiet mono at 600 carries everything you act on. Colour stays muted and sea-washed. The six tile hues are the only saturated objects on screen, and they never compete with the interface for attention, because the interface has almost no colour of its own.
 
 This system rejects casual-game loudness: no candy saturation, bouncing cartoon chrome, coin counters or reward pop-ups that shout. It rejects stock Material: no default purple, filled-tonal buttons or app bars. It rejects pure black, sharp corners and hard black shadows on panels. It also rejects pressure: no timers, no countdowns, no red failure states, no score-shaming. A wrong move gets a soft coral ring, never an alarm.
 
@@ -292,18 +292,17 @@ The backdrop is a 165° three-stop base with two radial glows (top-left at 65% a
 
 ## Typography
 
-**Display / Headline Font:** Source Serif 4 (fallback: system serif)
-**Body / Label Font:** JetBrains Mono (fallback: system monospace)
+**Font:** JetBrains Mono (fallback: system monospace), for every text in the app.
 
-**Character:** A literary serif for the moments the player pauses on, and a humanist sans for everything they touch. The serif is always regular weight (400); it never shouts in bold. The sans does the work at 600.
+**Character:** One quiet monospace voice everywhere. Titles and moments stay at regular weight (400); actions do the work at 600.
 
-Both fonts are bundled as static TTFs in `res/font/` (Sans 400/600/700, Serif 400 only), with their OFL licences in `assets/licenses/`. `Label` is the single entry point: its `serif` flag picks the family. Add a weight file before using a weight that isn't bundled, or Android will synthesize it. The web game uses Inter / Georgia, which is a separate decision.
+The font is bundled as static TTFs in `res/font/` (400/600/700/800), with its OFL licence in `assets/licenses/`. `Label` is the single entry point. Add a weight file before using a weight that isn't bundled, or Android will synthesize it. The web game uses Inter / Georgia, which is a separate decision.
 
 ### Hierarchy
 - **Wordmark** (600, 29sp, 0.3em tracking, Sea-Glass Mint): "INSIGHT" on the home screen only.
-- **Display** (serif 400, 30sp): the win title, "Beautifully solved."
-- **Headline** (serif 400, 24sp): page titles, the level name on the board, the overlay title, the creator title.
-- **Lede** (serif 400, 16sp, Lichen): the home tagline.
+- **Display** (400, 30sp): the win title, "Beautifully solved."
+- **Headline** (400, 24sp): page titles, the level name on the board, the overlay title, the creator title.
+- **Lede** (400, 16sp, Lichen): the home tagline.
 - **Button Hero** (600, 17sp, 0.05em): the 64dp home and online menu buttons.
 - **Title** (600, 16sp, 0.04em): world-card names. Achievement names are 15sp in the same style.
 - **Button** (600, 14sp, 0.05em): standard menu buttons.
@@ -315,9 +314,8 @@ Both fonts are bundled as static TTFs in `res/font/` (Sans 400/600/700, Serif 40
 Line height is 1.2× everywhere because `Label` sets it. That is tight but acceptable for the one- and two-line strings the app uses. Raise it to 1.4× before adding paragraph text.
 
 ### Named Rules
-**The Two Voices Rule.** Serif marks a moment and sans marks an action. A button is never serif, and a page title is never sans.
+**The One Voice Rule.** There is a single family. A moment is marked by size and regular weight, an action by 600.
 
-**The Quiet Serif Rule.** Serif text is always weight 400. Emphasis comes from size and space, never weight.
 
 ## Layout
 
@@ -332,11 +330,11 @@ Portrait only (`screenOrientation="portrait"`), edge-to-edge, with transparent s
 | Creator | 560dp |
 | Default `Page` (Levels, Achievements) | 640dp |
 
-**Page anatomy.** A 48dp round Back button, 14dp gap, then the serif title over a 12sp Lichen subtitle, then 16dp to content.
+**Page anatomy.** A 48dp round Back button, 14dp gap, then the title over a 12sp Lichen subtitle, then 16dp to content.
 
 **Home.** Wordmark, then the tagline (8dp below), then the tilted 3×3 hero (20dp below). A primary **Continue** button ("Level 042 · name") leads the column once the player has any progress; below it sit Single player, Online and Options (64dp, 14dp apart). Three square cubes run along the bottom with 10dp gaps. On phones shorter than about 640dp the hero shrinks to 96dp and the buttons to 56dp so nothing touches. Features that are not built (Log In, What's Next, Online → Play, the creator's Make) are dimmed and say "Soon" or "Coming soon"; they are never drawn as live controls.
 
-**Game board.** The corner round buttons (Menu top-left, Restart top-right) float at 12dp / 10dp. Content starts 60dp down to clear them: eyebrow, serif level name, a "TARGET" eyebrow, the target card, then the board shell filling the remaining height. The target card scales with the grid (30dp cells for a 2×2, down to 20dp for 5×5) on the same deep pool as the board. When a level is solved the result strip grows in under the board and the board shrinks to make room, so the solved arrangement stays visible. On windows 600dp wide or more the play area stays centred at 720dp max and cells grow to 120dp; below that the cap is 88dp. Board cells are `min(cap, fit)` with 32dp of internal padding and a 5dp gap. The *occupied* area is centred, not the full grid, so holes along one side never push the puzzle off centre.
+**Game board.** The corner round buttons (Menu top-left, Restart top-right) float at 12dp / 10dp. Content starts 60dp down to clear them: eyebrow, level name, a "TARGET" eyebrow, the target card, then the board shell filling the remaining height. The target card scales with the grid (30dp cells for a 2×2, down to 20dp for 5×5) on the same deep pool as the board. When a level is solved the result strip grows in under the board and the board shrinks to make room, so the solved arrangement stays visible. On windows 600dp wide or more the play area stays centred at 720dp max and cells grow to 120dp; below that the cap is 88dp. Board cells are `min(cap, fit)` with 32dp of internal padding and a 5dp gap. The *occupied* area is centred, not the full grid, so holes along one side never push the puzzle off centre.
 
 **Level grid.** Three columns with 10dp gaps on both axes, so each preview map (up to 30dp cells), number and name stays large enough to read. Every cell is 18:25 (width:height) in every world, so a six-level world never stretches; the grid scrolls when large text needs the room. Cell captions stop growing at 1.15× font scale and end in an ellipsis, since the full name is in the game and in TalkBack.
 
@@ -404,10 +402,10 @@ On/off settings are **switch rows**: a 56dp Glass pebble with the label on the l
 Three tabs (Play, Sound, Appearance), each a single scrolling column of 12dp-spaced rows under small muted **section titles** ("Feel", "Progress", "About", "With other audio", "Equipped"). Rows are only ever one of: a **switch row** (on/off), a **segmented choice** (the same pebble `Tabs` used for the page tabs, for 2–3 mutually exclusive options such as Reduce motion and Theme), a **volume slider**, an **info row** (label left, muted value right; with an action it ends in an arrow), or a plain pebble button. Each setting carries at most one 12sp Support line, and only where the consequence is not obvious. Destructive actions (Reset level progress) use a confirmation card in the pause-sheet style and say what is kept. Rows for values that do not exist yet (Privacy policy, Contact) are not shown.
 
 ### Overlay Sheet (pause)
-A Scrim covers the screen, and tapping it dismisses the overlay (the scrim is hidden from TalkBack; Back closes it). On top sits a Deep Pool sheet (28dp radius, 24dp padding, max 420dp wide, Hairline border) that announces its title, holding a centred stack: serif title, a Support line ("World 10 · Level 181 · Cloister"), then pebble buttons with 8dp gaps.
+A Scrim covers the screen, and tapping it dismisses the overlay (the scrim is hidden from TalkBack; Back closes it). On top sits a Deep Pool sheet (28dp radius, 24dp padding, max 420dp wide, Hairline border) that announces its title, holding a centred stack: title, a Support line ("World 10 · Level 181 · Cloister"), then pebble buttons with 8dp gaps.
 
 ### Result Strip (solved)
-A 24dp-radius Deep Pool card docked under the board, with no scrim. It holds the "GRID SOLVED" eyebrow, the serif line "Beautifully solved.", an inset Glass card for any earned badges (with a 48dp "View collection →" button) and a Replay / Next pair (on the final level: Replay / Choose level). The solved board above it stays lit.
+A 24dp-radius Deep Pool card docked under the board, with no scrim. It holds the "GRID SOLVED" eyebrow, the line "Beautifully solved.", an inset Glass card for any earned badges (with a 48dp "View collection →" button) and a Replay / Next pair (on the final level: Replay / Choose level). The solved board above it stays lit.
 
 ### Restart Undo
 Restart throws away the attempt, so a pebble ("Restarted · Undo", 48dp tall) appears beside the Restart button for six seconds and restores the exact position. It is not offered after a solve (that is a deliberate replay).
@@ -450,7 +448,6 @@ A 125dp 3×3 of tiles rotated −9°, with the outer columns floating ±4dp out 
 - **Don't** use pure black (#000000) anywhere, sharp-cornered panels, or black drop shadows on any surface.
 - **Don't** put a shadow on anything that isn't a tile (The Only Stones Cast Shadows Rule).
 - **Don't** add pressure: no timers, countdowns, move limits shown as threats, red error states or score-shaming. A wrong move is a 240ms Coral ring and nothing more.
-- **Don't** use bold or semibold serif. Serif is weight 400 only (The Quiet Serif Rule).
 - **Don't** introduce a second accent colour for interface chrome; colour belongs to the stones.
 
 ## Android v0.1.9 implementation notes
@@ -516,9 +513,12 @@ Options has Options / Rulebook / About tabs. Options combines play, sound, theme
 - **Achievements:** text-only rows (no marks): First Level, 30, 60, 90, 120, 150 and 180 Levels, and All 200 Levels. Retired badge ids stay in saves but are not shown or counted.
 
 ## Haptics and sound (Problem 22)
-- **Haptic:** every touch gives one 6 ms one-shot vibration (`VibrationEffect.createOneShot(6, DEFAULT_AMPLITUDE)`), the same on simple and high-definition actuators, and only while Haptics is on. Compose's generic haptic types are no longer used.
+- **Haptic:** every touch gives one 10 ms one-shot vibration (`VibrationEffect.createOneShot(10, 80)` where the actuator has amplitude control, the default amplitude elsewhere; never a platform-chosen effect), the same on simple and high-definition actuators, and only while Haptics is on. Compose's generic haptic types are no longer used.
+- **Effects volume:** the ten Effects steps run from silence to 150% of the original uisfx clips. SoundPool cannot play above 100%, so every `zen_*` cue (`res/raw` MP3 and `res/raw-v29` Ogg Opus) is stored 1.5x louder than the original (peaks stay below -5 dBFS) and the slider sets the SoundPool volume from 0 to 1. Ambience is unchanged.
+- **Screens and Back:** every screen except Home and sign-in is a sheet (`Sheets.kt`) that rises from the bottom over the one it opened from. A screen that leaves the stack stays on top, sinking away, until it is below the edge. The Back chevron can also be pulled down: the sheet follows the finger and sinks away when let go past the middle or flung, otherwise it springs back; a tap still goes Back.
+- **Raised surfaces:** buttons, rows, tabs, the profile card, level icons and player rows all use the same plush pedestal (`Modifier.plush`): a soft shadow, a darker lip under the face, and a sink when pressed. Read-only surfaces (the profile card, an Achievements count on another player's profile, the Version row) rest on it and take no touches.
 - **Sounds:** the uisfx "zen" pack (CC0, uisfx.com), Ogg Opus on Android 10+ and MP3 before. Effects follow the Effects volume and Sound; the forest and mountain ambience is unchanged. The old tile notes and select/move/deny/win effects are gone.
-- **Cues:** drag start = touching a tile (game, Rulebook, creator); reorder = hold-to-restart and creator reset; invalid drop = an illegal move; start = Profile icon and the creator's Start; stop = Options icon; processing = loop while the creator is open; toggle on/off = Options switches; swipe = touching a volume slider; focus = Options tabs; long press = puzzle details; check = Light/Dark, Licences, Achievements, a player or creator name, and the details sheet's buttons; delete = Log out; select = opening a level or puzzle card; back = system Back; forward = Journey and Worlds; press = Sort, the players/puzzles toggle, Create, Random, the creator's resize handle and other plain buttons; seek = Target; unlock = Create (publish); success = a solved grid. A tile landing after a swap is haptic only.
+- **Cues:** drag start = touching a tile (game, Rulebook, creator); reorder = hold-to-restart and creator reset; invalid drop = an illegal move; start = Profile icon and the creator's Start; stop = Options icon; processing = loop while the creator is open; toggle on/off = Options switches; swipe = touching a volume slider; focus = Options tabs; long press = puzzle details; check = Light/Dark, Licences, Achievements, a player or creator name, and the details sheet's buttons; delete = Log out; select = opening a level or puzzle card; back = system Back; forward = Journey and Worlds; press = Sort, the players/puzzles toggle, Create, Random, the creator's resize handle and other plain buttons; seek = Target; unlock = Create (publish); success = a solved grid (minimal checkout, 90%); drop = a tile landing after a swap or a placement (zen drop, 70%).
 
 ## Journey, social and polish (Problem 23)
 - **Journey:** Journey opens the game directly (stack Home → Game). "Journey N" above the target opens the level screen on top; its header has Options, "Now Playing" (back to the level) and Profile. Back goes Levels → Game → Home. The level screen stays composed, invisible, under a Journey game so it opens instantly.
@@ -549,3 +549,59 @@ Options has Options / Rulebook / About tabs. Options combines play, sound, theme
 - **Icon motion:** pressing Options slides each slider knob to where the other one sits, and it stays there while Options opens; pressing Profile lifts the head, which bobs back on release.
 - **Screens:** Options and every Profile rise from the bottom over the screen they were opened from (320ms), on their own opaque page, and sink back down on Back. Other screens switch instantly.
 - **Worlds glow:** the crystal halo and glint are gone; Journey and Worlds are identical.
+
+## Hotfixes (Problem 26)
+- **Type:** Source Serif 4 is gone; JetBrains Mono is the only family. Licences lists it alone.
+- **Back:** every screen but Home has a chevron pointing down, centred between Options and Profile (or alone in a 48dp row), 16dp from the safe top edge like the corner icons.
+- **Board gestures:** hold to restart only inside the outline and off the grid, and only once the board differs from the start. Swipes start only below the outline or above it up to the title (target included). Journey swipes between unlocked levels; the creator swipes left to right to go back a phase.
+- **Win bar:** Next and Restart send it back down the way it came while the board grows back; it ignores touches while leaving.
+- **Profile:** Achievements, Bookmarked and Following are three buttons side by side; there is no Followers list. Log out takes two taps (the first shows "Confirm log out"); a tap anywhere else cancels.
+- **Worlds:** the capsule switches puzzles / players; Sort is its own icon under Profile; search is hidden above the list and pulled down before refresh. Offline is the crossed-out signal left of Profile.
+- **Cards:** numbers are plain (1, not 01) at 6sp. Journey cards have no long press.
+- **Options:** volumes are 0–10 stops with a detent and a haptic tick per stop. About rows end in small icons; Licences is its own page. Rulebook rules colour the tile name instead of showing a tile.
+
+## Android v0.2.14 implementation notes
+
+Collections use sideways pages: Journey has eight rows of four cards (32 levels per page), Worlds six, Bookmarked seven, profile puzzles three, and player lists eight people. Community data loads ahead; card numbers continue across pages and sit at the bottom right. Journey reopens its level page around the current level.
+
+The background is matte grey, and raised buttons have a subtle lower side without a border. Back uses bare chevron art. Pages with Back slide over the previous screen. Search has a close action; Back closes a revealed search before leaving Worlds. Profile buttons read Following, Achievements, Bookmarked; logout confirmation uses two short lines. Volume knobs use springs and a thicker track. Creator targets shrink to fit the strip, and the Rulebook caps its scrollable rules at half the available height to preserve the square practice board at enlarged text sizes.
+
+Game swipes can start anywhere off the tile grid within the permitted title-to-bottom area. Restart holds remain inside the outline and off the grid; their glow begins after a short still hold. Touch vibration is always a 10ms one-shot, with explicit amplitude where supported; physical strength remains device-dependent.
+
+Screen sheets layer over the screen beneath, hide covered controls from accessibility, and can be pulled down using Back. Short pulls spring back; long pulls dismiss. Repeated routes retain their latest position in the visible stack. Raised styling now applies across controls, tabs, cards and player rows; profile actions grow to fill the space between the profile card and three puzzle rows. Rulebook text has more line spacing and the practice board sits at the bottom.
+
+## Problem 29 hotfixes
+
+- **Pages:** the server pages Worlds, creators, following and followers by 24, a multiple of the Worlds (24), profile (12) and player (8) page sizes, so the first fetch fills the first page: six rows on entering Worlds and after a pull-to-refresh. Only a changed query or sort waits (300 ms) before fetching; a refresh keeps the rows shown until the fresh ones arrive.
+- **Page swipes:** moving between pages is haptic only, with no sound.
+- **Player rows** share the page height (eight to a page), so the list ends at the bottom with no gap; screens too short for that keep 52dp rows and scroll.
+- **Press:** every raised button goes down about 45 ms after the finger lands (`pressOnTouch`, also inside scrolling lists and pagers, where Compose would otherwise wait ~100 ms) and stays down at least 90 ms, so a quick tap still shows its push before the next screen. It springs back on release.
+- **Platform:** the game and creator boards are raised platforms (`plush`, 5dp lip) instead of an outlined panel. Holding to restart sinks the platform half way down while its side wall lights up (no light around the outline). A dragged tile stops at the platform's edge (4dp inset) and never goes behind it.
+- **Tiles** have a darker side (5.5% of the tile) under the face and a soft shadow on the platform; they are dragged, never pressed.
+- **Restart popup:** Restart level runs the same light and tile slide-back as hold-to-restart, then the popup closes.
+- **Creator:** clearing a grid being built removes every tile at once; later phases still slide back.
+- **Achievements** entries rest on the plush pedestal (earned ones tinted), with no border.
+- **Solved level cards** have no border or halo: the lip under the face is faintly lit instead.
+- **Journey N** above the target is a small plush key that covers "Journey" and the level number.
+- **Home:** INSIGHT, JOURNEY and WORLDS are Bold and share one size (30sp, less on narrow screens).
+
+## Problem 30 polish notes
+
+- **Sound:** effects play on the media stream, so the phone's volume keys scale them with the ambience; the Effects slider is the level within that. While a volume knob is held, each change of direction plays the touch sound again.
+- **Names:** usernames are at most 20 characters (new sign-ups and renames; older longer names stay and ellipsize). Player rows keep their height: the name on the left, Level / Designed / Solved stacked on the right.
+- **Code menu:** long-pressing a puzzle opens a raised card three buttons wide and one tall, 12dp corners like the puzzle buttons, no border: creator on the left, Share over Copy on the right. First column opens it to the right, last column to the left, the middle two below (above in the page's bottom row).
+- **Creator:** the grid remembers tiles hidden by shrinking it until they are dragged off or Clear (hold) is used. Empty cells are raised keys. The resize handle is a plain dot. Start and target use the game's cell size and the grid moves there from the building layout in one smooth morph.
+- **Cards:** a solved card's side wall keeps the usual darkness; the current Journey level has a lit side wall instead of a ring.
+- **Sheets:** a sheet in motion has 14dp rounded top corners (square once it covers the screen). Sign-in is a sheet too.
+- **Worlds:** the page's rows are centred between the toggle row and Create / Random. Sorting's date filters expand and collapse with the sheet. Connection trouble is only the crossed signal mark, never a line of text.
+
+## Problem 31 hotfixes (v0.2.17)
+- **Guide:** Journey level one plays a three-step guide once per device (Store `onboarded`), and the icon above the board's top right (a bare circled question mark, no key) replays it or dismisses it; Options → Guide icon hides the icon. Fat white rounded borders and one line of text, never a scrim or a touch catcher: 1 swap two tiles (border round the grid), 2 hold outside the grid to restart (plus a border round the outline), 3 swipe (two borders on the strips of the outline above and below the grid); the swipe is taught, not performed. Swiping from above the outline no longer changes level.
+- **Splash:** dark grey (#1D1D1D) in either theme, "INSIGHT" in JetBrains Mono ExtraBold, tightened, with a white tile. It overlays Home while the sounds load, the ambience is prepared and a signed-in player's first Worlds / Bookmarked pages are fetched (at least 0.9 s, at most 2.5 s). Ambience starts at launch when Sound is on.
+- **Errors:** there is no error dialog. A lost connection is only the crossed signal mark; a refused form shows its reason inline; a refused 11th puzzle of the day shows "Daily limit of 10 puzzles reached." at the top of the last creator phase.
+- **Creator:** Target slides the shaped board back to the start grid (the restart movement without the press or lit wall) as the last phase opens. Empty squares are a little darker than the platform with a softer side.
+- **Sheets:** 28dp rounded top corners while a sheet moves, a soft shadow, and the screen beneath darkens by up to 22%.
+- **Usernames:** 3–20 characters of English letters, numbers, spaces, _ and -; hate, violence, profanity and reserved names are refused with their own explanation (NAME_HATE, NAME_VIOLENCE, NAME_PROFANITY, NAME_RESERVED, NAME_CHARACTERS, NAME_LENGTH). Matching ignores case, accents, stretched letters, digit-for-letter swaps (0 1 3 4 5 7 8 9), v for u, ph for f, and separators (f u c k, f_u_c_k, fu ck); short ambiguous words only match as whole words (class, Essex, Niigata are fine). Existing names are kept.
+- **Colourblind palette:** R #D55E00, B #0072B2, G #009E73, Y #F0E442, P #CC79A7, W #F4F1E8; symbols white except on Y, P and W (#303238). With it on, the Rulebook and TalkBack use the palette's standard names: Vermillion, Blue, Bluish green, Yellow, Reddish purple, Off-white.
+- **Sound:** the solved cue is uisfx minimal "checkout" at 90% and a landing tile plays zen "drop" at 70% of the other cues at any Effects setting (`Cue.level`, `Cue.stored`; the two files are stored +3 dB).
+- **Languages:** English, Español, Français, Italiano, Deutsch, chosen in Options (each named in itself, same sound as Light / Dark). The English wording is the key (`tr()`, Translations.kt); server messages are translated by their English text. Usernames and other players' content are never translated.

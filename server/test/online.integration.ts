@@ -16,7 +16,7 @@ const schema = `test_${randomUUID().replaceAll('-', '')}`;
 const admin = database(baseUrl); const url = new URL(baseUrl); url.searchParams.set('options', `-c search_path=${schema}`);
 let db: Db; let app: FastifyInstance; let ip = 1;
 const key = '17'.repeat(32);
-const config: Config = { databaseUrl: url.toString(), encryptionKey: key, host: '127.0.0.1', port: 0, smtpHost: 'localhost', smtpPort: 1025, smtpSecure: false, mailFrom: 'test@localhost', environment: 'test', trustProxy: false };
+const config: Config = { databaseUrl: url.toString(), encryptionKey: key, host: '127.0.0.1', port: 0, smtpHost: 'localhost', smtpPort: 1025, smtpSecure: false, mailFrom: 'test@localhost', environment: 'test', trustProxy: false, createDailyLimit: 30 };
 const routes = JSON.parse(readFileSync(new URL('../../app/src/test/resources/solutions.json', import.meta.url), 'utf8')) as Move[][];
 before(async () => { await admin.query(`CREATE SCHEMA ${schema}`); db = database(config.databaseUrl); await migrate(db); app = await buildApp(db, config, false); await app.ready(); });
 after(async () => { await app?.close(); await db?.end(); await admin.query(`DROP SCHEMA ${schema} CASCADE`); await admin.end(); });
@@ -103,18 +103,18 @@ test('email verification is not required, login is throttled, and OpenAPI is ava
   const spec = await call('GET', '/docs/json'); assert.ok(spec.paths['/v1/completions']);
 });
 
-test('open registration, Unicode unique nicknames, concurrent claims and idempotent profile rename', async () => {
+test('open registration, unique English nicknames, concurrent claims and idempotent profile rename', async () => {
   const email = `${op()}@example.test`;
   await call('POST', '/v1/auth/register', { email, password: 'long-test-password', name: '  My\u3000Nickname  ' });
   const registered = await call('POST', '/v1/auth/login', { email, password: 'long-test-password' });
   assert.equal(registered.user.username, 'My Nickname');
   const conflict = await call('POST', '/v1/auth/register', { email: `${op()}@example.test`, password: 'long-test-password', name: 'ｍｙ nickname' }, undefined, 409);
   assert.equal(conflict.code, 'NAME_TAKEN');
-  const name = `Race ${op().slice(0, 12)}`;
+  const name = `Race ${Date.now()}`;
   const race = await Promise.all([name, name.toUpperCase()].map((name, n) => app.inject({ method: 'POST', url: '/v1/auth/register', remoteAddress: `192.0.2.${20+n}`, payload: { email: `${op()}@example.test`, password: 'long-test-password', name } })));
   assert.deepEqual(race.map(r => r.statusCode).sort(), [200,409]);
   const a = await makeAccount(); const b = await makeAccount();
-  const change = { operationId: op(), name: 'پازل\u200cباز 🎮' };
+  const change = { operationId: op(), name: `Puzzle Player ${Date.now() % 1000}` };
   await call('PATCH', '/v1/account/name', change, a);
   await call('PATCH', '/v1/account/name', change, a);
   assert.equal((await call('GET', '/v1/account', undefined, a)).user.username, change.name);
@@ -122,6 +122,13 @@ test('open registration, Unicode unique nicknames, concurrent claims and idempot
   await call('PATCH', '/v1/account/name', { ...change, operationId: op() }, b, 409);
   await call('PATCH', '/v1/account/name', { operationId: op(), name: 'bad\u202ename' }, a, 400);
   await call('POST', '/v1/auth/register', { email: `${op()}@example.test`, password: 'long-test-password', name: 'Another player' });
+  // Case, spacing-compatibility and the new rules: a rename or registration that breaks them is refused with its own code and explanation.
+  for (const [name, code] of [['MY NICKNAME', 'NAME_TAKEN'], ['f u c k', 'NAME_PROFANITY'], ['ab', 'NAME_LENGTH'], ['Émile', 'NAME_CHARACTERS'], ['Admin', 'NAME_RESERVED']] as const) {
+    const refused = await call('POST', '/v1/auth/register', { email: `${op()}@example.test`, password: 'long-test-password', name }, undefined, code === 'NAME_TAKEN' ? 409 : 400);
+    assert.equal(refused.code, code, name);
+    assert.ok(refused.message.length > 10);
+  }
+  await call('PATCH', '/v1/account/name', { operationId: op(), name: 'k1ll3r' }, a, 400);
 });
 
 test('worldless creation is atomic, needs only construction proof, and retries do not duplicate puzzles or XP',async()=>{
@@ -141,17 +148,36 @@ test('worldless creation is atomic, needs only construction proof, and retries d
  await call('POST','/v1/worlds',{operationId:op(),name:'Old',icon:'R'},owner,404);
 });
 
-test('concurrent creation gives unique stable creator numbers beyond twenty and pagination never repeats',async()=>{
+test('concurrent creation gives unique stable creator numbers beyond a page and pagination never repeats',async()=>{
  const a=await makeAccount();
- const results=await Promise.all(Array.from({length:23},(_,i)=>create(a,i+10)));
- assert.deepEqual(results.map(r=>r.levelNumber).sort((a,b)=>a-b),Array.from({length:23},(_,i)=>i+1));
+ const results=await Promise.all(Array.from({length:27},(_,i)=>create(a,i+10)));
+ assert.deepEqual(results.map(r=>r.levelNumber).sort((a,b)=>a-b),Array.from({length:27},(_,i)=>i+1));
  const url=`/v1/grids?owner=${a.user.id}&sort=number`;
  const first=await call('GET',url,undefined,a),last=await call('GET',url+'&page=1',undefined,a);
- assert.equal(first.items.length,20); assert.equal(last.items.length,3);
- assert.equal(new Set([...first.items,...last.items].map(g=>g.id)).size,23);
+ assert.equal(first.items.length,24); assert.equal(last.items.length,3);
+ assert.equal(new Set([...first.items,...last.items].map(g=>g.id)).size,27);
+ assert.equal(first.nextPage,1); assert.equal(last.nextPage,null);
+ // The app's Bookmarked list holds 28 per page and asks for as many, so its first fetch fills the whole page.
+ const wide=await call('GET',url+'&limit=28',undefined,a);
+ assert.equal(wide.items.length,27); assert.equal(wide.nextPage,null);
+ await call('GET',url+'&limit=25',undefined,a,400);
  await call('PATCH',`/v1/grids/${first.items[0].id}`,{operationId:op(),hidden:true},a);
- assert.equal((await create(a,90)).levelNumber,24);
+ assert.equal((await create(a,90)).levelNumber,28);
  assert.equal((await db.query("SELECT sum(amount)::text AS n FROM xp_ledger WHERE user_id=$1 AND reason='create'",[a.user.id])).rows[0].n,'50000');
+});
+
+test('a player can publish ten puzzles a UTC day; the eleventh is refused and a retry of the tenth still succeeds',async()=>{
+ const limited=await buildApp(db,{...config,createDailyLimit:10},false); await limited.ready();
+ try {
+  const a=await makeAccount(); let last:any,lastId='';
+  const publish=(n:number,operationId=op())=>limited.inject({method:'POST',url:'/v1/grids',remoteAddress:`10.9.${n}.1`,headers:{authorization:`Bearer ${a.accessToken}`},payload:{operationId,...custom(n+300)}});
+  for(let n=0;n<10;n++){ lastId=op(); const r=await publish(n,lastId); assert.equal(r.statusCode,200,r.body); last=r.json(); }
+  const refused=await publish(10); assert.equal(refused.statusCode,403); assert.equal(refused.json().code,'DAILY_LIMIT'); assert.match(refused.json().message,/daily limit of 10/);
+  const retry=await publish(9,lastId); assert.equal(retry.statusCode,200); assert.deepEqual(retry.json(),last);
+  assert.equal((await db.query('SELECT count(*)::int AS n FROM grids WHERE owner_id=$1',[a.user.id])).rows[0].n,10);
+  await db.query("UPDATE grids SET published_at=published_at - interval '2 days' WHERE owner_id=$1",[a.user.id]);
+  assert.equal((await publish(11)).statusCode,200);
+ } finally { await limited.close(); }
 });
 
 test('visibility, own profile collection, moderation and creator discovery agree',async()=>{
@@ -308,4 +334,21 @@ test('feedback is stored once, works signed out, is rate limited and mailed to t
   assert.ok(bug.text.startsWith('Tiles froze') && bug.text.includes('not signed in') && bug.text.includes('0.2.9'));
   assert.ok(mine.find(m => m.subject === '[INSIGHT] Feedback').text.includes(player.user.username));
   assert.equal((await db.query("SELECT count(*)::int AS n FROM feedback WHERE status<>'accepted' OR body<>''")).rows[0].n, 0);
+});
+
+test('XP level badges agree between progress and profiles without persisting or importing them', async () => {
+ const a = await makeAccount();
+ await db.query("INSERT INTO xp_ledger(user_id,reason,source,amount) VALUES($1,'test','level-badge',16500000)",[a.user.id]);
+ const progress = await call('GET','/v1/progress',undefined,a);
+ const profile = await call('GET',`/v1/profiles/${a.user.id}`,undefined,a);
+ assert.equal(progress.level,37);
+ assert.deepEqual(progress.badges.filter((b:string)=>b.startsWith('level-')),['level-10','level-20','level-30']);
+ assert.deepEqual(profile.badges,progress.badges);
+ assert.equal((await db.query("SELECT count(*)::int AS n FROM imported_badges WHERE user_id=$1 AND badge_id LIKE 'level-%'",[a.user.id])).rows[0].n,0);
+});
+test('full share codes filter the puzzle list case-insensitively', async () => {
+ const a=await makeAccount(), grid=await create(a,731);
+ const found=await call('GET',`/v1/grids?query=${grid.code.toLowerCase()}`,undefined,a);
+ assert.deepEqual(found.items.map((g:any)=>g.id),[grid.id]);
+ assert.equal(found.nextPage,null);
 });

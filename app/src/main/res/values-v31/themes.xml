@@ -1,0 +1,11 @@
+<resources>
+    <!-- Android 12+ draws its own splash first: the same dark grey with no icon, so the only thing the player sees is the app's own splash (SplashGate). -->
+    <style name="Theme.Insight" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:autofilledHighlight">@android:color/transparent</item>
+        <item name="android:windowSplashScreenBackground">@color/bg</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_blank</item>
+    </style>
+</resources>

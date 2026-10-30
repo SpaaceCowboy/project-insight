@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { acceptedDay, currentRun, longestRun, socialBadges, socialBadgeIds } from '../src/badges.js';
+import { acceptedDay, currentRun, levelBadges, longestRun, socialBadges, socialBadgeIds } from '../src/badges.js';
 
 test('streak runs count consecutive calendar days', () => {
   assert.equal(longestRun([]), 0);
@@ -19,7 +19,10 @@ test('client days are trusted only within a day of UTC', () => {
   assert.equal(acceptedDay('2026-02-30', new Date('2026-03-01T12:00:00Z')), '2026-03-01');
 });
 test('online, design and streak badges follow their goals', () => {
-  assert.equal(socialBadgeIds.length, 17);
+  assert.equal(socialBadgeIds.length, 25);
+  assert.deepEqual(levelBadges(9), []);
+  assert.deepEqual(levelBadges(30), ['level-10', 'level-20', 'level-30']);
+  assert.equal(socialBadges({ onlineSolved: 0, designedCount: 100, bestStreak: 0 }).length, 5);
   assert.deepEqual(socialBadges({ onlineSolved: 20, designedCount: 1, bestStreak: 14 }), ['online-1', 'online-10', 'online-20', 'designed-1', 'streak-7', 'streak-14']);
   assert.deepEqual(socialBadges({ onlineSolved: 0, designedCount: 0, bestStreak: 6 }), []);
 });

@@ -23,6 +23,6 @@ writeFileSync(join(root,'app/src/test/resources/solutions.json'),JSON.stringify(
 
 const raw=join(root,'app/src/main/res/raw');
 mkdirSync(raw,{recursive:true});
-// Only the forest ambience comes from the web game. Interface cues are the uisfx "zen" pack (CC0), kept in res/raw (MP3) and res/raw-v29 (Ogg Opus).
+// Only the forest ambience comes from the web game. Interface cues are the uisfx "zen" pack (CC0), kept in res/raw (MP3) and res/raw-v29 (Ogg Opus); zen_drop and minimal_checkout come from tools/build-cues.mjs.
 copyFileSync(join(web,'public/sounds/ambient.wav'),join(raw,'sfx_ambient.wav'));
 console.log(`Exported ${levels.length} levels, ${solutions.length} solutions, sounds from ${web}`);

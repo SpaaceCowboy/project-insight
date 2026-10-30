@@ -1,0 +1,9 @@
+Banned-word list for usernames
+
+Based on "List of Dirty, Naughty, Obscene, and Otherwise Bad Words" by the LDNOOBW contributors
+(https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words),
+licensed under the Creative Commons Attribution 4.0 International licence
+(https://creativecommons.org/licenses/by/4.0/).
+
+Changes made: words were sorted into categories (profanity, hate, violence, reserved), ambiguous short words were limited to
+whole-word matches, and further words were added.

@@ -185,10 +185,23 @@ class OnlinePersistenceTest {
         assertEquals(0, request("GET", "/v1/profiles/$account").getInt("gridCount"))
         val owned = request("GET", "/v1/grids?owner=$account&sort=number").getJSONArray("items")
         assertEquals(1, owned.length()); assertTrue(owned.getJSONObject(0).getBoolean("hidden"))
-        for (n in 2..21) {
+        for (n in 2..25) {
             val next = JSONObject(publishing.toString()).put("operationId", UUID.randomUUID().toString())
+            if ((n - 1) % CREATE_DAILY_LIMIT == 0) {
+                try { request("POST", "/v1/grids", next); fail("The daily publishing limit must apply in preview") }
+                catch (error: OnlineException) { assertEquals("DAILY_LIMIT", error.code) }
+                // Advance only this fixture's published dates so pagination spans multiple publishing days.
+                val prefs = context.getSharedPreferences("online_demo_data", Context.MODE_PRIVATE)
+                val saved = JSONObject(prefs.getString("data", null)!!)
+                saved.getJSONArray("grids").objects().filter { it.getString("ownerId") == account }
+                    .forEach { it.put("publishedAt", java.time.Instant.now().minusSeconds(172800).toString()) }
+                assertTrue(prefs.edit().putString("data", saved.toString()).commit())
+                demo = DemoBackend(context)
+            }
             assertEquals(n, request("POST", "/v1/grids", next).getInt("levelNumber"))
         }
-        assertEquals(21, request("GET", "/v1/grids?owner=$account&sort=number&page=1").getJSONArray("items").getJSONObject(0).getInt("levelNumber"))
+        assertEquals(24, request("GET", "/v1/grids?owner=$account&sort=number&page=0").getJSONArray("items").length())
+        val last = request("GET", "/v1/grids?owner=$account&sort=number&page=1").getJSONArray("items")
+        assertEquals(1, last.length()); assertEquals(25, last.getJSONObject(0).getInt("levelNumber"))
     }
 }

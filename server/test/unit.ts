@@ -2,3 +2,5 @@
 import './rules.test.js';
 import './crypto.test.js';
 import './badges.test.js';
+import './names.test.js';
+import './username.test.js';

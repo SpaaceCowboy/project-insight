@@ -14,6 +14,9 @@ import java.time.temporal.TemporalAdjusters
 import java.time.DayOfWeek
 
 /** Explicit, device-only preview transport. Never selected as a fallback for a real service failure. */
+/** New puzzles one player may publish per UTC day (the server's default). */
+internal const val CREATE_DAILY_LIMIT = 10
+
 class DemoBackend(context: Context) {
     private val prefs = context.getSharedPreferences("online_demo_data", Context.MODE_PRIVATE)
     private val levels = Levels.parse(context.assets.open("levels.json").bufferedReader().use { it.readText() })
@@ -23,6 +26,7 @@ class DemoBackend(context: Context) {
     private fun id() = UUID.randomUUID().toString()
     private fun failure(code: String, message: String, status: Int = 400): Nothing = throw OnlineException(status, code, message)
     private val names = NameFilter.get(context)
+    private val usernames = UsernameFilter.get(context)
     private fun cleanName(name: String): String {
         names.problem(name)?.let { failure("INVALID_NAME", it) }
         return names.normalize(name)
@@ -90,10 +94,10 @@ class DemoBackend(context: Context) {
         fun own(key: String, value: String): JSONObject = entity(key, value).also { if (it.optString("ownerId") != player || it.optBoolean("moderated")) failure("NOT_FOUND", "Item unavailable.", 404) }
         fun person(value: String) = entity("users", value)
         fun rename(value: String) {
-            if (!Nicknames.valid(value)) failure("INVALID_NICKNAME", Nicknames.REQUIREMENT)
+            usernames.problem(value)?.let { failure(it.code, Nicknames.message(it)) }
             val name = Nicknames.normalize(value)
             val key = name.lowercase(Locale.ROOT)
-            if (list("users").any { it.getString("id") != player && Nicknames.normalize(it.getString("username")).lowercase(Locale.ROOT) == key }) failure("NAME_TAKEN", "That nickname is already taken. Choose another.", 409)
+            if (list("users").any { it.getString("id") != player && Nicknames.normalize(it.getString("username")).lowercase(Locale.ROOT) == key }) failure("NAME_TAKEN", "That username is already taken. Choose another.", 409)
             person(player).put("username", name)
         }
         fun publicUser(value: String) = person(value).let { JSONObject().put("id", value).put("username", it.getString("username")).put("verified", true) }
@@ -131,7 +135,7 @@ class DemoBackend(context: Context) {
             val designed = list("grids").count { it.getString("ownerId") == who && !it.isNull("publishedAt") }
             val sorted = days(who).sorted(); var best = 0; var run = 0
             sorted.forEachIndexed { i, d -> run = if (i > 0 && sorted[i - 1].plusDays(1) == d) run + 1 else 1; best = maxOf(best, run) }
-            return OnlineStats(solved, designed, best)
+            return OnlineStats(solved, designed, best, xp(who).getInt("level"))
         }
         fun streak(who: String, today: LocalDate): Int {
             val set = days(who); var d = if (today in set) today else today.minusDays(1); var run = 0
@@ -222,13 +226,13 @@ class DemoBackend(context: Context) {
                     .sortedWith(compareByDescending<JSONObject> {
                         when (sort) { "designed" -> it.getInt("gridCount").toBigInteger(); "played" -> it.getInt("beatenCount").toBigInteger(); "liked" -> it.getInt("likeCount").toBigInteger(); else -> it.getString("xpMilli").toBigInteger() }
                     }.thenByDescending { it.getString("xpMilli").toBigInteger() }.thenBy { it.getString("id") })
-                JSONObject().put("items", JSONArray(rows.drop(page * 20).take(20))).put("nextPage", if ((page + 1) * 20 < rows.size) page + 1 else JSONObject.NULL)
+                JSONObject().put("items", JSONArray(rows.drop(page * 24).take(24))).put("nextPage", if ((page + 1) * 24 < rows.size) page + 1 else JSONObject.NULL)
             }
             route == "/v1/following" || route == "/v1/followers" -> {
                 val mine = route == "/v1/following"
                 val rows = list("follows").filter { it.getString(if (mine) "follower" else "followee") == player }.map { creator(it.getString(if (mine) "followee" else "follower"), null) }.sortedByDescending { it.getString("xpMilli").toBigInteger() }
                 val page = uri.getQueryParameter("page")?.toIntOrNull() ?: 0
-                JSONObject().put("items", JSONArray(rows.drop(page * 20).take(20))).put("nextPage", if ((page + 1) * 20 < rows.size) page + 1 else JSONObject.NULL)
+                JSONObject().put("items", JSONArray(rows.drop(page * 24).take(24))).put("nextPage", if ((page + 1) * 24 < rows.size) page + 1 else JSONObject.NULL)
             }
             // The preview keeps feedback on the device; the real server emails it.
             route == "/v1/feedback" && method == "POST" -> {
@@ -273,14 +277,20 @@ class DemoBackend(context: Context) {
                 val rows = list("grids").filter { g -> !g.isNull("publishedAt") &&
                     (visible(g) || owner == player && g.getString("ownerId") == player) &&
                     (owner == null || g.getString("ownerId") == owner) &&
-                    (query.isEmpty() || if (query.all { it.isDigit() }) g.getInt("levelNumber") == query.toIntOrNull() else person(g.getString("ownerId")).getString("username").contains(query, true)) &&
+                    (query.isEmpty() || if (Regex("^[A-Fa-f0-9]{16}$").matches(query)) g.getString("code").equals(query, true) else if (query.all { it.isDigit() }) g.getInt("levelNumber") == query.toIntOrNull() else person(g.getString("ownerId")).getString("username").contains(query, true)) &&
                     (since == null || !Instant.parse(g.getString("publishedAt")).isBefore(since)) &&
                     (!bookmarked || bookmarkedAt(g) != null)
                 }.map { grid(it) }.sortedWith(comparator)
-                JSONObject().put("items", JSONArray(rows.drop(page * 20).take(20))).put("nextPage", if ((page + 1) * 20 < rows.size) page + 1 else JSONObject.NULL)
+                // As the server: 24 a page unless the screen asks for its own page size (Bookmarked holds 28).
+                val size = uri.getQueryParameter("limit")?.toIntOrNull()?.takeIf { it == 24 || it == 28 } ?: 24
+                JSONObject().put("items", JSONArray(rows.drop(page * size).take(size))).put("nextPage", if ((page + 1) * size < rows.size) page + 1 else JSONObject.NULL)
             }
             route == "/v1/grids" && method == "POST" -> {
                 val start = body.board("start"); val target = body.board("target"); checked(start, target, body.getJSONArray("path"))
+                // The server allows ten new puzzles a UTC day.
+                val dayStart = java.time.LocalDate.now(java.time.ZoneOffset.UTC).atStartOfDay(java.time.ZoneOffset.UTC).toInstant()
+                if (list("grids").count { it.getString("ownerId") == player && !it.isNull("publishedAt") && !Instant.parse(it.getString("publishedAt")).isBefore(dayStart) } >= CREATE_DAILY_LIMIT)
+                    failure("DAILY_LIMIT", "You have reached the daily limit of $CREATE_DAILY_LIMIT puzzles. Try again tomorrow.", 403)
                 val number = (list("grids").filter { it.getString("ownerId") == player && !it.isNull("publishedAt") }.maxOfOrNull { it.getInt("levelNumber") } ?: 0) + 1
                 val g = JSONObject().put("id", id()).put("ownerId", player).put("levelNumber", number)
                     .put("code", UUID.randomUUID().toString().replace("-", "").take(16).uppercase(Locale.ROOT))

@@ -2,8 +2,6 @@ package com.insightpuzzle.app
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -28,47 +26,45 @@ import kotlinx.coroutines.delay
 import org.json.JSONObject
 import java.util.UUID
 
-/** A list screen's title row, with the offline mark on the left while the server can't be reached. */
+/** A list screen's top: Back centred (the offline mark on the left while the server can't be reached), then the title. */
 @Composable
 private fun ListHeader(m: GameModel, title: String) {
     val muted = LocalPalette.current.muted
-    Box(Modifier.fillMaxWidth().heightIn(min = 48.dp), contentAlignment = Alignment.Center) {
-        if (m.online.offline) Canvas(Modifier.align(Alignment.CenterStart).padding(start = 14.dp).size(20.dp).semantics { contentDescription = "Offline. Pull down to retry." }) { offlineIcon(muted) }
-        Label(title, 22.sp, Modifier.semantics { heading() }, serif = true, align = TextAlign.Center)
+    Box(Modifier.fillMaxWidth().height(48.dp), contentAlignment = Alignment.Center) {
+        if (m.online.offline) Canvas(Modifier.align(Alignment.CenterStart).padding(start = 14.dp).size(20.dp).semantics { contentDescription = tr("Offline. Pull down to retry.") }) { offlineIcon(muted) }
+        BackChevron(m)
     }
+    Spacer(Modifier.height(ScreenGap))
+    Label(title, 22.sp, Modifier.fillMaxWidth().semantics { heading() }, align = TextAlign.Center)
 }
+
+/** The Bookmarked request. The server pages by the size asked for, so the first fetch fills all seven rows (28 items) instead of six, the seventh arriving with the next fetch. */
+internal const val BOOKMARKS_KEY = "/v1/grids?bookmarked=true&query=&limit=28"
 
 /** Your bookmarked puzzles, in the same cards as Worlds. Playing one keeps this list, so swiping walks through it. */
 @Composable
 fun BookmarksScreen(m: GameModel) {
     m.online.user?.id ?: return
     val state = m.playDiscovery.bookmarks
-    var detail by remember { mutableStateOf<JSONObject?>(null) }
-    LoadDiscovery(m, state, "/v1/grids?bookmarked=true&query=", resetScroll = false)
+    var detail by remember { mutableStateOf<DetailAnchor?>(null) }
+    LoadDiscovery(m, state, BOOKMARKS_KEY, resetScroll = false)
     Page("Bookmarked", 560.dp) {
         ListHeader(m, "Bookmarked")
-        Refreshable(state.pulling, { m.online.clearMessages(); state.pull() }, Modifier.weight(1f).fillMaxWidth()) {
-            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(vertical = 8.dp)) {
-                PuzzleCardList(m, state, "No bookmarked puzzles yet.") { detail = it }
-            }
-        }
+        PuzzleGrid(m, state, Modifier.weight(1f).fillMaxWidth(), rows = BOOKMARK_ROWS, empty = "No bookmarked puzzles yet.") { detail = it }
     }
-    detail?.let { grid -> PuzzleDetails(m, grid) { detail = null } }
+    detail?.let { anchor -> PuzzleDetails(m, anchor) { detail = null } }
 }
 
-/** Whom you follow ([kind] "following") or who follows you ("followers"), one line per player. */
+/** Whom you follow ([kind] "following"), one line per player. */
 @Composable
 fun PlayersScreen(m: GameModel, kind: String) {
     m.online.user?.id ?: return
-    val state = if (kind == "followers") m.playDiscovery.followers else m.playDiscovery.following
+    val state = m.playDiscovery.following
     LoadDiscovery(m, state, "/v1/$kind")
-    Page(if (kind == "followers") "Followers" else "Following", 560.dp) {
-        ListHeader(m, if (kind == "followers") "Followers" else "Following")
+    Page("Following", 560.dp) {
+        ListHeader(m, "Following")
         Refreshable(state.pulling, { m.online.clearMessages(); state.pull() }, Modifier.weight(1f).fillMaxWidth()) {
-            LazyColumn(Modifier.fillMaxSize(), state = state.scroll, verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(vertical = 8.dp)) {
-                itemsIndexed(state.items, key = { _, row -> row.getString("id") }) { _, row -> PlayerRow(m, row) }
-                item { DiscoveryFooter(m, state, if (kind == "followers") "Nobody follows you yet." else "You don't follow anyone yet.") }
-            }
+            PlayerPages(m, state, Modifier.fillMaxSize(), "You don't follow anyone yet.")
         }
     }
 }
@@ -78,13 +74,14 @@ fun PlayersScreen(m: GameModel, kind: String) {
 fun FeedbackScreen(m: GameModel, kind: String) {
     val p = LocalPalette.current
     val context = LocalContext.current
-    val title = if (kind == "bug") "Report a bug" else "Share feedback"
+    val title = tr(if (kind == "bug") "Report a bug" else "Share feedback")
     var text by rememberSaveable(kind) { mutableStateOf("") }
     var sent by remember { mutableStateOf(false) }
     // Thank the player briefly, then go back to Options.
     LaunchedEffect(sent) { if (sent) { delay(1200); if (m.top == Route.Feedback(kind)) m.back() } }
     Page(title, 560.dp) {
-        Label(title, 22.sp, Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(top = 10.dp).semantics { heading() }, serif = true, align = TextAlign.Center)
+        ChevronBar(m)
+        Label(title, 22.sp, Modifier.fillMaxWidth().semantics { heading() }, align = TextAlign.Center, translate = false)
         OutlinedTextField(text, { text = it.take(4000) }, Modifier.weight(1f).fillMaxWidth().padding(vertical = 8.dp).semantics { contentDescription = title },
             enabled = !sent, placeholder = { Label(if (kind == "bug") "What happened, and what did you expect?" else "Tell us what you think.", 14.sp, color = p.muted) },
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),

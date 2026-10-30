@@ -1,4 +1,4 @@
-# INSIGHT for Android
+# Midori for Android
 
 A native Android version (Kotlin + Jetpack Compose) of the INSIGHT puzzle game. It is a separate project from the web game in `../project-insight`, which it never modifies; it only reads that project's level data and sounds through `tools/export-assets.mjs`.
 
@@ -10,7 +10,8 @@ A native Android version (Kotlin + Jetpack Compose) of the INSIGHT puzzle game. 
 | `src/data/*` (first 200 levels) | `assets/levels.json` (generated) |
 | `src/game-state.js`, `src/useGame.js` | `GameModel.kt`, `Store.kt` |
 | `src/achievements.mjs` | `Achievements.kt` |
-| uisfx "zen" pack (CC0, [uisfx.com](https://uisfx.com), npm `uisfx@0.4.0`) | `res/raw/zen_*.mp3`, `res/raw-v29/zen_*.ogg`, `Feedback.kt` |
+| uisfx "zen" pack and the "minimal" checkout (CC0, [uisfx.com](https://uisfx.com), npm `uisfx@0.4.0`) | `res/raw/zen_*.mp3`, `res/raw/minimal_checkout.mp3`, `res/raw-v29/*.ogg`, `Feedback.kt`, `tools/build-cues.mjs` |
+| LDNOOBW English word list (CC BY 4.0) with reviewed additions | `tools/ldnoobw-en.txt`, `tools/build-username-words.mjs`, `username-words.json` |
 | Forest and mountain ambience | `Audio.kt` (MediaPlayer beds) |
 | `src/tile-art.js`, `src/styles.css` | `TileArt.kt`, `Theme.kt`, `Ui.kt` |
 | Home, levels, options, achievements, online, win pop-up | `Screens.kt` |
@@ -28,6 +29,34 @@ The TypeScript/PostgreSQL service and deployment instructions are in [server/REA
 
 Rebuild the local preview with `./gradlew assembleDebug -PinsightOnlineDemo=true`. Build a backend-connected APK with `./gradlew assembleDebug -PinsightApiUrl=https://YOUR_API`. Release builds reject cleartext service addresses. Preview data, saves, and credentials are kept separate from real service data.
 
+## Android v0.2.18 — Midori, tips and achievements
+
+Version 0.2.18 (code 29) renames the app to Midori while retaining its package, signing key and saved data. It adds tap-through gameplay/creator tips, single-touch transition handling, deeper raised controls, more achievements and list-based puzzle-code search. Fixed level badges to agree between progress and profile responses. Built and tested on the VPS, including a signed update preserving saved progress. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.18); see [deployment notes](DEPLOYMENT.md).
+
+## Android v0.2.17 — Languages, guide and publishing limits
+
+Version 0.2.17 (code 28) adds English, Spanish, French, Italian and German UI text, saved language selection, a first-play guide, a startup splash and updated audio. New usernames follow shared validation rules; puzzle creation is capped at 10 per UTC day, and Bookmarked fetches 28 items per page. Built and tested on the VPS, including a signed update preserving saved progress. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.17); see [deployment notes](DEPLOYMENT.md).
+
+## Android v0.2.16 — Creator memory and interface refinements
+
+Version 0.2.16 (code 27) keeps hidden creator tiles when resizing, restores them in saved drafts, animates creator phases and icons, adds anchored puzzle code menus and seven-row bookmarks, and routes effects through media volume. Client and server limit newly entered usernames to 20 characters while preserving existing names. Built and tested on the VPS, including a signed update preserving saved progress. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.16); see [deployment notes](DEPLOYMENT.md).
+
+## Android v0.2.15 — Board platforms and responsive controls
+
+Version 0.2.15 (code 26) adds raised board platforms, bounded tile dragging, animated result-bar restarts, faster press feedback and a matching uppercase Home layout. Discovery loads immediately on entry and refresh, and the service and preview now return 24 items per page. Built and tested on the VPS. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.15); see [deployment notes](DEPLOYMENT.md).
+
+## Android v0.2.14 — Draggable sheets and raised controls
+
+Version 0.2.14 (code 25) adds draggable screen sheets, raised controls and cards, profile layout refinements, 32-level Journey pages, updated sound assets and 10ms touch feedback. The signed update preserves progress and creator drafts. This is an APK-only release, built and tested on the VPS. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.14); see [deployment notes](DEPLOYMENT.md).
+
+## Android v0.2.13 — Paged collections and layout polish
+
+Version 0.2.13 (code 24) adds sideways pages for Journey, Worlds, profiles, bookmarks and players, with community pages fetched ahead. It refines page transitions, search dismissal, button faces, volume controls and touch feedback. Creator targets fit the available strip, and the Rulebook keeps its square practice board usable at enlarged text sizes. This is an APK-only release. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.13); see [deployment notes](DEPLOYMENT.md).
+
+## Android v0.2.12 — Navigation and gesture refinements
+
+Version 0.2.12 (code 23) adds a centred Back chevron, Journey level swipes, creator backward swipes, separate Worlds sort controls and pull-down search. Journey reopens the last played level; restart holds stay inside the board outline. Profiles have side-by-side collection buttons and two-tap logout, volumes use 0–10 stops, and JetBrains Mono is now the only font. The signed update preserves saved progress and creator drafts. This is an APK-only release. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.12); see [deployment notes](DEPLOYMENT.md).
+
 ## Android v0.2.11 — Typography and raised buttons
 
 Version 0.2.11 (code 22) replaces Source Sans 3 with bundled JetBrains Mono, adds raised Journey/Worlds and corner buttons with press feedback, animates the Options/Profile icons, and slides Options and Profile in from below. Verification fixed community exits leaving a mismatched board during transitions and kept row labels visible with enlarged text. Saved progress, accounts and creator drafts survive an in-place update. This is an APK-only release. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.11); see [deployment notes](DEPLOYMENT.md).
@@ -40,9 +69,17 @@ Version 0.2.10 (code 21) adds bidirectional swipe navigation and Random history,
 
 Version 0.2.9 (code 20) adds likes, bookmarks, follows, daily streaks and online/design/streak achievements. Journey opens directly into play; its heading opens Levels, and Now Playing returns to the game. Targets are larger with plain miniature tiles, boards use a shared shorter outline, and the creator crops empty borders. Random supports an empty-space right swipe; Next follows the originating puzzle list. Profiles include followers, streaks, bookmarks and followed players; connection trouble uses a quiet offline mark. Logout asks for confirmation. The matching backend adds migration 009 without deleting existing data. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.9); see [deployment notes](DEPLOYMENT.md).
 
+## Android v0.2.18 — Midori, tips and achievements
+
+Version 0.2.18 (code 29) renames the app to Midori while retaining its package, signing key and saved data. It adds tap-through gameplay/creator tips, single-touch transition handling, deeper raised controls, more achievements and list-based puzzle-code search. Fixed level badges to agree between progress and profile responses. Built and tested on the VPS, including a signed update preserving saved progress. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.18); see [deployment notes](DEPLOYMENT.md).
+
+## Android v0.2.17 — Problem 31 hotfixes (source only; not yet built)
+
+Adds the first-play guide, a splash screen, five languages, stricter usernames with a profanity / hate / violence filter (LDNOOBW word list, CC BY 4.0), a daily limit of ten puzzles, the Okabe-Ito colour-blind palette and two new sound cues. See [deployment notes](DEPLOYMENT.md).
+
 ## Android v0.2.8 — Sound and haptic feedback
 
-Version 0.2.8 (code 19) uses the uisfx Zen sound pack for interface actions and a 6 ms vibration while Haptics is on. The creator has a processing sound loop that follows Sound, Effects, and app visibility. Forest and mountain ambience remain. Android 8–9 use MP3 cues; Android 10+ use Ogg Opus. Account storage, saved progress, package IDs, signing certificate, and backend contracts are unchanged. This is an APK-only update. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.8); see [deployment notes](DEPLOYMENT.md).
+Version 0.2.8 (code 19) uses the uisfx Zen sound pack for interface actions and a 10 ms vibration while Haptics is on. The creator has a processing sound loop that follows Sound, Effects, and app visibility. Forest and mountain ambience remain. Android 8–9 use MP3 cues; Android 10+ use Ogg Opus. Account storage, saved progress, package IDs, signing certificate, and backend contracts are unchanged. This is an APK-only update. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.8); see [deployment notes](DEPLOYMENT.md).
 
 ## Android v0.2.7 — Campaign and simplified screens
 

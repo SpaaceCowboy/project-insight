@@ -35,8 +35,8 @@ class OnlineState(private val model: GameModel, app: Application, private val sc
         busy = true; clearMessages()
         scope.launch {
             try { block() }
-            // On Worlds and Profile a lost connection is shown by their offline mark, not a dialog.
-            catch (error: Exception) { if (isConnectionError(error) && (model.top == Route.Online || model.top is Route.Profile || model.top == Route.Bookmarks || model.top is Route.Players)) { if (error is CancellationException) throw error; offline = true } else report(error) }
+            // A lost connection is only ever shown by the offline mark (Worlds, Profile and their lists), never by a message or dialog.
+            catch (error: Exception) { if (error is CancellationException) throw error; quiet(error) }
             finally { busy = false }
         }
     }
@@ -101,7 +101,8 @@ class OnlineState(private val model: GameModel, app: Application, private val sc
             }
         }
         flushProofs(); repository.schedule()
-        if (!repository.sync()) notice = "Progress is saved. XP will update when Online reconnects."
+        // No connection is shown by the offline mark on Worlds and Profile, never by a line of text.
+        if (!repository.sync()) offline = true
         val progress = repository.fetch("/v1/progress", account)
         if (user?.id == account) model.mergeAccountProgress(progress)
     }
@@ -119,12 +120,12 @@ class OnlineState(private val model: GameModel, app: Application, private val sc
         proofSaved()
     }
     fun proofSaved() {
-        if (user != null) scope.launch { try { flushProofs() } catch (error: Exception) { report(error) } }
+        if (user != null) scope.launch { try { flushProofs() } catch (error: Exception) { if (error is CancellationException) throw error; quiet(error) } }
     }
     fun logout() = task {
         val revoked = repository.client.logout()
         user = null; model.selectAccount(null); model.mainMenu()
-        if (!revoked) notice = "Logged out on this device. The server session could not be revoked; it will expire automatically."
+        if (!revoked) notice = tr("Logged out on this device. The server session could not be revoked; it will expire automatically.")
     }
 }
 

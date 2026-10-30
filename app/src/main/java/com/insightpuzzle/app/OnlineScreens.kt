@@ -22,6 +22,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -50,6 +55,7 @@ import kotlin.math.roundToInt
 @Composable
 private fun OnlinePage(m: GameModel, title: String, messages: Boolean = true, content: @Composable ColumnScope.() -> Unit) {
     Page(title, 560.dp) {
+        ChevronBar(m)
         Column(Modifier.weight(1f).fillMaxWidth().imePadding().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (messages) OnlineMessages(m)
             content()
@@ -70,21 +76,45 @@ internal fun OnlineField(label: String, value: String, password: Boolean = false
     val p = LocalPalette.current
     var passwordVisible by remember { mutableStateOf(false) }
     val feedback = LocalFeedback.current
-    OutlinedTextField(value, onChange, Modifier.fillMaxWidth().heightIn(min = 56.dp), enabled = enabled, singleLine = true,
+    // Text that arrives in one go (the saved-credentials shortcut) tints the inside of the box a sleek grey; the system's own yellow, square highlight is switched off
+    // because it ignored the rounded corners. Typing, or an emptied box, puts the usual look back.
+    var filled by remember { mutableStateOf(false) }
+    val tint = if (p.dark) androidx.compose.ui.graphics.lerp(p.paper2, p.ink, .1f) else androidx.compose.ui.graphics.lerp(p.paper2, p.ink, .07f)
+    val inside = if (filled && value.isNotEmpty()) tint else Color.Transparent
+    CompositionLocalProvider(androidx.compose.foundation.text.LocalAutofillHighlightColor provides Color.Transparent) {
+    OutlinedTextField(value, { next -> filled = next.length - value.length > 1; onChange(next) }, Modifier.fillMaxWidth().heightIn(min = 56.dp), enabled = enabled, singleLine = true,
         label = { Label(label, 12.sp) }, visualTransformation = if (password && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
         trailingIcon = if (password) ({ IconButton(onClick = { feedback(Cue.PRESS); passwordVisible = !passwordVisible }, enabled = enabled,
-            modifier = Modifier.size(48.dp).semantics { contentDescription = if (passwordVisible) "Hide password" else "Show password" }) {
-            Label(if (passwordVisible) "Hide" else "Show", 12.sp)
+            modifier = Modifier.size(48.dp).semantics { contentDescription = if (passwordVisible) tr("Hide password") else tr("Show password") }) {
+            // An open eye while the password is readable, a crossed-out one while it is hidden.
+            androidx.compose.foundation.Canvas(Modifier.size(22.dp)) { eyeIcon(p.muted, passwordVisible) }
         } }) else null,
         keyboardOptions = KeyboardOptions(keyboardType = if (password) KeyboardType.Password else keyboard, autoCorrectEnabled = false),
         shape = RoundedCornerShape(14.dp), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = p.ink, unfocusedTextColor = p.ink,
+            focusedContainerColor = inside, unfocusedContainerColor = inside,
             focusedBorderColor = p.accent, unfocusedBorderColor = p.line, cursorColor = p.accent, focusedLabelColor = p.accent, unfocusedLabelColor = p.muted))
+    }
+}
+
+/** An eye for the password field: open when the text is readable, crossed out when it is hidden. */
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.eyeIcon(c: Color, visible: Boolean) {
+    val u = size.width / 24f
+    val line = androidx.compose.ui.graphics.drawscope.Stroke(1.8f * u, cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round)
+    val lid = androidx.compose.ui.graphics.Path().apply {
+        moveTo(2 * u, 12 * u); quadraticBezierTo(12 * u, 3 * u, 22 * u, 12 * u); quadraticBezierTo(12 * u, 21 * u, 2 * u, 12 * u); close()
+    }
+    drawPath(lid, c, style = line)
+    drawCircle(c, 3.2f * u, androidx.compose.ui.geometry.Offset(12 * u, 12 * u), style = line)
+    if (!visible) drawLine(c, androidx.compose.ui.geometry.Offset(4 * u, 4 * u), androidx.compose.ui.geometry.Offset(20 * u, 20 * u), 1.8f * u, androidx.compose.ui.graphics.StrokeCap.Round)
 }
 
 @Composable
-internal fun OnlineCard(content: @Composable ColumnScope.() -> Unit) {
-    val p = LocalPalette.current; val shape = RoundedCornerShape(16.dp)
-    Column(Modifier.fillMaxWidth().clip(shape).background(p.paper).border(1.dp, p.line, shape).padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
+internal fun OnlineCard(modifier: Modifier = Modifier, pushable: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
+    // Not a button, but it sits on the same pedestal as the buttons below it. A [pushable] card sinks under a finger like a key and does nothing else.
+    val p = LocalPalette.current; val shape = RoundedCornerShape(14.dp)
+    val source = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    Column(modifier.fillMaxWidth().plush(shape, if (pushable) pressProgress(source) else 0f, p.paper2)
+        .then(if (pushable) Modifier.pressOnTouch(source) else Modifier).padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
 }
 
 @Composable
@@ -92,13 +122,14 @@ fun AuthScreen(m: GameModel, destination: Route?) {
     val o = m.online
     val keyboard = LocalSoftwareKeyboardController.current
     val focus = LocalFocusManager.current
+    val usernames = UsernameFilter.get(LocalContext.current)
     if (BuildConfig.ONLINE_DEMO) {
         var previewName by rememberSaveable { mutableStateOf("Quiet Cove") }
         OnlinePage(m, "Your Worlds preview") {
-            Label("Explore a world of your own", 24.sp, serif = true)
+            Label("Explore a world of your own", 24.sp)
             Label("These players and puzzles are examples. Publishing, play, and XP are saved only on this device. Real accounts use the separate service build.", 14.sp, color = LocalPalette.current.muted)
-            OnlineField("Username", previewName, enabled = !o.busy) { previewName = it.take(128) }
-            Label("Choose your own username. Names are unique, ignoring letter case.", 12.sp, color = LocalPalette.current.muted)
+            OnlineField("Username", previewName, enabled = !o.busy) { previewName = Nicknames.clip(it) }
+            Label("${Nicknames.MIN_LENGTH}–${Nicknames.MAX_LENGTH} characters: English letters, numbers, spaces, _ and -", 12.sp, color = LocalPalette.current.muted)
             MenuButton("Enter local preview", primary = true, enabled = !o.busy) { o.login("preview@insight.local", previewName, destination) }
         }
         return
@@ -107,23 +138,26 @@ fun AuthScreen(m: GameModel, destination: Route?) {
     var email by rememberSaveable { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var name by rememberSaveable { mutableStateOf("") }
-    OnlinePage(m, if (mode == "register") "Make yourself at home" else "Log in", messages = false) {
-        Tabs(listOf("login" to "Log in", "register" to "Register"), mode) {
+    OnlinePage(m, if (mode == "register") "Make yourself at home" else "Login", messages = false) {
+        Tabs(listOf("login" to "Login", "register" to "Register"), mode) {
             if (!o.busy) { mode = it; password = ""; o.clearMessages() }
         }
         OnlineField("Email", email, keyboard = KeyboardType.Email, enabled = !o.busy) { email = it.take(254) }
-        OnlineField(if (mode == "register") "Password (12–128 characters)" else "Password", password, password = true, enabled = !o.busy) { password = it.take(128) }
+        OnlineField("Password", password, password = true, enabled = !o.busy) { password = it.take(128) }
         if (mode == "register") {
-            OnlineField("Username", name, enabled = !o.busy) { name = it.take(128) }
-            Label("1–32 characters · Unique, ignoring letter case", 12.sp, color = LocalPalette.current.muted)
+            // A name already in use is refused by the server (NAME_TAKEN) and shown in the message line below; the other rules are explained as the player types.
+            OnlineField("Username", name, enabled = !o.busy) { name = Nicknames.clip(it) }
+            val problem = if (name.isBlank()) null else usernames.problem(name)
+            Label(problem?.let { Nicknames.message(it) } ?: "${Nicknames.MIN_LENGTH}–${Nicknames.MAX_LENGTH} characters: English letters, numbers, spaces, _ and -",
+                12.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite }, color = if (problem != null && problem != NameProblem.LENGTH) LocalPalette.current.accent else LocalPalette.current.muted)
         }
         OnlineMessages(m)
-        MenuButton(if (mode == "register") "Create account" else "Log in", primary = true, enabled = !o.busy) {
+        MenuButton(if (mode == "register") "Create account" else "Login", primary = true, enabled = !o.busy) {
             val validation = when {
-                !android.util.Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches() -> "Enter a valid email address."
-                password.isBlank() -> "Enter your password."
-                mode == "register" && password.length < 12 -> "Choose a password with at least 12 characters."
-                mode == "register" && !Nicknames.valid(name) -> Nicknames.REQUIREMENT
+                !android.util.Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches() -> tr("Enter a valid email address.")
+                password.isBlank() -> tr("Enter your password.")
+                mode == "register" && password.length < 12 -> tr("Choose a password with at least 12 characters.")
+                mode == "register" && usernames.problem(name) != null -> Nicknames.message(usernames.problem(name)!!)
                 else -> null
             }
             if (validation != null) o.report(OnlineException(400, "INVALID_INPUT", validation))
@@ -133,7 +167,7 @@ fun AuthScreen(m: GameModel, destination: Route?) {
                 else o.login(email, password, destination) { password = "" }
             }
         }
-        if (o.user != null) MenuButton("Log out", enabled = !o.busy) { o.logout() }
+        if (o.user != null) MenuButton("Logout", enabled = !o.busy) { o.logout() }
     }
 }
 
@@ -156,7 +190,7 @@ fun ProfileScreen(m: GameModel, requestedId: String?) {
     val scope = rememberCoroutineScope()
     var revision by remember { mutableIntStateOf(0) }
     var pulling by remember { mutableStateOf(false) }
-    var detail by remember { mutableStateOf<JSONObject?>(null) }
+    var detail by remember { mutableStateOf<DetailAnchor?>(null) }
     var confirmLogout by remember { mutableStateOf(false) }
     var outcomes by remember(account) { mutableStateOf(emptyList<OnlineDatabase.Pending>()) }
     // The viewer's local date tells the server whether a daily streak is still alive.
@@ -191,71 +225,105 @@ fun ProfileScreen(m: GameModel, requestedId: String?) {
             } catch (error: Exception) { if (error is kotlinx.coroutines.CancellationException) throw error; profile = current; m.online.quiet(error) }
         }
     }
+    // Logout takes two taps on its icon: the first shows "Confirm / Logout", the second logs out. A tap anywhere else, or a few seconds, cancels.
+    var screenBox by remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
+    var logoutBox by remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
+    LaunchedEffect(confirmLogout) { if (confirmLogout) { kotlinx.coroutines.delay(4000); confirmLogout = false } }
+    Box(Modifier.fillMaxSize().onGloballyPositioned { screenBox = it }.pointerInput(Unit) {
+        // Seen first and never consumed, so whatever was tapped still works.
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false, pass = androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+            val icon = logoutBox?.takeIf { it.isAttached }?.let { screenBox?.takeIf { s -> s.isAttached }?.localBoundingBoxOf(it) }
+            if (icon?.contains(down.position) != true) confirmLogout = false
+        }
+    }) {
     Page(if (own) "Your profile" else "Player profile", 560.dp) {
-        // Top-left: a crossed-out signal while the server can't be reached. Top-right: Log out, on your own profile only, confirmed in a tiny popup.
+        // Left: a crossed-out signal while the server can't be reached. Centre: Back. Right: Logout, on your own profile only.
         Box(Modifier.fillMaxWidth().height(48.dp)) {
-            if (m.online.offline) androidx.compose.foundation.Canvas(Modifier.align(Alignment.CenterStart).padding(start = 14.dp).size(20.dp).semantics { contentDescription = "Offline. Pull down to retry." }) { offlineIcon(p.muted) }
-            if (own) Box(Modifier.align(Alignment.CenterEnd)) {
-                HomeIconButton("Log out", Modifier, { confirmLogout = true }, logoutIcon, Cue.PRESS, enabled = !m.online.busy)
+            if (m.online.offline) androidx.compose.foundation.Canvas(Modifier.align(Alignment.CenterStart).padding(start = 14.dp).size(20.dp).semantics { contentDescription = tr("Offline. Pull down to retry.") }) { offlineIcon(p.muted) }
+            BackChevron(m, Modifier.align(Alignment.Center))
+            if (own) Row(Modifier.align(Alignment.CenterEnd), verticalAlignment = Alignment.CenterVertically) {
                 if (confirmLogout) {
-                    val shift = with(androidx.compose.ui.platform.LocalDensity.current) { 52.dp.roundToPx() }
-                    androidx.compose.ui.window.Popup(Alignment.CenterEnd, androidx.compose.ui.unit.IntOffset(-shift, 0), { confirmLogout = false }, androidx.compose.ui.window.PopupProperties(focusable = true)) {
-                        val shape = RoundedCornerShape(12.dp)
-                        Box(Modifier.clip(shape).background(p.paper2).border(1.dp, p.line, shape)
-                            .clickable(role = Role.Button) { m.feedback(Cue.DELETE); confirmLogout = false; m.online.logout() }.padding(horizontal = 14.dp, vertical = 10.dp)) {
-                            Label("Log out", 13.sp, weight = FontWeight.SemiBold)
-                        }
+                    // Two short lines keep the bubble narrow, so it never reaches the chevron.
+                    val shape = RoundedCornerShape(12.dp)
+                    Column(Modifier.padding(end = 6.dp).clip(shape).background(p.paper2).semantics { liveRegion = LiveRegionMode.Polite }.padding(horizontal = 10.dp, vertical = 5.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Label("Confirm", 12.sp, weight = FontWeight.SemiBold, lines = 1)
+                        Label("Logout", 12.sp, weight = FontWeight.SemiBold, lines = 1)
                     }
                 }
+                HomeIconButton(if (confirmLogout) "Confirm logout" else "Logout", Modifier.onGloballyPositioned { logoutBox = it }, {
+                    if (confirmLogout) { confirmLogout = false; m.feedback(Cue.DELETE); m.online.logout() } else confirmLogout = true
+                }, logoutIcon, Cue.PRESS, enabled = !m.online.busy)
             }
         }
+        Spacer(Modifier.height(ScreenGap))
         Refreshable(pulling, ::pull, Modifier.weight(1f).fillMaxWidth()) {
-            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            // The buttons grow downwards to take the height the card and the three rows of puzzles leave, so the rows end exactly at the bottom of the screen.
+            // Your profile and another player's share this geometry: Follow plus Achievements fill the same space as the three buttons.
+            // The side inset leaves room for the raised shadows, which the scroll area would otherwise clip.
+            FillColumn(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 6.dp), gap = 12.dp) {
                 OnlineMessages(m, errors = false)
-                androidx.compose.animation.AnimatedVisibility(ready, enter = androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(180))) {
-                    val data = profile ?: return@AnimatedVisibility
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        ProfileCard(data)
-                        if (!own) MenuButton(if (data.optBoolean("following")) "Following" else "Follow", primary = !data.optBoolean("following"), cue = Cue.CHECK) { toggleFollow(data) }
-                        val badges = data.getJSONArray("badges").strings().toSet()
-                        InfoRow("Achievements", "${m.achievements.catalog.count { it.id in badges }} / ${m.achievements.catalog.size}", arrow = false,
-                            onClick = if (own) ({ m.push(Route.Achievements) }) else null)
-                        // Your own lists each open their own screen, like Achievements.
-                        if (own) {
-                            InfoRow("Bookmarked", number(data.optInt("bookmarkCount")), arrow = false, onClick = { m.push(Route.Bookmarks) })
-                            InfoRow("Following", number(data.optInt("followingCount")), arrow = false, onClick = { m.push(Route.Players("following")) })
-                            InfoRow("Followers", number(data.optInt("followerCount")), arrow = false, onClick = { m.push(Route.Players("followers")) })
-                        }
-                        // The player's own puzzles, in the same four-column cards as Levels and Worlds.
-                        PuzzleCardList(m, puzzles, "No puzzles yet.") { detail = it }
-                        if (own && outcomes.isNotEmpty()) {
-                            Label("${outcomes.count { it.state == "pending" }} pending submissions", 12.sp, color = p.muted)
-                            outcomes.filter { it.state == "failed" }.forEach { Label("Submission needs attention: ${it.error}", 12.sp, color = p.accent) }
-                        }
+                // Only a fade: nothing here grows or slides into place.
+                val shown by androidx.compose.animation.core.animateFloatAsState(if (ready) 1f else 0f, androidx.compose.animation.core.tween(180), label = "profile")
+                val fade = Modifier.graphicsLayer { alpha = shown }
+                val data = profile
+                if (ready && data != null) {
+                    ProfileCard(data, fade)
+                    val badges = data.getJSONArray("badges").strings().toSet()
+                    // Achievements, and on your own profile your bookmarks and whom you follow, side by side; each opens its own screen.
+                    if (own) Row(Modifier.fillMaxWidth().fillRest().then(fade), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ProfileButton("Following", number(data.optInt("followingCount")), Modifier.weight(1f).fillMaxHeight()) { m.push(Route.Players("following")) }
+                        ProfileButton("Achievements", "${m.achievements.catalog.count { it.id in badges }} / ${m.achievements.catalog.size}", Modifier.weight(1f).fillMaxHeight()) { m.push(Route.Achievements) }
+                        ProfileButton("Bookmarked", number(data.optInt("bookmarkCount")), Modifier.weight(1f).fillMaxHeight()) { m.push(Route.Bookmarks) }
+                    } else Column(Modifier.fillMaxWidth().fillRest().then(fade), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        MenuButton(if (data.optBoolean("following")) "Following" else "Follow", primary = !data.optBoolean("following"), cue = Cue.CHECK) { toggleFollow(data) }
+                        ProfileButton("Achievements", "${m.achievements.catalog.count { it.id in badges }} / ${m.achievements.catalog.size}", Modifier.fillMaxWidth().weight(1f), null)
+                    }
+                    // The player's own puzzles, in the same four-column cards as Levels and Worlds.
+                    Box(fade) { PuzzleCardList(m, puzzles, "No puzzles yet.") { detail = it } }
+                    if (own && outcomes.isNotEmpty()) Column(fade, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Label(tr("{0} pending submissions", outcomes.count { it.state == "pending" }), 12.sp, color = p.muted, translate = false)
+                        outcomes.filter { it.state == "failed" }.forEach { Label(tr("Submission needs attention: {0}", it.error), 12.sp, color = p.accent, translate = false) }
                     }
                 }
-                Spacer(Modifier.height(12.dp))
             }
         }
     }
-    detail?.let { grid -> PuzzleDetails(m, grid) { detail = null } }
+    }
+    detail?.let { anchor -> PuzzleDetails(m, anchor) { detail = null } }
+}
+
+/** One of the profile's three side-by-side buttons: a name over its count. Without [onClick] it only shows the count. */
+@Composable
+private fun ProfileButton(label: String, value: String, modifier: Modifier = Modifier, onClick: (() -> Unit)?) {
+    val p = LocalPalette.current
+    val feedback = LocalFeedback.current
+    val shape = RoundedCornerShape(14.dp)
+    val source = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    // Without an action it rests on its pedestal and ignores touches.
+    Column(modifier.heightIn(min = 64.dp).plush(shape, if (onClick != null) pressProgress(source) else 0f, p.paper2)
+        .then(if (onClick != null) Modifier.pressOnTouch(source).clickable(source, null, role = Role.Button) { feedback(Cue.FORWARD); onClick() } else Modifier)
+        .padding(horizontal = 6.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Label(value, 16.sp, weight = FontWeight.SemiBold, lines = 1)
+        Label(label, 11.sp, color = p.muted, align = TextAlign.Center, lines = 1)
+    }
 }
 
 /** Username and level, the level bar, then created / solved and followers / daily streak. */
 @Composable
-private fun ProfileCard(profile: JSONObject) {
+private fun ProfileCard(profile: JSONObject, modifier: Modifier = Modifier) {
     val p = LocalPalette.current
-    OnlineCard {
+    OnlineCard(modifier, pushable = true) {
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Label(profile.getString("username"), 24.sp, Modifier.semantics { heading() }, serif = true, align = TextAlign.Center)
-            Label("Level ${number(profile.getInt("level"))}", 16.sp, color = p.accent)
+            Label(profile.getString("username"), 24.sp, Modifier.semantics { heading() }, align = TextAlign.Center, translate = false)
+            Label(tr("Level {0}", number(profile.getInt("level"))), 16.sp, color = p.accent, translate = false)
         }
         val xp = profile.getString("xpMilli").toBigInteger(); val start = profile.getString("levelStartMilli").toBigInteger()
         if (!profile.isNull("nextLevelMilli")) {
             val next = profile.getString("nextLevelMilli").toBigInteger()
             val ratio = ((xp - start).toDouble() / (next - start).toDouble()).toFloat().coerceIn(0f, 1f)
             ProgressBar(ratio, Modifier.padding(top = 6.dp))
-            Label("${NumberFormat.getIntegerInstance().format(xp / java.math.BigInteger.valueOf(1000))} XP · ${NumberFormat.getIntegerInstance().format(next / java.math.BigInteger.valueOf(1000))} for next level", 12.sp, Modifier.fillMaxWidth(), color = p.muted, align = TextAlign.Center)
+            Label(tr("{0} XP · {1} for next level", NumberFormat.getIntegerInstance().format(xp / java.math.BigInteger.valueOf(1000)), NumberFormat.getIntegerInstance().format(next / java.math.BigInteger.valueOf(1000))), 12.sp, Modifier.fillMaxWidth(), color = p.muted, align = TextAlign.Center, translate = false)
         } else Label("Level 100 · Yours to keep", 14.sp, Modifier.fillMaxWidth(), align = TextAlign.Center)
         Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Stat("Puzzles created", number(profile.getInt("gridCount")), Modifier.weight(1f))
@@ -283,7 +351,7 @@ private fun ProgressBar(ratio: Float, modifier: Modifier = Modifier) {
     val p = LocalPalette.current
     val shape = RoundedCornerShape(6.dp)
     Box(modifier.fillMaxWidth().height(12.dp).clip(shape).background(p.line).semantics {
-        contentDescription = "Progress to next level"; stateDescription = "${(ratio * 100).roundToInt()} percent"
+        contentDescription = tr("Progress to next level"); stateDescription = tr("{0} percent", (ratio * 100).roundToInt())
     }) {
         if (ratio > 0f) Box(Modifier.fillMaxWidth(ratio).fillMaxHeight().clip(shape).background(p.accent))
     }

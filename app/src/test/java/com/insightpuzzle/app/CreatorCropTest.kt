@@ -15,6 +15,36 @@ class CreatorCropTest {
         assertEquals(2, s.rows); assertEquals(2, s.cols)
     }
 
+    @Test fun shrinkingHidesTilesAndGrowingBringsThemBack() {
+        val s = CreatorState()
+        s.resize(5, 5)
+        s.place('B', Pos(0, 0)); s.place('R', Pos(4, 4))
+        s.resize(3, 3)
+        assertEquals(listOf("B..", "...", "..."), s.board)
+        // A later drag out again: the hidden tile is where it was.
+        s.resize(5, 5)
+        assertEquals('R', s.board[4][4]); assertEquals('B', s.board[0][0])
+    }
+
+    @Test fun memorySurvivesARestoredDraftAndIsClearedByReset() {
+        var saved: String? = null
+        val s = CreatorState(null) { saved = it }
+        s.resize(5, 5); s.place('R', Pos(3, 3)); s.resize(2, 2)
+        val restored = CreatorState(saved)
+        assertEquals(2, restored.rows)
+        restored.resize(5, 5)
+        assertEquals('R', restored.board[3][3])
+        // Holding to restart empties everything, hidden tiles included.
+        restored.resize(2, 2); restored.reset(); restored.resize(5, 5)
+        assertTrue(restored.board.all { row -> row.all { it == '.' } })
+    }
+
+    @Test fun removingATileForgetsIt() {
+        val s = CreatorState()
+        s.resize(4, 4); s.place('R', Pos(3, 3)); s.remove(Pos(3, 3)); s.resize(2, 2); s.resize(4, 4)
+        assertEquals('.', s.board[3][3])
+    }
+
     @Test fun innerHolesStay() {
         val s = CreatorState()
         s.resize(4, 4)

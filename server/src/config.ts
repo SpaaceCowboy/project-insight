@@ -7,6 +7,8 @@ export interface Config {
   /** Where Share feedback and Report a bug are mailed. */
   feedbackTo?: string;
   feedbackDeliveryMode?: 'store' | 'smtp';
+  /** Puzzles one player may publish per UTC day. */
+  createDailyLimit?: number;
 }
 export function configFromEnv(): Config {
   const environment = process.env.NODE_ENV ?? 'development';
@@ -25,5 +27,6 @@ export function configFromEnv(): Config {
     mailDeliveryMode: process.env.MAIL_DELIVERY_MODE === 'test-inbox' ? 'test-inbox' : 'smtp',
     feedbackTo: process.env.FEEDBACK_TO || 'Insight.correspondence@gmail.com',
     feedbackDeliveryMode: process.env.FEEDBACK_DELIVERY_MODE === 'smtp' ? 'smtp' : 'store',
+    createDailyLimit: Number(process.env.CREATE_DAILY_LIMIT) > 0 ? Number(process.env.CREATE_DAILY_LIMIT) : 10,
   };
 }

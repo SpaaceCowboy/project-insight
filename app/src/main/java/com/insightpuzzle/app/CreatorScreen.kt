@@ -56,6 +56,7 @@ import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
@@ -74,6 +75,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
@@ -85,10 +87,29 @@ import kotlin.math.sin
 private sealed interface Grab {
     data class Palette(val type: Char) : Grab
     data class Cell(val pos: Pos, val type: Char) : Grab
-    data class Resize(val snapshot: Board, val center: Offset, val grab: Offset, val pitch: Float, val gap: Float) : Grab
+    data class Resize(val center: Offset, val grab: Offset, val pitch: Float, val gap: Float) : Grab
 }
 
-/** Port of src/Creator.jsx: tile strip on top, resizable grid in the middle, one Start → Target → Create button below. Tiles move like they do in the game. */
+/** What the grid looked like in the last frame drawn: where a change of phase morphs from. */
+private class DrawnGrid { var phase: Phase? = null; var board: Board = emptyList(); var cell = 0f; var origin = Offset.Zero }
+
+/**
+ * The start of a morph between phases. [cell] and [origin] are the old layout, with [origin] placed for the new board's (0, 0) cell, so the same tiles
+ * simply move and scale to their new places; [board] (the old grid, whose cell (r, c) is now ([r] - [shiftR], [c] - [shiftC])) lets its empty slots fade out.
+ */
+private class MorphFrom(val cell: Float, val origin: Offset, val board: Board, val shiftR: Int, val shiftC: Int, val fromBuild: Boolean)
+
+/** Cell size for the start and target phases: the game's own (88dp, 120dp on wide screens) so the grid looks as it does when played. */
+internal fun creatorGameCell(width: Float, height: Float, rows: Int, cols: Int, gap: Float, pad: Float, cap: Float): Float =
+    min(cap, min((width - pad - (cols - 1) * gap) / cols, (height - pad - (rows - 1) * gap) / rows))
+
+/** How long the grid takes to move between its building layout and its game-sized one. */
+private const val MORPH_MS = 260
+
+/* Port of src/Creator.jsx: tile strip on top, resizable grid in the middle, one Start → Target → Create button below. Tiles move like they do in the game. */
+/** Tile size for the target shown in phase three: 16dp, smaller when [rows] rows with 3dp gaps would not fit in [height]. */
+internal fun creatorTargetCell(rows: Int, height: Dp): Dp = minOf(16.dp, (height - 3.dp * (rows - 1).coerceAtLeast(0)) / rows.coerceAtLeast(1))
+
 @Composable
 fun CreatorScreen(m: GameModel) {
     val s = m.creator
@@ -97,6 +118,11 @@ fun CreatorScreen(m: GameModel) {
     val scope = rememberCoroutineScope()
     var root by remember { mutableStateOf<LayoutCoordinates?>(null) }
     var shellBox by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    // The outline's rectangle as state, so the tips lamp follows it; the tile strip and the phase button are only measured for the tips' borders.
+    var shellRect by remember { mutableStateOf<Rect?>(null) }
+    var stripBox by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    var buttonBox by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    DisposableEffect(Unit) { m.endGuide(); onDispose { m.endGuide() } }
     val paletteBoxes = remember { mutableMapOf<Char, LayoutCoordinates>() }
     var drag by remember { mutableStateOf<Pair<Char, Offset>?>(null) }
     var dragFrom by remember { mutableStateOf<Pos?>(null) }
@@ -129,6 +155,20 @@ fun CreatorScreen(m: GameModel) {
     var shownBoard by remember { mutableStateOf(s.board) }
     val before = remember(s.rows, s.cols) { shownBoard }
     SideEffect { shownBoard = s.board }
+    // Start and target phases show the grid at the game's size and centred on the cropped board. A change of phase moves the very same tiles from one
+    // layout to the other (cell size and position), instead of redrawing the grid cell by cell, so nothing flashes or pops while it settles.
+    val drawn = remember { DrawnGrid() }
+    val morph = remember(s.phase) { Animatable(if (drawn.phase == null || drawn.phase == s.phase || reduceMotion) 1f else 0f) }
+    val morphFrom = remember(s.phase) {
+        val old = drawn.phase
+        if (old == null || old == s.phase) null else {
+            val gapPx = with(density) { 5.dp.toPx() }
+            // Building → start: the empty outer rows and columns were cropped away, so the old grid's top-left tile cell is the new (0, 0) plus this shift.
+            val (minR, _, minC, _) = if (old == Phase.BUILD && s.phase == Phase.SHAPE) Rules.bounds(drawn.board) else intArrayOf(0, 0, 0, 0)
+            MorphFrom(drawn.cell, drawn.origin + Offset(minC * (drawn.cell + gapPx), minR * (drawn.cell + gapPx)), drawn.board, minR, minC, old == Phase.BUILD)
+        }
+    }
+    LaunchedEffect(morph) { if (morph.value < 1f) morph.animateTo(1f, tween(MORPH_MS, easing = FastOutSlowInEasing)) }
 
     fun rect(c: LayoutCoordinates?): Rect? = c?.takeIf { it.isAttached }?.let { root?.localBoundingBoxOf(it) }
     fun shellOrigin() = rect(shellBox)?.topLeft ?: Offset.Zero
@@ -150,7 +190,7 @@ fun CreatorScreen(m: GameModel) {
         scope.launch {
             slide.snapTo(0f); slide.animateTo(1f, tween(185))
             val before = s.board
-            s.move(a, b); moving = null; m.feedback(null)
+            s.move(a, b); moving = null; m.feedback(Cue.DROP)
             val ink = Ink(g.center(a), g.center(b), Art.LIGHT.getValue(type), Animatable(0f))
             inks += ink; if (inks.size > 3) inks.removeAt(0)
             launch { ink.t.animateTo(1f, tween(1200, easing = LinearEasing)); inks.remove(ink) }
@@ -186,29 +226,63 @@ fun CreatorScreen(m: GameModel) {
             m.feedback(Cue.REORDER)
             resetPlan = s.start?.takeIf { s.phase != Phase.BUILD }?.let { rewindMoves(s.board, it) }
             reset.snapTo(0f)
-            if (!reduceMotion) reset.animateTo(1f, tween(REWIND_MS))
+            // Clearing a grid being built takes the tiles away at once; the later phases slide them back to where they started.
+            if (!reduceMotion && s.phase != Phase.BUILD) reset.animateTo(1f, tween(REWIND_MS))
             s.reset()
             resetPlan = null; resetting = false; reset.snapTo(0f); glow.animateTo(0f, tween(220))
+        }
+    }
+    /**
+     * Target: the shaped board slides back to the start grid, tile by tile, as the target is fixed and the last phase opens. It is the restart's movement
+     * without its press or lit wall ([glow] stays at rest). A refusal ("Move some tiles first") just shows its note.
+     */
+    fun runTarget() {
+        if (resetting || moving != null) return
+        if (!s.canPressTarget()) { s.pressTarget(); return }
+        scope.launch {
+            resetting = true
+            resetPlan = rewindMoves(s.board, s.start!!)
+            reset.snapTo(0f)
+            if (!reduceMotion) reset.animateTo(1f, tween(REWIND_MS))
+            s.pressTarget()
+            resetPlan = null; resetting = false; reset.snapTo(0f)
         }
     }
     val resetLabel = when (s.phase) { Phase.BUILD -> "Clear grid"; Phase.SHAPE -> "Reset to start"; Phase.CHECK -> "Restart puzzle" }
 
     Box(Modifier.fillMaxSize().onGloballyPositioned { root = it }.semantics {
-        customActions = if (s.canReset) listOf(CustomAccessibilityAction(resetLabel) { runReset(); true }) else emptyList()
+        customActions = if (s.canReset) listOf(CustomAccessibilityAction(tr(resetLabel)) { runReset(); true }) else emptyList()
     }.pointerInput(Unit) {
         val slop = 8.dp.toPx()
-        /** A press off the grid, the strip and the handle: held still for [HOLD_MS] it resets the phase. */
-        suspend fun AwaitPointerEventScope.hold(down: PointerInputChange) {
-            if (!canReset()) return
-            if (!reduceMotion) scope.launch { glow.animateTo(1f, tween(HOLD_MS, easing = LinearEasing)) }
-            val released = withTimeoutOrNull(HOLD_MS.toLong()) {
-                while (true) {
-                    val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
-                    if (!change.pressed || (change.position - down.position).getDistance() > viewConfiguration.touchSlop) break
-                }
-                true
+        val swipe = 80.dp.toPx()
+        /**
+         * A press off the grid, the strip and the handle. Inside the outline ([holdable]) and held still for [HOLD_MS] it resets the phase.
+         * Anywhere off the grid, a swipe left to right goes back one phase (Target → Start → building); there is no forward swipe.
+         */
+        suspend fun AwaitPointerEventScope.offGrid(down: PointerInputChange, holdable: Boolean) {
+            var still = holdable && canReset()
+            val back = s.phase != Phase.BUILD
+            if (!still && !back) return
+            if (still && !reduceMotion) scope.launch { glow.animateTo(1f, tween(HOLD_MS, easing = LinearEasing)) }
+            var held = false; var swiped = false
+            while (true) {
+                val left = HOLD_MS - (android.os.SystemClock.uptimeMillis() - down.uptimeMillis)
+                val event = if (still) withTimeoutOrNull(left.coerceAtLeast(1)) { awaitPointerEvent() } else awaitPointerEvent()
+                if (event == null) { held = true; break }
+                val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                val d = change.position - down.position
+                if (back && d.x > swipe && d.x > 2 * kotlin.math.abs(d.y)) { swiped = true; break }
+                if (!change.pressed) break
+                if (still && d.getDistance() > viewConfiguration.touchSlop) { still = false; scope.launch { glow.animateTo(0f, tween(180)) } }
+                if (!still && !back) break
             }
-            if (released != null || !canReset()) { scope.launch { glow.animateTo(0f, tween(180)) }; return }
+            if (swiped) {
+                if (glow.value > 0f) scope.launch { glow.snapTo(0f) }
+                s.picked = null
+                m.feedback(if (s.stepBack()) Cue.BACK else Cue.INVALID_DROP)
+                return
+            }
+            if (!held || !canReset()) { scope.launch { glow.animateTo(0f, tween(180)) }; return }
             runReset()
         }
         awaitEachGesture {
@@ -218,12 +292,12 @@ fun CreatorScreen(m: GameModel) {
             val corner = g?.let { shellOrigin() + it.topLeft(Pos(it.rows - 1, it.cols - 1)) + Offset(it.cell, it.cell) }
             val grab: Grab = when {
                 s.phase == Phase.BUILD && corner != null && (down.position - corner).getDistance() < 26.dp.toPx() ->
-                    Grab.Resize(s.board, shellOrigin() + g.topLeft(Pos(0, 0)) + Offset((g.cols * g.cell + (g.cols - 1) * g.gap) / 2, (g.rows * g.cell + (g.rows - 1) * g.gap) / 2), down.position - corner, g.cell + g.gap, g.gap)
+                    Grab.Resize(shellOrigin() + g.topLeft(Pos(0, 0)) + Offset((g.cols * g.cell + (g.cols - 1) * g.gap) / 2, (g.rows * g.cell + (g.rows - 1) * g.gap) / 2), down.position - corner, g.cell + g.gap, g.gap)
                 s.phase == Phase.BUILD && paletteBoxes.entries.any { rect(it.value)?.contains(down.position) == true } ->
                     Grab.Palette(paletteBoxes.entries.first { rect(it.value)?.contains(down.position) == true }.key)
                 else -> {
                     val at = cellAt(down.position)
-                    if (at == null) { if (outsideGrid(down.position)) hold(down); return@awaitEachGesture }
+                    if (at == null) { if (outsideGrid(down.position)) offGrid(down, rect(shellBox)?.contains(down.position) == true); return@awaitEachGesture }
                     Grab.Cell(at, s.board[at.r][at.c])
                 }
             }
@@ -238,8 +312,8 @@ fun CreatorScreen(m: GameModel) {
                 if (grab is Grab.Resize) {
                     val cols = ((2 * (last.x - grab.grab.x - grab.center.x) + grab.gap) / grab.pitch).roundToInt().coerceIn(1, 5)
                     val rows = ((2 * (last.y - grab.grab.y - grab.center.y) + grab.gap) / grab.pitch).roundToInt().coerceIn(1, 5)
-                    // Sized from the snapshot, so dragging back out restores cropped tiles.
-                    if (rows != s.rows || cols != s.cols) s.resize(rows, cols, grab.snapshot)
+                    // Tiles outside the smaller grid are only hidden (the state remembers them), so dragging back out, now or later, brings them back.
+                    if (rows != s.rows || cols != s.cols) s.resize(rows, cols)
                 } else {
                     val type = when (grab) { is Grab.Palette -> grab.type; is Grab.Cell -> grab.type; else -> '.' }
                     if (!moved && type != '.' && (last - down.position).getDistance() >= slop && !(grab is Grab.Cell && s.solved)) {
@@ -262,7 +336,7 @@ fun CreatorScreen(m: GameModel) {
             drag = null; dragFrom = null; hover = null; dragOffset = Offset.Zero
             when (grab) {
                 is Grab.Resize -> Unit
-                is Grab.Palette -> if (!moved) { s.tapPalette(grab.type); m.feedback(Cue.DRAG_START) } else if (target != null) { s.place(grab.type, target); s.holding = null; m.feedback(null) }
+                is Grab.Palette -> if (!moved) { s.tapPalette(grab.type); m.feedback(Cue.DRAG_START) } else if (target != null) { s.place(grab.type, target); s.holding = null; m.feedback(Cue.DROP) }
                 is Grab.Cell -> when {
                     !moved -> tapCell(grab.pos)
                     s.phase != Phase.BUILD -> when {
@@ -270,30 +344,34 @@ fun CreatorScreen(m: GameModel) {
                         legal.isNotEmpty() -> rejectAt(grab.pos)
                         else -> m.feedback(Cue.INVALID_DROP)
                     }
-                    target != null -> { s.relocate(grab.pos, target); m.feedback(null) }
+                    target != null -> { s.relocate(grab.pos, target); m.feedback(Cue.DROP) }
                     outsideGrid(last) -> { s.remove(grab.pos); m.feedback(null) }
                 }
             }
         }
     }) {
         Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(Modifier.fillMaxWidth().height(48.dp), contentAlignment = Alignment.Center) { BackChevron(m) }
             // No instructions: the line only carries a refusal or result ("Place at least two tiles first.", "Puzzle created."). Its height is fixed so the grid never jumps.
             Box(Modifier.widthIn(max = 560.dp).fillMaxWidth().height(28.dp), contentAlignment = Alignment.Center) {
-                if (s.note.isNotEmpty()) Label(s.note, 13.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite }, color = p.muted, align = TextAlign.Center, lines = 1)
+                if (s.phase == Phase.CHECK && s.limitReached) Label(tr("Daily limit of {0} puzzles reached.", CREATE_DAILY_LIMIT), 13.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite }, color = p.accent, align = TextAlign.Center, lines = 1, translate = false)
+                else if (s.note.isNotEmpty()) Label(s.note, 13.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite }, color = p.muted, align = TextAlign.Center, lines = 1)
             }
             // Top strip: tiles to place while building, nothing while choosing the target, then the target to reach. Its height never changes.
-            BoxWithConstraints(Modifier.widthIn(max = 560.dp).fillMaxWidth().height(96.dp).padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
+            BoxWithConstraints(Modifier.widthIn(max = 560.dp).fillMaxWidth().height(96.dp).onGloballyPositioned { stripBox = it }.padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
                 if (s.phase == Phase.BUILD) {
                     val size = min(56f, (maxWidth.value - 40f) / 6f).dp
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         for (type in Rules.TYPES) {
                             val on = s.holding == type
                             TileIcon(type, size, Modifier.offset(y = if (on) (-5).dp else 0.dp).onGloballyPositioned { paletteBoxes[type] = it }
-                                .semantics { contentDescription = "${Art.NAME[type]} tile"; role = Role.Button; selected = on; onClick { s.tapPalette(type); true } }, glow = if (on) p.ink else null)
+                                .semantics { contentDescription = tr("{0} tile", Art.name(type)); role = Role.Button; selected = on; onClick { s.tapPalette(type); true } }, glow = if (on) p.ink else null)
                         }
                     }
                 } else if (s.phase == Phase.CHECK) {
-                    TargetMini(Rules.crop(s.target!!), 16.dp, 3.dp, Modifier.semantics { contentDescription = "Target arrangement" })
+                    val target = Rules.crop(s.target!!)
+                    // The strip is 80dp tall inside its padding: tall targets (five rows) shrink their tiles to stay inside it.
+                    TargetMini(target, creatorTargetCell(target.size, 80.dp), 3.dp, Modifier.semantics { contentDescription = tr("Target arrangement") })
                 }
             }
             // The shared board height, and the phase button below it grows to fill whatever is left at the bottom.
@@ -301,40 +379,69 @@ fun CreatorScreen(m: GameModel) {
             val shellHeight = boardShellHeight(maxHeight - 68.dp)
             val buttonHeight = (maxHeight - shellHeight - 12.dp).coerceIn(56.dp, 120.dp)
             Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
-            // The grid: cells are sized for 5x5 so resizing never changes the cell size under the finger.
-            BoxWithConstraints(Modifier.widthIn(max = 560.dp).fillMaxWidth().height(shellHeight).clip(RoundedCornerShape(24.dp)).background(Brush.radialGradient(p.shell))
-                .border((1 + 2 * glow.value).dp, lerp(p.line, p.shellInk, glow.value), RoundedCornerShape(24.dp)).onGloballyPositioned { shellBox = it }) {
+            // The grid: while building, cells are sized for 5x5 so resizing never changes the cell size under the finger; the start and target phases use the game's size.
+            // A raised platform like the game's board: holding to reset pushes it half way down while its side wall lights up.
+            BoxWithConstraints(Modifier.widthIn(max = 560.dp).fillMaxWidth().height(shellHeight).onGloballyPositioned { shellBox = it; shellRect = root?.takeIf { r -> r.isAttached }?.localBoundingBoxOf(it) }
+                .plush(RoundedCornerShape(24.dp), glow.value, p.paper2, rest = 6.dp, depth = BOARD_WALL, sheen = false, travel = .5f, sideLight = glow.value)) {
                 val gap = with(density) { 5.dp.toPx() }; val pad = with(density) { 48.dp.toPx() }
                 val w = constraints.maxWidth.toFloat(); val h = constraints.maxHeight.toFloat()
-                val cell = min(with(density) { 100.dp.toPx() }, min((w - pad - 4 * gap) / 5, (h - pad - 4 * gap) / 5))
-                // Centred on the animated size, so the grid glides while it grows or shrinks.
+                val build = s.phase == Phase.BUILD
+                val buildCell = min(with(density) { 100.dp.toPx() }, min((w - pad - 4 * gap) / 5, (h - pad - 4 * gap) / 5))
+                val gameCell = creatorGameCell(w, h, s.rows, s.cols, gap, with(density) { 32.dp.toPx() }, with(density) { (if (LocalConfiguration.current.screenWidthDp >= 600) 120.dp else 88.dp).toPx() })
+                // Building: centred on the animated size, so the grid glides while it grows or shrinks. Start / target: the cropped board centred at the game's size.
                 val sr = shownRows.value; val sc = shownCols.value
-                val gw = sc * (cell + gap) - gap; val gh = sr * (cell + gap) - gap
-                val g = Grid(s.rows, s.cols, cell, gap, Offset((w - gw) / 2, (h - gh) / 2)).also { grid = it }
+                val toCell = if (build) buildCell else gameCell
+                val gw = (if (build) sc else s.cols.toFloat()) * (toCell + gap) - gap; val gh = (if (build) sr else s.rows.toFloat()) * (toCell + gap) - gap
+                val toOrigin = Offset((w - gw) / 2, (h - gh) / 2)
+                // A change of phase morphs from the old layout to this one.
+                val t = morph.value
+                val cell = morphFrom?.let { androidx.compose.ui.util.lerp(it.cell, toCell, t) } ?: toCell
+                val origin = morphFrom?.let { androidx.compose.ui.geometry.lerp(it.origin, toOrigin, t) } ?: toOrigin
+                val shownW = if (morphFrom == null) gw else (if (build) sc else s.cols.toFloat()) * (cell + gap) - gap
+                val shownH = if (morphFrom == null) gh else (if (build) sr else s.rows.toFloat()) * (cell + gap) - gap
+                val g = Grid(s.rows, s.cols, cell, gap, origin).also { grid = it }
+                SideEffect { drawn.phase = s.phase; drawn.board = s.board; drawn.cell = cell; drawn.origin = origin }
                 Canvas(Modifier.fillMaxSize()) {
-                    if (glow.value > 0f) drawRoundRect(p.shellInk.copy(alpha = .3f * glow.value), cornerRadius = CornerRadius(24.dp.toPx()), style = Stroke(16.dp.toPx()))
                     for (item in inks) ink(item, item.t.value)
                     val mv = moving
                     val late = mutableListOf<() -> Unit>()
-                    /** An empty cell: a faint fill inside one unbroken rounded outline. [v] < 1 while it grows in or shrinks out. */
-                    fun slot(o: Offset, pos: Pos, v: Float = 1f) {
+                    /**
+                     * An empty cell as a raised key on the platform (no border): a soft shadow, a darker side showing under the face, then the face with a faint sheen.
+                     * [v] < 1 while it grows in or shrinks out; [fade] fades it in or out with a change of phase.
+                     */
+                    fun slot(o: Offset, pos: Pos?, v: Float = 1f, fade: Float = 1f) {
                         val k = .7f + .3f * v; val size = cell * k; val at = o + Offset((cell - size) / 2, (cell - size) / 2)
-                        val fill = if (pos == hover) .24f else .08f
-                        drawRoundRect(p.shellInk.copy(alpha = fill * v), at, Size(size, size), CornerRadius(size * .23f))
-                        drawRoundRect(p.shellInk.copy(alpha = .32f * v), at, Size(size, size), CornerRadius(size * .23f), style = Stroke(1.5.dp.toPx()))
+                        val a = v * fade
+                        if (a <= 0f) return
+                        val radius = CornerRadius(size * .23f); val depth = size * .06f
+                        // A little darker than the platform it sits on so it stands out from it, with a side that is darker still but not near-black.
+                        val face = if (p.dark) lerp(p.paper2, Color.Black, .22f) else lerp(p.paper2, Color.Black, .07f)
+                        val wall = lerp(face, Color.Black, if (p.dark) .18f else .12f)
+                        drawRoundRect(Color.Black.copy(alpha = (if (p.dark) .3f else .12f) * a), at + Offset(0f, depth + size * .04f), Size(size, size), radius)
+                        drawRoundRect(wall.copy(alpha = a), at + Offset(0f, depth), Size(size, size), radius)
+                        drawRoundRect(face.copy(alpha = a), at, Size(size, size), radius)
+                        drawRoundRect(Brush.verticalGradient(0f to Color.White.copy(alpha = (if (p.dark) .035f else .35f) * a), .5f to Color.Transparent, startY = at.y, endY = at.y + size), at, Size(size, size), radius)
+                        if (pos != null && pos == hover) drawRoundRect(Color.White.copy(alpha = .12f * a), at, Size(size, size), radius)
                     }
-                    val reach = resetting && s.phase == Phase.BUILD
-                    for (r in 0 until maxOf(s.rows, ceil(sr).toInt())) for (c in 0 until maxOf(s.cols, ceil(sc).toInt())) {
-                        val v = min((sr - r).coerceIn(0f, 1f), (sc - c).coerceIn(0f, 1f))
+                    // Changing from building to the start phase: the old grid's slots fade out under the tiles that move to their new places.
+                    if (morphFrom != null && morphFrom.fromBuild && !build && t < 1f) {
+                        val pitch = cell + gap
+                        for (r in morphFrom.board.indices) for (c in morphFrom.board[r].indices)
+                            slot(origin + Offset((c - morphFrom.shiftC) * pitch, (r - morphFrom.shiftR) * pitch), null, 1f, 1f - t)
+                    }
+                    // The other way (back to building, or a new puzzle after Create), the slots fade in.
+                    val slotFade = if (morphFrom != null && build) t else 1f
+                    val settling = !build
+                    for (r in 0 until (if (settling) s.rows else maxOf(s.rows, ceil(sr).toInt()))) for (c in 0 until (if (settling) s.cols else maxOf(s.cols, ceil(sc).toInt()))) {
+                        val v = if (settling) 1f else min((sr - r).coerceIn(0f, 1f), (sc - c).coerceIn(0f, 1f))
                         if (v <= 0f) continue
                         val pos = Pos(r, c); var o = g.topLeft(pos); var size = cell
                         val inside = r < s.rows && c < s.cols
                         val type = if (inside) s.board[r][c] else before.getOrNull(r)?.getOrNull(c) ?: '.'
-                        if (s.phase == Phase.BUILD && (type == '.' || v < 1f || reach || pos == dragFrom)) slot(o, pos, v)
+                        if (build && (type == '.' || v < 1f || pos == dragFrom)) slot(o, pos, v, slotFade)
                         if (type == '.') continue
                         if (pos == dragFrom && s.phase == Phase.BUILD) continue
                         if (v < 1f) { size = cell * v; o += Offset((cell - size) / 2, (cell - size) / 2); tile(type, o, size); continue }
-                        if (reach) { size = cell * (1f - reset.value); o += Offset((cell - size) / 2, (cell - size) / 2) }
                         resetPlan?.get(pos)?.let { dest -> o += (g.topLeft(dest) - o) * reset.value }
                         var glow: Color? = null; var ring: Color? = null
                         if (mv != null && (pos == mv.first || pos == mv.second)) {
@@ -357,14 +464,10 @@ fun CreatorScreen(m: GameModel) {
                         if (pos == s.picked || pos == dragFrom || (mv != null && pos == mv.first)) late += draw else draw()
                     }
                     late.forEach { it() }
-                    if (s.phase == Phase.BUILD) {
-                        val corner = g.origin + Offset(gw, gh)
+                    if (build) {
+                        val corner = g.origin + Offset(shownW, shownH)
                         drawCircle(p.accent.copy(alpha = .25f), 16.dp.toPx(), corner)
                         drawCircle(p.accent, 11.dp.toPx(), corner)
-                        val k = 3.6.dp.toPx(); val head = 2.4.dp.toPx(); val sw = 1.6.dp.toPx()
-                        drawLine(p.accentInk, corner + Offset(-k, -k), corner + Offset(k, k), sw, StrokeCap.Round)
-                        drawLine(p.accentInk, corner + Offset(k, k), corner + Offset(k - head, k), sw, StrokeCap.Round); drawLine(p.accentInk, corner + Offset(k, k), corner + Offset(k, k - head), sw, StrokeCap.Round)
-                        drawLine(p.accentInk, corner + Offset(-k, -k), corner + Offset(-k + head, -k), sw, StrokeCap.Round); drawLine(p.accentInk, corner + Offset(-k, -k), corner + Offset(-k, -k + head), sw, StrokeCap.Round)
                     }
                 }
                 // TalkBack nodes for cells and the resize handle.
@@ -372,21 +475,21 @@ fun CreatorScreen(m: GameModel) {
                     val type = s.board[r][c]; if (type == '.' && s.phase != Phase.BUILD) continue
                     val tl = g.topLeft(Pos(r, c))
                     Box(Modifier.offset { IntOffset(tl.x.roundToInt(), tl.y.roundToInt()) }.size(with(density) { cell.toDp() }).semantics {
-                        contentDescription = (if (type == '.') "Empty slot" else Art.NAME.getValue(type)) + ", row ${r + 1}, column ${c + 1}"
+                        contentDescription = tr("{0}, row {1}, column {2}", if (type == '.') tr("Empty slot") else Art.name(type), r + 1, c + 1)
                         onClick { tapCell(Pos(r, c)); true }
-                        if (s.phase == Phase.BUILD && type != '.') customActions = listOf(CustomAccessibilityAction("Remove tile") { s.remove(Pos(r, c)); true })
+                        if (s.phase == Phase.BUILD && type != '.') customActions = listOf(CustomAccessibilityAction(tr("Remove tile")) { s.remove(Pos(r, c)); true })
                     })
                 }
-                if (s.phase == Phase.BUILD) {
-                    val corner = g.origin + Offset(gw, gh)
+                if (build) {
+                    val corner = g.origin + Offset(shownW, shownH)
                     val half = with(density) { 24.dp.toPx() }
                     Box(Modifier.offset { IntOffset((corner.x - half).roundToInt(), (corner.y - half).roundToInt()) }.size(48.dp).semantics {
-                        contentDescription = "Resize grid, currently ${s.cols} by ${s.rows}"
+                        contentDescription = tr("Resize grid, currently {0} by {1}", s.cols, s.rows)
                         customActions = listOf(
-                            CustomAccessibilityAction("Add column") { s.resize(s.rows, s.cols + 1); true },
-                            CustomAccessibilityAction("Remove column") { s.resize(s.rows, s.cols - 1); true },
-                            CustomAccessibilityAction("Add row") { s.resize(s.rows + 1, s.cols); true },
-                            CustomAccessibilityAction("Remove row") { s.resize(s.rows - 1, s.cols); true },
+                            CustomAccessibilityAction(tr("Add column")) { s.resize(s.rows, s.cols + 1); true },
+                            CustomAccessibilityAction(tr("Remove column")) { s.resize(s.rows, s.cols - 1); true },
+                            CustomAccessibilityAction(tr("Add row")) { s.resize(s.rows + 1, s.cols); true },
+                            CustomAccessibilityAction(tr("Remove row")) { s.resize(s.rows - 1, s.cols); true },
                         )
                     })
                 }
@@ -394,9 +497,9 @@ fun CreatorScreen(m: GameModel) {
             // One button walks the phases: Start fixes the start grid, Target fixes the target, Create publishes. Back steps back.
             val publishable = s.proof.isNotEmpty() && !m.dev && !m.online.busy
             when (s.phase) {
-                Phase.BUILD -> MenuButton("Start", Modifier.widthIn(max = 560.dp).padding(top = 12.dp), height = buttonHeight, primary = true, fontSize = 17.sp, description = "Start position", cue = Cue.START) { s.pressStart(); s.picked = null }
-                Phase.SHAPE -> MenuButton("Target", Modifier.widthIn(max = 560.dp).padding(top = 12.dp), height = buttonHeight, primary = true, fontSize = 17.sp, description = "Target position", cue = Cue.SEEK) { s.pressTarget() }
-                Phase.CHECK -> MenuButton("Create", Modifier.widthIn(max = 560.dp).padding(top = 12.dp), height = buttonHeight, primary = true, enabled = publishable, fontSize = 17.sp, description = "Publish level", cue = Cue.UNLOCK) { m.publishCreator() }
+                Phase.BUILD -> MenuButton("Start", Modifier.widthIn(max = 560.dp).padding(top = 12.dp).onGloballyPositioned { buttonBox = it }, height = buttonHeight, primary = true, fontSize = 17.sp, description = "Start position", cue = Cue.START) { s.pressStart(); s.picked = null }
+                Phase.SHAPE -> MenuButton("Target", Modifier.widthIn(max = 560.dp).padding(top = 12.dp).onGloballyPositioned { buttonBox = it }, height = buttonHeight, primary = true, fontSize = 17.sp, description = "Target position", cue = Cue.SEEK) { runTarget() }
+                Phase.CHECK -> MenuButton("Create", Modifier.widthIn(max = 560.dp).padding(top = 12.dp).onGloballyPositioned { buttonBox = it }, height = buttonHeight, primary = true, enabled = publishable, fontSize = 17.sp, description = "Publish level", cue = Cue.UNLOCK) { m.publishCreator() }
             }
             }
             }
@@ -405,6 +508,11 @@ fun CreatorScreen(m: GameModel) {
         drag?.let { (type, at) ->
             val g = grid
             if (g != null) Canvas(Modifier.fillMaxSize().graphicsLayer { alpha = if (removing) .5f else 1f }) { val size = g.cell * 1.045f; tile(type, at - Offset(size / 2, size / 2), size) }
+        }
+        // The gameplay tips: the lamp etched into the outline's top right, and the tip for the phase the creator is in.
+        shellRect?.let { shell ->
+            if (m.guideOn) GuideButton(Modifier.offset { guideLampOffset(shell) }) { m.tapGuide() }
+            if (m.guidePhase != 0) CreatorGuide(s.phase, shell, rect(stripBox), rect(buttonBox)) { m.endGuide() }
         }
     }
 }

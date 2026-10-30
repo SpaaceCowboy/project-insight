@@ -33,7 +33,10 @@ class AchievementsTest {
     /** Same ids and goals as server/src/badges.ts. */
     @Test fun onlineDesignAndStreakBadgesMatchTheServer() {
         val ids = achievements.catalog.filter { it.metric != Metric.CAMPAIGN }.map { it.id }
-        assertEquals(listOf(1, 10, 20, 50, 100, 200, 500, 1000).map { "online-$it" } + listOf(1, 10, 20).map { "designed-$it" } + listOf(7, 14, 30, 50, 70, 100).map { "streak-$it" }, ids)
+        assertEquals(listOf(1, 10, 20, 50, 100, 200, 500, 1000).map { "online-$it" } + listOf(1, 10, 20, 50, 100).map { "designed-$it" } + listOf(7, 14, 30, 50, 70, 100).map { "streak-$it" } + listOf(10, 20, 30, 50, 70, 100).map { "level-$it" }, ids)
+        val level = achievements.catalog.single { it.id == "level-20" }
+        assertEquals(12, achievements.progress(level, emptySet(), OnlineStats(level = 12)))
+        assertEquals(20, achievements.progress(level, emptySet(), OnlineStats(level = 31)))
         val streak = achievements.catalog.single { it.id == "streak-7" }
         assertEquals(5, achievements.progress(streak, emptySet(), OnlineStats(bestStreak = 5)))
         assertEquals(7, achievements.progress(streak, emptySet(), OnlineStats(bestStreak = 9)))

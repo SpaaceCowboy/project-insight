@@ -1,13 +1,14 @@
 import type { PoolClient } from 'pg';
 import { requireValue } from './rules.js';
+import { NAME_MESSAGES, usernameProblem } from './username.js';
 
-/** Preserve the chosen spelling; normalize compatibility characters and spacing for uniqueness. */
+/**
+ * A username for registration or rename: English letters, numbers, spaces, _ and -, 3–20 characters, no profanity, hate speech, violence or reserved names
+ * (see username.ts). The chosen spelling is kept; compatibility characters and spacing are normalised. Existing accounts are not re-checked.
+ */
 export function nickname(value: string): string {
-  const name = value.normalize('NFKC').trim().replace(/\s+/gu, ' ');
-  const visible = /[\p{L}\p{N}\p{P}\p{S}]/u.test(name);
-  // Keep Persian joining characters and emoji sequences, but reject hidden direction overrides/control text.
-  const hidden = /\p{C}/u.test(name.replace(/[\u200c\u200d]/gu, ''));
-  requireValue(visible && !hidden && [...name].length <= 32, 'INVALID_NICKNAME', 'Choose a username of 1–32 visible characters.');
+  const { name, problem } = usernameProblem(value);
+  requireValue(!problem, problem ?? 'NAME_CHARACTERS', problem ? NAME_MESSAGES[problem] : '');
   return name;
 }
 

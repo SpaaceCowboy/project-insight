@@ -70,7 +70,7 @@ class OnlineAuthFlowTest {
         val context = instrumentation.targetContext
         val repository = OnlineRepository.get(context)
         runBlocking { repository.client.logout() }
-        val store = Store(context); val oldMotion = store.motion; store.motion = "on"
+        val store = Store(context); val oldMotion = store.motion; store.motion = "on"; store.onboarded = true; store.language = "en"
         val activity = instrumentation.startActivitySync(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
         try {
             val id = UUID.randomUUID().toString().take(12)
@@ -81,19 +81,18 @@ class OnlineAuthFlowTest {
             tap("Create account")
             await("Registration must immediately open the profile") { text("Android $id") && repository.client.user != null }
             assertTrue(repository.client.user != null)
-            tap("Log out")
+            tap("Logout")
             assertTrue("Opening logout confirmation must keep the account signed in", repository.client.user != null)
-            tap("Log out")
+            tap("Confirm logout")
             await("Logout must return home") { text("Journey") }
             tap("Profile")
             fill(0, email)
             val rejected = "An incorrect password"
-            fill(1, rejected); tap("Log in")
-            await("Rejected login must show a visible error") { text("Email or password is incorrect.") }
-            tap("OK")
-            tap("Show")
+            fill(1, rejected); tap("Login")
+            await("Rejected login must show a visible error, inline and without a dialog") { text("Email or password is incorrect.") }
+            tap("Show password")
             await("A rejected password must remain editable") { fields().getOrNull(1)?.text?.contains(rejected) == true }
-            fill(1, password); tap("Hide"); tap("Log in")
+            fill(1, password); tap("Hide password"); tap("Login")
             await("Verified credentials must open the account profile") { text("Android $id") && repository.client.user != null }
             assertTrue("Registration and login must use the same password", repository.client.user?.verified == true)
         } finally {

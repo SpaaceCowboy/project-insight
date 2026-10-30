@@ -3,7 +3,10 @@
         <item name="android:windowBackground">@color/bg</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
+        <!-- Saved-credential fills are tinted by the fields themselves (OnlineField), inside their rounded corners. -->
+        <item name="android:autofilledHighlight">@android:color/transparent</item>
     </style>
-    <color name="bg">#161718</color>
+    <!-- The dark grey of the splash screen (and of dark mode), so the window is already this colour before the first frame. -->
+    <color name="bg">#1D1D1D</color>
     <color name="icon_bg">#161718</color>
 </resources>

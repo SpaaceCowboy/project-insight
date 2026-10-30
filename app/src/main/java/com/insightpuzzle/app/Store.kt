@@ -80,6 +80,14 @@ class Store(context: Context) {
     var ambience by float("ambience", .8f)
     var background by string("background", "forest")
     var colorblind by bool("colorblind", false)
+    /** The language the player picked in Options; until then the phone's language if the app has it, else English. */
+    var language: String
+        get() = prefs.getString("language", null)?.takeIf { L10n.supported(it) } ?: L10n.deviceLanguage()
+        set(value) = prefs.edit().putString("language", value).apply()
+    /** The guide icon on the game screen (Options → Guide icon). */
+    var guide by bool("guide", true)
+    /** The first-play guide has been shown once on this device. */
+    var onboarded by bool("onboarded", false)
 
     /** Clears solved levels and unfinished attempts. Badges and settings are kept. */
     fun resetProgress() = prefs.edit().apply {

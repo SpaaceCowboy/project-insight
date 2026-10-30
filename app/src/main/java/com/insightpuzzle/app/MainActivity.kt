@@ -20,6 +20,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.togetherWith
+import android.os.SystemClock
+import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerId
+import androidx.compose.ui.input.pointer.changedToDown
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlinx.coroutines.flow.drop
 
 class MainActivity : ComponentActivity() {
     private val model: GameModel by viewModels()
@@ -31,15 +40,15 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         reduceMotion = readReduceMotion()
-        // Match the saved light/dark choice before the first frame, so a light-mode player doesn't see dark bars or window.
-        val dark = model.dark
-        val bars = if (dark) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
-        enableEdgeToEdge(bars, bars)
-        window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(if (dark) 0xFF161718.toInt() else 0xFFFAFAFA.toInt()))
+        // The first frame is the splash screen, which is dark grey in either theme, so the system bars start dark too (they follow the theme once it is gone).
+        enableEdgeToEdge(SystemBarStyle.dark(Color.TRANSPARENT), SystemBarStyle.dark(Color.TRANSPARENT))
+        // The splash screen is dark grey whatever the theme, so the window starts that colour and the system bars stay dark until the splash is gone.
+        window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(0xFF1D1D1D.toInt()))
         setContent {
             val dark = model.dark
-            LaunchedEffect(dark) {
-                val bars = if (dark) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+            val barsDark = dark || !model.splashDone
+            LaunchedEffect(barsDark) {
+                val bars = if (barsDark) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
                 enableEdgeToEdge(bars, bars)
             }
             CompositionLocalProvider(LocalPalette provides if (dark) DarkPalette else LightPalette, LocalReduceMotion provides (reduceMotion || model.store.motion == "on")) { App(model) }
@@ -54,59 +63,44 @@ class MainActivity : ComponentActivity() {
 fun App(m: GameModel) {
     // At the bottom of the stack on Home, Back falls through to the system and closes the app.
     BackHandler(enabled = !(m.stack.size == 1 && m.top == Route.Home)) { m.feedback(Cue.BACK); m.back() }
-    CompositionLocalProvider(LocalFeedback provides m::feedback) { Backdrop(m.light) {
-        // Options and every Profile rise from the bottom over the screen they were opened from, and sink back on Back. Everything else switches instantly.
-        val reduce = LocalReduceMotion.current
-        fun rises(route: Route) = route == Route.Options || route is Route.Profile
-        androidx.compose.animation.AnimatedContent(m.top, Modifier.fillMaxSize(), label = "screens",
-            // Levels, the game and the win bar share one slot, so moving between them never animates.
-            contentKey = { if (it == Route.Levels || it == Route.Game || it == Route.Win) Route.Game else it },
-            transitionSpec = {
-                val move = androidx.compose.animation.core.tween<androidx.compose.ui.unit.IntOffset>(320, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-                val popped = initialState !in m.stack
-                when {
-                    reduce -> androidx.compose.animation.EnterTransition.None togetherWith androidx.compose.animation.ExitTransition.None
-                    rises(targetState) && !popped -> androidx.compose.animation.slideInVertically(move) { it } togetherWith
-                        androidx.compose.animation.ExitTransition.KeepUntilTransitionsFinished
-                    rises(initialState) && popped -> (androidx.compose.animation.EnterTransition.None togetherWith
-                        androidx.compose.animation.slideOutVertically(move) { it }).apply { targetContentZIndex = -1f }
-                    else -> androidx.compose.animation.EnterTransition.None togetherWith androidx.compose.animation.ExitTransition.None
-                } using null
-            }) { top ->
-        // A rising screen carries its own page background, so the screen beneath never shows through while it moves.
-        @Composable fun Sheet(content: @Composable () -> Unit) = Backdrop(m.light) { content() }
-        // A screen that is leaving vanishes at once unless it is part of a slide: sinking back down, or holding still under one rising.
-        val leaving = transition.targetState == androidx.compose.animation.EnterExitState.PostExit
-        val slides = (rises(top) && top !in m.stack) || (rises(m.top) && top in m.stack)
-        androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().graphicsLayer { alpha = if (leaving && !slides) 0f else 1f }) {
-        when (top) {
-            Route.Home -> HomeScreen(m)
-            // Journey keeps the level screen composed (hidden) under the game, so opening it is instant.
-            Route.Levels, Route.Game, Route.Win -> androidx.compose.foundation.layout.Box(Modifier.fillMaxSize()) {
-                val now = m.top
-                if (m.community == null && (now == Route.Levels || Route.Game in m.stack)) LevelsScreen(m, visible = now == Route.Levels)
-                if (now != Route.Levels) GameScreen(m)
-            }
-            Route.Options -> Sheet { OptionsScreen(m) }
-            Route.Achievements -> AchievementsScreen(m)
-            Route.Online -> WorldsScreen(m)
-            Route.Create -> CreatorScreen(m)
-            is Route.Auth -> AuthScreen(m, top.destination)
-            is Route.Profile -> Sheet { ProfileScreen(m, top.id) }
-            Route.Bookmarks -> BookmarksScreen(m)
-            is Route.Players -> PlayersScreen(m, top.kind)
-            is Route.Feedback -> FeedbackScreen(m, top.kind)
-        }
-        }
-        }
-        m.online.error?.let { message ->
-            androidx.compose.material3.AlertDialog(
-                onDismissRequest = { m.online.dismissError() },
-                title = { Label("Unable to finish", 20.sp) },
-                text = { androidx.compose.material3.Text(message, color = LocalPalette.current.ink) },
-                confirmButton = { androidx.compose.material3.TextButton(onClick = { m.feedback(Cue.PRESS); m.online.dismissError() }) { androidx.compose.material3.Text("OK", color = LocalPalette.current.accent) } },
-                containerColor = LocalPalette.current.paper2,
-            )
+    CompositionLocalProvider(LocalFeedback provides m::feedback) { Backdrop {
+        // Every screen with a chevron rises from the bottom over the screen it was opened from and sinks back on Back (see Sheets.kt); only Home does not slide.
+        // The Journey level screen rises over the game; choosing a level there sinks it again onto the game, which is already on the new level.
+        // No error dialog anywhere: a lost connection is the offline mark on Worlds and Profile, and a refused form shows its reason inline.
+        val gate = remember { TouchGate() }
+        // A screen opening or closing locks touches until it has settled, so fast taps can't open two screens.
+        LaunchedEffect(m) { snapshotFlow { m.stack.toList() }.drop(1).collect { gate.lockFor(TOUCH_LOCK_MS) } }
+        Box(Modifier.fillMaxSize().singleTouch(gate)) {
+            Screens(m)
+            SplashGate(m)
         }
     } }
+}
+
+/** How long touches are refused after the screen stack changes: the sheet motion (320 ms) plus a little. */
+private const val TOUCH_LOCK_MS = 400L
+
+/** Which finger owns the touch right now, and until when new touches are refused. */
+class TouchGate {
+    var active: PointerId? = null
+    private var until = 0L
+    fun lockFor(ms: Long) { until = SystemClock.uptimeMillis() + ms }
+    fun open() = SystemClock.uptimeMillis() >= until
+}
+
+/**
+ * One touch at a time: while a finger is down every other finger is ignored, and a finger that lands while the gate is locked is ignored until it lifts.
+ * The refused touches are consumed before any button sees them, so they make no sound, haptic or press.
+ */
+fun Modifier.singleTouch(gate: TouchGate): Modifier = pointerInput(gate) {
+    awaitPointerEventScope {
+        while (true) {
+            val event = awaitPointerEvent(PointerEventPass.Initial)
+            for (change in event.changes) {
+                if (change.changedToDown()) { if (gate.active == null && gate.open()) gate.active = change.id else change.consume() }
+                else if (change.id != gate.active) change.consume()
+            }
+            if (event.changes.none { it.pressed }) gate.active = null
+        }
+    }
 }

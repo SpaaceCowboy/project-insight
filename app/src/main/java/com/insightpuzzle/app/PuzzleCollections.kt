@@ -10,9 +10,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -22,6 +19,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.*
@@ -37,43 +45,44 @@ internal fun miniCell(cols: Int, rows: Int, area: Dp, gap: Dp = MINI_GAP, cap: D
 
 internal val MINI_GAP = 2.dp
 private val CARD_PADDING = 6.dp
-private val CARD_NUMBER = 14.dp
-private val NUMBER_BOTTOM = 2.dp
+private val CARD_NUMBER_SIZE = 7.8.sp
+private val CARD_NUMBER = 10.5.dp
+/** The current Journey level's side wall is plain white (in both themes), so it can be told apart at a glance. */
+private val CURRENT_WALL = androidx.compose.ui.graphics.Color.White
+private val NUMBER_BOTTOM = 3.dp
 
 /** Usable miniature area inside a square card [side] wide. The mini sits in the exact middle, so it keeps clear of a number-sized band at the bottom and the same band at the top. */
 internal fun miniArea(side: Dp, fontScale: Float = 1f): Dp = side - (CARD_NUMBER * fontScale + NUMBER_BOTTOM) * 2
 
-/** Square level / puzzle card: miniature in the middle, number at the bottom. A solved card glows; a locked one is dimmed. */
+/** Square level / puzzle card: miniature in the middle, number at the bottom. A solved card glows; a locked one is dimmed. Only online cards have a long press. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun CollectionCard(
     number: String, target: Board, cell: Dp, description: String, modifier: Modifier = Modifier,
     solved: Boolean = false, dimmed: Boolean = false, current: Boolean = false, enabled: Boolean = true,
-    onLongClick: () -> Unit, onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null, onClick: () -> Unit,
 ) {
     val p = LocalPalette.current
     val feedback = LocalFeedback.current
     val shape = RoundedCornerShape(12.dp)
+    val source = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    // A pedestal with the miniature stamped on its face: it sinks when pressed. A solved card has a tinted face whose side wall keeps the usual darkness
+    // (so it is no taller than the others); the current level's side wall is lit.
+    val face = if (solved) androidx.compose.ui.graphics.lerp(p.paper2, p.accent, .14f) else p.paper2
     Box(
         modifier.aspectRatio(1f)
-            .then(if (solved) Modifier.drawBehind {
-                for ((grow, alpha) in listOf(7.dp to .1f, 4.dp to .16f, 2.dp to .24f)) {
-                    val g = grow.toPx()
-                    drawRoundRect(p.accent, androidx.compose.ui.geometry.Offset(-g, -g), androidx.compose.ui.geometry.Size(size.width + 2 * g, size.height + 2 * g), androidx.compose.ui.geometry.CornerRadius(12.dp.toPx() + g), alpha = alpha)
-                }
-            } else Modifier)
             .alpha(if (dimmed) .4f else 1f)
-            .clip(shape)
-            .background(if (solved) androidx.compose.ui.graphics.lerp(p.paper, p.accent, .14f) else p.paper)
-            .border(if (current) 3.dp else 2.dp, if (current || solved) p.accent else p.line, shape)
-            .combinedClickable(role = Role.Button, enabled = enabled, onLongClickLabel = "Details", onLongClick = { feedback(Cue.LONG_PRESS); onLongClick() }, onClick = { feedback(Cue.SELECT); onClick() })
+            .plush(shape, pressProgress(source), face, rest = 4.dp, side = if (solved) sideFor(face) else p.side, sideLight = if (current) 1f else 0f, sideLightColor = CURRENT_WALL)
+            .then(if (enabled) Modifier.pressOnTouch(source) else Modifier)
+            .combinedClickable(interactionSource = source, indication = null, role = Role.Button, enabled = enabled, onLongClickLabel = onLongClick?.let { tr("Details") },
+                onLongClick = onLongClick?.let { long -> { feedback(Cue.LONG_PRESS); long() } }, onClick = { feedback(Cue.SELECT); onClick() })
             .semantics { contentDescription = description }
             .padding(horizontal = CARD_PADDING),
         contentAlignment = Alignment.Center,
     ) {
-        // The mini is centred in the whole card; the number sits low, centred along the bottom edge.
+        // The mini is centred in the whole card; the number sits in the bottom right corner.
         TargetMini(target, cell, MINI_GAP)
-        Label(number, 12.sp, Modifier.align(Alignment.BottomCenter).padding(bottom = NUMBER_BOTTOM), lines = 1)
+        Label(number, CARD_NUMBER_SIZE, Modifier.align(Alignment.BottomEnd).padding(bottom = NUMBER_BOTTOM), lines = 1)
     }
 }
 
@@ -81,9 +90,13 @@ internal fun CollectionCard(
 @Composable
 internal fun puzzleCell(width: Dp): Dp = miniCell(5, 5, miniArea((width - 12.dp - 8.dp * 3) / 4, LocalDensity.current.fontScale))
 
+/** The puzzle whose code menu is open, and where its card is on screen, so the menu can open beside it. [above]: the card is in its page's bottom row. */
+internal class DetailAnchor(val grid: JSONObject, val bounds: Rect?, val column: Int, val above: Boolean)
+
 /** Up to four community puzzle cards, numbered by list position from [startIndex]; tap plays, long-press (or a hidden puzzle) asks [onDetail]. */
 @Composable
-internal fun PuzzleRow(m: GameModel, row: List<JSONObject>, cell: Dp, startIndex: Int, source: DiscoveryListState?, onDetail: (JSONObject) -> Unit) {
+internal fun PuzzleRow(m: GameModel, row: List<JSONObject>, cell: Dp, startIndex: Int, source: DiscoveryListState?, bottomRow: Boolean = false, onDetail: (DetailAnchor) -> Unit) {
+    val places = remember { arrayOfNulls<LayoutCoordinates>(CARD_COLUMNS) }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         repeat(4) { column ->
             val grid = row.getOrNull(column)
@@ -91,71 +104,151 @@ internal fun PuzzleRow(m: GameModel, row: List<JSONObject>, cell: Dp, startIndex
                 val unavailable = grid.optBoolean("hidden") || grid.optBoolean("moderated")
                 val solved = grid.optBoolean("completed") || grid.getString("id") in m.communityDone
                 val rank = startIndex + column + 1
+                // Cropped once per puzzle, not on every recomposition of every card on every kept page.
+                val target = remember(grid) { Rules.crop(grid.board("target")) }
+                fun detail() = onDetail(DetailAnchor(grid, places[column]?.takeIf { it.isAttached }?.boundsInRoot(), column, bottomRow))
                 CollectionCard(
-                    formatted(rank), Rules.crop(grid.board("target")), cell,
-                    "Puzzle $rank" + if (unavailable) ", hidden" else if (solved) ", solved" else "",
-                    Modifier.weight(1f), solved = solved, dimmed = unavailable, enabled = !m.online.busy,
-                    onLongClick = { onDetail(grid) }, onClick = { if (unavailable) onDetail(grid) else playPuzzle(m, grid, source) },
+                    formatted(rank), target, cell,
+                    tr("Puzzle {0}", rank) + if (unavailable) ", " + tr("hidden") else if (solved) ", " + tr("solved") else "",
+                    Modifier.weight(1f).onGloballyPositioned { places[column] = it }, solved = solved, dimmed = unavailable, enabled = !m.online.busy,
+                    onLongClick = { detail() }, onClick = { if (unavailable) detail() else playPuzzle(m, grid, source) },
                 )
             }
         }
     }
 }
 
-/** Four-column grid of community puzzles. Pull down to refresh. */
+/** An empty raised card standing in for a puzzle whose page has not arrived yet, so a swipe never meets a blank page. */
 @Composable
-internal fun PuzzleGrid(m: GameModel, state: DiscoveryListState, modifier: Modifier = Modifier, onDetail: (JSONObject) -> Unit) {
-    val rows = state.items.chunked(4)
-    BoxWithConstraints(modifier) {
-        val cell = puzzleCell(maxWidth)
-        Refreshable(state.pulling, { m.online.clearMessages(); state.pull() }, Modifier.fillMaxSize()) {
-            LazyColumn(Modifier.fillMaxSize(), state = state.scroll, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                itemsIndexed(rows, key = { _, row -> row.first().getString("id") }) { index, row -> PuzzleRow(m, row, cell, index * 4, state, onDetail) }
-                item { DiscoveryFooter(m, state) }
-            }
-        }
+private fun SkeletonCard(modifier: Modifier = Modifier) {
+    val p = LocalPalette.current
+    Box(modifier.aspectRatio(1f).alpha(.5f).plush(RoundedCornerShape(12.dp), 0f, p.paper2, rest = 4.dp))
+}
+
+/** Side of a square card in a four-column list [width] wide. */
+internal fun cardSide(width: Dp): Dp = (width - 12.dp - 8.dp * 3) / 4
+
+/** The cards of one page, four to a row, numbered from [first]. */
+@Composable
+private fun PuzzlePage(m: GameModel, items: List<JSONObject>, first: Int, cell: Dp, source: DiscoveryListState, modifier: Modifier = Modifier, skeletonRows: Int = 0, onDetail: (DetailAnchor) -> Unit) {
+    val rows = items.chunked(CARD_COLUMNS)
+    Column(modifier.fillMaxWidth().padding(horizontal = 6.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        rows.forEachIndexed { index, row -> PuzzleRow(m, row, cell, first + index * CARD_COLUMNS, source, bottomRow = index > 0 && index == rows.lastIndex, onDetail = onDetail) }
+        // The page after the last loaded one: raised blanks until its puzzles arrive.
+        if (items.isEmpty()) repeat(skeletonRows) { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { repeat(CARD_COLUMNS) { SkeletonCard(Modifier.weight(1f)) } } }
     }
 }
 
-/** Puzzles inline on a profile (its own, or your bookmarks), in the same cards. Not lazy, because the whole profile page scrolls. Loading happens in the caller. */
+/** Height of [rows] rows of cards [side] wide with the gaps between them and the lip under the last one. */
+internal fun cardRowsHeight(side: Dp, rows: Int): Dp = side * rows + 10.dp * (rows - 1).coerceAtLeast(0) + 4.dp
+
+/**
+ * Community puzzles in pages of [rows] rows of four: swipe sideways for the next page, up and down inside a page that is taller than the screen. Pull down to refresh.
+ * [header] sits above the pages inside the pull; [scroll] sees a page's scrolling first (Worlds' hidden search); [minTop] keeps the first row at least that far
+ * below the header (the open search bar leaves no spare room, and the players list has the same 8dp there).
+ */
 @Composable
-internal fun PuzzleCardList(m: GameModel, state: DiscoveryListState, empty: String?, onDetail: (JSONObject) -> Unit) {
+internal fun PuzzleGrid(m: GameModel, state: DiscoveryListState, modifier: Modifier = Modifier, rows: Int = WORLD_ROWS, empty: String = "No results for these settings.", header: @Composable () -> Unit = {},
+                        scroll: androidx.compose.ui.input.nestedscroll.NestedScrollConnection? = null, minTop: Dp = 0.dp, onDetail: (DetailAnchor) -> Unit) {
+    BoxWithConstraints(modifier) {
+        val width = maxWidth
+        val cell = puzzleCell(width)
+        val side = cardSide(width)
+        Refreshable(state.pulling, { m.online.clearMessages(); state.pull() }, Modifier.fillMaxSize()) { Column(Modifier.fillMaxSize()) {
+            header()
+            PagedItems(state, rows * CARD_COLUMNS, Modifier.weight(1f).fillMaxWidth().then(if (scroll != null) Modifier.nestedScroll(scroll) else Modifier), lookahead = true) { items, first ->
+                // The rows sit in the middle of the room the page has, so the space above the first row equals the space below the last one.
+                BoxWithConstraints(Modifier.fillMaxSize()) {
+                    val free = (maxHeight - cardRowsHeight(side, rows)).coerceAtLeast(0.dp)
+                    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(top = maxOf(free / 2, minTop), bottom = (8.dp - free / 2).coerceIn(0.dp, 8.dp))) {
+                        PuzzlePage(m, items, first, cell, state, skeletonRows = if (state.items.isNotEmpty()) rows else 0, onDetail = onDetail)
+                        if (items.isEmpty()) DiscoveryFooter(m, state, empty)
+                    }
+                }
+            }
+        } }
+    }
+}
+
+/** Puzzles inline on a profile (its own): one page of [PROFILE_ROWS] rows of four, swipe sideways for more. The whole profile page scrolls, so the pager has a fixed height. Loading happens in the caller. */
+@Composable
+internal fun PuzzleCardList(m: GameModel, state: DiscoveryListState, empty: String?, onDetail: (DetailAnchor) -> Unit) {
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val cell = puzzleCell(maxWidth)
-        Column(Modifier.fillMaxWidth().padding(horizontal = 6.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            state.items.chunked(4).forEachIndexed { index, row -> PuzzleRow(m, row, cell, index * 4, state, onDetail) }
-            if (state.items.isEmpty() && !state.loading && !state.failed && state.settled) { if (empty != null) Label(empty, 14.sp, color = LocalPalette.current.muted) }
-            else DiscoveryFooter(m, state)
+        // The same height with or without puzzles, so every profile lays out alike.
+        // 8dp more than the rows themselves: room under the last row for the raised cards' lip and shadow.
+        val height = cardSide(maxWidth) * PROFILE_ROWS + 10.dp * (PROFILE_ROWS - 1) + 8.dp
+        if (state.items.isEmpty()) {
+            Box(Modifier.fillMaxWidth().height(height)) {
+                if (state.settled && !state.loading && !state.failed && empty != null) Label(empty, 14.sp, Modifier.padding(horizontal = 6.dp), color = LocalPalette.current.muted)
+            }
+        } else {
+            PagedItems(state, PROFILE_ROWS * CARD_COLUMNS, Modifier.fillMaxWidth().height(height)) { items, first -> PuzzlePage(m, items, first, cell, state, Modifier.padding(vertical = 4.dp), onDetail = onDetail) }
         }
     }
 }
 
+/**
+ * Where the code menu's top-left corner goes, in the same coordinates as [anchor] (the card it belongs to). A card in the first column gets the menu on
+ * its right, one in the last column on its left (so the menu covers the other three columns of that row); the two middle columns get it below, centred
+ * on the card, or above it when [above] (the card is in its page's bottom row). [gapX] and [gapY] are the spaces between cards across and down.
+ */
+internal fun detailPlacement(anchor: Rect, column: Int, above: Boolean, size: Size, gapX: Float, gapY: Float): Offset = when (column) {
+    0 -> Offset(anchor.right + gapX, anchor.top)
+    CARD_COLUMNS - 1 -> Offset(anchor.left - gapX - size.width, anchor.top)
+    else -> Offset(anchor.center.x - size.width / 2, if (above) anchor.top - gapY - size.height else anchor.bottom + gapY)
+}
+
+/**
+ * The code menu: a raised card three puzzle buttons wide and one tall, with the creator's name (opens their profile) on the left and Share over Copy on the right.
+ * It opens beside the puzzle button it belongs to ([detailPlacement]). Tap outside or Back closes it.
+ */
 @Composable
-internal fun PuzzleDetails(m: GameModel, grid: JSONObject, dismiss: () -> Unit) {
+internal fun PuzzleDetails(m: GameModel, anchor: DetailAnchor, dismiss: () -> Unit) {
+    val grid = anchor.grid
     val context = LocalContext.current
     val p = LocalPalette.current
     val feedback = LocalFeedback.current
-    // One clean row: creator (opens their profile), the code itself, then small Copy and Share buttons. Tap outside or Back closes it.
-    Overlay("Puzzle details", dismiss, padding = 12.dp) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Box(Modifier.weight(1f).heightIn(min = 48.dp).clip(RoundedCornerShape(10.dp)).clickable(role = Role.Button, onClickLabel = "Open profile") { feedback(Cue.CHECK); dismiss(); m.push(Route.Profile(grid.getString("ownerId"))) }
-                .padding(horizontal = 8.dp), contentAlignment = Alignment.CenterStart) {
-                Label(grid.getString("username"), 15.sp, weight = androidx.compose.ui.text.font.FontWeight.SemiBold, lines = 1)
+    val density = LocalDensity.current
+    androidx.activity.compose.BackHandler { feedback(Cue.BACK); dismiss() }
+    var layer by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    Box(Modifier.fillMaxSize().onGloballyPositioned { layer = it }) {
+        // Everything outside the card closes it; hidden from TalkBack (Back closes it too).
+        Box(Modifier.fillMaxSize().clickable(interactionSource = null, indication = null) { feedback(null); dismiss() }.clearAndSetSemantics { })
+        val bounds = anchor.bounds
+        val area = layer?.takeIf { it.isAttached }?.boundsInRoot()
+        if (bounds != null && area != null) {
+            val gapX = with(density) { 8.dp.toPx() }; val gapY = with(density) { 10.dp.toPx() }
+            val size = Size(bounds.width * 3 + gapX * 2, bounds.height)
+            val spot = detailPlacement(bounds, anchor.column, anchor.above, size, gapX, gapY)
+            // Kept inside the screen layer, whatever the page scrolled to.
+            val x = spot.x.coerceIn(area.left, (area.right - size.width).coerceAtLeast(area.left)) - area.left
+            val y = spot.y.coerceIn(area.top, (area.bottom - size.height).coerceAtLeast(area.top)) - area.top
+            Row(Modifier.offset { IntOffset(x.roundToInt(), y.roundToInt()) }.size(with(density) { size.width.toDp() }, with(density) { size.height.toDp() })
+                .plush(RoundedCornerShape(12.dp), 0f, p.paper2, rest = 4.dp)
+                .pointerInput(Unit) { detectTapGestures { } }.semantics { paneTitle = tr("Puzzle details") }.padding(start = 12.dp, end = 4.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f).fillMaxHeight().clickable(role = Role.Button, onClickLabel = tr("Open profile")) { feedback(Cue.CHECK); dismiss(); m.push(Route.Profile(grid.getString("ownerId"))) },
+                    contentAlignment = Alignment.CenterStart) {
+                    Label(grid.getString("username"), 14.sp, weight = androidx.compose.ui.text.font.FontWeight.SemiBold, lines = 1, translate = false)
+                }
+                Column(Modifier.fillMaxHeight()) {
+                    SmallIconButton("Share code", shareIcon, Modifier.weight(1f)) { feedback(Cue.CHECK); context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, tr("Play puzzle {0} by {1} in Midori: {2}", grid.getInt("levelNumber"), grid.getString("username"), grid.getString("code"))), tr("Share puzzle"))) }
+                    SmallIconButton("Copy code", copyIcon, Modifier.weight(1f)) { feedback(Cue.CHECK); (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("Midori puzzle code", grid.getString("code"))) }
+                }
             }
-            Label(grid.getString("code"), 12.sp, Modifier.semantics { contentDescription = "Code " + grid.getString("code") }, color = p.muted, lines = 1)
-            SmallIconButton("Copy code", copyIcon) { feedback(Cue.CHECK); (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("Insight puzzle code", grid.getString("code"))) }
-            SmallIconButton("Share code", shareIcon) { feedback(Cue.CHECK); context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, "Play puzzle ${grid.getInt("levelNumber")} by ${grid.getString("username")} in Insight: ${grid.getString("code")}"), "Share puzzle")) }
         }
     }
 }
 
-/** A half-height bordered button with line art; the touch target stays 48dp wide. */
+/** A small raised key with line art. Two of them share the menu's height, so each is about 36dp tall to touch. */
 @Composable
-private fun SmallIconButton(label: String, icon: androidx.compose.ui.graphics.drawscope.DrawScope.(androidx.compose.ui.graphics.Color) -> Unit, onClick: () -> Unit) {
+private fun SmallIconButton(label: String, icon: androidx.compose.ui.graphics.drawscope.DrawScope.(androidx.compose.ui.graphics.Color) -> Unit, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val p = LocalPalette.current
     val shape = RoundedCornerShape(10.dp)
-    Box(Modifier.size(48.dp).clickable(role = Role.Button, onClickLabel = label, onClick = onClick).semantics { contentDescription = label }, contentAlignment = Alignment.Center) {
-        Box(Modifier.size(36.dp, 28.dp).clip(shape).background(p.paper).border(2.dp, p.line, shape), contentAlignment = Alignment.Center) {
+    val source = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    Box(modifier.width(44.dp).pressOnTouch(source).clickable(source, null, role = Role.Button, onClickLabel = tr(label), onClick = onClick).semantics { contentDescription = tr(label) }, contentAlignment = Alignment.Center) {
+        Box(Modifier.size(36.dp, 26.dp).plush(shape, pressProgress(source), p.paper2, rest = 3.dp, depth = 2.dp), contentAlignment = Alignment.Center) {
             androidx.compose.foundation.Canvas(Modifier.size(16.dp)) { icon(p.ink) }
         }
     }
@@ -172,56 +265,44 @@ private val shareIcon: androidx.compose.ui.graphics.drawscope.DrawScope.(android
     for ((x, y) in listOf(17f to 6f, 7f to 12f, 17f to 18f)) drawCircle(c, 2.6f * u, androidx.compose.ui.geometry.Offset(x * u, y * u))
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun LevelsScreen(m: GameModel, visible: Boolean = true) {
-    var detail by remember { mutableStateOf<Int?>(null) }
+fun LevelsScreen(m: GameModel) {
     val targets = m.levelTargets
-    val rows = remember(m.levels) { m.levels.indices.toList().chunked(4) }
     val largest = remember(targets) { targets.maxOf { it[0].length } to targets.maxOf { it.size } }
-    // Hidden under a Journey game it stays composed but invisible, silent to TalkBack and out of focus order.
-    val hidden = if (visible) Modifier else Modifier.alpha(0f).clearAndSetSemantics { }
-    Box(Modifier.fillMaxSize().then(hidden)) { Page("Levels", 560.dp) {
+    val pageSize = JOURNEY_ROWS * CARD_COLUMNS
+    var page by remember { mutableIntStateOf(m.level / pageSize) }
+    val indices = remember(m.levels) { m.levels.indices.toList() }
+    Page("Levels", 560.dp) {
         CompositionLocalProvider(androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Ltr) {
             Box(Modifier.fillMaxWidth().height(48.dp)) {
                 HomeIconButton("Options", Modifier.align(Alignment.CenterStart), { m.push(Route.Options) }, optionsIcon, Cue.STOP)
-                Box(Modifier.align(Alignment.Center).heightIn(min = 48.dp).clickable(role = Role.Button, onClickLabel = "Return to the level") { m.feedback(Cue.CHECK); m.nowPlaying() }
-                    .padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
-                    Label("Now Playing", 13.sp, color = LocalPalette.current.muted, weight = androidx.compose.ui.text.font.FontWeight.SemiBold, lines = 1)
-                }
+                BackChevron(m, Modifier.align(Alignment.Center))
                 HomeIconButton("Profile", Modifier.align(Alignment.CenterEnd), { m.openOnline(Route.Profile()) }, personIcon, Cue.START)
             }
         }
+        Spacer(Modifier.height(ScreenGap))
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+            // Eight rows of four fit without scrolling: the card side comes from the width, or from the height when that is smaller.
+            val gap = 10.dp
+            val side = minOf((maxWidth - 12.dp - gap * 3) / 4, (maxHeight - 16.dp - gap * (JOURNEY_ROWS - 1)) / JOURNEY_ROWS)
             // One tile size for every card, taken from the biggest target, so equal tiles look equal on every level.
-            val cell = miniCell(largest.first, largest.second, miniArea((maxWidth - 12.dp - 10.dp * 3) / 4, LocalDensity.current.fontScale))
-            LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 6.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(rows, key = { it.first() }) { row ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        repeat(4) { column ->
-                            val i = row.getOrNull(column)
-                            if (i == null) Spacer(Modifier.weight(1f)) else {
-                                val solved = i + 1 in m.done
-                                val locked = !m.canAccess(i)
-                                CollectionCard(
-                                    "%02d".format(java.util.Locale.ROOT, i + 1), targets[i], cell,
-                                    "Level ${i + 1}" + if (locked) ", locked" else if (solved) ", solved" else "",
-                                    Modifier.weight(1f), solved = solved, dimmed = locked, current = i == m.level,
-                                    onLongClick = { detail = i }, onClick = { if (!locked) m.start(i) },
-                                )
-                            }
+            val cell = miniCell(largest.first, largest.second, miniArea(side, LocalDensity.current.fontScale))
+            Paged(indices, pageSize, page, { page = it }, Modifier.fillMaxSize()) { levels, _ ->
+                Column(Modifier.fillMaxSize().padding(vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(gap)) {
+                    for (row in levels.chunked(CARD_COLUMNS)) Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
+                        for (i in row) {
+                            val solved = i + 1 in m.done
+                            val locked = !m.canAccess(i)
+                            CollectionCard(
+                                formatted(i + 1), targets[i], cell,
+                                tr("Level {0}", i + 1) + if (locked) ", " + tr("locked") else if (solved) ", " + tr("solved") else "",
+                                Modifier.size(side), solved = solved, dimmed = locked, current = i == m.level,
+                                onClick = { if (!locked) m.start(i) },
+                            )
                         }
                     }
                 }
             }
         }
-    }
-    detail?.let { i -> Overlay("Level details", { detail = null }) {
-        Label(m.levelTitle(i), 24.sp, serif = true)
-        TargetMini(Rules.crop(m.levels[i].target), 24.dp, 3.dp)
-        Label(if (!m.canAccess(i)) "Complete earlier levels to unlock this puzzle." else if (i + 1 in m.done) "Solved" else "Unsolved", 14.sp)
-        MenuButton("Play", enabled = m.canAccess(i)) { detail = null; m.start(i) }
-        MenuButton("Close") { detail = null }
-    } }
     }
 }

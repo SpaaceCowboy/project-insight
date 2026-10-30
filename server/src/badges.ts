@@ -1,8 +1,11 @@
 // Online, design and daily-streak achievements. Campaign badges stay in campaign.ts. Must match app Achievements.kt.
 export const ONLINE_GOALS = [1, 10, 20, 50, 100, 200, 500, 1000];
-export const DESIGN_GOALS = [1, 10, 20];
+export const DESIGN_GOALS = [1, 10, 20, 50, 100];
 export const STREAK_GOALS = [7, 14, 30, 50, 70, 100];
-export const socialBadgeIds = [...ONLINE_GOALS.map(n => `online-${n}`), ...DESIGN_GOALS.map(n => `designed-${n}`), ...STREAK_GOALS.map(n => `streak-${n}`)];
+export const LEVEL_GOALS = [10, 20, 30, 50, 70, 100];
+export const socialBadgeIds = [...ONLINE_GOALS.map(n => `online-${n}`), ...DESIGN_GOALS.map(n => `designed-${n}`), ...STREAK_GOALS.map(n => `streak-${n}`), ...LEVEL_GOALS.map(n => `level-${n}`)];
+/** Player-level badges, read from the level itself (never stored), so they cannot drift from the XP ledger. */
+export const levelBadges = (level: number): string[] => LEVEL_GOALS.filter(n => level >= n).map(n => `level-${n}`);
 export interface SocialStats { onlineSolved: number; designedCount: number; bestStreak: number }
 export function socialBadges(s: SocialStats): string[] {
   return [

@@ -95,7 +95,7 @@ class AppearanceHotfixTest {
         runBlocking { repository.client.login("preview@insight.local", "Hotfix Preview") }
         val store = Store(context)
         store.selectAccount(repository.client.user!!.id)
-        store.importedInto = "hotfix-no-import"
+        store.importedInto = "hotfix-no-import"; store.onboarded = true; store.language = "en"
         val badges = mapOf("first" to 789L, "first-clean" to 123L, "world-1" to 456L)
         store.earned = badges; store.done = setOf(1); store.background = "aurora"; store.motion = "system"; store.dev = false
         val activity = instrumentation.startActivitySync(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)) as MainActivity
@@ -117,7 +117,7 @@ class AppearanceHotfixTest {
             main { model.mainMenu() }
             await("Home must open") { has("Journey") }; capture("home")
             main { model.push(Route.Levels) }
-            await("Level numbers must be present") { has("01") }; capture("levels")
+            await("Level numbers must be present, without a leading zero") { has("1") && !has("01") }; capture("levels")
             main {
                 if (model.creator.phase != Phase.BUILD) model.creator.pressStart()
                 model.creator.resize(3, 3)

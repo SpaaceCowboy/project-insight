@@ -9,7 +9,7 @@ import { operation, type Db } from './db.js';
 import { CREATE_DAILY_CAP, CREATE_XP, FIRST_XP, progression, REPLAY_DAILY_CAP, REPLAY_XP } from './progression.js';
 import { contentHash, replay, requireValue, type Move, type Puzzle } from './rules.js';
 import { creators, recordAttempt, searchPattern } from './discovery.js';
-import { acceptedDay, currentRun, longestRun, socialBadges } from './badges.js';
+import { acceptedDay, currentRun, levelBadges, longestRun, socialBadges } from './badges.js';
 
 // Older APKs and saved import commands still contain the retired campaign and badge IDs.
 const importBadgeIds = [...new Set([...badgeIds, 'flow', 'halfway', 'first-clean', 'steady', 'unbroken', 'flawless', 'clean-sweep', 'pristine', ...Array.from({ length: 11 }, (_, i) => `world-${i + 1}`)])];
@@ -96,8 +96,9 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
   app.get('/v1/progress', { preHandler: ready }, async req => {
     const done = (await db.query('SELECT level_id FROM campaign_progress WHERE user_id=$1 ORDER BY level_id', [user(req)])).rows.map(r => r.level_id);
     const communityDone = (await db.query('SELECT grid_id FROM grid_completions WHERE user_id=$1 ORDER BY grid_id', [user(req)])).rows.map(r => r.grid_id);
-    const badges = new Set([...earnedBadges(done), ...(await db.query('SELECT badge_id FROM imported_badges WHERE user_id=$1', [user(req)])).rows.map(r => r.badge_id)]);
-    return { done, communityDone, badges: [...badges], ...(await socialStats(db, user(req))), ...(await xp(db, user(req))) };
+    const progression = await xp(db, user(req));
+    const badges = new Set([...earnedBadges(done), ...levelBadges(progression.level), ...(await db.query('SELECT badge_id FROM imported_badges WHERE user_id=$1', [user(req)])).rows.map(r => r.badge_id)]);
+    return { done, communityDone, badges: [...badges], ...(await socialStats(db, user(req))), ...progression };
   });
   app.post('/v1/progress/import', { preHandler: ready, schema: { body: objectSchema({ operationId: operationSchema,
     done: { type: 'array', maxItems: Math.max(campaign.length, 206), uniqueItems: true, items: { type: 'integer', minimum: 1, maximum: Math.max(campaign.length, 206) } },
@@ -115,7 +116,8 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
     const person = (await db.query('SELECT id,username FROM users WHERE id=$1 AND NOT suspended', [id])).rows[0];
     requireValue(person, 'NOT_FOUND', 'Profile unavailable.', 404);
     const done = (await db.query('SELECT level_id FROM campaign_progress WHERE user_id=$1', [id])).rows.map(r => r.level_id);
-    const badges = [...new Set([...earnedBadges(done), ...(await db.query('SELECT badge_id FROM imported_badges WHERE user_id=$1', [id])).rows.map(r => r.badge_id)])];
+    const progression = await xp(db, id);
+    const badges = [...new Set([...earnedBadges(done), ...levelBadges(progression.level), ...(await db.query('SELECT badge_id FROM imported_badges WHERE user_id=$1', [id])).rows.map(r => r.badge_id)])];
     const counts = (await db.query(`SELECT count(*)::int AS "gridCount" FROM grids g
       WHERE g.owner_id=$1 AND g.published_at IS NOT NULL AND NOT g.hidden AND NOT g.moderated`, [id])).rows[0];
     // Community count excludes hashes already represented by completed campaign grids.
@@ -130,7 +132,7 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
       EXISTS(SELECT 1 FROM follows WHERE followee_id=$1 AND follower_id=$2) AS following`, [id, user(req)])).rows[0];
     const streak = currentRun(await activityDays(db, id), today);
     return { ...person, gridCount: counts.gridCount, campaignCount: done.length, communityCount, beatenCount: done.length + communityCount, badges,
-      followerCount: follow.followerCount, followingCount: follow.followingCount, bookmarkCount: follow.bookmarkCount, following: follow.following, streak, ...(await xp(db, id)) };
+      followerCount: follow.followerCount, followingCount: follow.followingCount, bookmarkCount: follow.bookmarkCount, following: follow.following, streak, ...progression };
   });
 
   app.post('/v1/users/:id/follow', { preHandler: ready, schema: { params: idParams, body: toggleBody } }, req => write(req, 'follow', async c => {
@@ -167,7 +169,9 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
     sort: { type: 'string', enum: ['popular','newest','number','liked'], default: 'popular' },
     period: { type: 'string', enum: ['all','today','week','month','year'], default: 'all' },
     bookmarked: { type: 'boolean', default: false },
-    page: { type: 'integer', minimum: 0, maximum: 100000, default: 0 }
+    page: { type: 'integer', minimum: 0, maximum: 100000, default: 0 },
+    // Items per page: the app asks for as many as its pages hold (Bookmarked shows 28), so a first fetch fills the first page.
+    limit: { type: 'integer', enum: [24, 28], default: 24 }
   }, []) } }, async req => {
     const q = req.query as any;
     const unit = ({ today: 'day', week: 'week', month: 'month', year: 'year' } as Record<string,string>)[q.period];
@@ -188,16 +192,20 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
         FROM grids g JOIN users u ON u.id=g.owner_id
         WHERE g.published_at IS NOT NULL AND NOT u.suspended AND
           ((NOT g.hidden AND NOT g.moderated) OR (g.owner_id=$1 AND $2::uuid=$1))
-          AND ($2::uuid IS NULL OR g.owner_id=$2) AND (CASE WHEN $4 ~ '^[0-9]+$' THEN g.level_number::text=$4 ELSE u.username ILIKE $3 END)
+          AND ($2::uuid IS NULL OR g.owner_id=$2) AND (CASE WHEN $4 ~ '^[A-Fa-f0-9]{16}$' THEN g.code=upper($4) WHEN $4 ~ '^[0-9]+$' THEN g.level_number::text=$4 ELSE u.username ILIKE $3 END)
           AND (NOT $6::boolean OR EXISTS(SELECT 1 FROM grid_bookmarks b WHERE b.grid_id=g.id AND b.user_id=$1))
-          ${period} ORDER BY ${order},g.id ASC LIMIT 21 OFFSET $5) p`,
-      [user(req),q.owner ?? null,searchPattern(q.query),q.query,q.page*20,q.bookmarked])).rows;
-    return { items: rows.slice(0,20), nextPage: rows.length > 20 ? q.page+1 : null };
+          ${period} ORDER BY ${order},g.id ASC LIMIT $7 OFFSET $5) p`,
+      [user(req),q.owner ?? null,searchPattern(q.query),q.query,q.page*q.limit,q.bookmarked,q.limit+1])).rows;
+    return { items: rows.slice(0,q.limit), nextPage: rows.length > q.limit ? q.page+1 : null };
   });
   app.post('/v1/grids', { preHandler: ready, schema: { body: objectSchema({ operationId: operationSchema,
     start: boardSchema, target: boardSchema, path: pathSchema }) } }, req => write(req, 'puzzle-create', async c => {
     const b = req.body as any; replay(b,b.path);
     const owner = user(req), id = randomUUID();
+    // operation() holds the account lock, so two publishes at once cannot both pass the count. Days are UTC, like XP and discovery.
+    const today = (await c.query("SELECT count(*)::int AS n FROM grids WHERE owner_id=$1 AND published_at >= (date_trunc('day',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')",[owner])).rows[0].n;
+    const limit = config.createDailyLimit ?? 10;
+    requireValue(today < limit,'DAILY_LIMIT',`You have reached the daily limit of ${limit} puzzles. Try again tomorrow.`,403);
     // operation() holds the account lock, serializing creator numbers and retries.
     const number = (await c.query('SELECT coalesce(max(level_number),0)+1 AS n FROM grids WHERE owner_id=$1',[owner])).rows[0].n;
     let code = '';

@@ -8,6 +8,7 @@ import android.os.SystemClock
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
@@ -18,6 +19,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -47,7 +49,7 @@ class MainMenuFlowTest {
         runBlocking { OnlineRepository.get(context).client.logout() }
         Store(context).apply {
             selectAccount(null); resetProgress(); earned = emptyMap(); dev = false
-            motion = "on"; sound = false; importedInto = "problem15-no-import"
+            motion = "on"; sound = false; importedInto = "problem15-no-import"; onboarded = true; language = "en"
         }
     }
 
@@ -76,7 +78,7 @@ class MainMenuFlowTest {
         activity = instrumentation.startActivitySync(Intent(context, MainActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)) as MainActivity
         main { model = ViewModelProvider(activity!!)[GameModel::class.java] }
-        await("new Home window") { activity!!.hasWindowFocus() && instrumentation.uiAutomation.rootInActiveWindow?.windowId != previousWindow && has("Journey") }
+        await("new Home window") { model.splashDone && activity!!.hasWindowFocus() && instrumentation.uiAutomation.rootInActiveWindow?.windowId != previousWindow && has("Journey") }
     }
     private fun close() { activity?.let { a -> main { a.finish() } }; activity = null }
     private fun nodes(): List<AccessibilityNodeInfo> {
@@ -110,10 +112,50 @@ class MainMenuFlowTest {
         instrumentation.waitForIdleSync()
     }
     private fun back() = main { assertTrue(model.back()) }
+    private fun swipeAcross(y: Float, forward: Boolean) {
+        val screen = Rect().also { instrumentation.uiAutomation.rootInActiveWindow!!.getBoundsInScreen(it) }
+        SystemClock.sleep(450) // Let the 400ms screen-transition touch lock settle.
+        val down = SystemClock.uptimeMillis()
+        for (step in 0..10) {
+            val action = when (step) { 0 -> android.view.MotionEvent.ACTION_DOWN; 10 -> android.view.MotionEvent.ACTION_UP; else -> android.view.MotionEvent.ACTION_MOVE }
+            val x = screen.left + screen.width() * (if (forward) .95f - .55f * step / 10 else .05f + .55f * step / 10)
+            val event = android.view.MotionEvent.obtain(down, SystemClock.uptimeMillis(), action, x, y, 0)
+            event.source = android.view.InputDevice.SOURCE_TOUCHSCREEN
+            assertTrue(instrumentation.uiAutomation.injectInputEvent(event, true)); event.recycle(); SystemClock.sleep(20)
+        }
+        instrumentation.waitForIdleSync()
+    }
     private fun progress(done: Set<Int>) = model.mergeAccountProgress(JSONObject().put("done", JSONArray(done.sorted())).put("badges", JSONArray()))
     private fun login() {
         tap("Profile"); tap("Enter local preview")
-        await("own profile") { has("Log out") && has("Achievements") }
+        await("own profile") { has("Logout") && has("Achievements") }
+    }
+
+    @Test fun firstPlayGuideAndLanguageChangesKeepTheirPreferences() {
+        Store(context).onboarded = false
+        launch()
+        main {
+            model.start(0)
+            assertEquals(1, model.guidePhase)
+            assertTrue(Store(context).onboarded)
+        }
+        for (step in 1..4) {
+            assertEquals(step, model.guidePhase)
+            tap("Tap to continue")
+            await("Next gameplay tip") { model.guidePhase == if (step == 4) 0 else step + 1 }
+        }
+        assertEquals(0, model.moves)
+        assertEquals(model.spec.start, model.board)
+        main {
+            model.toggleGuide()
+            assertFalse(Store(context).guide)
+            model.mainMenu()
+            model.changeLanguage("es")
+        }
+        await("translated Home") { has(tr("Journey")) && has(tr("Options")) }
+        assertEquals("es", Store(context).language)
+        main { model.changeLanguage("en") }
+        await("English Home") { has("Journey") }
     }
 
     @Test fun headerAndPauseNavigationRemainAccessible() {
@@ -122,8 +164,8 @@ class MainMenuFlowTest {
         assertFalse(has("Continue")); assertFalse(has("What's Next")); assertFalse(has("Achievements"))
         assertEquals("Only four home actions", 4, nodes().count { it.isClickable })
         tap("Options"); assertEquals(Route.Options, model.top)
-        tap("Rulebook"); await("rulebook") { nodes().any { it.contentDescription?.toString()?.startsWith("Red: Red slides") == true } }
-        back()
+        tap("Rulebook"); await("rulebook") { nodes().any { it.contentDescription?.toString()?.startsWith("Red slides") == true } }
+        tap("Back"); assertEquals(Route.Home, model.top)
         tap("Profile"); assertEquals(Route.Auth(Route.Profile()), model.top); back()
         tap("Worlds"); assertEquals(Route.Auth(Route.Online), model.top); back()
         tap("Journey"); assertEquals(Route.Game, model.top); assertEquals(0, model.level)
@@ -134,8 +176,8 @@ class MainMenuFlowTest {
         back(); assertEquals(Route.Home, model.top)
     }
 
-    @Test fun journeyRestoresSavedMovesAfterRelaunchAndAdvancesAfterSolve() {
-        Store(context).done = setOf(1)
+    @Test fun journeyRestoresSavedMovesAndReopensTheLastPlayedLevel() {
+        Store(context).apply { done = setOf(1); lastLevel = 1 }
         launch(); tap("Journey"); assertEquals(1, model.level)
         main { model.move(Pos(0, 1), Pos(1, 1)) }
         assertEquals(1, model.moves); assertFalse(model.solved)
@@ -144,7 +186,7 @@ class MainMenuFlowTest {
         close(); launch(); tap("Journey")
         assertEquals(1, model.level); assertEquals(board, model.board); assertEquals(1, model.moves)
         main { model.move(Pos(0, 1), Pos(0, 0)); assertTrue(model.solved); model.mainMenu() }
-        tap("Journey"); assertEquals(2, model.level)
+        tap("Journey"); assertEquals(1, model.level)
         main { model.resetProgress(); model.mainMenu() }
         tap("Journey"); assertEquals(0, model.level); assertEquals(0, model.moves)
     }
@@ -159,8 +201,8 @@ class MainMenuFlowTest {
             model.selectAccount("problem15-a"); model.startJourney()
             // The last unfinished level wins over an earlier unsolved level.
             assertEquals(3, model.level)
-            model.start(0); model.mainMenu(); model.startJourney(); assertEquals(1, model.level)
-            model.mainMenu() // A replay of a solved level must not block progression.
+            model.start(0); model.mainMenu(); model.startJourney(); assertEquals(0, model.level)
+            model.mainMenu() // A solved replay is still the last level played.
             model.selectAccount("problem15-b"); model.startJourney(); assertEquals(1, model.level)
             model.mainMenu(); model.store.lastLevel = model.levels.lastIndex
             model.startJourney(); assertEquals(1, model.level) // Locked saved level.
@@ -168,7 +210,7 @@ class MainMenuFlowTest {
             model.startJourney(); assertEquals(1, model.level)
             model.mainMenu(); model.store.lastLevel = Int.MAX_VALUE
             model.startJourney(); assertEquals(1, model.level)
-            model.mainMenu(); progress((1..model.levels.size).toSet()); model.startJourney()
+            model.mainMenu(); progress((1..model.levels.size).toSet()); model.store.lastLevel = -1; model.startJourney()
             assertEquals(Route.Levels, model.top)
             model.selectAccount(null); model.mainMenu(); model.startJourney(); assertEquals(0, model.level)
         }
@@ -189,7 +231,7 @@ class MainMenuFlowTest {
         var row = nodes().first { it.text?.toString() == "Achievements" }
         while (row.parent != null) { assertFalse("Public achievement row must be read-only", row.isClickable); row = row.parent }
         main {
-            model.resetProgress(); progress(setOf(1)); model.mainMenu(); model.startJourney()
+            model.resetProgress(); progress(setOf(1)); model.store.lastLevel = 1; model.mainMenu(); model.startJourney()
             model.move(Pos(0, 1), Pos(1, 1))
         }
         val campaignBoard = model.board
@@ -221,8 +263,18 @@ class MainMenuFlowTest {
         await("Bug report page") { model.top == Route.Feedback("bug") && has("Send") }
         instrumentation.runOnMainSync { model.back() }; instrumentation.waitForIdleSync()
         await("Back to About") { model.top == Route.Options && has("Version") }
+        tap("Licences")
+        await("Bundled font licence") { model.top == Route.Licences && has("JetBrains Mono") }
+        tap("Back")
         assertFalse(has("Reset level progress")); assertFalse(has("Obsidian"))
-        tap("Options"); tap("Colourblind mode")
+        tap("Options")
+        await("Options volume controls after the page transition") { nodes().any { it.contentDescription?.toString() == "Ambience volume" && it.isVisibleToUser } }
+        val volume = nodes().first { it.contentDescription?.toString() == "Ambience volume" }
+        assertTrue(volume.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_SET_PROGRESS.id,
+            android.os.Bundle().apply { putFloat(AccessibilityNodeInfo.ACTION_ARGUMENT_PROGRESS_VALUE, 7f) }))
+        await("Volume stop persists") { model.ambience == .7f && Store(context).ambience == .7f }
+        assertEquals(0f, volume.rangeInfo.min); assertEquals(10f, volume.rangeInfo.max)
+        tap("Colourblind mode")
         assertTrue(model.colorblind); assertTrue(Store(context).colorblind)
         assertTrue(Art.colorblind)
         tap("Rulebook")
@@ -236,22 +288,23 @@ class MainMenuFlowTest {
             assertTrue(node.performAction(AccessibilityNodeInfo.ACTION_CLICK))
             instrumentation.waitForIdleSync()
         }
-        await("practice board") { color(1, 1) == "Red" && color(2, 1) == "Purple" }
-        select(2, 2); assertEquals("White", color(2, 2))
+        // Colourblind mode is on: the tiles go by the palette's standard names (Okabe-Ito), in the Rulebook and for TalkBack.
+        await("practice board") { color(1, 1) == "Vermillion" && color(2, 1) == "Reddish purple" }
+        select(2, 2); assertEquals("Off-white", color(2, 2))
         select(1, 1); select(2, 1)
-        await("first practice swap") { color(1, 1) == "Purple" && color(2, 1) == "Red" }
+        await("first practice swap") { color(1, 1) == "Reddish purple" && color(2, 1) == "Vermillion" }
         select(2, 1); select(3, 1)
-        await("second practice swap") { color(2, 1) == "Blue" && color(3, 1) == "Red" }
+        await("second practice swap") { color(2, 1) == "Blue" && color(3, 1) == "Vermillion" }
         assertEquals(campaign, model.board); assertEquals(done, model.done); assertEquals(badges, model.earned)
         val practice = model.rulebookBoard
         tap("About"); tap("Rulebook")
         assertEquals(practice, model.rulebookBoard)
-        await("practice resumes after switching tabs") { color(3, 1) == "Red" }
+        await("practice resumes after switching tabs") { color(3, 1) == "Vermillion" }
         await("White rule remains accessible at enlarged text sizes") {
-            if (nodes().any { it.contentDescription?.toString()?.startsWith("White: White never") == true && it.isVisibleToUser }) true
+            if (nodes().any { it.contentDescription?.toString()?.startsWith("Off-white never") == true && it.isVisibleToUser }) true
             else { nodes().lastOrNull { it.isScrollable }?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD); false }
         }
-        val whiteBounds = Rect().also { bounds -> nodes().first { it.contentDescription?.toString()?.startsWith("White: White never") == true }.getBoundsInScreen(bounds) }
+        val whiteBounds = Rect().also { bounds -> nodes().first { it.contentDescription?.toString()?.startsWith("Off-white never") == true }.getBoundsInScreen(bounds) }
         val tileBounds = Rect().also { tile(1, 1)!!.getBoundsInScreen(it) }
         assertTrue("Rules must not overlap the practice board", whiteBounds.bottom <= tileBounds.top)
         val folder = File(context.getExternalFilesDir(null), "options-v022").apply { mkdirs() }
@@ -261,7 +314,7 @@ class MainMenuFlowTest {
     }
 
     @Test fun gameplayGesturesRestartAccessAndWinNavigation() {
-        Store(context).done = setOf(1)
+        Store(context).apply { done = setOf(1); lastLevel = 1 }
         launch(); tap("Journey")
         main { model.move(Pos(0, 1), Pos(1, 1)) }
         assertEquals(1, model.moves)
@@ -270,7 +323,8 @@ class MainMenuFlowTest {
             nodes().first { it.contentDescription?.toString()?.contains(", row $row, column $column,") == true }.getBoundsInScreen(rect)
         }
         fun touch(x: Float, y: Float, hold: Long, endY: Float = y) {
-            val down = SystemClock.uptimeMillis()
+            SystemClock.sleep(450) // Let the 400ms screen-transition touch lock settle.
+        val down = SystemClock.uptimeMillis()
             fun event(action: Int, atY: Float) {
                 val e = android.view.MotionEvent.obtain(down, SystemClock.uptimeMillis(), action, x, atY, 0)
                 e.source = android.view.InputDevice.SOURCE_TOUCHSCREEN
@@ -283,6 +337,21 @@ class MainMenuFlowTest {
             instrumentation.waitForIdleSync()
         }
         val tile = tileBounds(1, 1)
+        val target = Rect().also { bounds -> nodes().first { it.contentDescription?.toString()?.startsWith("Target arrangement:") == true }.getBoundsInScreen(bounds) }
+        swipeAcross(tile.exactCenterY(), true)
+        assertEquals("Swiping inside the outline must not change levels", 1, model.level)
+        assertEquals(1, model.moves)
+        touch(20f * activity!!.resources.displayMetrics.density, target.exactCenterY(), 900)
+        assertEquals("Holding outside the outline must not restart", 1, model.moves)
+        swipeAcross(target.exactCenterY(), false)
+        assertEquals("Swiping over the target must not change levels", 1, model.level)
+        val swipeY = tile.top - 8f * activity!!.resources.displayMetrics.density
+        swipeAcross(swipeY, true)
+        assertEquals("A locked Journey level refuses a swipe", 1, model.level)
+        swipeAcross(swipeY, false)
+        await("Outline gutter swipe opens the previous Journey level") { model.level == 0 }
+        swipeAcross(swipeY, true)
+        await("Outline gutter swipe restores the next Journey attempt") { model.level == 1 && model.moves == 1 }
         touch(tile.exactCenterX(), tile.exactCenterY(), 600)
         assertEquals("Holding a tile must not restart", 1, model.moves)
         val backgroundX = 20f * activity!!.resources.displayMetrics.density
@@ -329,7 +398,8 @@ class MainMenuFlowTest {
         SystemClock.sleep(250)
         val tile = Rect().also { nodes().first { n -> matches(n, "Red, row 1, column 1") }.getBoundsInScreen(it) }
         fun hold(x: Float, y: Float, duration: Long) {
-            val down = SystemClock.uptimeMillis()
+            SystemClock.sleep(450) // Let the 400ms screen-transition touch lock settle.
+        val down = SystemClock.uptimeMillis()
             for (action in listOf(android.view.MotionEvent.ACTION_DOWN, android.view.MotionEvent.ACTION_UP)) {
                 val event = android.view.MotionEvent.obtain(down, SystemClock.uptimeMillis(), action, x, y, 0)
                 event.source = android.view.InputDevice.SOURCE_TOUCHSCREEN
@@ -370,9 +440,92 @@ class MainMenuFlowTest {
         assertEquals(restored.start, restored.board)
         main { model.creator.picked = Pos(0, 0) }
         back(); assertEquals(Phase.CHECK, model.creator.phase); assertEquals(Route.Create, model.top)
-        back(); assertEquals(Phase.SHAPE, model.creator.phase); assertEquals(proof, model.creator.proof)
-        back(); assertEquals(Phase.BUILD, model.creator.phase); assertEquals(Route.Create, model.top)
-        back(); assertEquals(Route.Home, model.top)
+        swipeAcross(tile.exactCenterY(), false)
+        assertEquals(Phase.SHAPE, model.creator.phase); assertEquals(proof, model.creator.proof)
+        swipeAcross(tile.exactCenterY(), false)
+        assertEquals(Phase.BUILD, model.creator.phase); assertEquals(Route.Create, model.top)
+        tap("Back"); assertEquals(Route.Home, model.top)
+    }
+
+    @Test fun journeyPagesSwipeAndReopenAtTheCurrentLevel() {
+        Store(context).apply { done = (1..200).toSet(); lastLevel = 0 }
+        launch(); tap("Journey"); tap("Journey 1")
+        await("First Journey page") { has("Level 32, solved") }
+        val screen = Rect().also { instrumentation.uiAutomation.rootInActiveWindow!!.getBoundsInScreen(it) }
+        swipeAcross(screen.exactCenterY(), true)
+        await("Second Journey page") { nodes().any { matches(it, "Level 33, solved") && it.isVisibleToUser } }
+        tap("Level 33, solved")
+        await("Chosen level opens") { model.top == Route.Game && model.level == 32 }
+        tap("Journey 33")
+        await("Levels reopen at the current page") { nodes().any { matches(it, "Level 33, solved") && it.isVisibleToUser } }
+        swipeAcross(screen.exactCenterY(), false)
+        await("Previous Journey page") { nodes().any { matches(it, "Level 1, solved") && it.isVisibleToUser } }
+        tap("Level 1, solved")
+        await("First level opens again") { model.top == Route.Game && model.level == 0 }
+    }
+
+    @Test fun sheetsDragBackAndRepeatedRoutesRespectTheTopScreen() {
+        Store(context).motion = "system"
+        launch(); tap("Options")
+        await("Options sheet settles") { has("Ambience volume") && !has("Journey") }
+        fun drag(fraction: Float) {
+            val bounds = Rect().also { control("Back").getBoundsInScreen(it) }
+            val screen = Rect().also { instrumentation.uiAutomation.rootInActiveWindow!!.getBoundsInScreen(it) }
+            SystemClock.sleep(450) // Let the 400ms screen-transition touch lock settle.
+        val down = SystemClock.uptimeMillis()
+            for (step in 0..20) {
+                val action = when (step) { 0 -> android.view.MotionEvent.ACTION_DOWN; 20 -> android.view.MotionEvent.ACTION_UP; else -> android.view.MotionEvent.ACTION_MOVE }
+                val event = android.view.MotionEvent.obtain(down, SystemClock.uptimeMillis(), action, bounds.exactCenterX(),
+                    bounds.exactCenterY() + screen.height() * fraction * step / 20f, 0)
+                event.source = android.view.InputDevice.SOURCE_TOUCHSCREEN
+                assertTrue(instrumentation.uiAutomation.injectInputEvent(event, true)); event.recycle(); SystemClock.sleep(35)
+            }
+        }
+        drag(.15f)
+        await("A short sheet pull springs back") { model.top == Route.Options && has("Ambience volume") }
+        SystemClock.sleep(500)
+        drag(.65f)
+        await("A long sheet pull returns Home") { model.top == Route.Home && has("Journey") && !has("Ambience volume") }
+        tap("Options"); tap("About"); tap("Report a bug")
+        await("Feedback sheet opens") { has("Send") }
+        main { model.push(Route.Options) }
+        await("A repeated Options route is the visible top screen") { has("Ambience volume") && !has("Send") }
+        tap("Back")
+        await("Back reveals the feedback screen below") { model.top == Route.Feedback("bug") && has("Send") }
+    }
+
+    @Test fun immediatePressSurvivesTheButtonsConsumedDownAndClicksOnce() {
+        launch()
+        val source = androidx.compose.foundation.interaction.MutableInteractionSource()
+        val events = mutableListOf<androidx.compose.foundation.interaction.Interaction>()
+        val clicks = androidx.compose.runtime.mutableIntStateOf(0)
+        main { activity!!.setContent {
+            androidx.compose.runtime.LaunchedEffect(source) { source.interactions.collect { events.add(it) } }
+            Box(Modifier.fillMaxSize().pressOnTouch(source).clickable(source, null) { clicks.intValue++ }) {
+                Label("Clicks ${clicks.intValue}", 20.sp)
+            }
+        } }
+        await("Press sample") { has("Clicks 0") }
+        val screen = Rect().also { instrumentation.uiAutomation.rootInActiveWindow!!.getBoundsInScreen(it) }
+        SystemClock.sleep(450) // Let the 400ms screen-transition touch lock settle.
+        val down = SystemClock.uptimeMillis()
+        fun event(action: Int) {
+            val e = android.view.MotionEvent.obtain(down, SystemClock.uptimeMillis(), action, screen.exactCenterX(), screen.exactCenterY(), 0)
+            e.source = android.view.InputDevice.SOURCE_TOUCHSCREEN
+            assertTrue(instrumentation.uiAutomation.injectInputEvent(e, true)); e.recycle()
+        }
+        event(android.view.MotionEvent.ACTION_DOWN)
+        try {
+            SystemClock.sleep(150)
+            main {
+                val press = events.filterIsInstance<androidx.compose.foundation.interaction.PressInteraction.Press>().first()
+                assertFalse("The button consuming Down must not cancel its immediate press", events.any {
+                    it is androidx.compose.foundation.interaction.PressInteraction.Cancel && it.press === press
+                })
+            }
+        } finally { event(android.view.MotionEvent.ACTION_UP) }
+        await("One click after release") { has("Clicks 1") }
+        main { assertEquals(1, clicks.intValue) }
     }
 
     @Test fun homeLayoutAndLauncherBranding() {
@@ -392,11 +545,11 @@ class MainMenuFlowTest {
                 }
             }
         }
-        await("configured header") { has(layoutReady) && has("INSIGHT") && has("Options") && has("Profile") }
+        await("configured header") { has(layoutReady) && has("MIDORI") && has("Options") && has("Profile") }
         fun bounds(label: String, clickable: Boolean = true): Rect = Rect().also { rect ->
             (if (clickable) control(label) else nodes().first { matches(it, label) }).getBoundsInScreen(rect)
         }
-        val options = bounds("Options"); val profile = bounds("Profile"); val title = bounds("INSIGHT", false)
+        val options = bounds("Options"); val profile = bounds("Profile"); val title = bounds("MIDORI", false)
         assertTrue(options.centerX() < title.centerX()); assertTrue(title.centerX() < profile.centerX())
         assertFalse(Rect.intersects(options, title)); assertFalse(Rect.intersects(profile, title))
         val minimum = (48 * activity!!.resources.displayMetrics.density).toInt()
@@ -420,7 +573,7 @@ class MainMenuFlowTest {
         val screenshot = instrumentation.uiAutomation.takeScreenshot()
         val folder = File(context.getExternalFilesDir(null), "problem15").apply { mkdirs() }
         File(folder, "home-${args.getString("menuCapture", "default")}.png").outputStream().use { screenshot.compress(Bitmap.CompressFormat.PNG, 100, it) }
-        assertEquals("Insight Preview", context.applicationInfo.loadLabel(context.packageManager).toString())
+        assertEquals("Midori Preview", context.applicationInfo.loadLabel(context.packageManager).toString())
         val icon = context.getDrawable(R.mipmap.ic_launcher) as AdaptiveIconDrawable
         assertNotNull(icon.foreground); assertNotNull(icon.background)
         val bitmap = Bitmap.createBitmap(216, 216, Bitmap.Config.ARGB_8888)

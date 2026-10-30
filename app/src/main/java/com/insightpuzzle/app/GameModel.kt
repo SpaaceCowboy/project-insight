@@ -27,10 +27,12 @@ sealed interface Route {
     data class Profile(val id: String? = null) : Route
     /** Your bookmarked puzzles. */
     data object Bookmarks : Route
-    /** Your "following" or "followers" list. */
+    /** Your "following" list. */
     data class Players(val kind: String) : Route
     /** Share feedback ("feedback") or Report a bug ("bug"). */
     data class Feedback(val kind: String) : Route
+    /** Options → About → Licences. */
+    data object Licences : Route
 }
 
 /** [source] is the Worlds or profile list the puzzle was opened from; Next continues through it in its current order. */
@@ -49,9 +51,13 @@ class RandomTrail<T> {
     fun at(step: Int): T? = items.getOrNull(index + step)
 }
 
+/** The Journey level a swipe from [level] by [step] opens, or null at either end or when that level is still locked. */
+internal fun journeyStep(level: Int, step: Int, count: Int, canAccess: (Int) -> Boolean): Int? =
+    (level + step).takeIf { it in 0 until count && canAccess(it) }
+
 /** App state and the game flow (port of src/useGame.js + src/game-state.js). */
 class GameModel(app: Application) : AndroidViewModel(app) {
-    val store = Store(app)
+    val store = Store(app).also { L10n.language = it.language }
     val levels: List<Level> = Levels.parse(app.assets.open("levels.json").bufferedReader().use { it.readText() })
     val achievements = Achievements(levels)
     private val vibration = Haptics(app)
@@ -59,6 +65,8 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     val creator = CreatorState(store.creatorDraft) { store.creatorDraft = it }
     val online = OnlineState(this, app, viewModelScope)
     val playDiscovery = PlayDiscoveryState()
+    /** The splash screen has finished (it shows once per launch, not again when the activity is recreated). */
+    var splashDone by mutableStateOf(false)
     var community by mutableStateOf<CommunityAttempt?>(null); private set
 
     /** Screens, bottom to top. The bottom is Home or Game; Win sits on top of Game. */
@@ -89,12 +97,17 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     /** Rulebook sandbox: kept for the session so it resumes where the player left it. */
     var rulebookBoard by mutableStateOf(listOf("RBG", "PWY", "BGR"))
     var colorblind by mutableStateOf(store.colorblind.also { Art.colorblind = it }); private set
+    var language by mutableStateOf(store.language.also { L10n.language = it }); private set
+    /** The gameplay-tips icon is on, and the step of the tips on show (0 = none, 1 grid, 2 restart, 3 swipe, 4 title key, 5 like and bookmark; the creator just uses 1 for "showing"). */
+    var guideOn by mutableStateOf(store.guide); private set
+    var guidePhase by mutableIntStateOf(0); private set
 
     val spec get() = community?.spec ?: levels[level]
     val solved get() = Rules.key(board) == Rules.key(spec.target)
     val unlocked get() = if (dev) levels.size else minOf(levels.size, (done.maxOrNull() ?: 0) + 1)
     fun canAccess(index: Int) = index < unlocked
-    fun levelTitle(index: Int) = "Level %02d".format(index + 1)
+    /** Undoing every move back to the start leaves nothing to restart. */
+    val changed get() = Rules.key(board) != Rules.key(spec.start)
 
     init {
         val unfinished = levels.indices.firstOrNull { (it + 1) !in done } ?: 0
@@ -128,12 +141,15 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     fun start(index: Int) {
         if (!canAccess(index)) return
         load(index); store.lastLevel = index
+        // The very first time level one opens on a new install, the guide plays by itself; afterwards it is the icon's.
+        guidePhase = if (index == 0 && guideOn && !store.onboarded && store.done.isEmpty()) 1 else 0
+        if (guidePhase == 1) store.onboarded = true
         stack.clear(); stack += Route.Home; stack += Route.Game
     }
 
-    /** Home's Journey always resolves the active account's campaign save, never a community board. */
+    /** Home's Journey reopens the level last played (solved or not, with its unfinished moves), never a community board. */
     fun startJourney() {
-        val last = store.lastLevel.takeIf { it in levels.indices && canAccess(it) && (it + 1) !in done }
+        val last = store.lastLevel.takeIf { it in levels.indices && canAccess(it) }
         val target = last ?: levels.indices.firstOrNull { canAccess(it) && (it + 1) !in done }
         if (target == null) push(Route.Levels) else {
             start(target)
@@ -143,7 +159,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     fun startCommunity(grid: JSONObject, sessionId: String, casual: Boolean = false, source: DiscoveryListState? = null) {
         val account = online.user?.id ?: return
         if (community != null) failureProof("leave")
-        winJob?.cancel()
+        winJob?.cancel(); guidePhase = 0
         community = CommunityAttempt(grid, sessionId, account, casual = casual, source = source)
         liked = grid.optBoolean("liked"); bookmarked = grid.optBoolean("bookmarked")
         board = spec.start; moves = 0; path = mutableListOf(); winBadges = emptyList(); light = Art.LIGHT.getValue('B')
@@ -195,7 +211,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
         done = done + List(solved.length()) { solved.getInt(it) }; store.done = done
         communityDone = communityDone + (json.optJSONArray("communityDone")?.strings() ?: emptyList()); store.communityDone = communityDone
         earned = earned + json.getJSONArray("badges").strings().associateWith { earned[it] ?: System.currentTimeMillis() }; store.earned = earned
-        onlineStats = OnlineStats(json.optInt("onlineSolved"), json.optInt("designedCount"), json.optInt("bestStreak"))
+        onlineStats = OnlineStats(json.optInt("onlineSolved"), json.optInt("designedCount"), json.optInt("bestStreak"), json.optInt("level", 1))
     }
 
     fun toggleLike() = toggleSocial("like", !liked) { liked = it }
@@ -207,6 +223,20 @@ class GameModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             try { online.repository.command("$kind:$grid", "POST", "/v1/grids/$grid/$kind", JSONObject().put("on", on)); playDiscovery.refresh() }
             catch (error: Exception) { if (error is kotlinx.coroutines.CancellationException) throw error; if (community?.id == grid) set(!on); online.quiet(error) }
+        }
+    }
+
+    /**
+     * The splash screen's network work: the first page of what Worlds (puzzles and players) and Bookmarked open on is fetched into the saved cache, so those lists
+     * fill the moment they are opened. Nothing is shown for a failure, it is just skipped.
+     */
+    suspend fun warmUp() {
+        val account = online.user?.id ?: return
+        val urls = listOf(discoveryKey(true, playDiscovery.puzzles), discoveryKey(false, playDiscovery.creators), BOOKMARKS_KEY).map { it + (if ('?' in it) "&" else "?") + "page=0" }
+        kotlinx.coroutines.coroutineScope {
+            for (url in urls) launch {
+                try { online.repository.fetch(url, account) } catch (error: Exception) { if (error is kotlinx.coroutines.CancellationException) throw error }
+            }
         }
     }
 
@@ -251,7 +281,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     fun nextCasual() = online.task {
         val account = online.user?.id ?: return@task
         online.flushProofs()
-        if (!online.repository.sync()) throw java.io.IOException("Progress could not be synchronized. Please retry.")
+        if (!online.repository.sync()) throw java.io.IOException(tr("Progress could not be synchronized. Please retry."))
         val rejected = online.repository.outcomes(account).firstOrNull {
             it.state == "failed" && it.endpoint == "/v1/completions" && JSONObject(it.payload).optString("sessionId") == community?.sessionId
         }
@@ -260,7 +290,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
         if (online.user?.id != account || store.activeAccount != account) return@task
         if (response.isNull("grid")) {
             if (community != null) returnToCommunityList()
-            online.inform("No community puzzles are available yet.")
+            online.inform(tr("No community puzzles are available yet."))
         } else {
             startCommunity(response.getJSONObject("grid"), response.getString("sessionId"), casual = true)
             randomTrail.add(response.getJSONObject("grid"))
@@ -271,9 +301,9 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     /** The Random button: a fresh trail, starting with a new random puzzle. */
     fun startRandom() { randomTrail.reset(); nextCasual() }
 
-    /** Swipe through the list a puzzle came from ([step] 1 = next, -1 = previous). False when there is nothing that way. */
+    /** Swipe through the list a puzzle came from, or Journey's levels ([step] 1 = next, -1 = previous). False when there is nothing that way or it is locked. */
     fun swipe(step: Int): Boolean {
-        val current = community ?: return false
+        val current = community ?: return journeyStep(level, step, levels.size, ::canAccess)?.let { start(it); true } ?: false
         if (current.casual) {
             val known = randomTrail.at(step)
             if (known == null) { if (step > 0) nextCasual(); return step > 0 }
@@ -355,11 +385,6 @@ class GameModel(app: Application) : AndroidViewModel(app) {
         stack.clear(); stack += Route.Home; if (playing) stack += Route.Game; stack += Route.Levels
     }
 
-    /** Levels' "Now Playing": back to the open level, or reopen the last one when no game is underneath. */
-    fun nowPlaying() {
-        if (top == Route.Levels && Route.Game in stack) stack.removeAt(stack.lastIndex) else start(level)
-    }
-
     /** Cropped campaign targets, computed once so the level screen opens without work. */
     val levelTargets: List<Board> = levels.map { Rules.crop(it.target) }
 
@@ -371,7 +396,9 @@ class GameModel(app: Application) : AndroidViewModel(app) {
             val identity = creator.creationId
             val proof = JSONObject().put("operationId", identity).put("start", org.json.JSONArray(creator.start!!))
                 .put("target", org.json.JSONArray(creator.target!!)).put("path", creator.proof.jsonMoves())
-            online.repository.client.request("POST", "/v1/grids", proof, account)
+            try { online.repository.client.request("POST", "/v1/grids", proof, account) }
+            // Ten puzzles a day: the creator shows it at the top of the last phase instead of a message elsewhere.
+            catch (error: OnlineException) { if (error.code == "DAILY_LIMIT") { if (creator.creationId == identity) creator.limitReached = true; return@task } else throw error }
             if (online.user?.id == account && creator.creationId == identity) {
                 creator.created(); playDiscovery.refresh(); online.refreshProgressAsync()
             }
@@ -379,6 +406,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun mainMenu() {
+        guidePhase = 0
         failureProof("leave")
         if (community != null) load(level) else winJob?.cancel()
         stack.clear(); stack += Route.Home
@@ -400,7 +428,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     val dark get() = theme != "light"
     fun changeTheme(value: String) { theme = value; store.theme = value }
     fun toggleHaptics() { haptics = !haptics; store.haptics = haptics }
-    /** Touch feedback: the 6 ms haptic when Haptics is on, then [cue]'s sound when Sound is on. */
+    /** Touch feedback: the 10 ms haptic when Haptics is on, then [cue]'s sound when Sound is on. */
     fun feedback(cue: Cue?) { if (haptics) vibration.tick(); cue?.let(audio::play) }
 
     /** Back to level 1 with nothing solved. Badges stay. */
@@ -410,6 +438,18 @@ class GameModel(app: Application) : AndroidViewModel(app) {
         load(0)
     }
     fun toggleDev() { dev = !dev; store.dev = dev }
+    fun changeLanguage(code: String) { if (!L10n.supported(code)) return; language = code; store.language = code; L10n.language = code }
+    fun toggleGuide() { guideOn = !guideOn; store.guide = guideOn; if (!guideOn) guidePhase = 0 }
+    /** The guide icon: plays the guide from its first step, or sends it away if it is showing. */
+    fun tapGuide() { guidePhase = if (guidePhase == 0) 1 else 0 }
+    fun endGuide() { guidePhase = 0 }
+    /** The steps of the tips on this screen, in order: Journey has four; an online puzzle adds its creator and like/bookmark keys and drops the swipe where it doesn't work. */
+    fun guideSteps(): List<Int> {
+        val c = community ?: return listOf(1, 2, 3, 4)
+        return buildList { add(1); add(2); if (c.casual || c.source != null) add(3); add(4); add(5) }
+    }
+    /** A tap anywhere moves the tips on to the next step, and after the last one they end. */
+    fun advanceGuide() { guidePhase = guideSteps().let { it.getOrNull(it.indexOf(guidePhase) + 1) ?: 0 } }
     fun toggleColorblind() { colorblind = !colorblind; store.colorblind = colorblind; Art.colorblind = colorblind }
     fun changeEffects(value: Float) { effects = value; store.effects = value; audio.effects = value }
     fun changeAmbience(value: Float) { ambience = value; store.ambience = value; audio.ambience = value }

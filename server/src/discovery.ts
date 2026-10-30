@@ -39,8 +39,8 @@ async function creatorRows(db: Db, o: { query: string; sort: string; period: str
         (coalesce(c.n,0)+coalesce(t.n,0))::int AS "beatenCount",coalesce(lk.n,0)::int AS "likeCount"
       FROM users u ${join} LEFT JOIN xp_totals x ON x.user_id=u.id
       LEFT JOIN campaign_totals c ON c.user_id=u.id LEFT JOIN community_totals t ON t.user_id=u.id LEFT JOIN likes lk ON lk.owner_id=u.id
-      WHERE NOT u.suspended AND u.username ILIKE $2 ORDER BY ${order},u.id ASC LIMIT 21 OFFSET $3`,
-    [campaignHashes, searchPattern(o.query), o.page * 20, ...(related ? [related] : [])])).rows
+      WHERE NOT u.suspended AND u.username ILIKE $2 ORDER BY ${order},u.id ASC LIMIT 25 OFFSET $3`,
+    [campaignHashes, searchPattern(o.query), o.page * 24, ...(related ? [related] : [])])).rows
     .map(({ xp, ...row }) => ({ ...row, ...progression(BigInt(row.xpMilli)) }));
 }
 
@@ -53,7 +53,7 @@ export async function creators(app: FastifyInstance, db: Db, config: Config) {
   }, []) } }, async req => {
     const q = req.query as { query: string; sort: string; period: string; page: number };
     const rows = await creatorRows(db, q);
-    return { items: rows.slice(0, 20), nextPage: rows.length > 20 ? q.page + 1 : null };
+    return { items: rows.slice(0, 24), nextPage: rows.length > 24 ? q.page + 1 : null };
   });
   // Only the signed-in player's own lists: whom they follow, and who follows them. Nobody can see someone else's.
   const pageOnly = { querystring: objectSchema({ page: { type: 'integer', minimum: 0, maximum: 100000, default: 0 } }, []) };
@@ -61,7 +61,7 @@ export async function creators(app: FastifyInstance, db: Db, config: Config) {
     app.get(path, { preHandler: authentication(db, config), schema: pageOnly }, async req => {
       const page = (req.query as { page: number }).page;
       const rows = await creatorRows(db, { query: '', sort: 'level', period: 'all', page, [side]: req.account!.id });
-      return { items: rows.slice(0, 20), nextPage: rows.length > 20 ? page + 1 : null };
+      return { items: rows.slice(0, 24), nextPage: rows.length > 24 ? page + 1 : null };
     });
 }
 
