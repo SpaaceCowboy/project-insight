@@ -1,3 +1,17 @@
+# Android v0.2.19 — Tips, lists and streaming audio (31 October 2026)
+
+Published [v0.2.19 APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.19), version code 30, with the matching username-filter backend. Package ID, signing key, saved preferences and download address are unchanged.
+
+This batch refines the first-play tips: borders follow the theme, text sits on plates when it would cross tiles, every line shrinks to fit instead of being cut off, and taps and the lamp give the same feedback as other keys. Creator tips can start a swipe-back in the bands above and below the grid. Players are now one continuous scrolling list that fetches its next server page 50 rows ahead, replacing eight-row pages; Worlds' search bar slides without recomposing the list, and quiet refreshes keep loaded pages and the reader's position. Journey pages take as many rows as fit rather than shrinking cards, and keep their place across rotation or text-size changes. Discovery cards keep their size and position during a swipe. The dark theme and splash use #1F1F1F, Rulebook's "White" is readable on the light page, and the game's like/bookmark buttons moved down 8dp. Forest and mountain ambience is replaced by a looping zen "streaming" track on the Ambience slider. The shared username filter gained a larger word list and `6` → `g` substitution.
+
+A compile fix replaced Compose's removed `asFrameworkPaint` with `nativePaint` for the installed Compose UI 1.12.1.
+
+VPS validation passed: 61 Android unit tests, the first-play guide and language device regression, a signed v0.2.18-to-v0.2.19 upgrade that kept data and launched, and 18 server unit plus 20 integration tests. The backend modules deployed are `username` and `username-words`; no migration was required.
+
+Encrypted backup `/opt/insight-online/backups/insight-20261031T183029Z.dump.age` ran before rollout. The previous runtime is `/opt/insight-rollback-before-039`; the prior public APK is `/root/insight-apk-rollbacks/INSIGHT-online-v0.2.18-before-039.apk`. Counts after deployment: 15 users, 156 puzzles, 238 XP rows and all 80 seed puzzles. The service returned one 502 during restart before the health retry succeeded. Physical-phone checks and the full device suite were not run.
+
+Online SHA-256: 183a0f11eaec0bfc3b2269f340c4be697d6e10186285744bf058f53463be200b. Preview SHA-256: 0b3edd9582d75447a5dfd6a852262a17630e7eb5c5a0d879aac92208da4928a3. Certificate SHA-256: 3008529664ef52092022f4a3a0fc77a43f56d18ccaa947ecdf0be5daabd28c9a.
+
 # Android v0.2.18 — Midori, tap-through tips and achievements (28 October 2026)
 
 Published [v0.2.18 APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.18), version code 29, with the matching backend. The displayed app name is now Midori (Midori Preview for the local demonstration); the original package ID, signing key, saved-preference keys and download address are retained for compatible updates.

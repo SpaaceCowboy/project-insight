@@ -29,6 +29,10 @@ The TypeScript/PostgreSQL service and deployment instructions are in [server/REA
 
 Rebuild the local preview with `./gradlew assembleDebug -PinsightOnlineDemo=true`. Build a backend-connected APK with `./gradlew assembleDebug -PinsightApiUrl=https://YOUR_API`. Release builds reject cleartext service addresses. Preview data, saves, and credentials are kept separate from real service data.
 
+## Android v0.2.19 — Tips, lists and streaming audio
+
+Version 0.2.19 (code 30) refines the first-play tips with theme-aware borders, plate-backed text and shrink-to-fit lines; makes Players one continuous list that loads ahead; lets Journey pages fit the screen instead of shrinking cards; keeps discovery cards steady mid-swipe; and replaces forest/mountain ambience with a looping zen track. The shared username filter gained a larger word list and `6` → `g` substitution. Backend, package, signing key and saved data are unchanged. Built and tested on the VPS, including a signed v0.2.18 update preserving progress. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.19); see [deployment notes](DEPLOYMENT.md).
+
 ## Android v0.2.18 — Midori, tips and achievements
 
 Version 0.2.18 (code 29) renames the app to Midori while retaining its package, signing key and saved data. It adds tap-through gameplay/creator tips, single-touch transition handling, deeper raised controls, more achievements and list-based puzzle-code search. Fixed level badges to agree between progress and profile responses. Built and tested on the VPS, including a signed update preserving saved progress. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.18); see [deployment notes](DEPLOYMENT.md).
