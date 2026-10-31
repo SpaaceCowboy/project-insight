@@ -27,7 +27,7 @@ val LocalPalette = staticCompositionLocalOf { DarkPalette }
 
 /** The matte background: one barely-there diagonal gradient, no glows or lights. */
 fun backdrop(dark: Boolean): List<Color> = if (dark)
-    listOf(Color(0xFF1D1D1D), Color(0xFF1E1E1E), Color(0xFF1F1F1F), Color(0xFF1F1F1F))
+    listOf(Color(0xFF1F1F1F), Color(0xFF1F1F1F))
 else listOf(Color(0xFFFEFEFE), Color(0xFFFDFCFA), Color(0xFFFBF8F5), Color(0xFFF9F5F0))
 
 object Art {

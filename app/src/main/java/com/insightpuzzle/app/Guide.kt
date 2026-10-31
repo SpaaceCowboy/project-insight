@@ -8,7 +8,12 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -72,7 +77,7 @@ internal fun creatorGuideSteps(phase: Phase): List<String> = when (phase) {
         "Preview your puzzle: solve it before you create it.",
         "Hold the board to restart the preview.",
         "Swipe right to go back a stage.",
-        "Press Create to publish your puzzle.",
+        "Press on the button to create your puzzle.",
     )
 }
 
@@ -87,19 +92,22 @@ private const val BORDER_IN_MS = 200
 private const val TEXT_SWAP_MS = 220
 
 /**
- * The tips: fat light borders round whatever is being explained, one line of text and a "Tap to continue" line. The overlay takes every touch: a tap
- * anywhere moves on ([onTap]), a tap on the lamp ([lamp], in this overlay's coordinates) ends the tips ([onLamp]). [frame] gives any step's text and borders.
- * Between steps the old borders fade away before the new ones fade in, never both at once and never a flash; the text is swapped in place by a crossfade.
+ * The tips: fat borders round whatever is being explained (light on the dark theme, dark on the light one), the text and a "Tap to continue" line. The overlay takes
+ * every touch: a tap anywhere moves on ([onTap]), a tap on the lamp ([lamp], in this overlay's coordinates) ends the tips ([onLamp]); both are felt and heard like any
+ * other key. [frame] gives any step's text and borders. Between steps the old borders fade away before the new ones fade in, never both at once and never a flash;
+ * the text is swapped in place by a crossfade. A line that has no free strip of the outline to sit in ([textBacked], [hintBacked]) comes on a rounded plate instead,
+ * so it reads over whatever tiles are under it. [textSize] is the largest font a step's text may have; every text shrinks until all of it fits (nothing is cut off).
  */
 @Composable
-fun GuideOverlay(step: Int, frame: (Int) -> GuideFrame, textBand: Rect, hintBand: Rect, lamp: Rect?, onLamp: () -> Unit, onTap: () -> Unit) {
-    val density = LocalDensity.current
+fun GuideOverlay(step: Int, frame: (Int) -> GuideFrame, textBand: Rect, hintBand: Rect, lamp: Rect?, onLamp: () -> Unit, textBacked: Boolean = false, hintBacked: Boolean = false,
+                 textSize: (Int) -> Float = { 14f }, onTap: () -> Unit) {
     val reduce = LocalReduceMotion.current
     val p = LocalPalette.current
     val frames by rememberUpdatedState(frame)
     val tap by rememberUpdatedState(onTap)
     val endTips by rememberUpdatedState(onLamp)
     val lampArea by rememberUpdatedState(lamp)
+    val feedback by rememberUpdatedState(LocalFeedback.current)
     // The step whose borders are on screen: it changes only once the old borders have faded out.
     var shown by remember { mutableIntStateOf(step) }
     val lit = remember { Animatable(0f) }
@@ -116,19 +124,59 @@ fun GuideOverlay(step: Int, frame: (Int) -> GuideFrame, textBand: Rect, hintBand
                 val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
                 down.consume()
                 val onLampKey = lampArea?.contains(down.position) == true
-                waitForUpOrCancellation(PointerEventPass.Initial)?.let { it.consume(); if (onLampKey) endTips() else tap() }
+                waitForUpOrCancellation(PointerEventPass.Initial)?.let {
+                    it.consume()
+                    if (onLampKey) { feedback(Cue.TOGGLE_OFF); endTips() } else { feedback(Cue.FORWARD); tap() }
+                }
             }
         }.semantics { onClick(label = tr("Continue")) { tap(); true } }) {
-        Canvas(Modifier.fillMaxSize().graphicsLayer { alpha = lit.value }) { for (b in frames(shown).boxes) border(b.rect, b.radius.toPx(), b.grow.toPx(), b.wall.toPx()) }
+        Canvas(Modifier.fillMaxSize().graphicsLayer { alpha = lit.value }) { for (b in frames(shown).boxes) border(b.rect, b.radius.toPx(), b.grow.toPx(), b.wall.toPx(), p.dark, p.ink) }
         GuideLine(textBand, Modifier.graphicsLayer { alpha = appear.value }.semantics { liveRegion = LiveRegionMode.Polite }) {
             Crossfade(step, animationSpec = if (reduce) snap() else tween(TEXT_SWAP_MS), label = "guide text") { s ->
-                Label(frames(s).text, 14.sp, color = p.ink, weight = FontWeight.SemiBold, align = TextAlign.Center, lines = 2, translate = false)
+                GuideLabel(frames(s).text, textBand, textSize(s), p.ink, FontWeight.SemiBold, textBacked)
             }
         }
         GuideLine(hintBand, Modifier.graphicsLayer { alpha = appear.value }) {
-            Label(tr("Tap to continue"), 12.sp, color = p.muted, weight = FontWeight.Medium, align = TextAlign.Center, lines = 2, translate = false)
+            GuideLabel(tr("Tap to continue"), hintBand, 12f, p.muted, FontWeight.Medium, hintBacked)
         }
     }
+}
+
+/**
+ * A line of the tips that always shows whole: the largest font up to [maxSp] at which it fits [band] (the font is monospaced, so the lines it breaks into are counted
+ * exactly), then as many lines as that takes. On a rounded plate when [backed].
+ */
+@Composable
+private fun GuideLabel(text: String, band: Rect, maxSp: Float, color: Color, weight: FontWeight, backed: Boolean) {
+    val density = LocalDensity.current
+    val p = LocalPalette.current
+    val scale = density.fontScale
+    val room = with(density) { Size(band.width.toDp().value - if (backed) 24f else 0f, band.height.toDp().value - if (backed) 8f else 0f) }
+    var size = maxSp
+    while (size > MIN_GUIDE_SP) {
+        val perLine = (room.width / (size * scale * .62f)).toInt().coerceAtLeast(1)
+        if (monoLines(text, perLine) * size * scale * 1.2f <= room.height) break
+        size -= .5f
+    }
+    val label = @Composable { Label(text, size.sp, Modifier.wrapContentHeight(Alignment.CenterVertically, unbounded = true), color = color, weight = weight, align = TextAlign.Center, translate = false) }
+    if (!backed) label() else {
+        val shape = RoundedCornerShape(12.dp)
+        Box(Modifier.shadow(4.dp, shape, clip = false).background(p.paper2, shape).padding(horizontal = 12.dp, vertical = 4.dp)) { label() }
+    }
+}
+
+private const val MIN_GUIDE_SP = 9f
+
+/** How many lines [text] takes in a monospaced font when [perLine] characters fit a line (words are not split unless one is longer than a line). */
+internal fun monoLines(text: String, perLine: Int): Int {
+    var lines = 1; var used = 0
+    for (word in text.split(' ')) {
+        if (used == 0) used = word.length
+        else if (used + 1 + word.length <= perLine) used += 1 + word.length
+        else { lines++; used = word.length }
+        while (used > perLine) { lines++; used -= perLine }
+    }
+    return lines
 }
 
 /** A line of the tips, centred in [band]. */
@@ -171,40 +219,56 @@ fun GameGuide(m: GameModel, shell: Rect, grid: Rect, title: Rect?, like: Rect?, 
         4 -> listOfNotNull(title?.let { GuideBox(it, 12.dp, 3.dp, TITLE_WALL) })
         else -> listOfNotNull(like, bookmark).map { GuideBox(it, 16.dp, 3.dp, ICON_WALL) }
     }
-    GuideOverlay(step, { s -> GuideFrame(guideText(s, online), boxes(s)) }, textBand, hintBand, lamp, onLamp = { m.endGuide() }) { m.advanceGuide() }
+    // No free strip above the tiles (a tall grid fills the outline): the text sits above the outline, and the hint below it, each on a plate.
+    val textBacked = freeTop.height < lineHeight + edge * 2
+    val hintBacked = bandBottom.height < with(density) { 28.dp.toPx() }
+    // The like-and-bookmark sentence is the longest, so it starts smaller.
+    GuideOverlay(step, { s -> GuideFrame(guideText(s, online), boxes(s)) }, textBand, hintBand, lamp, onLamp = { m.endGuide() }, textBacked = textBacked, hintBacked = hintBacked,
+        textSize = { if (it == 5) 12f else 14f }) { m.advanceGuide() }
 }
 
 /**
- * The tips on the creator screen, step by step for its current stage ([creatorGuideSteps]). [grid] is the outline's face, [corner] the resize handle,
- * [strip] the tile shelf, [button] the stage's button face, [swipe] the band a swipe back starts in.
+ * The tips on the creator screen, step by step for its current stage ([creatorGuideSteps]). [grid] is the outline's face, [tiles] the area of its cells, [corner] the
+ * resize handle, [strip] the tile shelf, [button] the stage's button face, [swipe] the bands a swipe back starts in.
  */
 @Composable
-fun CreatorGuide(m: GameModel, phase: Phase, grid: Rect, corner: Rect?, strip: Rect?, button: Rect?, swipe: Rect?, lamp: Rect?) {
+fun CreatorGuide(m: GameModel, phase: Phase, grid: Rect, tiles: Rect?, corner: Rect?, strip: Rect?, button: Rect?, swipe: List<Rect>, lamp: Rect?) {
     val density = LocalDensity.current
     val edge = with(density) { 6.dp.toPx() }
     val inset = with(density) { 56.dp.toPx() }
     val lineHeight = with(density) { 44.dp.toPx() }
     val texts = creatorGuideSteps(phase)
-    val hold = GuideBox(grid, 24.dp, 3.dp, BOARD_WALL)
+    // The outline's border hugs its face, wall left out: the button is 12dp below, and the fat border (with its rim) must not reach it.
+    val hold = GuideBox(grid, 24.dp)
     val next = button?.let { GuideBox(it, 14.dp, 3.dp, MENU_WALL) }
+    // The shelf of tiles: well inside the page's edges, so the border never touches the keys and outline beside and below it.
+    val shelf = strip?.let { GuideBox(Rect(it.left + 4 * density.density, it.top + 10 * density.density, it.right - 4 * density.density, it.bottom - 10 * density.density), 16.dp) }
     fun boxes(s: Int): List<GuideBox> = when (phase) {
         Phase.BUILD -> when (s) {
-            1 -> listOfNotNull(GuideBox(grid, 24.dp, 3.dp, BOARD_WALL), corner?.let { GuideBox(it, 14.dp) })
-            2 -> listOfNotNull(strip?.let { GuideBox(it, 16.dp) })
+            1 -> listOfNotNull(hold, corner?.let { GuideBox(it, 14.dp) })
+            2 -> listOfNotNull(shelf)
             3 -> listOf(hold)
             else -> listOfNotNull(next)
         }
         else -> when (s) {
-            1 -> listOf(GuideBox(grid, 24.dp, 3.dp, BOARD_WALL))
+            1 -> listOf(hold)
             2 -> listOf(hold)
-            3 -> listOfNotNull(swipe?.let { GuideBox(it, 14.dp) })
+            3 -> if (swipe.isEmpty()) listOf(hold) else swipe.map { GuideBox(it, 14.dp) }
             else -> listOfNotNull(next)
         }
     }
-    // The text in the middle of the outline, the hint at its foot.
-    val textBand = Rect(grid.left + inset, grid.center.y - lineHeight / 2, grid.right - inset, grid.center.y + lineHeight / 2)
-    val hintBand = Rect(grid.left + inset, grid.bottom - lineHeight * .6f - edge * 2, grid.right - inset, grid.bottom - edge * 2)
-    GuideOverlay(m.guidePhase, { s -> GuideFrame(tr(texts.getOrElse(s - 1) { texts.last() }), boxes(s)) }, textBand, hintBand, lamp, onLamp = { m.endGuide() }) { m.advanceGuide() }
+    // The text at the top of the outline, like the game's tips, and the hint at its foot. With no free strip of the outline for them (the cells fill it) they sit above
+    // and below it, on a plate. The stage's own note ("Place at least two tiles first.") gives way to the tips while they show.
+    val freeTop = tiles?.let { Rect(grid.left, grid.top, grid.right, it.top) } ?: Rect(grid.left, grid.top, grid.right, grid.top + lineHeight + edge * 2)
+    val textBacked = freeTop.height < lineHeight + edge * 2
+    val textY = if (textBacked) grid.top - lineHeight - edge else freeTop.top + (freeTop.height - lineHeight) / 2
+    val textBand = Rect(grid.left + inset, textY, grid.right - inset, textY + lineHeight)
+    val footer = tiles?.let { Rect(grid.left + edge, it.bottom + edge * .5f, grid.right - edge, grid.bottom - edge) }
+    val hintBacked = footer == null || footer.height < with(density) { 28.dp.toPx() }
+    val hintBand = if (!hintBacked) Rect(footer!!.left + inset, footer.top, footer.right - inset, footer.bottom)
+        else Rect(grid.left + inset, grid.bottom + edge, grid.right - inset, grid.bottom + edge + lineHeight * .6f)
+    GuideOverlay(m.guidePhase, { s -> GuideFrame(tr(texts.getOrElse(s - 1) { texts.last() }), boxes(s)) }, textBand, hintBand, lamp, onLamp = { m.endGuide() },
+        textBacked = textBacked, hintBacked = hintBacked) { m.advanceGuide() }
 }
 
 /** Side walls of the keys the tips frame: the Journey / creator title key, the icon keys, a menu button. */
@@ -212,9 +276,14 @@ internal val TITLE_WALL = 2.dp
 internal val ICON_WALL = 3.dp
 internal val MENU_WALL = 3.dp
 
-/** A fat light border round [rect] and the [wall] under it (a darker rim under it keeps it readable on the light theme). */
-private fun DrawScope.border(rect: Rect, radius: Float, grow: Float = 0f, wall: Float = 0f) {
+/**
+ * A fat border round [rect] and the [wall] under it: white with a faint dark rim on the dark theme, plain [ink] (dark) on the light one, where white would vanish
+ * and a rim would only muddy it.
+ */
+private fun DrawScope.border(rect: Rect, radius: Float, grow: Float, wall: Float, dark: Boolean, ink: Color) {
     val at = Offset(rect.left - grow, rect.top - grow); val size = Size(rect.width + grow * 2, rect.height + wall + grow * 2)
-    drawRoundRect(Color.Black.copy(alpha = .22f), at, size, CornerRadius(radius), style = Stroke(11.dp.toPx()))
-    drawRoundRect(Color.White, at, size, CornerRadius(radius), style = Stroke(7.dp.toPx()))
+    if (dark) {
+        drawRoundRect(Color.Black.copy(alpha = .22f), at, size, CornerRadius(radius), style = Stroke(11.dp.toPx()))
+        drawRoundRect(Color.White, at, size, CornerRadius(radius), style = Stroke(7.dp.toPx()))
+    } else drawRoundRect(ink, at, size, CornerRadius(radius), style = Stroke(7.dp.toPx()))
 }

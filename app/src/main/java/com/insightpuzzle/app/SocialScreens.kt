@@ -64,7 +64,7 @@ fun PlayersScreen(m: GameModel, kind: String) {
     Page("Following", 560.dp) {
         ListHeader(m, "Following")
         Refreshable(state.pulling, { m.online.clearMessages(); state.pull() }, Modifier.weight(1f).fillMaxWidth()) {
-            PlayerPages(m, state, Modifier.fillMaxSize(), "You don't follow anyone yet.")
+            PlayerList(m, state, Modifier.fillMaxSize(), "You don't follow anyone yet.")
         }
     }
 }

@@ -37,7 +37,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 internal const val SPLASH_MIN_MS = 900L
 internal const val SPLASH_MAX_MS = 2500L
 /** The splash's grey: the dark theme's, whatever theme is saved. */
-internal val SplashGrey = Color(0xFF1D1D1D)
+internal val SplashGrey = Color(0xFF1F1F1F)
 
 /**
  * The first screen: the same grey as dark mode, "INSIGHT" in the app's font and a white tile, centred, drawn over the main menu while it composes underneath.

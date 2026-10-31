@@ -66,7 +66,7 @@ object Translations {
         t("Press Next to keep this target.", "Pulsa Siguiente para quedarte con este objetivo.", "Appuyez sur Suivant pour garder cette cible.", "Premi Avanti per tenere questo obiettivo.", "Tippe auf Weiter, um dieses Ziel zu behalten.")
         t("Preview your puzzle: solve it before you create it.", "Prueba tu puzle: resuélvelo antes de crearlo.", "Essayez votre puzzle : résolvez-le avant de le créer.", "Prova il tuo puzzle: risolvilo prima di crearlo.", "Probiere dein Rätsel aus: Löse es, bevor du es erstellst.")
         t("Hold the board to restart the preview.", "Mantén pulsado el tablero para reiniciar la prueba.", "Maintenez le plateau pour recommencer l'essai.", "Tieni premuto il tabellone per ricominciare la prova.", "Halte das Brett gedrückt, um die Probe neu zu starten.")
-        t("Press Create to publish your puzzle.", "Pulsa Crear para publicar tu puzle.", "Appuyez sur Créer pour publier votre puzzle.", "Premi Crea per pubblicare il tuo puzzle.", "Tippe auf Erstellen, um dein Rätsel zu veröffentlichen.")
+        t("Press on the button to create your puzzle.", "Pulsa el botón para crear tu puzle.", "Appuyez sur le bouton pour créer votre puzzle.", "Premi il pulsante per creare il tuo puzzle.", "Tippe auf den Button, um dein Rätsel zu erstellen.")
         t("Tap to continue", "Toca para continuar", "Touchez pour continuer", "Tocca per continuare", "Tippen zum Fortfahren")
         t("Continue", "Continuar", "Continuer", "Continua", "Weiter")
 

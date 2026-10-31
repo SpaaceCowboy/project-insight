@@ -26,6 +26,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.IntOffset
@@ -100,12 +101,12 @@ internal fun PuzzleRow(m: GameModel, row: List<JSONObject>, cell: Dp, startIndex
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         repeat(4) { column ->
             val grid = row.getOrNull(column)
-            if (grid == null) Spacer(Modifier.weight(1f)) else {
+            if (grid == null) Spacer(Modifier.weight(1f)) else key(grid.getString("id")) {
                 val unavailable = grid.optBoolean("hidden") || grid.optBoolean("moderated")
                 val solved = grid.optBoolean("completed") || grid.getString("id") in m.communityDone
                 val rank = startIndex + column + 1
                 // Cropped once per puzzle, not on every recomposition of every card on every kept page.
-                val target = remember(grid) { Rules.crop(grid.board("target")) }
+                val target = remember(grid.getString("id")) { Rules.crop(grid.board("target")) }
                 fun detail() = onDetail(DetailAnchor(grid, places[column]?.takeIf { it.isAttached }?.boundsInRoot(), column, bottomRow))
                 CollectionCard(
                     formatted(rank), target, cell,
@@ -146,6 +147,18 @@ private fun PuzzlePage(m: GameModel, items: List<JSONObject>, first: Int, cell: 
 internal fun cardRowsHeight(side: Dp, rows: Int): Dp = side * rows + 10.dp * (rows - 1).coerceAtLeast(0) + 4.dp
 
 /**
+ * Puts this element (a scrolling page) [minTop] or more below the top of its parent's room, so that [content] tall sits in the middle of it; what it leaves of the room
+ * is its own height, so a page taller than the room still scrolls. Done in the layout phase, using the room it is given at that moment.
+ */
+private fun Modifier.centredIn(content: Dp, minTop: Dp): Modifier = layout { measurable, constraints ->
+    val room = constraints.maxHeight
+    val free = (room - content.roundToPx()).coerceAtLeast(0)
+    val top = maxOf(free / 2, minTop.roundToPx()).coerceAtMost(room)
+    val placeable = measurable.measure(constraints.copy(minHeight = room - top, maxHeight = room - top))
+    layout(constraints.maxWidth, room) { placeable.place(0, top) }
+}
+
+/**
  * Community puzzles in pages of [rows] rows of four: swipe sideways for the next page, up and down inside a page that is taller than the screen. Pull down to refresh.
  * [header] sits above the pages inside the pull; [scroll] sees a page's scrolling first (Worlds' hidden search); [minTop] keeps the first row at least that far
  * below the header (the open search bar leaves no spare room, and the players list has the same 8dp there).
@@ -161,13 +174,11 @@ internal fun PuzzleGrid(m: GameModel, state: DiscoveryListState, modifier: Modif
             // The grid bleeds past the page edge by the shadow room; the header (Worlds' search bar) stays on the page edge.
             Box(Modifier.padding(horizontal = ShadowRoom)) { header() }
             PagedItems(state, rows * CARD_COLUMNS, Modifier.weight(1f).fillMaxWidth().then(if (scroll != null) Modifier.nestedScroll(scroll) else Modifier), lookahead = true) { items, first ->
-                // The rows sit in the middle of the room the page has, so the space above the first row equals the space below the last one.
-                BoxWithConstraints(Modifier.fillMaxSize()) {
-                    val free = (maxHeight - cardRowsHeight(side, rows)).coerceAtLeast(0.dp)
-                    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(top = maxOf(free / 2, minTop), bottom = (8.dp - free / 2).coerceIn(0.dp, 8.dp))) {
-                        PuzzlePage(m, items, first, cell, state, skeletonRows = if (state.items.isNotEmpty()) rows else 0, onDetail = onDetail)
-                        if (items.isEmpty()) Box(Modifier.padding(horizontal = ShadowRoom)) { DiscoveryFooter(m, state, empty) }
-                    }
+                // The rows sit in the middle of the room the page has, so the space above the first row equals the space below the last one. That is worked out
+                // while laying out, not while composing, so a page whose room changes every frame (Worlds' search bar sliding) is only re-laid-out, never recomposed.
+                Column(Modifier.fillMaxSize().centredIn(cardRowsHeight(side, rows), minTop).verticalScroll(rememberScrollState()).padding(bottom = 8.dp)) {
+                    PuzzlePage(m, items, first, cell, state, skeletonRows = if (state.items.isNotEmpty()) rows else 0, onDetail = onDetail)
+                    if (items.isEmpty()) Box(Modifier.padding(horizontal = ShadowRoom)) { DiscoveryFooter(m, state, empty) }
                 }
             }
         } }
@@ -273,8 +284,8 @@ private val shareIcon: androidx.compose.ui.graphics.drawscope.DrawScope.(android
 fun LevelsScreen(m: GameModel) {
     val targets = m.levelTargets
     val largest = remember(targets) { targets.maxOf { it[0].length } to targets.maxOf { it.size } }
-    val pageSize = JOURNEY_ROWS * CARD_COLUMNS
-    var page by remember { mutableIntStateOf(m.level / pageSize) }
+    // The first level on the open page, so the page survives a change in how many rows fit (a rotation or a different text size).
+    var first by remember { mutableIntStateOf(m.level) }
     val indices = remember(m.levels) { m.levels.indices.toList() }
     Page("Levels", 560.dp) {
         CompositionLocalProvider(androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Ltr) {
@@ -286,25 +297,32 @@ fun LevelsScreen(m: GameModel) {
         }
         Spacer(Modifier.height(ScreenGap))
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().bleed()) {
-            // Eight rows of four fit without scrolling: the card side comes from the width (the same cards as Worlds, edge to edge with the keys above),
-            // or from the height when that is smaller.
+            // The very same cards as Worlds (same side, same tiles, edge to edge with the keys above). Up to eight rows of four per page; when that many do not fit
+            // at this size the page simply has one row less, and so on, instead of shrinking the cards.
             val gap = 10.dp
-            val side = minOf(cardSide(maxWidth), (maxHeight - 16.dp - gap * (JOURNEY_ROWS - 1)) / JOURNEY_ROWS)
-            // One tile size for every card, taken from the biggest target, so equal tiles look equal on every level.
-            val cell = miniCell(largest.first, largest.second, miniArea(side, LocalDensity.current.fontScale))
-            Paged(indices, pageSize, page, { page = it }, Modifier.fillMaxSize()) { levels, _ ->
-                Column(Modifier.fillMaxSize().padding(vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(gap)) {
-                    for (row in levels.chunked(CARD_COLUMNS)) Row(horizontalArrangement = Arrangement.spacedBy(CARD_GAP)) {
+            val side = cardSide(maxWidth)
+            val rows = ((maxHeight - 4.dp + gap) / (side + gap)).toInt().coerceIn(1, JOURNEY_ROWS)
+            val pageSize = rows * CARD_COLUMNS
+            // One tile size for every card, taken from the biggest target, but never bigger than Worlds' (which are sized for a 5x5 target).
+            val cell = minOf(puzzleCell(maxWidth), miniCell(largest.first, largest.second, miniArea(side, LocalDensity.current.fontScale)))
+            // The rows sit in the middle of the room the page has: from the keys above to the first row is the same distance as from the last row to the screen's edge
+            // (the page's own 16dp at the bottom against the gap under the keys).
+            val free = (maxHeight - cardRowsHeight(side, rows)).coerceAtLeast(0.dp)
+            val top = ((free + 16.dp - ScreenGap) / 2).coerceIn(0.dp, free)
+            Paged(indices, pageSize, first / pageSize, { first = it * pageSize }, Modifier.fillMaxSize()) { levels, _ ->
+                Column(Modifier.fillMaxSize().padding(start = ShadowRoom, end = ShadowRoom, top = top), verticalArrangement = Arrangement.spacedBy(gap)) {
+                    for (row in levels.chunked(CARD_COLUMNS)) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(CARD_GAP)) {
                         for (i in row) {
                             val solved = i + 1 in m.done
                             val locked = !m.canAccess(i)
                             CollectionCard(
                                 formatted(i + 1), targets[i], cell,
                                 tr("Level {0}", i + 1) + if (locked) ", " + tr("locked") else if (solved) ", " + tr("solved") else "",
-                                Modifier.size(side), solved = solved, dimmed = locked, current = i == m.level,
+                                Modifier.weight(1f).aspectRatio(1f), solved = solved, dimmed = locked, current = i == m.level,
                                 onClick = { if (!locked) m.start(i) },
                             )
                         }
+                        repeat(CARD_COLUMNS - row.size) { Spacer(Modifier.weight(1f)) }
                     }
                 }
             }

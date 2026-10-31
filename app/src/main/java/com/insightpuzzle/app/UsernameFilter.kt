@@ -72,7 +72,7 @@ class UsernameFilter(private val words: JSONObject) {
     }
 
     companion object {
-        private val DIGIT_LETTERS = mapOf('0' to 'o', '1' to 'i', '3' to 'e', '4' to 'a', '5' to 's', '7' to 't', '8' to 'b', '9' to 'g')
+        private val DIGIT_LETTERS = mapOf('0' to 'o', '1' to 'i', '3' to 'e', '4' to 'a', '5' to 's', '6' to 'g', '7' to 't', '8' to 'b', '9' to 'g')
         /** A word as a pattern that also accepts stretched spellings: "fuuuck" and "asss" match, but "bob" does not match "boob". */
         internal fun stretched(word: String): String {
             val out = StringBuilder(); var i = 0

@@ -125,10 +125,10 @@ fun HomeScreen(m: GameModel) {
             }
             // Slightly smaller than the half each mode owns, with room under it for the tall sidewall.
             Box(Modifier.weight(1f).fillMaxWidth().padding(bottom = MODE_WALL), contentAlignment = Alignment.Center) {
-                MenuButton(tr("Journey").uppercase(), Modifier.fillMaxWidth(MODE_SCALE).fillMaxHeight(MODE_SCALE), fontSize = homeSize, shape = MODE_SHAPE, textColor = modeText, description = "Journey", weight = FontWeight.Bold, raised = true, depth = MODE_WALL, cue = Cue.FORWARD) { m.startJourney() }
+                MenuButton(tr("Journey").uppercase(), Modifier.fillMaxWidth(MODE_SCALE).fillMaxHeight(MODE_SCALE), fontSize = homeSize, shape = MODE_SHAPE, textColor = modeText, description = "Journey", weight = FontWeight.Bold, raised = true, depth = MODE_WALL, shrink = false, shadowFades = true, cue = Cue.FORWARD) { m.startJourney() }
             }
             Box(Modifier.weight(1f).fillMaxWidth().padding(bottom = MODE_WALL), contentAlignment = Alignment.Center) {
-                MenuButton(tr("Worlds").uppercase(), Modifier.fillMaxWidth(MODE_SCALE).fillMaxHeight(MODE_SCALE), fontSize = homeSize, shape = MODE_SHAPE, textColor = modeText, description = "Worlds", weight = FontWeight.Bold, raised = true, depth = MODE_WALL, cue = Cue.FORWARD) { m.openOnline(Route.Online) }
+                MenuButton(tr("Worlds").uppercase(), Modifier.fillMaxWidth(MODE_SCALE).fillMaxHeight(MODE_SCALE), fontSize = homeSize, shape = MODE_SHAPE, textColor = modeText, description = "Worlds", weight = FontWeight.Bold, raised = true, depth = MODE_WALL, shrink = false, shadowFades = true, cue = Cue.FORWARD) { m.openOnline(Route.Online) }
             }
         }
     }
@@ -216,9 +216,9 @@ val logoutIcon = AnimatedIcon(stays = false) { c, t ->
 }
 /**
  * Gameplay tips: a plain lamp (bulb, neck and two base lines) in the [side]-wide square at [at]. [lit] (the tips are showing) fills the bulb and neck with white,
- * the same lamp switched on: no glow round it.
+ * the same lamp switched on: no glow round it. [fill] is white on the dark theme and a dark ink on the light one.
  */
-fun DrawScope.lampArt(c: Color, lit: Boolean, at: Offset, side: Float) {
+fun DrawScope.lampArt(c: Color, lit: Boolean, at: Offset, side: Float, fill: Color = Color.White) {
     val u = side / 24f
     fun pt(x: Float, y: Float) = Offset(at.x + x * u, at.y + y * u)
     if (lit) {
@@ -227,7 +227,7 @@ fun DrawScope.lampArt(c: Color, lit: Boolean, at: Offset, side: Float) {
             moveTo(pt(8.46f, 13.2f).x, pt(8.46f, 13.2f).y); lineTo(pt(9.5f, 16f).x, pt(9.5f, 16f).y)
             lineTo(pt(14.5f, 16f).x, pt(14.5f, 16f).y); lineTo(pt(15.54f, 13.2f).x, pt(15.54f, 13.2f).y); close()
         }
-        drawPath(bulb, Color.White)
+        drawPath(bulb, fill)
     }
     val line = 1.7f * u
     drawArc(c, 130f, 280f, false, pt(6.5f, 3.5f), Size(11f * u, 11f * u), style = Stroke(line, cap = StrokeCap.Round))
@@ -271,7 +271,7 @@ fun BackChevron(m: GameModel, modifier: Modifier = Modifier) = PlushIconButton("
  */
 @Composable
 fun GuideButton(modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) =
-    PlushIconButton("Gameplay tips", modifier, onClick, Cue.SELECT, enabled, false, false, { _, _ -> })
+    PlushIconButton("Gameplay tips", modifier, onClick, Cue.TOGGLE_ON, enabled, false, false, { _, _ -> })
 
 /** Where the lamp sits for an outline [shell]: its 48dp touch area has the icon about 28dp in from the outline's top and right edges. */
 fun Density.guideLampOffset(shell: androidx.compose.ui.geometry.Rect) = IntOffset((shell.right - 52.dp.toPx()).roundToInt(), (shell.top + 4.dp.toPx()).roundToInt())
@@ -438,7 +438,7 @@ private fun VolumeSlider(label: String, value: Float, onChange: (Float) -> Unit)
 }
 
 /**
- * Your achievements with their progress, or (with [player]) another player's: the server only lists which badges they have, so their rows show earned or not, no progress.
+ * Your achievements with their progress, or (with [player]) another player's: the server only lists which badges they have, so their rows show earned (tinted) or not, with no progress and no labels.
  */
 @Composable
 fun AchievementsScreen(m: GameModel, player: Route.PlayerAchievements? = null) {
@@ -470,7 +470,6 @@ fun AchievementsScreen(m: GameModel, player: Route.PlayerAchievements? = null) {
                                 }
                             }
                         }
-                        if (player != null) Label(if (earned) "earned" else "locked", 11.sp, Modifier.padding(start = 8.dp), color = if (earned) p.ink else p.muted, weight = FontWeight.SemiBold)
                     }
                 }
                 Spacer(Modifier.height(12.dp))

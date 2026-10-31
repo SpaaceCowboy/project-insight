@@ -7,6 +7,6 @@
         <item name="android:autofilledHighlight">@android:color/transparent</item>
     </style>
     <!-- The dark grey of the splash screen (and of dark mode), so the window is already this colour before the first frame. -->
-    <color name="bg">#1D1D1D</color>
+    <color name="bg">#1F1F1F</color>
     <color name="icon_bg">#161718</color>
 </resources>

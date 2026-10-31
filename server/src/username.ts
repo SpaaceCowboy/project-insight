@@ -17,7 +17,7 @@ export const NAME_MESSAGES: Record<NameProblem, string> = {
 
 /** A word as a pattern that also accepts stretched spellings: "fuuuck" and "asss" match, but "bob" does not match "boob" and "niigata" does not match "nigga". */
 const stretched = (word: string) => word.replace(/(.)\1*/gu, (run, ch: string) => `${ch}{${run.length},}`);
-const DIGIT_LETTERS: Record<string, string> = { '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '8': 'b', '9': 'g' };
+const DIGIT_LETTERS: Record<string, string> = { '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '6': 'g', '7': 't', '8': 'b', '9': 'g' };
 
 interface Words { exact: RegExp[]; roots: RegExp[] }
 const words = (list: { readonly exact: readonly string[]; readonly contains: readonly string[] }): Words =>

@@ -76,8 +76,16 @@ class HotfixLogicTest {
         // 20 loaded, 24 per page: the first page is already within reach of the end.
         assertTrue(needsMore(20, 0, 24, true))
         assertFalse(needsMore(20, 0, 24, false))
-        assertFalse(needsMore(100, 0, 24, true))
-        assertTrue(needsMore(100, 2, 24, true))
+        assertFalse(needsMore(150, 0, 24, true))
+        assertTrue(needsMore(100, 0, 24, true))
+        assertTrue(needsMore(150, 2, 24, true))
+    }
+
+    @Test fun guideTextLinesAreCountedWithoutCuttingWords() {
+        assertEquals(1, monoLines("Swipe to move", 20))
+        assertEquals(2, monoLines("Hold the board anywhere but on a tile", 24))
+        // A word longer than a line breaks across lines rather than disappearing.
+        assertEquals(3, monoLines("abcdefghijklmnopqrstuvwxyz", 10))
     }
 
     @Test fun tallCreatorTargetsShrinkToFit() {

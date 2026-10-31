@@ -12,6 +12,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -374,7 +375,7 @@ fun CreatorScreen(m: GameModel) {
             // Top strip: tiles to place while building, nothing while choosing the target, then the target to reach. Its height never changes.
             BoxWithConstraints(Modifier.widthIn(max = 560.dp).fillMaxWidth().height(96.dp).onGloballyPositioned { stripBox = it }.padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
                 if (s.phase == Phase.BUILD) {
-                    val size = min(56f, (maxWidth.value - 40f) / 6f).dp
+                    val size = min(56f, (maxWidth.value - 40f - 16f) / 6f).dp
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         for (type in Rules.TYPES) {
                             val on = s.holding == type
@@ -417,7 +418,7 @@ fun CreatorScreen(m: GameModel) {
                 SideEffect { drawn.phase = s.phase; drawn.board = s.board; drawn.cell = cell; drawn.origin = origin }
                 Canvas(Modifier.fillMaxSize()) {
                     // The tips lamp, etched into the outline under the tiles.
-                    if (m.guideOn) lampArt(lerp(p.paper2, p.ink, .5f), m.guidePhase != 0, Offset(size.width - LAMP_INSET.toPx() - LAMP_ART.toPx(), LAMP_TOP.toPx()), LAMP_ART.toPx())
+                    if (m.guideOn) lampArt(lerp(p.paper2, p.ink, .5f), m.guidePhase != 0, Offset(size.width - LAMP_INSET.toPx() - LAMP_ART.toPx(), LAMP_TOP.toPx()), LAMP_ART.toPx(), if (p.dark) Color.White else p.ink)
                     for (item in inks) ink(item, item.t.value)
                     val mv = moving
                     val late = mutableListOf<() -> Unit>()
@@ -487,8 +488,10 @@ fun CreatorScreen(m: GameModel) {
                 }
                 // A refusal or result, on the outline's top band where a swipe back starts.
                 Box(Modifier.fillMaxWidth().height(with(density) { g.origin.y.coerceAtLeast(0f).toDp() }).padding(horizontal = 56.dp), contentAlignment = Alignment.Center) {
-                    if (s.phase == Phase.CHECK && s.limitReached) Label(tr("Daily limit of {0} puzzles reached.", CREATE_DAILY_LIMIT), 12.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite }, color = p.accent, align = TextAlign.Center, lines = 2, translate = false)
-                    else if (s.note.isNotEmpty()) Label(s.note, 12.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite }, color = p.muted, align = TextAlign.Center, lines = 2)
+                    // The tips (when showing) take this place; the note is back when they end.
+                    if (m.guidePhase != 0) Unit
+                    else if (s.phase == Phase.CHECK && s.limitReached) Label(tr("Daily limit of {0} puzzles reached.", CREATE_DAILY_LIMIT), 12.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite }.wrapContentHeight(unbounded = true), color = p.accent, align = TextAlign.Center, translate = false)
+                    else if (s.note.isNotEmpty()) Label(s.note, 12.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite }.wrapContentHeight(unbounded = true), color = p.muted, align = TextAlign.Center)
                 }
                 // TalkBack nodes for cells and the resize handle.
                 for (r in 0 until s.rows) for (c in 0 until s.cols) {
@@ -540,8 +543,9 @@ fun CreatorScreen(m: GameModel) {
                 val g = grid
                 val tiles = g?.let { Rect(shell.left + it.origin.x, shell.top + it.origin.y, shell.left + it.origin.x + it.cols * it.cell + (it.cols - 1) * it.gap, shell.top + it.origin.y + it.rows * it.cell + (it.rows - 1) * it.gap) }
                 val corner = tiles?.let { Rect(it.right - 24 * dp, it.bottom - 24 * dp, it.right + 24 * dp, it.bottom + 24 * dp) }
-                val swipe = tiles?.let { Rect(shell.left + 6 * dp, shell.top + 6 * dp, shell.right - 6 * dp, it.top - 3 * dp) }?.takeIf { it.height > 12 * dp }
-                CreatorGuide(m, s.phase, shell, corner, rect(stripBox), rect(buttonBox), swipe, lampAt)
+                // A swipe back starts anywhere off the cells: the bands above and below them, as in the game's tips.
+                val swipe = tiles?.let { listOf(Rect(shell.left + 6 * dp, shell.top + 6 * dp, shell.right - 6 * dp, it.top - 3 * dp), Rect(shell.left + 6 * dp, it.bottom + 3 * dp, shell.right - 6 * dp, shell.bottom - 6 * dp)).filter { b -> b.height > 12 * dp } } ?: emptyList()
+                CreatorGuide(m, s.phase, shell, tiles, corner, rect(stripBox), rect(buttonBox), swipe, lampAt)
             }
         }
     }

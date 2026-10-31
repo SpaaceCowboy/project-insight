@@ -14,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -52,7 +53,9 @@ fun ColumnScope.RulebookTab(m: GameModel) {
                 val at = text.indexOf(name).coerceAtLeast(0)
                 val styled = buildAnnotatedString {
                     append(text.substring(0, at))
-                    withStyle(SpanStyle(color = Art.LIGHT.getValue(type), fontWeight = FontWeight.SemiBold)) { append(name) }
+                    // The pale "White" colour vanishes on the light page, so there it is a softer grey than the body text, but still readable.
+                    val nameColor = if (type == 'W' && !LocalPalette.current.dark) Color(0xFF8C9188) else Art.LIGHT.getValue(type)
+                    withStyle(SpanStyle(color = nameColor, fontWeight = FontWeight.SemiBold)) { append(name) }
                     append(text.substring((at + name.length).coerceAtMost(text.length)))
                 }
                 Label(styled, 13.sp, Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = text }, lineHeight = 1.4f)

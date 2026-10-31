@@ -23,7 +23,7 @@ internal const val CARD_COLUMNS = 4
 /** Pages on either side of the open one that stay composed, so a swipe never meets an empty page. */
 internal const val PAGES_KEPT = 2
 /** Server pages are fetched until this many pages of items are loaded past the open one. */
-internal const val PAGES_AHEAD = 3
+internal const val PAGES_AHEAD = 5
 
 /** How many pages [items] items fill; an empty list still has one (empty) page. */
 internal fun pageCount(items: Int, pageSize: Int) = maxOf(1, (items + pageSize - 1) / pageSize)
@@ -52,7 +52,9 @@ internal fun <T> Paged(
     val change by rememberUpdatedState(onPage)
     val more by rememberUpdatedState(onMore)
     LaunchedEffect(pager) { snapshotFlow { pager.settledPage }.collect { if (it != current) { feedback(null); change(it) } } }
-    LaunchedEffect(page, count) { if (page in 0 until count && pager.currentPage != page) pager.scrollToPage(page) }
+    // The kept page only moves the pager when it was changed from outside (a new search or sort starts at page 0). It never fights a swipe in progress, and a longer
+    // list (more pages arriving) is no reason to move: that used to snap a fast swipe back to the page it had left.
+    LaunchedEffect(page) { if (page in 0 until count && pager.currentPage != page && !pager.isScrollInProgress) pager.scrollToPage(page) }
     LaunchedEffect(pager, items.size, hasMore) { snapshotFlow { pager.currentPage }.collect { if (needsMore(items.size, it, pageSize, hasMore)) more() } }
     HorizontalPager(pager, modifier, beyondViewportPageCount = PAGES_KEPT, key = { it }) { index ->
         Box(Modifier.fillMaxSize()) { content(pageItems(items, index, pageSize), index * pageSize) }

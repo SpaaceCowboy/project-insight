@@ -291,7 +291,7 @@ fun GameScreen(m: GameModel) {
                     val lampInk = lerp(p.paper2, p.ink, .5f).copy(alpha = if (solved) .45f else 1f)
                     val lit = m.guidePhase != 0
                     val lamp: (DrawScope.() -> Unit)? = if (m.guideOn && !exiting) {
-                        { lampArt(lampInk, lit, Offset(size.width - LAMP_INSET.toPx() - LAMP_ART.toPx(), LAMP_TOP.toPx()), LAMP_ART.toPx()) }
+                        { lampArt(lampInk, lit, Offset(size.width - LAMP_INSET.toPx() - LAMP_ART.toPx(), LAMP_TOP.toPx()), LAMP_ART.toPx(), if (p.dark) Color.White else p.ink.copy(alpha = if (solved) .45f else 1f)) }
                     } else null
                     Board(Modifier.fillMaxWidth().height(boardShellHeight(maxHeight)).onGloballyPositioned { shellBox = it; refresh() }, view.board, Pair(view.level, community?.id), spec.target, solved, { m.board },
                         holdGlow = glow.value, rewindTo = if (rewinding) spec.start else null, rewindProgress = rewind.value, onGrid = { gridRect = it }, beneath = lamp) { a, b -> m.move(a, b) }
@@ -320,16 +320,16 @@ fun GameScreen(m: GameModel) {
             if (m.guideOn && !exiting) GuideButton(Modifier.offset { guideLampOffset(shell).let { IntOffset(it.x, it.y + sink.roundToInt()) } }, enabled = !solved) { m.tapGuide() }
             if (m.guidePhase != 0 && !solved && !exiting) {
                 val size = root?.size
-                val like = if (community?.grid?.optString("ownerId") != m.online.user?.id) Rect(16 * dp, 64 * dp, 64 * dp, 112 * dp) else null
-                val bookmark = size?.let { Rect(it.width - 64 * dp, 64 * dp, it.width - 16 * dp, 112 * dp) }
+                val like = if (community?.grid?.optString("ownerId") != m.online.user?.id) Rect(16 * dp, 72 * dp, 64 * dp, 120 * dp) else null
+                val bookmark = size?.let { Rect(it.width - 64 * dp, 72 * dp, it.width - 16 * dp, 120 * dp) }
                 GameGuide(m, shell, gridRect.translate(shell.topLeft), rect(titleKey), like.takeIf { community != null }, bookmark.takeIf { community != null }, lampAt)
             }
         }
         // Online puzzles: like (under Options, not on your own puzzles) and bookmark (under Profile). Filled when on.
         community?.let { c ->
             if (c.grid.optString("ownerId") != m.online.user?.id)
-                HomeIconButton(if (m.liked) "Unlike puzzle" else "Like puzzle", Modifier.align(Alignment.TopStart).padding(start = 16.dp, top = 64.dp), { m.toggleLike() }, heartIcon(m.liked), Cue.CHECK)
-            HomeIconButton(if (m.bookmarked) "Remove bookmark" else "Bookmark puzzle", Modifier.align(Alignment.TopEnd).padding(end = 16.dp, top = 64.dp), { m.toggleBookmark() }, bookmarkIcon(m.bookmarked), Cue.CHECK)
+                HomeIconButton(if (m.liked) "Unlike puzzle" else "Like puzzle", Modifier.align(Alignment.TopStart).padding(start = 16.dp, top = 72.dp), { m.toggleLike() }, heartIcon(m.liked), Cue.CHECK)
+            HomeIconButton(if (m.bookmarked) "Remove bookmark" else "Bookmark puzzle", Modifier.align(Alignment.TopEnd).padding(end = 16.dp, top = 72.dp), { m.toggleBookmark() }, bookmarkIcon(m.bookmarked), Cue.CHECK)
         }
     }
 }

@@ -43,7 +43,7 @@ class MainActivity : ComponentActivity() {
         // The first frame is the splash screen, which is dark grey in either theme, so the system bars start dark too (they follow the theme once it is gone).
         enableEdgeToEdge(SystemBarStyle.dark(Color.TRANSPARENT), SystemBarStyle.dark(Color.TRANSPARENT))
         // The splash screen is dark grey whatever the theme, so the window starts that colour and the system bars stay dark until the splash is gone.
-        window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(0xFF1D1D1D.toInt()))
+        window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(0xFF1F1F1F.toInt()))
         setContent {
             val dark = model.dark
             val barsDark = dark || !model.splashDone

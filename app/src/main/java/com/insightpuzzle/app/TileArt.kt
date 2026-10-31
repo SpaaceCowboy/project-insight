@@ -16,19 +16,18 @@ import androidx.compose.ui.unit.Dp
 import kotlin.math.cos
 import kotlin.math.sin
 
-// Tile symbols from src/tile-art.js, as line segments in a 48x48 box.
-private val SEGMENTS: Map<Char, List<FloatArray>> = mapOf(
-    'R' to listOf(f(24, 8, 24, 40), f(24, 8, 17, 15), f(24, 8, 31, 15), f(24, 40, 17, 33), f(24, 40, 31, 33)),
-    'B' to listOf(f(8, 24, 40, 24), f(8, 24, 15, 17), f(8, 24, 15, 31), f(40, 24, 33, 17), f(40, 24, 33, 31)),
-    'G' to listOf(f(12.69, 35.31, 35.31, 12.69), f(35.31, 12.69, 25.41, 12.69), f(35.31, 12.69, 35.31, 22.59), f(12.69, 35.31, 22.59, 35.31), f(12.69, 35.31, 12.69, 25.41)),
-    'Y' to listOf(f(12.69, 12.69, 35.31, 35.31), f(12.69, 12.69, 22.59, 12.69), f(12.69, 12.69, 12.69, 22.59), f(35.31, 35.31, 25.41, 35.31), f(35.31, 35.31, 35.31, 25.41)),
+// Tile symbols from src/tile-art.js, as polylines in a 48x48 box: each arrow is a shaft plus one chevron per head (arm, tip, arm). They are stroked as ONE path
+// (see [symbol]), so where a shaft meets its chevron the paint is laid once: no double-dark seams on translucent ink, and the tip is a true round joint.
+private val LINES: Map<Char, List<FloatArray>> = mapOf(
+    'R' to listOf(f(24, 8, 24, 40), f(17, 15, 24, 8, 31, 15), f(17, 33, 24, 40, 31, 33)),
+    'B' to listOf(f(8, 24, 40, 24), f(15, 17, 8, 24, 15, 31), f(33, 17, 40, 24, 33, 31)),
+    'G' to listOf(f(12.69, 35.31, 35.31, 12.69), f(25.41, 12.69, 35.31, 12.69, 35.31, 22.59), f(22.59, 35.31, 12.69, 35.31, 12.69, 25.41)),
+    'Y' to listOf(f(12.69, 12.69, 35.31, 35.31), f(22.59, 12.69, 12.69, 12.69, 12.69, 22.59), f(25.41, 35.31, 35.31, 35.31, 35.31, 25.41)),
     'W' to listOf(f(24, 6, 24, 14), f(24, 34, 24, 42), f(6, 24, 14, 24), f(34, 24, 42, 24)),
     'P' to listOf(
         f(24, 8, 24, 40), f(8, 24, 40, 24),
-        f(24, 8, 18, 14), f(24, 8, 30, 14),
-        f(24, 40, 18, 34), f(24, 40, 30, 34),
-        f(8, 24, 14, 18), f(8, 24, 14, 30),
-        f(40, 24, 34, 18), f(40, 24, 34, 30),
+        f(18, 14, 24, 8, 30, 14), f(18, 34, 24, 40, 30, 34),
+        f(14, 18, 8, 24, 14, 30), f(34, 18, 40, 24, 34, 30),
     ),
 )
 private fun f(vararg v: Number) = FloatArray(v.size) { v[it].toFloat() }
@@ -38,10 +37,14 @@ private val WHITE_INK = Color(0xFF45474C)
 fun DrawScope.symbol(type: Char, origin: Offset, size: Float, scale: Float, color: Color = if (type == 'W') WHITE_INK else Color.White, weight: Float = 1f) {
     val box = size * scale; val unit = box / 48f
     val left = origin.x + (size - box) / 2; val top = origin.y + (size - box) / 2
-    val ink = color
-    val width = weight * unit * when (type) { 'P' -> 3.1f; 'W' -> 3.6f; else -> 4.2f }
-    if (type == 'W') drawCircle(ink, radius = 10 * unit, center = Offset(left + 24 * unit, top + 24 * unit), style = Stroke(4 * unit))
-    for (s in SEGMENTS.getValue(type)) drawLine(ink, Offset(left + s[0] * unit, top + s[1] * unit), Offset(left + s[2] * unit, top + s[3] * unit), width, StrokeCap.Round)
+    val width = weight * unit * when (type) { 'P' -> 3.1f; 'W' -> 3.8f; else -> 4.2f }
+    val path = androidx.compose.ui.graphics.Path()
+    if (type == 'W') path.addOval(androidx.compose.ui.geometry.Rect(Offset(left + 14 * unit, top + 14 * unit), Size(20 * unit, 20 * unit)))
+    for (line in LINES.getValue(type)) {
+        path.moveTo(left + line[0] * unit, top + line[1] * unit)
+        for (i in 2 until line.size step 2) path.lineTo(left + line[i] * unit, top + line[i + 1] * unit)
+    }
+    drawPath(path, color, style = Stroke(width, cap = StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
 }
 
 /**
@@ -67,11 +70,16 @@ fun DrawScope.tile(type: Char, origin: Offset, size: Float, glow: Color? = null,
     // The selection ring alone: no halo around it.
     if (glow != null) drawRoundRect(glow, origin - Offset(2.5f, 2.5f), Size(size + 5f, size + 5f), CornerRadius(size * .23f + 2.5f), style = Stroke(3.5f))
     if (ring != null) drawRoundRect(ring, origin - Offset(2f, 2f), Size(size + 4f, size + 4f), CornerRadius(size * .23f + 2f), style = Stroke(4f))
-    if (type == 'W' || Art.colorblind) symbol(type, origin, size, .44f, Art.ink(type))
-    else {
-        // Etched into the metal: a fine line whose upper edge falls in shadow, so the arrow reads as cut into the face rather than drawn on it.
-        symbol(type, origin - Offset(0f, size * .012f), size, .44f, Color.Black.copy(alpha = .2f), ETCH_WEIGHT)
-        symbol(type, origin, size, .44f, Color.White.copy(alpha = .9f), ETCH_WEIGHT)
+    // Every arrow is cut into the face rather than drawn on it. Light ink (most tiles) falls in shadow along its upper edge; dark ink (the pale tiles: white, and
+    // yellow and pink in the colour-blind palette) catches a highlight along its lower edge instead.
+    val ink = Art.ink(type)
+    val weight = if (type == 'W') 1f else ETCH_WEIGHT
+    if (ink == Color.White) {
+        symbol(type, origin - Offset(0f, size * .012f), size, .44f, Color.Black.copy(alpha = .2f), weight)
+        symbol(type, origin, size, .44f, Color.White.copy(alpha = .9f), weight)
+    } else {
+        symbol(type, origin + Offset(0f, size * .012f), size, .44f, Color.White.copy(alpha = .7f), weight)
+        symbol(type, origin, size, .44f, ink.copy(alpha = .92f), weight)
     }
 }
 

@@ -56,6 +56,8 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativePaint
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.layout.layout
@@ -140,9 +142,28 @@ fun Backdrop(content: @Composable BoxScope.() -> Unit) {
     val colors = backdrop(p.dark)
     Box(Modifier.fillMaxSize().drawWithCache {
         val brush = Brush.linearGradient(colors, Offset.Zero, Offset(size.width, size.height))
-        onDrawBehind { drawRect(brush) }
+        onDrawBehind { drawDithered(brush) }
     }, content = content)
 }
+
+/**
+ * Fills the draw area with [brush], dithered. A very faint gradient (a few levels of grey across a whole key) otherwise shows as hard stripes of
+ * flat shades; dithering spreads each step into the next so the light fades smoothly.
+ */
+fun DrawScope.drawDithered(brush: Brush) {
+    drawIntoCanvas { canvas ->
+        val paint = androidx.compose.ui.graphics.Paint()
+        brush.applyTo(size, paint, 1f)
+        paint.nativePaint.isDither = true
+        canvas.drawRect(0f, 0f, size.width, size.height, paint)
+    }
+}
+
+/** The light on a key's top: [alpha] white at the top easing out to nothing half way down, in several stops so it has no visible kink. */
+private fun sheenBrush(alpha: Float): Brush = Brush.verticalGradient(
+    0f to Color.White.copy(alpha = alpha), .12f to Color.White.copy(alpha = alpha * .72f), .25f to Color.White.copy(alpha = alpha * .38f),
+    .38f to Color.White.copy(alpha = alpha * .12f), .5f to Color.Transparent,
+)
 
 private const val PRESS_IN_MS = 45
 private const val PRESS_MIN_MS = 90L
@@ -202,7 +223,7 @@ fun Modifier.pressOnTouch(source: MutableInteractionSource): Modifier = pointerI
  */
 @Composable
 fun Modifier.plush(shape: androidx.compose.ui.graphics.Shape, press: Float, face: Color, rest: Dp = 6.dp, depth: Dp = 3.dp, side: Color = LocalPalette.current.side, sheen: Boolean = true,
-                   travel: Float = 1f, sideLight: Float = 0f, sideLightColor: Color? = null, shrink: Boolean = true): Modifier {
+                   travel: Float = 1f, sideLight: Float = 0f, sideLightColor: Color? = null, shrink: Boolean = true, shadowFades: Boolean = false): Modifier {
     val p = LocalPalette.current
     val shade = Color.Black.copy(alpha = if (p.dark) .6f else .26f)
     // [sideLight] lights the side wall (hold to restart, the current level) towards [sideLightColor] (the ink colour by default); [travel] is how much of the wall the face may sink onto.
@@ -211,7 +232,8 @@ fun Modifier.plush(shape: androidx.compose.ui.graphics.Shape, press: Float, face
     val sheenAlpha = if (p.dark) .035f else .12f
     return this
         .then(if (shrink) Modifier.graphicsLayer { val s = 1f - .03f * press; scaleX = s; scaleY = s } else Modifier)
-        .shadow(rest - (rest - 1.dp) * press, shape, clip = false, ambientColor = shade, spotColor = shade)
+        // [shadowFades]: the shadow is gone when fully pressed (a big key whose face sinks its whole wall), so the strip it leaves above the face is plain background.
+        .shadow(if (shadowFades) rest * (1f - press) else rest - (rest - 1.dp) * press, shape, clip = false, ambientColor = shade, spotColor = shade)
         .drawBehind {
             // The side: the same shape fixed a little lower; the face covers more of it as it sinks onto it.
             val outline = shape.createOutline(size, layoutDirection, this)
@@ -227,9 +249,9 @@ fun Modifier.plush(shape: androidx.compose.ui.graphics.Shape, press: Float, face
         .background(face)
         .drawWithContent {
             // Light from above, kept very faint so the face stays matte. With [sheen] off it lies under the content (a platform with tiles on it).
-            if (!sheen) drawRect(Brush.verticalGradient(0f to Color.White.copy(alpha = sheenAlpha * (1f - press)), .5f to Color.Transparent))
+            if (!sheen) drawDithered(sheenBrush(sheenAlpha * (1f - press)))
             drawContent()
-            if (sheen) drawRect(Brush.verticalGradient(0f to Color.White.copy(alpha = sheenAlpha * (1f - press)), .5f to Color.Transparent))
+            if (sheen) drawDithered(sheenBrush(sheenAlpha * (1f - press)))
         }
 }
 
@@ -246,13 +268,13 @@ fun sideFor(face: Color): Color {
 @Composable
 fun MenuButton(text: String, modifier: Modifier = Modifier, height: Dp = 48.dp, primary: Boolean = false, enabled: Boolean = true, fontSize: TextUnit = 14.sp, description: String? = null, subtitle: String? = null, cue: Cue? = Cue.PRESS,
                weight: FontWeight = FontWeight.SemiBold, raised: Boolean = true, depth: Dp = 3.dp, shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(14.dp),
-               textColor: Color? = null, onClick: (() -> Unit)?) {
+               textColor: Color? = null, shrink: Boolean = true, shadowFades: Boolean = false, onClick: (() -> Unit)?) {
     val p = LocalPalette.current
     val feedback = LocalFeedback.current
     val soon = onClick == null
     val source = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     // A raised button shows its press by sinking, not by a ripple.
-    val face = if (raised) Modifier.plush(shape, pressProgress(source), if (primary) p.accent else p.paper2, depth = depth)
+    val face = if (raised) Modifier.plush(shape, pressProgress(source), if (primary) p.accent else p.paper2, depth = depth, shrink = shrink, shadowFades = shadowFades)
         else Modifier.clip(shape).background(if (primary) p.accent else p.paper).border(2.dp, if (primary) p.accent else p.line, shape)
     Box(
         modifier.alpha(if (!enabled) .4f else if (soon) .6f else 1f).fillMaxWidth().heightIn(min = height).then(face)

@@ -37,6 +37,9 @@ import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.layout.layout
+import androidx.compose.foundation.lazy.items
+import kotlin.math.roundToInt
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.CancellationException
@@ -126,7 +129,8 @@ internal fun LoadDiscovery(m: GameModel, state: DiscoveryListState, key: String,
         val changed = state.loadedKey != key || state.loadedRevision != state.revision
         val requested = if (changed) 0 else page
         if (changed) {
-            if (resetScroll) state.page = 0
+            // A new search or sort, or a pull, starts again at the first page; a quiet refresh (after a like, say) leaves the reader where they are.
+            if (resetScroll && (state.loadedKey != key || state.pulling)) state.page = 0
             if (state.loadedKey != key) { state.items = emptyList(); state.nextPage = null }
             state.loadedPage = -1
         }
@@ -137,8 +141,11 @@ internal fun LoadDiscovery(m: GameModel, state: DiscoveryListState, key: String,
             // The saved first page fills an empty list at once; a refresh keeps the rows already shown until the fresh ones arrive.
             if (cached != null && requested == 0 && state.items.isEmpty()) state.items = cached.getJSONArray("items").objects()
             val response = m.online.repository.fetch(url, account)
-            state.items = ((if (requested == 0) emptyList() else state.items) + response.getJSONArray("items").objects()).distinctBy { it.getString("id") }
-            state.nextPage = if (response.isNull("nextPage")) null else response.getInt("nextPage")
+            val fresh = response.getJSONArray("items").objects()
+            // A quiet refresh of a list that is already shown replaces its first server page and keeps every page after it, so the list neither shrinks under the reader nor jumps.
+            val keepRest = requested == 0 && changed && state.loadedKey == key && !state.pulling && state.items.size > fresh.size
+            state.items = (if (keepRest) fresh + state.items.drop(fresh.size) else if (requested == 0) fresh else state.items + fresh).distinctBy { it.getString("id") }
+            if (!keepRest) state.nextPage = if (response.isNull("nextPage")) null else response.getInt("nextPage")
             state.loadedKey = key; state.loadedPage = requested; state.loadedRevision = state.revision
             m.online.offline = false
         } catch (error: Exception) {
@@ -185,6 +192,8 @@ private fun DiscoverySort(state: DiscoveryListState, puzzles: Boolean, dismiss: 
  */
 class SearchReveal(val max: Float) {
     var height by mutableFloatStateOf(0f)
+    /** The bar is at least partly out. Read this (not [height]) while composing: [height] changes every frame of the slide and would recompose the whole screen with it. */
+    val open by androidx.compose.runtime.derivedStateOf { height > 0f }
     var pinned = false
     val connection = object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
         override fun onPreScroll(available: androidx.compose.ui.geometry.Offset, source: androidx.compose.ui.input.nestedscroll.NestedScrollSource): androidx.compose.ui.geometry.Offset {
@@ -229,14 +238,19 @@ fun WorldsScreen(m: GameModel) {
         scope.launch { androidx.compose.animation.core.animate(reveal.height, 0f) { v, _ -> reveal.height = v } }
     }
     // System Back first closes an open search bar; only then does it leave the screen.
-    BackHandler(enabled = reveal.height > 0f || searching) { closeSearch() }
+    BackHandler(enabled = reveal.open || searching) { closeSearch() }
     LaunchedEffect(reveal) { if (state.query.isNotEmpty()) reveal.height = reveal.max }
     val key = discoveryKey(puzzles, state)
     LoadDiscovery(m, state, key)
     // A full level code is matched by the list itself (the server finds the level by its code), so Search only puts the keyboard away: the level shows up in the list and is opened from there.
     val search: @Composable () -> Unit = {
-        Box(Modifier.fillMaxWidth().height(with(density) { reveal.height.toDp() }).clipToBounds(), contentAlignment = Alignment.BottomCenter) {
-            if (reveal.height > 0f) PlaySearch(state.query, if (puzzles) "Search creator or code" else "Search creators", Modifier.fillMaxWidth().onFocusChanged { searching = it.isFocused },
+        // The slide only re-lays-out (the height is read while measuring); nothing is recomposed from one frame to the next.
+        Box(Modifier.fillMaxWidth().clipToBounds().layout { measurable, constraints ->
+            val placeable = measurable.measure(constraints.copy(minHeight = 0, maxHeight = androidx.compose.ui.unit.Constraints.Infinity))
+            val shown = reveal.height.roundToInt().coerceAtLeast(0)
+            layout(placeable.width, shown) { placeable.place(0, shown - placeable.height) }
+        }) {
+            if (reveal.open) PlaySearch(state.query, if (puzzles) "Search creator or code" else "Search creators", Modifier.fillMaxWidth().onFocusChanged { searching = it.isFocused },
                 close = ::closeSearch) { state.query = it; state.requestedPage = 0 }
         }
     }
@@ -261,10 +275,10 @@ fun WorldsScreen(m: GameModel) {
         Spacer(Modifier.height(8.dp))
         OnlineMessages(m, errors = false)
         Box(Modifier.weight(1f).fillMaxWidth()) {
-            if (puzzles) PuzzleGrid(m, state, Modifier.fillMaxSize(), header = search, scroll = reveal.connection, minTop = if (reveal.height > 0f) 8.dp else 0.dp) { detail = it }
+            if (puzzles) PuzzleGrid(m, state, Modifier.fillMaxSize(), header = search, scroll = reveal.connection, minTop = if (reveal.open) 8.dp else 0.dp) { detail = it }
             else Refreshable(state.pulling, { m.online.clearMessages(); state.pull() }, Modifier.fillMaxSize()) { Column(Modifier.fillMaxSize()) {
                 search()
-                PlayerPages(m, state, Modifier.weight(1f).fillMaxWidth().nestedScroll(reveal.connection), reserved = with(density) { reveal.height.toDp() })
+                PlayerList(m, state, Modifier.weight(1f).fillMaxWidth().nestedScroll(reveal.connection))
             } }
         }
         Spacer(Modifier.height(8.dp))
@@ -319,22 +333,26 @@ private fun SplitPill(puzzles: Boolean, select: (Boolean) -> Unit, modifier: Mod
     }
 }
 
+/** The next server page of players is fetched while this many rows are still below the last one on screen. */
+internal const val PLAYERS_AHEAD = 50
+
 /**
- * Eight players to a page, one line each; swipe sideways for the next page, up and down inside a page that is taller than the screen.
- * [reserved] is height lent to something above the list for now (Worlds' search bar coming down): the rows keep their size and move down instead of shrinking.
+ * Players, one line each, in one long list that scrolls up and down (no pages, no button). When the reader gets within [PLAYERS_AHEAD] rows of the end of what is
+ * loaded the next server page is fetched, so the list keeps ahead of them without ever loading it all at once. Rows are created only as they scroll into view.
  */
 @Composable
-internal fun PlayerPages(m: GameModel, state: DiscoveryListState, modifier: Modifier = Modifier, empty: String = "No results for these settings.", reserved: Dp = 0.dp) {
-    // The rows reach the page edge; the page pads them by the shadow room it adds.
-    PagedItems(state, PLAYER_ROWS, modifier.bleed()) { rows, _ ->
-        // Eight rows share the page's height, so the last row ends at the bottom; a screen too short for that keeps the minimum height and scrolls.
-        BoxWithConstraints(Modifier.fillMaxSize()) {
-            val slot = ((maxHeight + reserved - 16.dp - 8.dp * (PLAYER_ROWS - 1)) / PLAYER_ROWS).coerceAtLeast(52.dp)
-            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = ShadowRoom, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                rows.forEach { PlayerRow(m, it, slot) }
-                if (rows.isEmpty()) DiscoveryFooter(m, state, empty)
-            }
+internal fun PlayerList(m: GameModel, state: DiscoveryListState, modifier: Modifier = Modifier, empty: String = "No results for these settings.") {
+    val list = androidx.compose.foundation.lazy.rememberLazyListState()
+    val hasMore = state.nextPage != null && !state.failed
+    LaunchedEffect(list, state.items.size, hasMore) {
+        snapshotFlow { list.firstVisibleItemIndex + list.layoutInfo.visibleItemsInfo.size }.collect { lastShown ->
+            if (hasMore && state.items.size - lastShown <= PLAYERS_AHEAD) state.nextPage?.let { if (state.requestedPage != it) state.requestedPage = it }
         }
+    }
+    // The rows reach the page edge; the list pads them by the shadow room it adds.
+    androidx.compose.foundation.lazy.LazyColumn(modifier.bleed(), list, contentPadding = PaddingValues(horizontal = ShadowRoom, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(state.items, key = { it.getString("id") }) { PlayerRow(m, it) }
+        if (state.items.isEmpty()) item { DiscoveryFooter(m, state, empty) }
     }
 }
 
