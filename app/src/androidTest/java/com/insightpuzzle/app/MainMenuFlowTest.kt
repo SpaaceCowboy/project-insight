@@ -356,7 +356,9 @@ class MainMenuFlowTest {
         await("Outline gutter swipe opens the previous Journey level") { model.level == 0 }
         swipeAcross(swipeY, true)
         await("Outline gutter swipe restores the next Journey attempt") { model.level == 1 && model.moves == 1 }
-        touch(tile.exactCenterX(), tile.exactCenterY(), 600)
+        // Read the tile again: node bounds are a snapshot from before the level swipes below, and a hold must land on the tile as it is now.
+        val held = tileBounds(1, 1)
+        touch(held.exactCenterX(), held.exactCenterY(), 600)
         assertEquals("Holding a tile must not restart", 1, model.moves)
         val backgroundX = 20f * activity!!.resources.displayMetrics.density
         touch(backgroundX, tile.exactCenterY(), 150)
@@ -454,14 +456,22 @@ class MainMenuFlowTest {
     @Test fun journeyPagesSwipeAndReopenAtTheCurrentLevel() {
         Store(context).apply { done = (1..200).toSet(); lastLevel = 0 }
         launch(); tap("Journey"); tap("Journey 1")
-        await("First Journey page") { has("Level 32, solved") }
+        // A Journey page holds as many four-column rows as fit (up to eight), so read where the first page ends
+        // instead of assuming the old 32 levels per page.
+        await("First Journey page") { has("Level 1, solved") }
+        SystemClock.sleep(500) // Let the 400ms page transition settle before reading every card on it.
+        fun pageLast() = nodes().mapNotNull { n ->
+            Regex("^Level (\\d+), solved$").find(n.text?.toString() ?: n.contentDescription?.toString() ?: "")?.groupValues?.get(1)?.toInt()
+        }.maxOrNull() ?: 0
+        val next = pageLast() + 1
+        assertTrue("The first Journey page should show several levels", next > 2)
         val screen = Rect().also { instrumentation.uiAutomation.rootInActiveWindow!!.getBoundsInScreen(it) }
         swipeAcross(screen.exactCenterY(), true)
-        await("Second Journey page") { nodes().any { matches(it, "Level 33, solved") && it.isVisibleToUser } }
-        tap("Level 33, solved")
-        await("Chosen level opens") { model.top == Route.Game && model.level == 32 }
-        tap("Journey 33")
-        await("Levels reopen at the current page") { nodes().any { matches(it, "Level 33, solved") && it.isVisibleToUser } }
+        await("Second Journey page") { nodes().any { matches(it, "Level $next, solved") && it.isVisibleToUser } }
+        tap("Level $next, solved")
+        await("Chosen level opens") { model.top == Route.Game && model.level == next - 1 }
+        tap("Journey $next")
+        await("Levels reopen at the current page") { nodes().any { matches(it, "Level $next, solved") && it.isVisibleToUser } }
         swipeAcross(screen.exactCenterY(), false)
         await("Previous Journey page") { nodes().any { matches(it, "Level 1, solved") && it.isVisibleToUser } }
         tap("Level 1, solved")

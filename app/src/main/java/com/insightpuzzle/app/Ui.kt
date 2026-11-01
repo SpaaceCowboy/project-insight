@@ -366,6 +366,7 @@ val restartIcon: DrawScope.(Color) -> Unit = {
  * The window's safe area with the navigation bar always counted, showing or not. While a puzzle is played the gesture handle is hidden (a swipe up from the
  * bottom brings it back for a moment); because its room stays reserved, hiding or revealing it never changes a screen's layout, so nothing is measured again.
  */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 internal val appInsets: WindowInsets
     @Composable get() = WindowInsets.safeDrawing.exclude(WindowInsets.navigationBars).union(WindowInsets.navigationBarsIgnoringVisibility)
 
