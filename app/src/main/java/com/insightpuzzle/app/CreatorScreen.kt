@@ -383,6 +383,9 @@ fun CreatorScreen(m: GameModel) {
                                 .semantics { contentDescription = tr("{0} tile", Art.name(type)); role = Role.Button; selected = on; onClick { s.tapPalette(type); true } }, glow = if (on) p.ink else null)
                         }
                     }
+                } else if (s.phase == Phase.SHAPE) {
+                    // Choosing the target: the stage's refusals and results sit right under its heading (the tips take this place while they show).
+                    if (m.guidePhase == 0 && s.note.isNotEmpty()) Label(s.note, 12.sp, Modifier.padding(horizontal = 24.dp).semantics { liveRegion = LiveRegionMode.Polite }, color = p.muted, align = TextAlign.Center)
                 } else if (s.phase == Phase.CHECK) {
                     val target = Rules.crop(s.target!!)
                     // The strip is 80dp tall inside its padding: tall targets (five rows) shrink their tiles to stay inside it.
@@ -489,7 +492,7 @@ fun CreatorScreen(m: GameModel) {
                 // A refusal or result, on the outline's top band where a swipe back starts.
                 Box(Modifier.fillMaxWidth().height(with(density) { g.origin.y.coerceAtLeast(0f).toDp() }).padding(horizontal = 56.dp), contentAlignment = Alignment.Center) {
                     // The tips (when showing) take this place; the note is back when they end.
-                    if (m.guidePhase != 0) Unit
+                    if (m.guidePhase != 0 || s.phase == Phase.SHAPE) Unit
                     else if (s.phase == Phase.CHECK && s.limitReached) Label(tr("Daily limit of {0} puzzles reached.", CREATE_DAILY_LIMIT), 12.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite }.wrapContentHeight(unbounded = true), color = p.accent, align = TextAlign.Center, translate = false)
                     else if (s.note.isNotEmpty()) Label(s.note, 12.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite }.wrapContentHeight(unbounded = true), color = p.muted, align = TextAlign.Center)
                 }
@@ -544,7 +547,7 @@ fun CreatorScreen(m: GameModel) {
                 val tiles = g?.let { Rect(shell.left + it.origin.x, shell.top + it.origin.y, shell.left + it.origin.x + it.cols * it.cell + (it.cols - 1) * it.gap, shell.top + it.origin.y + it.rows * it.cell + (it.rows - 1) * it.gap) }
                 val corner = tiles?.let { Rect(it.right - 24 * dp, it.bottom - 24 * dp, it.right + 24 * dp, it.bottom + 24 * dp) }
                 // A swipe back starts anywhere off the cells: the bands above and below them, as in the game's tips.
-                val swipe = tiles?.let { listOf(Rect(shell.left + 6 * dp, shell.top + 6 * dp, shell.right - 6 * dp, it.top - 3 * dp), Rect(shell.left + 6 * dp, it.bottom + 3 * dp, shell.right - 6 * dp, shell.bottom - 6 * dp)).filter { b -> b.height > 12 * dp } } ?: emptyList()
+                val swipe = tiles?.let { listOf(Rect(shell.left + 6 * dp, shell.top + 6 * dp, shell.right - 6 * dp, it.top - 3 * dp), Rect(shell.left + 6 * dp, it.bottom + 3 * dp, shell.right - 6 * dp, shell.bottom - 6 * dp)) } ?: emptyList()
                 CreatorGuide(m, s.phase, shell, tiles, corner, rect(stripBox), rect(buttonBox), swipe, lampAt)
             }
         }

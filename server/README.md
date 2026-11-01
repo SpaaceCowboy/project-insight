@@ -66,7 +66,7 @@ npm run build
 TEST_DATABASE_URL=postgresql://localhost/insight_test npm run test:integration
 ```
 
-Integration tests create and drop only a randomly named schema inside the supplied database. They cover publishing/play, idempotency, the twentieth-slot race, replay/creation caps, imports, simplified authentication, refresh rotation and throttling, plus creator eligibility/ranking, pagination ties, literal search escaping, UTC date boundaries, distinct solvers and terminal-attempt races. Rules replay the same 200 campaign solutions used by Kotlin.
+Integration tests create and drop only a randomly named schema inside the supplied database. They cover publishing/play, idempotency, the twentieth-slot race, replay/creation caps, imports, simplified authentication, refresh rotation and throttling, plus creator eligibility/ranking, pagination ties, literal search escaping, UTC date boundaries, distinct solvers and terminal-attempt races. Rules replay the same campaign solutions used by Kotlin.
 
 The Android form regression test uses a loopback-only fixture with a temporary database schema. Start `TEST_DATABASE_URL=postgresql://localhost/insight_test node --import tsx test/android-fixture.ts` from `server/`, then run the following from the repository root with an emulator available:
 

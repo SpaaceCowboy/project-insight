@@ -469,12 +469,12 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     fun tapGuide() { guidePhase = if (guidePhase == 0) 1 else 0 }
     fun endGuide() { guidePhase = 0 }
     /**
-     * The steps of the tips on this screen, in order: Journey has four; an online puzzle adds its creator and like/bookmark keys and drops the swipe where it
+     * The steps of the tips on this screen, in order: Journey has five (its target is explained right after the first); an online puzzle adds its creator and like/bookmark keys and drops the swipe where it
      * doesn't work. The creator has its own steps for each stage ([creatorGuideSteps]).
      */
     fun guideSteps(): List<Int> {
         if (top == Route.Create) return (1..creatorGuideSteps(creator.phase).size).toList()
-        val c = community ?: return listOf(1, 2, 3, 4)
+        val c = community ?: return listOf(1, GUIDE_TARGET_STEP, 2, 3, 4)
         return buildList { add(1); add(2); if (c.casual || c.source != null) add(3); add(4); add(5) }
     }
     /** A tap anywhere moves the tips on to the next step, and after the last one they end. */

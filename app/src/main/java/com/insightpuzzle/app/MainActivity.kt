@@ -9,6 +9,9 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -50,6 +53,13 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(barsDark) {
                 val bars = if (barsDark) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
                 enableEdgeToEdge(bars, bars)
+            }
+            // A puzzle (or the creator) is played without the system gesture handle: it stays hidden and a swipe up from the bottom edge shows it for a moment.
+            val immersive = model.top == Route.Game || model.top == Route.Win || model.top == Route.Create
+            LaunchedEffect(immersive, barsDark) {
+                val controller = WindowCompat.getInsetsController(window, window.decorView)
+                controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                if (immersive) controller.hide(WindowInsetsCompat.Type.navigationBars()) else controller.show(WindowInsetsCompat.Type.navigationBars())
             }
             CompositionLocalProvider(LocalPalette provides if (dark) DarkPalette else LightPalette, LocalReduceMotion provides (reduceMotion || model.store.motion == "on")) { App(model) }
         }

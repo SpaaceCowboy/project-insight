@@ -10,9 +10,8 @@ const load=file=>import(pathToFileURL(join(web,file)).href);
 
 const campaign=await load('src/data/campaign.js');
 if(campaign.CAMPAIGN_SOLUTIONS.length!==campaign.CAMPAIGN_LEVELS.length)throw new Error(`Expected ${campaign.CAMPAIGN_LEVELS.length} solutions, found ${campaign.CAMPAIGN_SOLUTIONS.length}`);
-// The Android campaign is exactly 200 levels; later web levels are not shipped.
-const CAMPAIGN_SIZE=200;
-const CAMPAIGN_LEVELS=campaign.CAMPAIGN_LEVELS.slice(0,CAMPAIGN_SIZE),solutions=campaign.CAMPAIGN_SOLUTIONS.slice(0,CAMPAIGN_SIZE);
+// The Android campaign follows the web campaign exactly, including studio levels appended by the editor.
+const CAMPAIGN_LEVELS=campaign.CAMPAIGN_LEVELS,solutions=campaign.CAMPAIGN_SOLUTIONS;
 
 const levels=CAMPAIGN_LEVELS.map(({name,start,target,world,par})=>({name,start,target,world,par}));
 mkdirSync(join(root,'app/src/main/assets'),{recursive:true});

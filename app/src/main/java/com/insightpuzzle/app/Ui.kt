@@ -230,10 +230,12 @@ fun Modifier.plush(shape: androidx.compose.ui.graphics.Shape, press: Float, face
     val light = sideLight.coerceIn(0f, 1f)
     val lit = if (light > 0f) lerp(side, sideLightColor ?: p.shellInk, light) else null
     val sheenAlpha = if (p.dark) .035f else .12f
+    // A big key that fades its shadow neither rebounds past rest nor keeps a shadow edge around the strip the sinking face leaves above it.
+    val sink = if (shadowFades) press.coerceIn(0f, 1f) else press
     return this
         .then(if (shrink) Modifier.graphicsLayer { val s = 1f - .03f * press; scaleX = s; scaleY = s } else Modifier)
-        // [shadowFades]: the shadow is gone when fully pressed (a big key whose face sinks its whole wall), so the strip it leaves above the face is plain background.
-        .shadow(if (shadowFades) rest * (1f - press) else rest - (rest - 1.dp) * press, shape, clip = false, ambientColor = shade, spotColor = shade)
+        // [shadowFades]: the shadow is gone as soon as the key starts to sink (a big key whose face sinks its whole wall), so the strip it leaves above the face is plain background.
+        .shadow(if (shadowFades) rest * (1f - (sink * 4f).coerceAtMost(1f)) else rest - (rest - 1.dp) * press, shape, clip = false, ambientColor = shade, spotColor = shade)
         .drawBehind {
             // The side: the same shape fixed a little lower; the face covers more of it as it sinks onto it.
             val outline = shape.createOutline(size, layoutDirection, this)
@@ -244,7 +246,7 @@ fun Modifier.plush(shape: androidx.compose.ui.graphics.Shape, press: Float, face
                 clipPath(top, androidx.compose.ui.graphics.ClipOp.Difference) { translate(0f, depth.toPx()) { drawOutline(outline, lit) } }
             }
         }
-        .graphicsLayer { translationY = press * travel * depth.toPx() }
+        .graphicsLayer { translationY = sink * travel * depth.toPx() }
         .clip(shape)
         .background(face)
         .drawWithContent {

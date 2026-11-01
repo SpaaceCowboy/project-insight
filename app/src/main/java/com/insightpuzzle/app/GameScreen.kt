@@ -183,6 +183,7 @@ fun GameScreen(m: GameModel) {
     var shellBox by remember { mutableStateOf<LayoutCoordinates?>(null) }
     var titleBox by remember { mutableStateOf<LayoutCoordinates?>(null) }
     var titleKey by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    var targetBox by remember { mutableStateOf<LayoutCoordinates?>(null) }
     var gridRect by remember { mutableStateOf(Rect.Zero) }
     fun rect(c: LayoutCoordinates?): Rect? = c?.takeIf { it.isAttached }?.let { root?.takeIf { r -> r.isAttached }?.localBoundingBoxOf(it) }
     /** The outline's rectangle as state, so the guide icon and the guide's borders follow it. */
@@ -258,7 +259,7 @@ fun GameScreen(m: GameModel) {
                     val source = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                     Box(Modifier.height(48.dp).onGloballyPositioned { titleBox = it }.pressOnTouch(source)
                         .clickable(source, null, role = Role.Button, onClickLabel = tr("Open levels")) { m.feedback(Cue.FORWARD); m.showLevels() }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
-                        // A small raised key that covers the whole "Journey" and its number (1 to 200).
+                        // A small raised key that covers the whole "Journey" and its number (1 to the campaign size).
                         Box(Modifier.onGloballyPositioned { titleKey = it }.plush(RoundedCornerShape(10.dp), pressProgress(source), p.paper2, rest = 3.dp, depth = TITLE_WALL).padding(horizontal = 12.dp, vertical = 5.dp)) {
                             Label(tr("Journey {0}", view.level + 1), 13.sp, weight = FontWeight.SemiBold, lines = 1, translate = false)
                         }
@@ -280,7 +281,7 @@ fun GameScreen(m: GameModel) {
                 }
                 // The target sits as far below the key as the key sits below the Back chevron's point (see [TARGET_DROP]).
                 Spacer(Modifier.height(TARGET_DROP))
-                TargetMini(target, targetCell, 2.6.dp, Modifier.semantics {
+                TargetMini(target, targetCell, 2.6.dp, Modifier.onGloballyPositioned { targetBox = it }.semantics {
                     contentDescription = tr("Target arrangement") + ": " + spec.target.mapIndexed { i, row -> tr("row {0}", i + 1) + ": " + row.map { Art.name(it) ?: tr("gap") }.joinToString(", ") }.joinToString("; ")
                 })
                 Spacer(Modifier.height(12.dp))
@@ -320,9 +321,10 @@ fun GameScreen(m: GameModel) {
             if (m.guideOn && !exiting) GuideButton(Modifier.offset { guideLampOffset(shell).let { IntOffset(it.x, it.y + sink.roundToInt()) } }, enabled = !solved) { m.tapGuide() }
             if (m.guidePhase != 0 && !solved && !exiting) {
                 val size = root?.size
-                val like = if (community?.grid?.optString("ownerId") != m.online.user?.id) Rect(16 * dp, 72 * dp, 64 * dp, 120 * dp) else null
+                val own = community?.grid?.optString("ownerId") == m.online.user?.id
+                val like = if (!own) Rect(16 * dp, 72 * dp, 64 * dp, 120 * dp) else null
                 val bookmark = size?.let { Rect(it.width - 64 * dp, 72 * dp, it.width - 16 * dp, 120 * dp) }
-                GameGuide(m, shell, gridRect.translate(shell.topLeft), rect(titleKey), like.takeIf { community != null }, bookmark.takeIf { community != null }, lampAt)
+                GameGuide(m, shell, gridRect.translate(shell.topLeft), rect(titleKey), like.takeIf { community != null }, bookmark.takeIf { community != null }, rect(targetBox), community != null && own, lampAt)
             }
         }
         // Online puzzles: like (under Options, not on your own puzzles) and bookmark (under Profile). Filled when on.

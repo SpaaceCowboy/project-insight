@@ -48,9 +48,9 @@ test('older APK imports retain current progress without retired IDs or XP', asyn
   const accepted = await call('POST','/v1/progress/import',request,account);
   assert.deepEqual(await call('POST','/v1/progress/import',request,account),accepted);
   const progress = await call('GET','/v1/progress',undefined,account);
-  assert.equal(progress.done.length,200); assert.equal(progress.xpMilli,'0');
+  assert.equal(progress.done.length,206); assert.equal(progress.xpMilli,'0');
   assert.deepEqual(progress.badges.sort(),['first','levels-30','levels-60','levels-90','levels-120','levels-150','levels-180','complete'].sort());
-  assert.equal((await call('GET',`/v1/profiles/${account.user.id}`,undefined,account)).campaignCount,200);
+  assert.equal((await call('GET',`/v1/profiles/${account.user.id}`,undefined,account)).campaignCount,206);
   await call('POST','/v1/progress/import',{operationId:op(),done:[207],badges:[]},account,400);
   await call('POST','/v1/progress/import',{operationId:op(),done:[],badges:['unknown']},account,400);
 });

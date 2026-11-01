@@ -8,10 +8,10 @@ class AchievementsTest {
     private val achievements = Achievements(levels)
 
     @Test fun catalogIsFirstEveryThirtyAndComplete() {
-        assertEquals(200, levels.size)
+        assertEquals(206, levels.size)
         val journey = achievements.catalog.filter { it.metric == Metric.CAMPAIGN }
         assertEquals(listOf("first", "levels-30", "levels-60", "levels-90", "levels-120", "levels-150", "levels-180", "complete"), journey.map { it.id })
-        assertEquals(listOf(1, 30, 60, 90, 120, 150, 180, 200), journey.map { it.goal })
+        assertEquals(listOf(1, 30, 60, 90, 120, 150, 180, 206), journey.map { it.goal })
     }
 
     @Test fun completeProgressTracksCampaignCompletion() {
@@ -20,9 +20,9 @@ class AchievementsTest {
         assertEquals(complete.goal, achievements.progress(complete, (1..levels.size).toSet()))
     }
 
-    @Test fun retiredLevelsDoNotCount() {
+    @Test fun levelsOutsideTheCampaignDoNotCount() {
         val first = achievements.catalog.single { it.id == "first" }
-        assertEquals(0, achievements.progress(first, setOf(201, 206)))
+        assertEquals(0, achievements.progress(first, setOf(207, 999)))
     }
 
     @Test fun newlyEarnedSkipsAlreadyEarned() {
@@ -43,7 +43,7 @@ class AchievementsTest {
     }
 
     @Test fun onlineBadgesAreNeverEarnedLocally() {
-        assertTrue(achievements.newlyEarned((1..200).toSet(), emptyMap()).all { it.metric == Metric.CAMPAIGN })
+        assertTrue(achievements.newlyEarned((1..206).toSet(), emptyMap()).all { it.metric == Metric.CAMPAIGN })
     }
 
     @Test fun masterIsLastAndNeedsEveryOtherBadge() {

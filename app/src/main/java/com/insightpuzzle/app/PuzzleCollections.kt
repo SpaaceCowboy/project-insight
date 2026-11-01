@@ -69,11 +69,14 @@ internal fun CollectionCard(
     val source = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     // A pedestal with the miniature stamped on its face: it sinks when pressed. A solved card has a tinted face whose side wall keeps the usual darkness
     // (so it is no taller than the others); the current level's side wall is lit.
-    val face = if (solved) androidx.compose.ui.graphics.lerp(p.paper2, p.accent, .14f) else p.paper2
+    val fade = if (dimmed) .4f else 1f
+    val lit = if (solved) androidx.compose.ui.graphics.lerp(p.paper2, p.accent, .14f) else p.paper2
+    // A locked card is dimmed by blending its colours into the page, not with Modifier.alpha: that renders offscreen, clipped to the card, and cut off the wall below it.
+    val face = androidx.compose.ui.graphics.lerp(p.paper, lit, fade)
+    val wall = androidx.compose.ui.graphics.lerp(p.paper, if (solved) sideFor(lit) else p.side, fade)
     Box(
         modifier.aspectRatio(1f)
-            .alpha(if (dimmed) .4f else 1f)
-            .plush(shape, pressProgress(source), face, rest = 4.dp, side = if (solved) sideFor(face) else p.side, sideLight = if (current) 1f else 0f, sideLightColor = CURRENT_WALL)
+            .plush(shape, pressProgress(source), face, rest = 4.dp, side = wall, sideLight = if (current) 1f else 0f, sideLightColor = CURRENT_WALL)
             .then(if (enabled) Modifier.pressOnTouch(source) else Modifier)
             .combinedClickable(interactionSource = source, indication = null, role = Role.Button, enabled = enabled, onLongClickLabel = onLongClick?.let { tr("Details") },
                 onLongClick = onLongClick?.let { long -> { feedback(Cue.LONG_PRESS); long() } }, onClick = { feedback(Cue.SELECT); onClick() })
@@ -82,8 +85,8 @@ internal fun CollectionCard(
         contentAlignment = Alignment.Center,
     ) {
         // The mini is centred in the whole card; the number sits in the bottom right corner.
-        TargetMini(target, cell, MINI_GAP)
-        Label(number, CARD_NUMBER_SIZE, Modifier.align(Alignment.BottomEnd).padding(bottom = NUMBER_BOTTOM), lines = 1)
+        TargetMini(target, cell, MINI_GAP, Modifier.alpha(fade))
+        Label(number, CARD_NUMBER_SIZE, Modifier.align(Alignment.BottomEnd).alpha(fade).padding(bottom = NUMBER_BOTTOM), lines = 1)
     }
 }
 

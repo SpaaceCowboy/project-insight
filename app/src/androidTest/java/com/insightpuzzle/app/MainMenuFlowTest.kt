@@ -139,10 +139,12 @@ class MainMenuFlowTest {
             assertEquals(1, model.guidePhase)
             assertTrue(Store(context).onboarded)
         }
-        for (step in 1..4) {
+        val steps = model.guideSteps()
+        assertEquals(listOf(1, GUIDE_TARGET_STEP, 2, 3, 4), steps)
+        for ((i, step) in steps.withIndex()) {
             assertEquals(step, model.guidePhase)
             tap("Tap to continue")
-            await("Next gameplay tip") { model.guidePhase == if (step == 4) 0 else step + 1 }
+            await("Next gameplay tip") { model.guidePhase == (steps.getOrNull(i + 1) ?: 0) }
         }
         assertEquals(0, model.moves)
         assertEquals(model.spec.start, model.board)
