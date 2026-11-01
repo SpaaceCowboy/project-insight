@@ -1,3 +1,15 @@
+# Android v0.2.20 — Studio levels and the target tip (1 November 2026)
+
+Published [v0.2.20 APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.20), version code 31, with the matching campaign asset on the backend. Package ID, signing key, saved preferences and download address are unchanged.
+
+This batch makes the Android campaign follow the web campaign exactly: six studio levels appended by the web editor (worlds 10–11, Serenade through Magnum Opus) take Journey from 200 to 206 levels, and the completion achievement becomes "All 206 Journey Puzzles". Badges already earned are kept, so players who finished the 200-level campaign keep "complete" while the new levels extend their progress. The first-play tips gained a step that points at the target board right after the grid step, and a tap on the board during that step no longer advances them. Journey and the creator hide the system gesture handle while playing; Android shows its one-time "Viewing full screen" confirmation the first time a device enters that mode. Creator SHAPE-stage notes sit under the stage heading, tip plates keep one size and font across steps, the Next key's border clears its side wall, locked collection cards fade face and wall instead of clipping their shadow, and big keys stop rebounding past rest when released.
+
+VPS validation passed: 61 Android unit tests replaying all 206 campaign solutions; a signed v0.2.19-to-v0.2.20 upgrade that kept its preferences and launched; the first-play guide and gameplay-gesture device regressions; and 18 server unit plus 20 integration tests. The backend change is the campaign asset alone (`app/src/main/assets/levels.json`); no migration ran and no code module was replaced.
+
+Encrypted backup `/opt/insight-online/backups/insight-20261101T093552Z.dump.age` ran before rollout. The previous asset is `/opt/insight-rollback-before-040/levels.json`; the prior public APK is `/root/insight-apk-rollbacks/INSIGHT-online-v0.2.19-before-040.apk`. Counts after deployment: 16 users, 159 puzzles, 53 campaign rows, 250 XP rows and all 80 seed puzzles. `content_claims` stayed at 364 because the six studio levels were already claimed by their published community puzzles. The service returned one 502 during restart before the health retry succeeded. The emulator suite pre-confirmed Android's one-time immersive-mode prompt, as a player does once; physical-phone checks were not performed.
+
+Online SHA-256: 0509a31994e1589a2d1af1f471c012353f6aa174f75f3e688e69defafac304e0. Preview SHA-256: df6c7695f3abff626ac80c1765e610b0b0e133eda0b37b7c12207cfbd63a1cc6. Certificate SHA-256: 3008529664ef52092022f4a3a0fc77a43f56d18ccaa947ecdf0be5daabd28c9a.
+
 # Android v0.2.19 — Tips, lists and streaming audio (31 October 2026)
 
 Published [v0.2.19 APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.19), version code 30, with the matching username-filter backend. Package ID, signing key, saved preferences and download address are unchanged.

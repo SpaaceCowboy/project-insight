@@ -1,13 +1,13 @@
 # Midori for Android
 
-A native Android version (Kotlin + Jetpack Compose) of the INSIGHT puzzle game. It is a separate project from the web game in `../project-insight`, which it never modifies; it only reads that project's level data and sounds through `tools/export-assets.mjs`.
+A native Android version (Kotlin + Jetpack Compose) of the INSIGHT puzzle game. It is a separate project from the web level studio in `../project-insight`, which it never modifies; it only reads that project's level data and sounds through `tools/export-assets.mjs`.
 
 ## What is ported
 
 | Web file | Android |
 |---|---|
 | `src/puzzle-rules.js` | `Rules.kt` |
-| `src/data/*` (first 200 levels) | `assets/levels.json` (generated) |
+| `src/data/*` | `assets/levels.json` (generated) |
 | `src/game-state.js`, `src/useGame.js` | `GameModel.kt`, `Store.kt` |
 | `src/achievements.mjs` | `Achievements.kt` |
 | uisfx "zen" pack and the "minimal" checkout (CC0, [uisfx.com](https://uisfx.com), npm `uisfx@0.4.0`) | `res/raw/zen_*.mp3`, `res/raw/minimal_checkout.mp3`, `res/raw-v29/*.ogg`, `Feedback.kt`, `tools/build-cues.mjs` |
@@ -16,9 +16,9 @@ A native Android version (Kotlin + Jetpack Compose) of the INSIGHT puzzle game. 
 | `src/tile-art.js`, `src/styles.css` | `TileArt.kt`, `Theme.kt`, `Ui.kt` |
 | Home, levels, options, achievements, online, win pop-up | `Screens.kt` |
 | Game board | `GameScreen.kt` |
-| `src/useCreator.js`, `src/Creator.jsx` | `CreatorState.kt`, `CreatorScreen.kt` |
+| `src/CreatorCanvas.jsx`, `src/creator-state.js` | `CreatorState.kt`, `CreatorScreen.kt` |
 
-Differences from the web version: portrait only; no undo key (so every solve counts as a clean solve); Dev Mode exists only in debug builds. Android now includes accounts, profiles, community puzzle discovery/play, Casual, checked publishing, and XP.
+Differences from the web project: the Android game is portrait only; its campaign is the flat web campaign; Dev Mode exists only in debug builds. Android includes accounts, profiles, community puzzle discovery/play, Casual, checked publishing, and XP.
 
 ## Online and installable builds
 
@@ -29,7 +29,11 @@ The TypeScript/PostgreSQL service and deployment instructions are in [server/REA
 
 Rebuild the local preview with `./gradlew assembleDebug -PinsightOnlineDemo=true`. Build a backend-connected APK with `./gradlew assembleDebug -PinsightApiUrl=https://YOUR_API`. Release builds reject cleartext service addresses. Preview data, saves, and credentials are kept separate from real service data.
 
-## Android v0.2.19 — Tips, lists and streaming audio
+## Android v0.2.20 - Studio levels and the target tip
+
+Version 0.2.20 (code 31) follows the web campaign exactly: six studio levels extend Journey from 200 to 206, the completion achievement becomes "All 206 Journey Puzzles", and badges already earned are kept. The first-play tips gained a target step, the game and creator hide the system gesture handle while playing, and creator notes, tip plates, the Next key's border, locked cards and pressed big keys were refined. Built and tested on the VPS, including a signed v0.2.19 update preserving preferences. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.20); see [deployment notes](DEPLOYMENT.md).
+
+## Android v0.2.19 - Tips, lists and streaming audio
 
 Version 0.2.19 (code 30) refines the first-play tips with theme-aware borders, plate-backed text and shrink-to-fit lines; makes Players one continuous list that loads ahead; lets Journey pages fit the screen instead of shrinking cards; keeps discovery cards steady mid-swipe; and replaces forest/mountain ambience with a looping zen track. The shared username filter gained a larger word list and `6` → `g` substitution. Backend, package, signing key and saved data are unchanged. Built and tested on the VPS, including a signed v0.2.18 update preserving progress. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.19); see [deployment notes](DEPLOYMENT.md).
 
@@ -134,7 +138,7 @@ Google's Android servers return 404 from the dev network, so:
 
 ```sh
 export JAVA_HOME=~/Android/dl/jdk-21.0.12.1+1 ANDROID_HOME=~/Android/Sdk
-./gradlew testDebugUnitTest      # replays all 200 verified solutions through the Kotlin rules
+./gradlew testDebugUnitTest      # replays every verified campaign solution through the Kotlin rules
 ./gradlew assembleDebug          # app/build/outputs/apk/debug/app-debug.apk
 ./gradlew assembleRelease        # minified, unsigned: sign before installing or uploading
 ```
