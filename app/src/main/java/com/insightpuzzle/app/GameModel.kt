@@ -149,8 +149,13 @@ class GameModel(app: Application) : AndroidViewModel(app) {
         // The very first time level one opens on a new install, the guide plays by itself; afterwards it is the icon's.
         guidePhase = if (index == 0 && guideOn && !store.onboarded && store.done.isEmpty()) 1 else 0
         if (guidePhase == 1) store.onboarded = true
+        if (Route.Game !in stack) boardEntry = true
         stack.clear(); stack += Route.Home; stack += Route.Game
     }
+
+    /** Set when a game screen is entered from outside a game (not when moving between puzzles); the board reads it once to lift in. */
+    private var boardEntry = false
+    fun consumeEntry(): Boolean = boardEntry.also { boardEntry = false }
 
     /** Home's Journey reopens the level last played (solved or not, with its unfinished moves), never a community board. */
     fun startJourney() {
@@ -187,6 +192,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
         // Keep the complete Play navigation underneath the game, including restored deep links.
         if (stack.none { it == Route.Online || it is Route.Profile }) { stack.clear(); stack += Route.Home; stack += Route.Online }
         val entry = stack.indexOfLast { it == Route.Game }
+        if (entry < 0) boardEntry = true
         if (entry >= 0) while (stack.size > entry) stack.removeAt(stack.lastIndex)
         if (stack.isEmpty()) { stack += Route.Home; stack += Route.Online }
         stack += Route.Game

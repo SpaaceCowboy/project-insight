@@ -160,24 +160,27 @@ fun AuthScreen(m: GameModel, destination: Route?) {
         if (mode == "register") {
             // Typed twice, so a slip of the finger can't lock the player out of a new account.
             OnlineField("Repeat password", repeat, password = true, enabled = !o.busy) { repeat = it.take(128) }
-            // A name already in use is refused by the server (NAME_TAKEN) and shown in the message line below. The rules show only once the name breaks one.
-            OnlineField("Username", name, enabled = !o.busy) { name = Nicknames.clip(it) }
+            // One line explains the username, whatever the reason: a rule it breaks (shown as soon as it does) or, after sending, the server's refusal (taken, or a rule).
+            // It goes as soon as the name is edited.
+            OnlineField("Username", name, enabled = !o.busy) { name = Nicknames.clip(it); o.clearNameError() }
             val problem = if (name.isBlank()) null else usernames.problem(name)
-            if (problem != null) Label(Nicknames.message(problem), 12.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                color = if (problem != NameProblem.LENGTH) LocalPalette.current.accent else LocalPalette.current.muted)
+            val note = problem?.let { Nicknames.message(it) } ?: o.nameError
+            if (note != null) Label(note, 12.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                color = if (problem == NameProblem.LENGTH) LocalPalette.current.muted else LocalPalette.current.accent)
         }
         OnlineMessages(m)
-        MenuButton(if (mode == "register") "Create account" else "Login", primary = true, enabled = !o.busy) {
+        MenuButton(if (mode == "register") "Create account" else "Login", primary = true, enabled = !o.busy && authFilled(mode == "register", email, password, repeat, name)) {
             val validation = when {
                 !android.util.Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches() -> tr("Enter a valid email address.")
                 password.isBlank() -> tr("Enter your password.")
                 mode == "register" && password.length < 12 -> tr("Choose a password with at least 12 characters.")
                 mode == "register" && repeat != password -> tr("The passwords don't match.")
-                mode == "register" && usernames.problem(name) != null -> Nicknames.message(usernames.problem(name)!!)
                 else -> null
             }
+            // A username that breaks a rule is explained under its box already, so nothing more is said or sent for it.
+            val badName = mode == "register" && usernames.problem(name) != null
             if (validation != null) o.report(OnlineException(400, "INVALID_INPUT", validation))
-            else {
+            else if (!badName) {
                 focus.clearFocus(); keyboard?.hide()
                 if (mode == "register") o.register(email, password, Nicknames.normalize(name), destination) { password = ""; repeat = "" }
                 else o.login(email, password, destination) { password = "" }
@@ -298,7 +301,7 @@ fun ProfileScreen(m: GameModel, requestedId: String?) {
                         ProfileButton("Achievements", badgeCount, Modifier.fillMaxWidth().weight(1f)) { m.push(Route.PlayerAchievements(data.getString("username"), badges)) }
                     }
                     // The player's own puzzles, in the same four-column cards as Levels and Worlds.
-                    Box(fade) { PuzzleCardList(m, puzzles, "No puzzles yet.") { detail = it } }
+                    Box(fade) { PuzzleCardList(m, puzzles, null) { detail = it } }
                     if (own && outcomes.isNotEmpty()) Column(fade, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Label(tr("{0} pending submissions", outcomes.count { it.state == "pending" }), 12.sp, color = p.muted, translate = false)
                         outcomes.filter { it.state == "failed" }.forEach { Label(tr("Submission needs attention: {0}", it.error), 12.sp, color = p.accent, translate = false) }

@@ -2,7 +2,9 @@ package com.insightpuzzle.app
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -134,6 +136,9 @@ internal const val REWIND_MS = 320
  * target's top at 132dp, which is 20dp below where the 48dp row ends (112dp).
  */
 private val TARGET_DROP = 20.dp
+/** On entering a game the outline and its grid start this far up and settle down into place over [BOARD_SETTLE_MS]. */
+private val BOARD_LIFT = 24.dp
+private const val BOARD_SETTLE_MS = 320
 /** Sidewall of the board's outline: deep like the menu keys', so holding to restart sinks it a long way and lights the wall. */
 internal val BOARD_WALL = 10.dp
 /** How much of its wall the board sinks onto when held. */
@@ -178,6 +183,10 @@ fun GameScreen(m: GameModel) {
     val canRewind by rememberUpdatedState(!exiting && m.changed && !m.solved && !rewinding)
     val canSwipe by rememberUpdatedState(m.community.let { it == null || it.casual || it.source != null } && Route.Win !in m.stack && !m.online.busy && !rewinding && m.guidePhase == 0)
     val reduceMotion by rememberUpdatedState(LocalReduceMotion.current)
+    // Entering a game from outside one (not swiping or going Next between puzzles, not coming back from Options) lifts the outline and its grid a little
+    // and lets them settle down into place. The model hands the entry out once; it is a draw-time offset only, so nothing is laid out again.
+    val lift = remember { val entering = m.consumeEntry(); Animatable(if (entering && !reduceMotion && !exiting) 1f else 0f) }
+    LaunchedEffect(Unit) { if (lift.value > 0f) lift.animateTo(0f, tween(BOARD_SETTLE_MS, easing = FastOutSlowInEasing)) }
     // Where things are, for telling the hold zone and the swipe zones apart.
     var root by remember { mutableStateOf<LayoutCoordinates?>(null) }
     var shellBox by remember { mutableStateOf<LayoutCoordinates?>(null) }
@@ -202,7 +211,7 @@ fun GameScreen(m: GameModel) {
             rewinding = false; rewind.snapTo(0f); glow.animateTo(0f, tween(220))
         }
     }
-    Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).onGloballyPositioned { root = it; refresh() }.semantics {
+    Box(Modifier.fillMaxSize().windowInsetsPadding(appInsets).onGloballyPositioned { root = it; refresh() }.semantics {
         isTraversalGroup = true
         customActions = if (canRewind) listOf(CustomAccessibilityAction(tr("Restart level")) { m.restart(); true }) else emptyList()
     }
@@ -294,7 +303,7 @@ fun GameScreen(m: GameModel) {
                     val lamp: (DrawScope.() -> Unit)? = if (m.guideOn && !exiting) {
                         { lampArt(lampInk, lit, Offset(size.width - LAMP_INSET.toPx() - LAMP_ART.toPx(), LAMP_TOP.toPx()), LAMP_ART.toPx(), if (p.dark) Color.White else p.ink.copy(alpha = if (solved) .45f else 1f)) }
                     } else null
-                    Board(Modifier.fillMaxWidth().height(boardShellHeight(maxHeight)).onGloballyPositioned { shellBox = it; refresh() }, view.board, Pair(view.level, community?.id), spec.target, solved, { m.board },
+                    Board(Modifier.graphicsLayer { translationY = -lift.value * BOARD_LIFT.toPx() }.fillMaxWidth().height(boardShellHeight(maxHeight)).onGloballyPositioned { shellBox = it; refresh() }, view.board, Pair(view.level, community?.id), spec.target, solved, { m.board },
                         holdGlow = glow.value, rewindTo = if (rewinding) spec.start else null, rewindProgress = rewind.value, onGrid = { gridRect = it }, beneath = lamp) { a, b -> m.move(a, b) }
                 }
             }

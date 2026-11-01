@@ -37,6 +37,8 @@
     { "name": "Insight", "problem": "NAME_RESERVED" },
     { "name": "Moderator 2", "problem": "NAME_RESERVED" },
     { "name": "ab", "problem": "NAME_LENGTH" },
+    { "name": "Aaaaaaaaaaaaaaaaaaaaa", "problem": "NAME_LENGTH" },
+    { "name": "Quiet Cove #0412", "problem": "NAME_CHARACTERS" },
     { "name": "abcdefghijklmnopqrstu", "problem": "NAME_LENGTH" },
     { "name": "   ", "problem": "NAME_CHARACTERS" },
     { "name": "___", "problem": "NAME_CHARACTERS" },

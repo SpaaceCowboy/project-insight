@@ -366,7 +366,7 @@ fun CreatorScreen(m: GameModel) {
             }
         }
     }) {
-        Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(Modifier.fillMaxSize().windowInsetsPadding(appInsets).padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Box(Modifier.fillMaxWidth().height(48.dp), contentAlignment = Alignment.Center) { BackChevron(m) }
             // The stage's heading, always there. Refusals and results ("Place at least two tiles first.", "Puzzle created.") show on the outline instead.
             Box(Modifier.widthIn(max = 560.dp).fillMaxWidth().height(28.dp), contentAlignment = Alignment.Center) {

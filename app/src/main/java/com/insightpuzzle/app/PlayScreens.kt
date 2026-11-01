@@ -341,7 +341,7 @@ internal const val PLAYERS_AHEAD = 50
  * loaded the next server page is fetched, so the list keeps ahead of them without ever loading it all at once. Rows are created only as they scroll into view.
  */
 @Composable
-internal fun PlayerList(m: GameModel, state: DiscoveryListState, modifier: Modifier = Modifier, empty: String = "No results for these settings.") {
+internal fun PlayerList(m: GameModel, state: DiscoveryListState, modifier: Modifier = Modifier, empty: String? = "No results for these settings.") {
     val list = androidx.compose.foundation.lazy.rememberLazyListState()
     val hasMore = state.nextPage != null && !state.failed
     LaunchedEffect(list, state.items.size, hasMore) {
@@ -356,8 +356,8 @@ internal fun PlayerList(m: GameModel, state: DiscoveryListState, modifier: Modif
     }
 }
 
-/** What an empty discovery list says once a load has finished. Loading itself shows nothing, a failed load shows the offline mark, and more items arrive by swiping on, never by a button. */
+/** What an empty discovery list says once a load has finished ([empty] null: nothing, as on a new account's own lists). Loading itself shows nothing, a failed load shows the offline mark, and more items arrive by swiping on, never by a button. */
 @Composable
-internal fun DiscoveryFooter(m: GameModel, state: DiscoveryListState, empty: String = "No results for these settings.") {
-    if (!state.loading && state.items.isEmpty() && state.settled && !state.failed) Label(empty, 14.sp)
+internal fun DiscoveryFooter(m: GameModel, state: DiscoveryListState, empty: String? = "No results for these settings.") {
+    if (empty != null && !state.loading && state.items.isEmpty() && state.settled && !state.failed) Label(empty, 14.sp)
 }

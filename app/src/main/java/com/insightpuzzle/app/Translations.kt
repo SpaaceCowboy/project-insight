@@ -222,9 +222,6 @@ object Translations {
         t("Bookmarked", "Guardados", "Favoris", "Salvati", "Gemerkt")
         t("Following", "Siguiendo", "Abonnements", "Seguiti", "Folge ich")
         t("Follow", "Seguir", "Suivre", "Segui", "Folgen")
-        t("No bookmarked puzzles yet.", "Aún no has guardado puzles.", "Aucun puzzle en favori pour l'instant.", "Nessun puzzle salvato per ora.", "Noch keine gemerkten Rätsel.")
-        t("You don't follow anyone yet.", "Aún no sigues a nadie.", "Vous ne suivez encore personne.", "Non segui ancora nessuno.", "Du folgst noch niemandem.")
-        t("No puzzles yet.", "Aún no hay puzles.", "Pas encore de puzzle.", "Ancora nessun puzzle.", "Noch keine Rätsel.")
 
         // Accounts and profiles.
         t("Local preview · On this device", "Vista previa local · En este dispositivo", "Aperçu local · Sur cet appareil", "Anteprima locale · Su questo dispositivo", "Lokale Vorschau · Auf diesem Gerät")

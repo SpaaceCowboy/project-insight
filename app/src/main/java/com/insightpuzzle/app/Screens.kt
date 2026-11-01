@@ -105,7 +105,7 @@ private val MODE_SHAPE = RoundedCornerShape(18)
 @Composable
 fun HomeScreen(m: GameModel) {
     val p = LocalPalette.current
-    BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp)) {
+    BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(appInsets).padding(16.dp)) {
         val compact = maxHeight < 640.dp
         // Fit the letter-spaced wordmark between the touch targets, including at large font scales.
         val titleSize = minOf(if (compact) 26f else 29f, (minOf(maxWidth, 360.dp).value - 96f) / 6.35f / LocalDensity.current.fontScale).sp

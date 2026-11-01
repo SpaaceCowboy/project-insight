@@ -50,7 +50,7 @@ fun BookmarksScreen(m: GameModel) {
     LoadDiscovery(m, state, BOOKMARKS_KEY, resetScroll = false)
     Page("Bookmarked", 560.dp) {
         ListHeader(m, "Bookmarked")
-        PuzzleGrid(m, state, Modifier.weight(1f).fillMaxWidth(), rows = BOOKMARK_ROWS, empty = "No bookmarked puzzles yet.") { detail = it }
+        PuzzleGrid(m, state, Modifier.weight(1f).fillMaxWidth(), rows = BOOKMARK_ROWS, empty = null) { detail = it }
     }
     detail?.let { anchor -> PuzzleDetails(m, anchor) { detail = null } }
 }
@@ -64,7 +64,7 @@ fun PlayersScreen(m: GameModel, kind: String) {
     Page("Following", 560.dp) {
         ListHeader(m, "Following")
         Refreshable(state.pulling, { m.online.clearMessages(); state.pull() }, Modifier.weight(1f).fillMaxWidth()) {
-            PlayerList(m, state, Modifier.fillMaxSize(), "You don't follow anyone yet.")
+            PlayerList(m, state, Modifier.fillMaxSize(), null)
         }
     }
 }

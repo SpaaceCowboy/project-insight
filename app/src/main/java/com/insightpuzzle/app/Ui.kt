@@ -33,7 +33,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.exclude
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsIgnoringVisibility
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -358,10 +362,17 @@ val restartIcon: DrawScope.(Color) -> Unit = {
     polyline(it, 20f, 4f, 20f, 8.5f, 15.5f, 8.5f)
 }
 
+/**
+ * The window's safe area with the navigation bar always counted, showing or not. While a puzzle is played the gesture handle is hidden (a swipe up from the
+ * bottom brings it back for a moment); because its room stays reserved, hiding or revealing it never changes a screen's layout, so nothing is measured again.
+ */
+internal val appInsets: WindowInsets
+    @Composable get() = WindowInsets.safeDrawing.exclude(WindowInsets.navigationBars).union(WindowInsets.navigationBarsIgnoringVisibility)
+
 /** Full-screen page. There is no on-screen title or Back button (system Back leaves); [title] is only announced to TalkBack. */
 @Composable
 fun Page(title: String, maxWidth: Dp = 640.dp, content: @Composable ColumnScope.() -> Unit) {
-    Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).semantics { paneTitle = tr(title) }, contentAlignment = Alignment.TopCenter) {
+    Box(Modifier.fillMaxSize().windowInsetsPadding(appInsets).semantics { paneTitle = tr(title) }, contentAlignment = Alignment.TopCenter) {
         Column(Modifier.widthIn(max = maxWidth).fillMaxSize().padding(16.dp), content = content)
     }
 }
@@ -428,7 +439,7 @@ fun Overlay(title: String, onDismiss: () -> Unit, padding: Dp = 24.dp, maxWidth:
     androidx.activity.compose.BackHandler { feedback(Cue.BACK); onDismiss() }
     Box(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().background(Color(0x99000000)).clickable(interactionSource = null, indication = null) { feedback(null); onDismiss() }.clearAndSetSemantics { })
-        Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp), contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxSize().windowInsetsPadding(appInsets).padding(16.dp), contentAlignment = Alignment.Center) {
             Column(Modifier.widthIn(max = maxWidth).fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(p.paper2).border(1.dp, p.line, RoundedCornerShape(28.dp))
                 .pointerInput(Unit) { detectTapGestures { } }.semantics { paneTitle = tr(title) }.padding(padding), horizontalAlignment = Alignment.CenterHorizontally, content = content)
         }

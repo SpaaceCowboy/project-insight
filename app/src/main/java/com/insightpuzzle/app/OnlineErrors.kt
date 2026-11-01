@@ -8,6 +8,13 @@ import javax.net.ssl.SSLException
 /** A failure to reach the server at all, as opposed to the server refusing the request. */
 fun isConnectionError(error: Throwable) = error is IOException && error !is OnlineException
 
+/** The server refused a username (a rule it breaks, or taken): shown once, under the username box, not in the form's message line. */
+fun isNameError(error: Throwable) = error is OnlineException && error.code.startsWith("NAME_")
+
+/** Sign-up needs every box filled in; the button stays muted until then. Login needs only email and password. */
+internal fun authFilled(register: Boolean, email: String, password: String, repeat: String, name: String) =
+    email.isNotBlank() && password.isNotEmpty() && (!register || (repeat.isNotEmpty() && name.isNotBlank()))
+
 /** Shared wording for failures from forms, community screens and progress sync. */
 fun playerErrorMessage(error: Throwable): String = when (error) {
     is OnlineException -> when {

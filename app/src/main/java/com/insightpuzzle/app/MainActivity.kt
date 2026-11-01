@@ -12,6 +12,7 @@ import androidx.activity.viewModels
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -54,12 +55,14 @@ class MainActivity : ComponentActivity() {
                 val bars = if (barsDark) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
                 enableEdgeToEdge(bars, bars)
             }
-            // A puzzle (or the creator) is played without the system gesture handle: it stays hidden and a swipe up from the bottom edge shows it for a moment.
-            val immersive = model.top == Route.Game || model.top == Route.Win || model.top == Route.Create
-            LaunchedEffect(immersive, barsDark) {
+            // While a puzzle (or the creator) is open, the system gesture handle is hidden and a swipe up from the bottom edge shows it for a moment. This is only the
+            // handle's visibility: every screen keeps its room reserved (see [appInsets]), so nothing is laid out again when it hides, and it waits for the screen to
+            // settle so it never runs while a sheet is moving.
+            val immersive = Route.Game in model.stack || Route.Create in model.stack
+            LaunchedEffect(immersive) {
                 val controller = WindowCompat.getInsetsController(window, window.decorView)
                 controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                if (immersive) controller.hide(WindowInsetsCompat.Type.navigationBars()) else controller.show(WindowInsetsCompat.Type.navigationBars())
+                if (immersive) { delay(400); controller.hide(WindowInsetsCompat.Type.navigationBars()) } else controller.show(WindowInsetsCompat.Type.navigationBars())
             }
             CompositionLocalProvider(LocalPalette provides if (dark) DarkPalette else LightPalette, LocalReduceMotion provides (reduceMotion || model.store.motion == "on")) { App(model) }
         }

@@ -319,7 +319,7 @@ Line height is 1.2× everywhere because `Label` sets it. That is tight but accep
 
 ## Layout
 
-Portrait only (`screenOrientation="portrait"`), edge-to-edge, with transparent system bars whose icon colour follows dark/light mode. Every screen pads by `WindowInsets.safeDrawing`, then applies a 16dp gutter. Content is a single centred column capped to a width that suits its job:
+Portrait only (`screenOrientation="portrait"`), edge-to-edge, with transparent system bars whose icon colour follows dark/light mode. Every screen pads by `appInsets` (`WindowInsets.safeDrawing` with the navigation bar always counted, so hiding the gesture handle in a puzzle never relays anything out), then applies a 16dp gutter. Content is a single centred column capped to a width that suits its job:
 
 | Surface | Max width |
 |---|---|
@@ -436,7 +436,7 @@ A 125dp 3×3 of tiles rotated −9°, with the outer columns floating ±4dp out 
 - **Do** give every tile both its hue and its movement symbol, and give every board element a TalkBack node with the same tap behaviour.
 - **Do** read `LocalReduceMotion` in every infinite or decorative animation and freeze it at its midpoint. Skip the win burst entirely when it is set.
 - **Do** time responses by role: touch feedback 185–420ms, celebration 0.9–1.4s, ambient drift 7–57s.
-- **Do** pad by `WindowInsets.safeDrawing` and match system-bar icon colour to the active mode.
+- **Do** pad by `appInsets` (safeDrawing with the navigation bar room kept) and match system-bar icon colour to the active mode.
 - **Do** define every new colour as a dark/light pair in `Palette`.
 - **Do** make touch targets at least 48dp. Round buttons, tabs, switch rows, menu buttons and the undo pebble all meet this.
 - **Do** mark unbuilt features as "Soon" / "Coming soon", dimmed and announced as such.

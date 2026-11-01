@@ -167,7 +167,7 @@ private fun Modifier.centredIn(content: Dp, minTop: Dp): Modifier = layout { mea
  * below the header (the open search bar leaves no spare room, and the players list has the same 8dp there).
  */
 @Composable
-internal fun PuzzleGrid(m: GameModel, state: DiscoveryListState, modifier: Modifier = Modifier, rows: Int = WORLD_ROWS, empty: String = "No results for these settings.", header: @Composable () -> Unit = {},
+internal fun PuzzleGrid(m: GameModel, state: DiscoveryListState, modifier: Modifier = Modifier, rows: Int = WORLD_ROWS, empty: String? = "No results for these settings.", header: @Composable () -> Unit = {},
                         scroll: androidx.compose.ui.input.nestedscroll.NestedScrollConnection? = null, minTop: Dp = 0.dp, onDetail: (DetailAnchor) -> Unit) {
     BoxWithConstraints(modifier.bleed()) {
         val width = maxWidth

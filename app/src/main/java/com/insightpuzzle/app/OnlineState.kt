@@ -22,12 +22,15 @@ class OnlineState(private val model: GameModel, app: Application, private val sc
     var offline by mutableStateOf(false)
     /** Background loads: a connection failure only marks [offline]; anything else is reported as usual. */
     fun quiet(error: Throwable) { if (isConnectionError(error)) offline = true else report(error) }
-    fun clearMessages() { error = null; notice = null }
+    /** The server's reason for refusing a username; the sign-up form shows it as the one line under the username box. */
+    var nameError by mutableStateOf<String?>(null); private set
+    fun clearMessages() { error = null; notice = null; nameError = null }
+    fun clearNameError() { nameError = null }
     fun inform(text: String) { notice = text }
     fun dismissError() { error = null }
     fun report(error: Throwable) {
         if (error is CancellationException) throw error
-        this.error = playerErrorMessage(error)
+        if (isNameError(error)) nameError = playerErrorMessage(error) else this.error = playerErrorMessage(error)
         Log.e("InsightOnline", "action_failed type=${error.javaClass.simpleName}")
     }
     fun task(block: suspend () -> Unit) {
