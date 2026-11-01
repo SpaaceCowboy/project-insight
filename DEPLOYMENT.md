@@ -1,3 +1,17 @@
+# Android v0.2.21 — One username line, a settling board and a steady safe area (1 November 2026)
+
+Published [v0.2.21 APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.21), version code 32. This is an APK-only release: package ID, signing key, saved preferences, download address and the backend are unchanged.
+
+This batch puts every username refusal on one line under the username box — the rule broken, shown as soon as it is, or the server's reason (taken, or a rule) after sending — and clears it when the name is edited. Login and Create account stay muted until the boxes they need are filled, and a username that breaks a rule is no longer repeated in the form's message line or sent for. A puzzle opened from outside a game lifts its outline and grid 24dp and settles them down over 320ms, skipped when motion is reduced and never between puzzles, on a swipe or on the way back from Options. Screens now reserve the navigation bar's room even while Journey or the creator hide the gesture handle, so hiding and revealing it never measures the screen again; the handle waits 400ms for the screen to settle and any open game keeps it hidden rather than only the top route. Bookmarked, Following and a new account's own puzzles show nothing instead of a placeholder line, and the three strings only those lines used left the translations.
+
+The build added the `ExperimentalLayoutApi` opt-in that the always-counted navigation-bar insets need. Two device tests now read the open Journey page's last level and a tile's current bounds instead of assuming the old 32-level pages and a position measured before the level swipes; the first had also been failing on v0.2.20.
+
+VPS validation passed: 63 Android unit tests, including the new checks that username refusals go to the username line and that sign-up needs every box while login needs two; the 22-test preview device suite; four compact 360x640 / 200% text checks; and a signed v0.2.20-to-v0.2.21 upgrade whose `insight.xml` preferences were identical before and after and whose app launched. The backend was not touched — no code module, migration, asset or restart — and has stayed up since the v0.2.20 rollout with no restarts.
+
+The prior public APK is `/root/insight-apk-rollbacks/INSIGHT-online-v0.2.20-before-041.apk`; publication replaced the download atomically and verified its public SHA-256. Build source: `/opt/insight-release-041-android`; artifacts: `/root/insight-041-apks`. Physical-phone checks were not performed.
+
+Online SHA-256: 74ce9112b081303dd864d3dfdeb01793a5b9aa2c6fabed22f1d69d842174d634. Preview SHA-256: 5988899108f0d834de2880bfc8459eb73021626efeba508f7040f90ccd3634c4. Certificate SHA-256: 3008529664ef52092022f4a3a0fc77a43f56d18ccaa947ecdf0be5daabd28c9a.
+
 # Android v0.2.20 — Studio levels and the target tip (1 November 2026)
 
 Published [v0.2.20 APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.20), version code 31, with the matching campaign asset on the backend. Package ID, signing key, saved preferences and download address are unchanged.

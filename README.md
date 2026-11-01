@@ -29,6 +29,10 @@ The TypeScript/PostgreSQL service and deployment instructions are in [server/REA
 
 Rebuild the local preview with `./gradlew assembleDebug -PinsightOnlineDemo=true`. Build a backend-connected APK with `./gradlew assembleDebug -PinsightApiUrl=https://YOUR_API`. Release builds reject cleartext service addresses. Preview data, saves, and credentials are kept separate from real service data.
 
+## Android v0.2.21 - One username line, a settling board and a steady safe area
+
+Version 0.2.21 (code 32) shows every username refusal on one line under the username box and clears it as soon as the name is edited, and keeps Login / Create account muted until the boxes they need are filled. A puzzle opened from outside a game lifts its board into place, the gesture handle hides only after the screen settles while the navigation bar's room stays reserved, and empty collections no longer show a placeholder line. Backend, package, signing key and saved data are unchanged. Built and tested on the VPS, including a signed v0.2.20 update that kept its preferences. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.21); see [deployment notes](DEPLOYMENT.md).
+
 ## Android v0.2.20 - Studio levels and the target tip
 
 Version 0.2.20 (code 31) follows the web campaign exactly: six studio levels extend Journey from 200 to 206, the completion achievement becomes "All 206 Journey Puzzles", and badges already earned are kept. The first-play tips gained a target step, the game and creator hide the system gesture handle while playing, and creator notes, tip plates, the Next key's border, locked cards and pressed big keys were refined. Built and tested on the VPS, including a signed v0.2.19 update preserving preferences. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.20); see [deployment notes](DEPLOYMENT.md).
