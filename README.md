@@ -29,6 +29,10 @@ The TypeScript/PostgreSQL service and deployment instructions are in [server/REA
 
 Rebuild the local preview with `./gradlew assembleDebug -PinsightOnlineDemo=true`. Build a backend-connected APK with `./gradlew assembleDebug -PinsightApiUrl=https://YOUR_API`. Release builds reject cleartext service addresses. Preview data, saves, and credentials are kept separate from real service data.
 
+## Android v0.2.25 - Home counts, a quicker Options and an icon that waits
+
+Version 0.2.25 (code 36) shows the campaign's solved total on Home's Journey key and Designed/Solved on Worlds for signed-in players, and both keys settle in when Home appears. The two trial looks leave Options, its volume rows are shorter, and an alternative launcher icon is now applied when the app leaves the foreground so the running task is never closed. Worlds keeps its search and action keys in place while the keyboard is up, and page swipes clear a search field's focus. Backend, package, signing key and saved data are unchanged. Built and tested on the VPS, including a signed v0.2.24 update that kept its preferences. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.25); see [deployment notes](DEPLOYMENT.md).
+
 ## Android v0.2.24 - Options stays open on Android 8-11, and the keyboard keeps the handle
 
 Version 0.2.24 (code 35) replaces v0.2.23, which crashed on Android 8-11 when Options composed its icon row because `Class.getPackageName()` is API 31; the alias name is a literal again and both icon calls are guarded so a refusal cannot take the page down. While the keyboard is up the navigation handle returns, so the keyboard sits above it, and it is hidden again when the keyboard closes. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.24); see [deployment notes](DEPLOYMENT.md).

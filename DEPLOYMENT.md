@@ -1,3 +1,15 @@
+# Android v0.2.25 — Home counts, a quicker Options and an icon that waits (2 November 2026)
+
+Published [v0.2.25 APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.25), version code 36. This is an APK-only release: package ID, signing key, saved preferences, download address and the backend are unchanged.
+
+This batch gives Home two readouts: Journey's key shows the campaign's solved total on a thin bar under its word ("142 / 206"), and Worlds' key shows "Designed" and "Solved" for a signed-in player. Both keys lift 8dp and settle once Home is uncovered, like the game board. The two trial looks in Options → About ("New colours", "Smooth 3D") are removed together with their drawing paths, so tiles and plates keep the standard face and side; the volume rows are shorter (12sp labels, 38dp track) and Options rows sit 10dp apart. The alternative launcher icon is now recorded as a wish and switched when the app leaves the foreground, because enabling another launcher entry while the task runs makes Android close that task; the Options row shows the wish at once. Worlds keeps its search at the top and its action keys at the bottom while the keyboard is up instead of lifting the page, and swiping to another page lets go of a search field's focus and hides the keyboard.
+
+VPS validation passed: 63 Android unit tests; the 22-test preview device suite; four compact 360x640 / 200% text checks; an Android 8 check that chose the alternative launcher entry, left the app, confirmed the enabled alias switched from `LauncherDefault` to `LauncherAlt` while the process stayed alive, returned, and switched it back; and a signed v0.2.24-to-v0.2.25 upgrade whose `insight.xml` preferences were identical before and after and whose app launched. The backend was not touched — no module, migration, asset or restart — and stayed up.
+
+The prior public APK is `/root/insight-apk-rollbacks/INSIGHT-online-v0.2.24-before-045.apk`; publication replaced the download atomically and verified its public SHA-256. Build source: `/opt/insight-release-045-android`; artifacts: `/root/insight-045-apks`. Physical-phone checks were not performed.
+
+Online SHA-256: 3ff61f37807c89e9a3a9dd69c42fec5b37c1f081dc7e1e942b5e29fe84de1eb9. Preview SHA-256: a66cec0adec86e9874222a5817dec9b6b9c9d08c9f91ae06b4043b75a0d0ce0a. Certificate SHA-256: 3008529664ef52092022f4a3a0fc77a43f56d18ccaa947ecdf0be5daabd28c9a.
+
 # Android v0.2.24 — Options stays open on Android 8–11, and the keyboard keeps the handle (2 November 2026)
 
 Published [v0.2.24 APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.24), version code 35. This is an APK-only release: package ID, signing key, saved preferences, download address and the backend are unchanged.
