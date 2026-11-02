@@ -29,6 +29,10 @@ The TypeScript/PostgreSQL service and deployment instructions are in [server/REA
 
 Rebuild the local preview with `./gradlew assembleDebug -PinsightOnlineDemo=true`. Build a backend-connected APK with `./gradlew assembleDebug -PinsightApiUrl=https://YOUR_API`. Release builds reject cleartext service addresses. Preview data, saves, and credentials are kept separate from real service data.
 
+## Android v0.2.24 - Options stays open on Android 8-11, and the keyboard keeps the handle
+
+Version 0.2.24 (code 35) replaces v0.2.23, which crashed on Android 8-11 when Options composed its icon row because `Class.getPackageName()` is API 31; the alias name is a literal again and both icon calls are guarded so a refusal cannot take the page down. While the keyboard is up the navigation handle returns, so the keyboard sits above it, and it is hidden again when the keyboard closes. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.24); see [deployment notes](DEPLOYMENT.md).
+
 ## Android v0.2.23 - Two looks to try, a second icon and a warmer start
 
 Version 0.2.23 (code 34) adds two looks to try in Options → About: "New colours" paints every tile one exact colour with only its side shaded, and "Smooth 3D" tapers the side of every plate and tile to nothing at its ends. Options also switches between the app icon and an alternative with its colours swapped, through a second launcher alias that never disables the activity. The splash holds 1300–3000ms, waits for the local preload and composes the first screens underneath it; a leaving screen lets go of the keyboard, Home no longer shrinks for it, the board lifts on every game entry until its sheet has settled, and a rebuilt profile starts from the copy in memory. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.23); see [deployment notes](DEPLOYMENT.md).
