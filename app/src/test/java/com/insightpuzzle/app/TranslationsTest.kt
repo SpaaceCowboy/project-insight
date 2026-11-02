@@ -18,8 +18,8 @@ class TranslationsTest {
         Regex("""\bempty(?: =|: String =) "((?:[^"\\]|\\.)*)""""),
         Regex(""""[a-z]+" to "((?:[^"\\]|\\.)*)""""),
     )
-    /** Texts that are not meant to be translated: the language names, a font name, the debug-only toggle, the wordmark. */
-    private val untranslated = setOf("English", "Español", "Français", "Italiano", "Deutsch", "JetBrains Mono", "Developer mode", "MIDORI")
+    /** Texts that are not meant to be translated: the language names, a font name, the debug-only toggle, the two looks being tried out, the wordmark. */
+    private val untranslated = setOf("English", "Español", "Français", "Italiano", "Deutsch", "JetBrains Mono", "Developer mode", "New colours", "Smooth 3D", "Aa", "Prewarm", "MIDORI")
 
     @Test fun everyTextTheCodeTranslatesHasARowInAllFourLanguages() {
         val missing = sortedSetOf<String>()

@@ -1,0 +1,4 @@
+# Coarse baseline profile: compile everything in the app's own package ahead of time, so the first screens do not run through the interpreter.
+# The AndroidX libraries bring their own profiles. AGP merges this file and installs it with ProfileInstaller (the benefit shows once the system has dexopted it).
+HSPLcom/insightpuzzle/app/**;->**(**)**
+Lcom/insightpuzzle/app/**;

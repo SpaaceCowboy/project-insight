@@ -57,6 +57,9 @@ class Haptics(private val context: Context) {
         else @Suppress("DEPRECATION") v.vibrate(effect, android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_ASSISTANCE_SONIFICATION).build())
     }
 
+    /** Looks the vibrator up and asks what it can do, without vibrating, so the first real touch does not pay for it. */
+    fun warm() { vibrator()?.let { it.hasVibrator(); it.hasAmplitudeControl() } }
+
     companion object { const val TICK_MS = 10L; const val FINE_TICK_MS = 6L; const val TICK_AMPLITUDE = 80 }
 }
 

@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
@@ -438,7 +439,8 @@ fun CreatorScreen(m: GameModel) {
                         val face = if (p.dark) lerp(p.paper2, Color.Black, .22f) else lerp(p.paper2, Color.Black, .07f)
                         val wall = lerp(face, Color.Black, if (p.dark) .18f else .12f)
                         drawRoundRect(Color.Black.copy(alpha = (if (p.dark) .3f else .12f) * a), at + Offset(0f, depth + size * .04f), Size(size, size), radius)
-                        drawRoundRect(wall.copy(alpha = a), at + Offset(0f, depth), Size(size, size), radius)
+                        if (Art.smooth) translate(at.x, at.y) { drawPath(squareWall(size, size * .23f, depth), wall.copy(alpha = a)) }
+                        else drawRoundRect(wall.copy(alpha = a), at + Offset(0f, depth), Size(size, size), radius)
                         drawRoundRect(face.copy(alpha = a), at, Size(size, size), radius)
                         drawRoundRect(Brush.verticalGradient(0f to Color.White.copy(alpha = (if (p.dark) .035f else .35f) * a), .5f to Color.Transparent, startY = at.y, endY = at.y + size), at, Size(size, size), radius)
                         if (pos != null && pos == hover) drawRoundRect(Color.White.copy(alpha = .12f * a), at, Size(size, size), radius)

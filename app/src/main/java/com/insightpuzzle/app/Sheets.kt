@@ -22,6 +22,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
@@ -48,6 +49,9 @@ class SheetHandle(start: Float) {
 
 /** The sheet the composable is drawn in; null on Home, which does not slide. */
 val LocalSheet = staticCompositionLocalOf<SheetHandle?> { null }
+
+/** How far the screens that are sinking away over this one still cover it: 1 while one is fully up, 0 once they are all gone. */
+val LocalCover = staticCompositionLocalOf<() -> Float> { { 0f } }
 
 /** True while the screen is composed only to slide away (it has left the stack): it should keep showing what it showed, not the model's new state. */
 val LocalExiting = staticCompositionLocalOf { false }
@@ -101,8 +105,13 @@ fun Screens(m: GameModel) {
         memory.stack = stack; memory.started = true
         handles.keys.retainAll(order.toSet())
     }
+    // A screen gone from the stack that is still sinking away; a handle that has been dropped is gone and counts as 0.
+    // One stable lambda (a new one each time would recompose every screen, as it is a static local) that reads the current stack and order.
+    val stackNow by rememberUpdatedState(stack)
+    val orderNow by rememberUpdatedState(order)
+    val cover = remember { { orderNow.filter { it !in stackNow }.maxOfOrNull { handles[it]?.progress?.value ?: 0f } ?: 0f } }
     for (route in order) key(route) {
-        Layer(route, handleFor(route), exiting = route !in stack, covered = route != top, reduce, onGone = { leaving.remove(route) }, dim = {
+        Layer(route, handleFor(route), exiting = route !in stack, covered = route != top, reduce, onGone = { leaving.remove(route) }, cover = cover, dim = {
             // A screen under a sheet that is moving darkens in step with it.
             if (route !in stack) 0f
             else (1f - (order.filter { it != route && (it !in stack || it == top) }.mapNotNull { handles[it]?.progress?.value }.minOrNull() ?: 1f)) * SHEET_DIM
@@ -111,8 +120,12 @@ fun Screens(m: GameModel) {
 }
 
 @Composable
-private fun Layer(route: Route, handle: SheetHandle, exiting: Boolean, covered: Boolean, reduce: Boolean, onGone: () -> Unit, dim: () -> Float, content: @Composable () -> Unit) {
+private fun Layer(route: Route, handle: SheetHandle, exiting: Boolean, covered: Boolean, reduce: Boolean, onGone: () -> Unit, cover: () -> Float, dim: () -> Float, content: @Composable () -> Unit) {
     SideEffect { handle.live = !exiting }
+    // A screen that is leaving lets go of the keyboard at once: otherwise the screen it reveals is laid out against the open keyboard and grows back when it closes.
+    val focus = androidx.compose.ui.platform.LocalFocusManager.current
+    val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+    LaunchedEffect(exiting) { if (exiting) { focus.clearFocus(); keyboard?.hide() } }
     LaunchedEffect(exiting, reduce) {
         val spec = if (reduce) snap<Float>() else SheetMotion
         if (exiting) { handle.progress.animateTo(0f, spec); onGone() }
@@ -142,7 +155,7 @@ private fun Layer(route: Route, handle: SheetHandle, exiting: Boolean, covered: 
                 else -> Modifier
             }),
     ) {
-        CompositionLocalProvider(LocalSheet provides handle.takeIf { rises(route) }, LocalExiting provides exiting) {
+        CompositionLocalProvider(LocalSheet provides handle.takeIf { rises(route) }, LocalExiting provides exiting, LocalCover provides cover) {
             // A rising screen carries its own page background, so the screen beneath never shows through while it moves.
             if (route == Route.Home) content() else Backdrop { content() }
         }

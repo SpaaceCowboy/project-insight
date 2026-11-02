@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.unit.Dp
 import kotlin.math.cos
 import kotlin.math.sin
@@ -28,6 +29,8 @@ private val LINES: Map<Char, List<FloatArray>> = mapOf(
         f(24, 8, 24, 40), f(8, 24, 40, 24),
         f(18, 14, 24, 8, 30, 14), f(18, 34, 24, 40, 30, 34),
         f(14, 18, 8, 24, 14, 30), f(34, 18, 40, 24, 34, 30),
+        // A diamond (a square turned on its corner) at the centre: its corners are midway between the centre and each arrow's tip.
+        f(24, 16, 32, 24, 24, 32, 16, 24, 24, 16),
     ),
 )
 private fun f(vararg v: Number) = FloatArray(v.size) { v[it].toFloat() }
@@ -57,14 +60,19 @@ fun DrawScope.tile(type: Char, origin: Offset, size: Float, glow: Color? = null,
     // Raised like the app's keys: a soft shadow on the platform, a darker side showing under the face, then the face. Smaller than the gap between tiles, so a side never reaches the next row.
     val depth = size * .055f
     drawRoundRect(Color(0x33000000), origin + Offset(0f, depth + size * .04f), Size(size, size), radius)
-    drawRoundRect(androidx.compose.ui.graphics.lerp(deep, Color.Black, .4f), origin + Offset(0f, depth), Size(size, size), radius)
+    val wall = androidx.compose.ui.graphics.lerp(deep, Color.Black, .4f)
+    if (Art.smooth) translate(origin.x, origin.y) { drawPath(squareWall(size, size * .23f, depth), wall) }
+    else drawRoundRect(wall, origin + Offset(0f, depth), Size(size, size), radius)
     val angle = Math.toRadians(145.0 - 90.0)
     val dx = (cos(angle) * size / 2).toFloat(); val dy = (sin(angle) * size / 2).toFloat()
     val center = origin + Offset(size / 2, size / 2)
     drawRoundRect(Brush.linearGradient(listOf(light, deep), center - Offset(dx, dy), center + Offset(dx, dy)), origin, Size(size, size), radius)
     // The colour-blind palette keeps its exact colours: only a faint sheen.
-    val sheen = if (Art.colorblind) listOf(Color.White.copy(alpha = .08f), Color.Transparent, Color(0x14000000)) else listOf(Color.White.copy(alpha = .28f), Color.Transparent, Color(0x29000000))
-    drawRoundRect(Brush.linearGradient(sheen, origin, origin + Offset(size, size)), origin, Size(size, size), radius)
+    // The new solid palette has none either: the colour is flat and only the side is shaded.
+    if (!Art.solid) {
+        val sheen = if (Art.colorblind) listOf(Color.White.copy(alpha = .08f), Color.Transparent, Color(0x14000000)) else listOf(Color.White.copy(alpha = .28f), Color.Transparent, Color(0x29000000))
+        drawRoundRect(Brush.linearGradient(sheen, origin, origin + Offset(size, size)), origin, Size(size, size), radius)
+    }
     if (highlight > 0f) drawRoundRect(Color.White.copy(alpha = highlight), origin, Size(size, size), radius)
     drawRoundRect(Color(0x73FFFFFF), origin, Size(size, size), radius, style = Stroke(1.5f))
     // The selection ring alone: no halo around it.
@@ -82,6 +90,48 @@ fun DrawScope.tile(type: Char, origin: Offset, size: Float, glow: Color? = null,
         symbol(type, origin, size, .44f, ink.copy(alpha = .92f), weight)
     }
 }
+
+/**
+ * The smooth 3D side of a plate (Options → About → Smooth 3D): not the face's shape moved down, whose side keeps one thickness all along the bottom and
+ * stops short at the rounded corners, but a band that is [depth] thick at the middle of the bottom edge and tapers to nothing at both ends, following the
+ * face's lower outline round its corners. Null for an outline that is not a rectangle, rounded or not (the caller then moves the face's shape down as usual).
+ */
+internal fun taperedWall(outline: androidx.compose.ui.graphics.Outline, depth: Float): androidx.compose.ui.graphics.Path? {
+    val rr = when (outline) {
+        is androidx.compose.ui.graphics.Outline.Rounded -> outline.roundRect
+        is androidx.compose.ui.graphics.Outline.Rectangle -> androidx.compose.ui.geometry.RoundRect(outline.rect, CornerRadius.Zero)
+        else -> return null
+    }
+    val width = rr.width
+    if (width <= 0f || depth <= 0f) return null
+    val steps = 48
+    // The lower outline of the face at x: flat along the bottom, then up each corner's arc.
+    fun lower(x: Float): Float {
+        val bl = rr.bottomLeftCornerRadius; val br = rr.bottomRightCornerRadius
+        return when {
+            bl.x > 0f && x < rr.left + bl.x -> { val t = (rr.left + bl.x - x) / bl.x; rr.bottom - bl.y + bl.y * kotlin.math.sqrt((1f - t * t).coerceAtLeast(0f)) }
+            br.x > 0f && x > rr.right - br.x -> { val t = (x - (rr.right - br.x)) / br.x; rr.bottom - br.y + br.y * kotlin.math.sqrt((1f - t * t).coerceAtLeast(0f)) }
+            else -> rr.bottom
+        }
+    }
+    // How much of the full thickness there is at x: all of it in the middle, falling away to nothing at the ends.
+    fun thickness(x: Float): Float { val u = kotlin.math.abs(2f * (x - rr.left) / width - 1f); return depth * (1f - Math.pow(u.toDouble(), 2.5).toFloat()) }
+    return androidx.compose.ui.graphics.Path().apply {
+        moveTo(rr.left, lower(rr.left))
+        for (i in 0..steps) { val x = rr.left + width * i / steps; lineTo(x, lower(x) + thickness(x)) }
+        // Back along the face's own outline, a little inside it, so no seam shows between the band and the face.
+        for (i in steps downTo 0) { val x = rr.left + width * i / steps; lineTo(x, lower(x) - depth) }
+        close()
+    }
+}
+
+private val tileWalls = HashMap<Triple<Float, Float, Float>, androidx.compose.ui.graphics.Path>()
+/** The tapered side of a square tile or slot of [size] with corner [radius], in its own coordinates (drawn translated to the tile). Kept, as every tile has the same one. */
+internal fun squareWall(size: Float, radius: Float, depth: Float): androidx.compose.ui.graphics.Path =
+    tileWalls.getOrPut(Triple(size, radius, depth)) {
+        if (tileWalls.size > 32) tileWalls.clear()
+        taperedWall(androidx.compose.ui.graphics.Outline.Rounded(androidx.compose.ui.geometry.RoundRect(0f, 0f, size, size, CornerRadius(radius))), depth)!!
+    }
 
 /** Arrows on coloured tiles are a little finer than the original strokes. */
 private const val ETCH_WEIGHT = .78f
@@ -106,7 +156,12 @@ fun TargetMini(board: Board, cell: Dp, gap: Dp, modifier: Modifier = Modifier, s
             if (t == '.') return@forEachIndexed
             val o = Offset(col * (c + g), r * (c + g))
             if (dark) drawRoundRect(Art.LIGHT.getValue(t), o, Size(c, c), CornerRadius(c * .25f))
-            else {
+            else if (Art.solid) {
+                // The exact colour, with a fine darker edge (white would vanish on the cream cards otherwise).
+                val face = Art.LIGHT.getValue(t)
+                drawRoundRect(face, o, Size(c, c), CornerRadius(c * .25f))
+                drawRoundRect(androidx.compose.ui.graphics.lerp(face, Color.Black, .22f).copy(alpha = .55f), o + Offset(.5f, .5f), Size(c - 1f, c - 1f), CornerRadius(c * .25f), style = Stroke(1f))
+            } else {
                 val deep = Art.TILE.getValue(t).second
                 drawRoundRect(androidx.compose.ui.graphics.lerp(Art.LIGHT.getValue(t), deep, .35f), o, Size(c, c), CornerRadius(c * .25f))
                 drawRoundRect(deep.copy(alpha = .55f), o + Offset(.5f, .5f), Size(c - 1f, c - 1f), CornerRadius(c * .25f), style = Stroke(1f))

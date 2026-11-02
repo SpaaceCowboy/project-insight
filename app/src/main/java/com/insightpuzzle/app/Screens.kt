@@ -105,7 +105,8 @@ private val MODE_SHAPE = RoundedCornerShape(18)
 @Composable
 fun HomeScreen(m: GameModel) {
     val p = LocalPalette.current
-    BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(appInsets).padding(16.dp)) {
+    // Home has no text field, so the keyboard never shrinks it: the safe area without the keyboard (the navigation bar's room stays, as in [appInsets]).
+    BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(homeInsets).padding(16.dp)) {
         val compact = maxHeight < 640.dp
         // Fit the letter-spaced wordmark between the touch targets, including at large font scales.
         val titleSize = minOf(if (compact) 26f else 29f, (minOf(maxWidth, 360.dp).value - 96f) / 6.35f / LocalDensity.current.fontScale).sp
@@ -306,12 +307,18 @@ fun OptionsScreen(m: GameModel) {
                     "options" -> {
                         ToggleRow("Haptics", m.haptics) { m.toggleHaptics() }
                         ToggleRow("Sound", m.sound) { m.toggleSound() }
-                        VolumeSlider("Ambience", m.ambience) { m.changeAmbience(it) }
-                        VolumeSlider("Effects", m.effects) { m.changeEffects(it) }
-                        // No headings: Light/Dark and the languages sit as close to their neighbours as Haptics and Sound do, so the page fits without scrolling.
-                        Tabs(listOf("light" to "Light", "dark" to "Dark"), m.theme, Cue.CHECK, bottom = 0.dp) { m.changeTheme(it) }
+                        // The two sliders and Light/Dark sit close together as one group, so there is room below for the icon button without scrolling.
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            VolumeSlider("Ambience", m.ambience) { m.changeAmbience(it) }
+                            VolumeSlider("Effects", m.effects) { m.changeEffects(it) }
+                            // No headings: Light/Dark and the languages sit as close to their neighbours as Haptics and Sound do.
+                            Tabs(listOf("light" to "Light", "dark" to "Dark"), m.theme, Cue.CHECK, bottom = 0.dp) { m.changeTheme(it) }
+                        }
                         ToggleRow("Colourblind mode", m.colorblind) { m.toggleColorblind() }
                         ToggleRow("Gameplay tips", m.guideOn) { m.toggleGuide() }
+                        // The app's icon with its background and mark colours swapped; the launcher may take a few seconds to show it.
+                        var altIcon by remember { mutableStateOf(AppIcon.isAlternative(context)) }
+                        ToggleRow("Alternative icon", altIcon) { altIcon = !altIcon; AppIcon.set(context, altIcon) }
                         // Each language is named in itself; the same sound as the Light and Dark buttons.
                         Tabs(L10n.LANGUAGES, m.language, Cue.CHECK, labelSize = 10.5.sp, bottom = 0.dp) { m.changeLanguage(it) }
                     }
@@ -326,6 +333,9 @@ fun OptionsScreen(m: GameModel) {
                         if (AppLinks.CONTACT_EMAIL.isNotEmpty()) InfoRow("Contact", AppLinks.CONTACT_EMAIL, onClick = { context.startActivity(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:${AppLinks.CONTACT_EMAIL}"))) })
 
                         if (BuildConfig.DEBUG) ToggleRow("Developer mode", m.dev) { m.toggleDev() }
+                        // Two looks to try out; if they are liked they replace the current ones.
+                        ToggleRow("New colours", m.freshColours) { m.toggleFreshColours() }
+                        ToggleRow("Smooth 3D", m.smooth3d) { m.toggleSmooth3d() }
                     }
                 }
             }
@@ -373,6 +383,29 @@ private fun playTurn(feedback: (Cue?) -> Unit, last: Long): Long {
 }
 private const val STOPS = 10
 
+/**
+ * Composed once under the splash screen: one of each thing the first screens are made of (every text weight, the plates, a tab row, a slider, a tile), nearly
+ * invisible, never touched. Its only job is to have the fonts loaded and the shadows and clips drawn once before the player reaches them.
+ */
+@Composable
+internal fun Prewarm() {
+    Column(Modifier.fillMaxWidth().padding(16.dp).graphicsLayer { alpha = .01f }.clearAndSetSemantics { }) {
+        Row {
+            Label("Aa", 14.sp)
+            Label("Aa", 14.sp, weight = FontWeight.Medium)
+            Label("Aa", 14.sp, weight = FontWeight.SemiBold)
+            Label("Aa", 14.sp, weight = FontWeight.Bold)
+            Label("Aa", 14.sp, weight = FontWeight.ExtraBold)
+        }
+        MenuButton("Prewarm", onClick = {})
+        ToggleRow("Prewarm", true) { }
+        InfoRow("Prewarm", "Prewarm")
+        Tabs(listOf("a" to "A", "b" to "B"), "a") { }
+        VolumeSlider("Prewarm", .5f) { }
+        Row { for (type in "RBGYPW") TileIcon(type, 24.dp) }
+    }
+}
+
 /** Volume 0–10: a fat track and a soft knob that lags behind the finger and settles into each stop with a little give; a haptic tick at each stop. Stored as 0..1. */
 @Composable
 private fun VolumeSlider(label: String, value: Float, onChange: (Float) -> Unit) {
@@ -392,7 +425,7 @@ private fun VolumeSlider(label: String, value: Float, onChange: (Float) -> Unit)
     Column {
         Row { Label(label, 13.sp, weight = FontWeight.SemiBold); Spacer(Modifier.weight(1f)); Label("$stop", 13.sp, color = p.muted) }
         val knob = 32.dp
-        Canvas(Modifier.fillMaxWidth().height(52.dp)
+        Canvas(Modifier.fillMaxWidth().height(44.dp)
             .pointerInput(Unit) {
                 val r = knob.toPx() / 2
                 fun raw(x: Float) = ((x - r) / (size.width - 2 * r) * STOPS).coerceIn(0f, STOPS.toFloat())

@@ -34,6 +34,7 @@ object Translations {
         t("Dark", "Oscuro", "Sombre", "Scuro", "Dunkel")
         t("Colourblind mode", "Modo daltónico", "Mode daltonien", "Modalità daltonici", "Farbenblind-Modus")
         t("Gameplay tips", "Consejos de juego", "Conseils de jeu", "Consigli di gioco", "Spieltipps")
+        t("Alternative icon", "Icono alternativo", "Icône alternative", "Icona alternativa", "Alternatives Symbol")
         t("Language", "Idioma", "Langue", "Lingua", "Sprache")
         t("Share feedback", "Enviar comentarios", "Donner votre avis", "Invia un commento", "Feedback senden")
         t("Report a bug", "Informar de un error", "Signaler un bogue", "Segnala un errore", "Fehler melden")

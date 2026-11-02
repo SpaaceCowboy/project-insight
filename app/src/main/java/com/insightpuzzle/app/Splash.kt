@@ -34,8 +34,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 
 /** The splash shows for at least this long (so it never flashes), and never longer than [SPLASH_MAX_MS] even if the loading is slow. */
-internal const val SPLASH_MIN_MS = 900L
-internal const val SPLASH_MAX_MS = 2500L
+internal const val SPLASH_MIN_MS = 1300L
+internal const val SPLASH_MAX_MS = 3000L
 /** The splash's grey: the dark theme's, whatever theme is saved. */
 internal val SplashGrey = Color(0xFF1F1F1F)
 
@@ -55,12 +55,16 @@ fun SplashGate(m: GameModel) {
         val minimum = if (m.store.motion == "on") 0L else SPLASH_MIN_MS
         // The first pages are fetched in the background and never waited for: a blocking request cannot be cancelled, so waiting on it let a slow server hold the splash.
         m.viewModelScope.launch { m.warmUp() }
-        withTimeoutOrNull(SPLASH_MAX_MS) { snapshotFlow { m.audio.ready }.first { it } }
+        // The local preload is waited for (join can be given up on, the work itself cannot be cancelled mid-read), together with the sounds, up to the maximum.
+        val preload = m.viewModelScope.launch { m.preload() }
+        withTimeoutOrNull(SPLASH_MAX_MS) { snapshotFlow { m.audio.ready }.first { it }; preload.join() }
         val left = minimum - (SystemClock.uptimeMillis() - started)
         if (left > 0) delay(left)
         if (!reduce) alpha.animateTo(0f, tween(260))
         m.splashDone = true
     }
+    // The things the first screens are made of are composed once, hidden under the splash, so their fonts and shadows are ready when the player gets there.
+    Prewarm()
     Box(Modifier.fillMaxSize().graphicsLayer { this.alpha = alpha.value }.background(SplashGrey)
         .pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent().changes.forEach { it.consume() } } }
         .clearAndSetSemantics { }, contentAlignment = Alignment.Center) {

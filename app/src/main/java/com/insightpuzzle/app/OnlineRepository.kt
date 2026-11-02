@@ -23,11 +23,19 @@ class OnlineRepository private constructor(private val context: Context) {
     val client = OnlineClient(context)
     private val syncLock = Mutex()
     private val queries get() = OnlineDatabase.get(context).queries()
-    suspend fun cached(account: String, key: String): JSONObject? = withContext(Dispatchers.IO) { queries.read(account, key)?.let { JSONObject(it) } }
+    // What was last read or saved, kept in memory too: a screen that is rebuilt (a profile after Back from a list) starts from it at once instead of after a database read.
+    private val memory = java.util.concurrent.ConcurrentHashMap<String, JSONObject>()
+    private fun memoryKey(account: String, key: String) = "$account\u0000$key"
+    /** The last value seen for [key] without waiting for the database, or null. */
+    fun peek(account: String, key: String): JSONObject? = memory[memoryKey(account, key)]
+    suspend fun cached(account: String, key: String): JSONObject? = withContext(Dispatchers.IO) {
+        queries.read(account, key)?.let { JSONObject(it) }?.also { memory[memoryKey(account, key)] = it }
+    }
     suspend fun save(account: String, key: String, value: JSONObject) = withContext(Dispatchers.IO) {
+        memory[memoryKey(account, key)] = value
         queries.save(OnlineDatabase.Record().apply { this.account = account; this.key = key; this.value = value.toString() })
     }
-    suspend fun remove(account: String, key: String) = withContext(Dispatchers.IO) { queries.remove(account, key) }
+    suspend fun remove(account: String, key: String) = withContext(Dispatchers.IO) { memory.remove(memoryKey(account, key)); queries.remove(account, key) }
     suspend fun fetch(path: String, account: String): JSONObject {
         val result = client.request("GET", path, account = account)
         save(account, path, result)

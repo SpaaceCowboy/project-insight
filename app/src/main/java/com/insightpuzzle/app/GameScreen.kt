@@ -137,9 +137,9 @@ internal const val REWIND_MS = 320
  * target's top at 132dp, which is 20dp below where the 48dp row ends (112dp).
  */
 private val TARGET_DROP = 20.dp
-/** On entering a game the outline and its grid start this far up and settle down into place over [BOARD_SETTLE_MS]. */
-private val BOARD_LIFT = 2.dp
-private const val BOARD_SETTLE_MS = 220
+/** Whenever a game screen appears the outline and its grid start this far up and settle down into place over [BOARD_SETTLE_MS]. */
+private val BOARD_LIFT = 8.dp
+private const val BOARD_SETTLE_MS = 300
 /** Sidewall of the board's outline: deep like the menu keys', so holding to restart sinks it a long way and lights the wall. */
 internal val BOARD_WALL = 10.dp
 /** How much of its wall the board sinks onto when held. */
@@ -184,14 +184,16 @@ fun GameScreen(m: GameModel) {
     val canRewind by rememberUpdatedState(!exiting && m.changed && !m.solved && !rewinding)
     val canSwipe by rememberUpdatedState(m.community.let { it == null || it.casual || it.source != null } && Route.Win !in m.stack && !m.online.busy && !rewinding && m.guidePhase == 0)
     val reduceMotion by rememberUpdatedState(LocalReduceMotion.current)
-    // Entering a game from outside one (not swiping or going Next between puzzles, not coming back from Options) lifts the outline and its grid a little
-    // and lets them settle down into place. The model hands the entry out once; it is a draw-time offset only, so nothing is laid out again.
-    val lift = remember { val entering = m.consumeEntry(); Animatable(if (entering && !reduceMotion && !exiting) 1f else 0f) }
-    // The lift is only a couple of dp, so it settles once the screen has finished rising; during the slide it would not be seen.
+    // Every time the game screen appears (from Home or Worlds, back from Options or the Journey level screen, a level picked there) the outline and its grid
+    // start a little up and settle down into place. A screen is composed fresh each time it comes back; moving between puzzles, or winning, does not compose
+    // it again, so those do not lift. It is a draw-time offset only, so nothing is laid out again.
+    val lift = remember { Animatable(if (!reduceMotion && !exiting) 1f else 0f) }
+    // It settles once the screen is fully in place: after it has finished rising, and after any screen that was on top of it has finished sinking away.
     val sheet = LocalSheet.current
+    val cover = LocalCover.current
     LaunchedEffect(Unit) {
         if (lift.value <= 0f) return@LaunchedEffect
-        if (sheet != null) androidx.compose.runtime.snapshotFlow { sheet.progress.value }.first { it >= 1f }
+        androidx.compose.runtime.snapshotFlow { (sheet?.progress?.value ?: 1f) >= 1f && cover() <= .02f }.first { it }
         lift.animateTo(0f, tween(BOARD_SETTLE_MS, easing = FastOutSlowInEasing))
     }
     // Where things are, for telling the hold zone and the swipe zones apart.
@@ -332,7 +334,7 @@ fun GameScreen(m: GameModel) {
         LaunchedEffect(m.solved) { if (m.solved) m.endGuide() }
         shellRect?.let { shell ->
             val dp = LocalDensity.current.density
-            val sink = glow.value * BOARD_TRAVEL * BOARD_WALL.value * dp
+            val sink = glow.value * BOARD_TRAVEL * BOARD_WALL.value * dp - lift.value * BOARD_LIFT.value * dp
             val lampAt = Rect(shell.right - 52 * dp, shell.top + 4 * dp + sink, shell.right - 4 * dp, shell.top + 52 * dp + sink)
             if (m.guideOn && !exiting) GuideButton(Modifier.offset { guideLampOffset(shell).let { IntOffset(it.x, it.y + sink.roundToInt()) } }, enabled = !solved) { m.tapGuide() }
             if (m.guidePhase != 0 && !solved && !exiting) {

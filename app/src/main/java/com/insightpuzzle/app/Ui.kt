@@ -36,7 +36,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsIgnoringVisibility
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -240,14 +242,18 @@ fun Modifier.plush(shape: androidx.compose.ui.graphics.Shape, press: Float, face
         .then(if (shrink) Modifier.graphicsLayer { val s = 1f - .03f * press; scaleX = s; scaleY = s } else Modifier)
         // [shadowFades]: the shadow is gone as soon as the key starts to sink (a big key whose face sinks its whole wall), so the strip it leaves above the face is plain background.
         .shadow(if (shadowFades) rest * (1f - (sink * 4f).coerceAtMost(1f)) else rest - (rest - 1.dp) * press, shape, clip = false, ambientColor = shade, spotColor = shade)
-        .drawBehind {
-            // The side: the same shape fixed a little lower; the face covers more of it as it sinks onto it.
+        .drawWithCache {
+            // The side: the same shape fixed a little lower; the face covers more of it as it sinks onto it. With the smooth 3D look on it is a band that tapers to nothing at the ends.
             val outline = shape.createOutline(size, layoutDirection, this)
-            translate(0f, depth.toPx()) { drawOutline(outline, side) }
-            if (lit != null) {
-                // The light stays on the visible wall: never under the face, where its anti-aliased edge would show as a halo around the outline.
-                val top = androidx.compose.ui.graphics.Path().apply { addOutline(outline); translate(Offset(0f, press * travel * depth.toPx())) }
-                clipPath(top, androidx.compose.ui.graphics.ClipOp.Difference) { translate(0f, depth.toPx()) { drawOutline(outline, lit) } }
+            val wall = if (Art.smooth) taperedWall(outline, depth.toPx()) else null
+            fun DrawScope.paintSide(color: Color) { if (wall != null) drawPath(wall, color) else translate(0f, depth.toPx()) { drawOutline(outline, color) } }
+            onDrawBehind {
+                paintSide(side)
+                if (lit != null) {
+                    // The light stays on the visible wall: never under the face, where its anti-aliased edge would show as a halo around the outline.
+                    val top = androidx.compose.ui.graphics.Path().apply { addOutline(outline); translate(Offset(0f, press * travel * depth.toPx())) }
+                    clipPath(top, androidx.compose.ui.graphics.ClipOp.Difference) { paintSide(lit) }
+                }
             }
         }
         .graphicsLayer { translationY = sink * travel * depth.toPx() }
@@ -382,6 +388,11 @@ fun HideNavBarInDialog() {
         }
     }
 }
+
+/** [appInsets] without the keyboard, for Home, which has no text field and must not be squeezed while a keyboard from the screen above is still closing. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+internal val homeInsets: WindowInsets
+    @Composable get() = WindowInsets.statusBars.union(WindowInsets.displayCutout).union(WindowInsets.navigationBarsIgnoringVisibility)
 
 /** Full-screen page. There is no on-screen title or Back button (system Back leaves); [title] is only announced to TalkBack. */
 @Composable

@@ -102,6 +102,8 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     /** Rulebook sandbox: kept for the session so it resumes where the player left it. */
     var rulebookBoard by mutableStateOf(listOf("RBG", "PWY", "BGR"))
     var colorblind by mutableStateOf(store.colorblind.also { Art.colorblind = it }); private set
+    var freshColours by mutableStateOf(store.fresh.also { Art.fresh = it }); private set
+    var smooth3d by mutableStateOf(store.smooth.also { Art.smooth = it }); private set
     var language by mutableStateOf(store.language.also { L10n.language = it }); private set
     /** The gameplay-tips icon is on, and the step of the tips on show (0 = none, 1 grid, 2 restart, 3 swipe, 4 title key, 5 like and bookmark; the creator numbers its own steps per stage). */
     var guideOn by mutableStateOf(store.guide); private set
@@ -149,13 +151,8 @@ class GameModel(app: Application) : AndroidViewModel(app) {
         // The very first time level one opens on a new install, the guide plays by itself; afterwards it is the icon's.
         guidePhase = if (index == 0 && guideOn && !store.onboarded && store.done.isEmpty()) 1 else 0
         if (guidePhase == 1) store.onboarded = true
-        if (Route.Game !in stack) boardEntry = true
         stack.clear(); stack += Route.Home; stack += Route.Game
     }
-
-    /** Set when a game screen is entered from outside a game (not when moving between puzzles); the board reads it once to lift in. */
-    private var boardEntry = false
-    fun consumeEntry(): Boolean = boardEntry.also { boardEntry = false }
 
     /** Home's Journey reopens the level last played (solved or not, with its unfinished moves), never a community board. */
     fun startJourney() {
@@ -192,7 +189,6 @@ class GameModel(app: Application) : AndroidViewModel(app) {
         // Keep the complete Play navigation underneath the game, including restored deep links.
         if (stack.none { it == Route.Online || it is Route.Profile }) { stack.clear(); stack += Route.Home; stack += Route.Online }
         val entry = stack.indexOfLast { it == Route.Game }
-        if (entry < 0) boardEntry = true
         if (entry >= 0) while (stack.size > entry) stack.removeAt(stack.lastIndex)
         if (stack.isEmpty()) { stack += Route.Home; stack += Route.Online }
         stack += Route.Game
@@ -248,6 +244,23 @@ class GameModel(app: Application) : AndroidViewModel(app) {
             for (url in urls) launch {
                 try { online.repository.fetch(url, account) } catch (error: Exception) { if (error is kotlinx.coroutines.CancellationException) throw error }
             }
+            // The player's own profile, the page Profile opens on (it also warms the connection and the sign-in).
+            launch {
+                try { online.repository.fetch("/v1/profiles/$account?today=${java.time.LocalDate.now()}", account) } catch (error: Exception) { if (error is kotlinx.coroutines.CancellationException) throw error }
+            }
+        }
+    }
+
+    /**
+     * The splash screen's local work, so the first screens open smoothly: the username word lists (about 900 patterns, which the sign-up page would otherwise build
+     * while it slides in), the saved-data database, and the vibrator. Each is skipped quietly if it fails.
+     */
+    suspend fun preload() {
+        val app = getApplication<Application>()
+        kotlinx.coroutines.coroutineScope {
+            launch(kotlinx.coroutines.Dispatchers.Default) { try { UsernameFilter.get(app) } catch (error: Exception) { if (error is kotlinx.coroutines.CancellationException) throw error } }
+            launch(kotlinx.coroutines.Dispatchers.IO) { try { OnlineDatabase.get(app).openHelper.writableDatabase } catch (error: Exception) { if (error is kotlinx.coroutines.CancellationException) throw error } }
+            launch(kotlinx.coroutines.Dispatchers.Default) { vibration.warm() }
         }
     }
 
@@ -485,6 +498,8 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     }
     /** A tap anywhere moves the tips on to the next step, and after the last one they end. */
     fun advanceGuide() { guidePhase = guideSteps().let { it.getOrNull(it.indexOf(guidePhase) + 1) ?: 0 } }
+    fun toggleFreshColours() { freshColours = !freshColours; store.fresh = freshColours; Art.fresh = freshColours }
+    fun toggleSmooth3d() { smooth3d = !smooth3d; store.smooth = smooth3d; Art.smooth = smooth3d }
     fun toggleColorblind() { colorblind = !colorblind; store.colorblind = colorblind; Art.colorblind = colorblind }
     fun changeEffects(value: Float) { effects = value; store.effects = value; audio.effects = value }
     fun changeAmbience(value: Float) { ambience = value; store.ambience = value; audio.ambience = value }

@@ -213,7 +213,8 @@ fun ProfileScreen(m: GameModel, requestedId: String?) {
     var outcomes by remember(account) { mutableStateOf(emptyList<OnlineDatabase.Pending>()) }
     // The viewer's local date tells the server whether a daily streak is still alive.
     val path = "/v1/profiles/$id?today=${java.time.LocalDate.now()}"
-    var profile by remember(id, account) { mutableStateOf<JSONObject?>(null) }
+    // Starts from the last profile seen, so coming back from Achievements, Bookmarked or Following shows it in the first frame.
+    var profile by remember(id, account) { mutableStateOf<JSONObject?>(m.online.repository.peek(account, path)) }
     val puzzles = m.playDiscovery.collection(id)
     LaunchedEffect(account, revision) { outcomes = m.online.repository.outcomes(account) }
     // Opening your own profile syncs quietly, then reloads so new XP shows without any button.
