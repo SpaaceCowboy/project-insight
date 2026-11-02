@@ -29,6 +29,10 @@ The TypeScript/PostgreSQL service and deployment instructions are in [server/REA
 
 Rebuild the local preview with `./gradlew assembleDebug -PinsightOnlineDemo=true`. Build a backend-connected APK with `./gradlew assembleDebug -PinsightApiUrl=https://YOUR_API`. Release builds reject cleartext service addresses. Preview data, saves, and credentials are kept separate from real service data.
 
+## Android v0.2.22 - Glued slurs refused, a quieter chrome
+
+Version 0.2.22 (code 33) refuses usernames that are nothing but banned words glued together ("killjew", "dickass") with the strongest rule among the pieces, while names with letters left over such as "Assassin" still pass; the app and the server share the rule and its case list. The gesture handle now stays hidden on every screen from the first frame and is hidden again whenever the window regains focus, dialogs and sheets hide it in their own window, and every screen still reserves its room. A puzzle opened from outside a game settles 2dp over 220ms once its sheet arrives, and the splash no longer waits for the first community pages. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.22); see [deployment notes](DEPLOYMENT.md).
+
 ## Android v0.2.21 - One username line, a settling board and a steady safe area
 
 Version 0.2.21 (code 32) shows every username refusal on one line under the username box and clears it as soon as the name is edited, and keeps Login / Create account muted until the boxes they need are filled. A puzzle opened from outside a game lifts its board into place, the gesture handle hides only after the screen settles while the navigation bar's room stays reserved, and empty collections no longer show a placeholder line. Backend, package, signing key and saved data are unchanged. Built and tested on the VPS, including a signed v0.2.20 update that kept its preferences. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.21); see [deployment notes](DEPLOYMENT.md).
