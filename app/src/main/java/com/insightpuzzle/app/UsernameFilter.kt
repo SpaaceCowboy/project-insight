@@ -39,9 +39,39 @@ class UsernameFilter(private val words: JSONObject) {
         val tokens = name.lowercase(Locale.ROOT).split(Regex("[ _-]+")).filter { it.isNotEmpty() }
         val reads = readings(tokens)
         for ((problem, list) in checks) if (reads.any { matches(list, it) }) return problem
+        val glued = reads.minOf { combination(it) }
+        if (glued != Int.MAX_VALUE) return checks[glued].first
         // Reserved names are judged as a whole ("Insight Fan" is fine, "Insight" and "Admin_1" are not).
         if (reads.any { r -> val all = r.joinToString(""); reserved.exact.any { it.containsMatchIn(all) } || reserved.roots.any { it.containsMatchIn(all) } }) return NameProblem.RESERVED
         return null
+    }
+
+    // Every banned word as a whole-piece pattern, per category (index in [checks], strongest first).
+    private val pieces = checks.map { (_, list) -> list.exact + list.roots.map { Regex("^${it.pattern}$") } }
+    private val pieceRanks = java.util.concurrent.ConcurrentHashMap<String, Int>()
+    /** The strongest category (index in [checks]) a piece is a banned word of, or -1. */
+    private fun pieceRank(piece: String) = pieceRanks.getOrPut(piece) { pieces.indexOfFirst { list -> list.any { it.matches(piece) } } }
+
+    /**
+     * Banned words glued together ("killjew", "dickass") are one token that no whole-word pattern matches. A token that is nothing but two or more banned words,
+     * with no letter left over, is refused with the strongest category among them (the result, an index in [checks]; Int.MAX_VALUE when there is none).
+     * Anything left over ("Assassin" is ass + ass + "in") keeps the name fine.
+     */
+    private fun combination(tokens: List<String>): Int {
+        var best = Int.MAX_VALUE
+        for (token in tokens) {
+            // one[i] / many[i]: strongest category when token[0, i) is exactly one banned word / two or more; MAX_VALUE when it cannot be split that way.
+            val n = token.length
+            val one = IntArray(n + 1) { Int.MAX_VALUE }; val many = IntArray(n + 1) { Int.MAX_VALUE }
+            for (i in PIECE_MIN..n) for (j in 0..i - PIECE_MIN) {
+                val rank = pieceRank(token.substring(j, i))
+                if (rank < 0) continue
+                if (j == 0) one[i] = minOf(one[i], rank)
+                else if (one[j] != Int.MAX_VALUE || many[j] != Int.MAX_VALUE) many[i] = minOf(many[i], rank, one[j], many[j])
+            }
+            best = minOf(best, many[n])
+        }
+        return best
     }
 
     /** The ways one word is read: as typed, with digits as the letters they imitate, with digits dropped, and with look-alike spellings (v for u, ph for f). */
@@ -72,6 +102,7 @@ class UsernameFilter(private val words: JSONObject) {
     }
 
     companion object {
+        private const val PIECE_MIN = 3
         private val DIGIT_LETTERS = mapOf('0' to 'o', '1' to 'i', '3' to 'e', '4' to 'a', '5' to 's', '6' to 'g', '7' to 't', '8' to 'b', '9' to 'g')
         /** A word as a pattern that also accepts stretched spellings: "fuuuck" and "asss" match, but "bob" does not match "boob". */
         internal fun stretched(word: String): String {

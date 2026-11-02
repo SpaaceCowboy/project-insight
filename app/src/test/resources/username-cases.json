@@ -3,9 +3,22 @@
     "Shayan", "Calm Pool", "Wash It", "Pass Hit", "class", "Classic Cat", "Essex", "Scunthorpe", "Niigata", "Bob", "Con Artist", "John3", "Alex_99", "quiet-river",
     "Sam Dickens", "Hancock", "Peacock", "Therapist", "Grape Juice", "Assist", "Bass Player", "Moon Walker", "Hello World", "A1 Player", "Mike Hunter", "Cocktail", "Analyst",
     "Insight Fan", "Titan", "Button", "Snowball", "Kilimanjaro", "Skills", "Bisexual Pride", "Night Owl 7", "R2D2", "tile_master",
-    "Chris Morgan", "Jewel", "Godfrey", "Hindsight", "Islander", "Skillful", "Killian", "Shootout", "Hangar", "Kalamazoo", "Dover"
+    "Chris Morgan", "Jewel", "Godfrey", "Hindsight", "Islander", "Skillful", "Killian", "Shootout", "Hangar", "Kalamazoo", "Dover",
+    "Assassin", "Hassan", "Nazim", "Pakistan"
   ],
   "blocked": [
+    { "name": "killjew", "problem": "NAME_HATE" },
+    { "name": "jewkill", "problem": "NAME_HATE" },
+    { "name": "nazikiller", "problem": "NAME_HATE" },
+    { "name": "killrape", "problem": "NAME_VIOLENCE" },
+    { "name": "bombstab", "problem": "NAME_VIOLENCE" },
+    { "name": "dickass", "problem": "NAME_PROFANITY" },
+    { "name": "assdick", "problem": "NAME_PROFANITY" },
+    { "name": "analsex", "problem": "NAME_PROFANITY" },
+    { "name": "sexporn", "problem": "NAME_PROFANITY" },
+    { "name": "jewnazi", "problem": "NAME_HATE" },
+    { "name": "killpaki", "problem": "NAME_HATE" },
+    { "name": "kill1jew", "problem": "NAME_HATE" },
     { "name": "fuck", "problem": "NAME_PROFANITY" },
     { "name": "FUUUCK you", "problem": "NAME_PROFANITY" },
     { "name": "f u c k", "problem": "NAME_PROFANITY" },

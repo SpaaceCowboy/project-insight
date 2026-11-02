@@ -65,11 +65,49 @@ function matches(list: Words, tokens: string[]): boolean {
   return whole.some(c => list.exact.some(r => r.test(c))) || inside.some(c => list.roots.some(r => r.test(c)));
 }
 
+const PIECE_MIN = 3;
+// Every banned word as a whole-piece pattern, with the category it belongs to (index in CHECKS, strongest first).
+const PIECES = CHECKS.map(([, list]) => [...list.exact, ...list.roots.map(r => new RegExp(`^${r.source}$`, 'u'))]);
+const pieceRanks = new Map<string, number>();
+/** The strongest category (index in CHECKS) a piece is a banned word of, or -1. */
+function pieceRank(piece: string): number {
+  let rank = pieceRanks.get(piece);
+  if (rank === undefined) pieceRanks.set(piece, rank = PIECES.findIndex(list => list.some(r => r.test(piece))));
+  return rank;
+}
+
+/**
+ * Banned words glued together ("killjew", "dickass") are one token that no whole-word pattern matches. A token that is nothing but two or more banned words,
+ * with no letter left over, is refused with the strongest category among them. Anything left over ("Assassin" is ass + ass + "in") keeps the name fine.
+ */
+function combination(tokens: string[]): number {
+  let best = -1;
+  for (const token of tokens) {
+    // one[i] / many[i]: strongest category when token[0, i) is exactly one banned word / two or more; Infinity when it cannot be split that way.
+    const n = token.length;
+    const one = Array<number>(n + 1).fill(Infinity); const many = Array<number>(n + 1).fill(Infinity);
+    for (let i = PIECE_MIN; i <= n; i++) for (let j = 0; j <= i - PIECE_MIN; j++) {
+      const rank = pieceRank(token.slice(j, i));
+      if (rank < 0) continue;
+      if (j === 0) one[i] = Math.min(one[i] ?? Infinity, rank);
+      else {
+        const single = one[j] ?? Infinity; const pair = many[j] ?? Infinity;
+        if (single !== Infinity || pair !== Infinity) many[i] = Math.min(many[i] ?? Infinity, rank, single, pair);
+      }
+    }
+    const glued = many[n] ?? Infinity;
+    if (glued !== Infinity && (best < 0 || glued < best)) best = glued;
+  }
+  return best;
+}
+
 /** The first rule a (already normalised) name breaks, or null. Only the allowed characters are expected here. */
 export function bannedReason(name: string): NameProblem | null {
   const tokens = name.toLowerCase().split(/[ _-]+/u).filter(Boolean);
   const reads = readings(tokens);
   for (const [problem, list] of CHECKS) if (reads.some(r => matches(list, r))) return problem;
+  const glued = Math.min(...reads.map(r => { const rank = combination(r); return rank < 0 ? Infinity : rank; }));
+  if (glued !== Infinity) return CHECKS[glued]![0];
   // Reserved names are judged as a whole ("Insight Fan" is fine, "Insight" and "Admin_1" are not).
   if (reads.some(r => { const all = r.join(''); return RESERVED.exact.some(x => x.test(all)) || RESERVED.roots.some(x => x.test(all)); })) return 'NAME_RESERVED';
   return null;
