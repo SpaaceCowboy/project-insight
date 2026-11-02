@@ -160,11 +160,12 @@ internal fun playPuzzle(m: GameModel, grid: JSONObject, source: DiscoveryListSta
     m.startCommunity(response.getJSONObject("grid"), response.getString("sessionId"), source = source)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun DiscoverySort(state: DiscoveryListState, puzzles: Boolean, dismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = dismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = LocalPalette.current.paper2, contentColor = LocalPalette.current.ink) {
-        Column(Modifier.fillMaxWidth().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        HideNavBarInDialog()
+        Column(Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.navigationBarsIgnoringVisibility).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             (if (puzzles) puzzleSorts else creatorSorts).forEach { (id, name) ->
                 MenuButton(if (state.sort == id) "✓ " + tr(name) else name, Modifier.semantics { selected = state.sort == id }, height = 52.dp) { state.sort = id; state.requestedPage = 0 }
             }

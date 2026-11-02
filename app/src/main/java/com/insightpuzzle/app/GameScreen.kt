@@ -17,6 +17,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.awaitFirstDown
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -137,8 +138,8 @@ internal const val REWIND_MS = 320
  */
 private val TARGET_DROP = 20.dp
 /** On entering a game the outline and its grid start this far up and settle down into place over [BOARD_SETTLE_MS]. */
-private val BOARD_LIFT = 24.dp
-private const val BOARD_SETTLE_MS = 320
+private val BOARD_LIFT = 2.dp
+private const val BOARD_SETTLE_MS = 220
 /** Sidewall of the board's outline: deep like the menu keys', so holding to restart sinks it a long way and lights the wall. */
 internal val BOARD_WALL = 10.dp
 /** How much of its wall the board sinks onto when held. */
@@ -186,7 +187,13 @@ fun GameScreen(m: GameModel) {
     // Entering a game from outside one (not swiping or going Next between puzzles, not coming back from Options) lifts the outline and its grid a little
     // and lets them settle down into place. The model hands the entry out once; it is a draw-time offset only, so nothing is laid out again.
     val lift = remember { val entering = m.consumeEntry(); Animatable(if (entering && !reduceMotion && !exiting) 1f else 0f) }
-    LaunchedEffect(Unit) { if (lift.value > 0f) lift.animateTo(0f, tween(BOARD_SETTLE_MS, easing = FastOutSlowInEasing)) }
+    // The lift is only a couple of dp, so it settles once the screen has finished rising; during the slide it would not be seen.
+    val sheet = LocalSheet.current
+    LaunchedEffect(Unit) {
+        if (lift.value <= 0f) return@LaunchedEffect
+        if (sheet != null) androidx.compose.runtime.snapshotFlow { sheet.progress.value }.first { it >= 1f }
+        lift.animateTo(0f, tween(BOARD_SETTLE_MS, easing = FastOutSlowInEasing))
+    }
     // Where things are, for telling the hold zone and the swipe zones apart.
     var root by remember { mutableStateOf<LayoutCoordinates?>(null) }
     var shellBox by remember { mutableStateOf<LayoutCoordinates?>(null) }

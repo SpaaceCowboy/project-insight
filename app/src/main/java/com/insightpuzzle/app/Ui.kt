@@ -370,6 +370,19 @@ val restartIcon: DrawScope.(Color) -> Unit = {
 internal val appInsets: WindowInsets
     @Composable get() = WindowInsets.safeDrawing.exclude(WindowInsets.navigationBars).union(WindowInsets.navigationBarsIgnoringVisibility)
 
+/** A dialog or sheet is its own window with its own bars, so it hides the gesture handle too (the main window does the same in [MainActivity]). */
+@Composable
+fun HideNavBarInDialog() {
+    val view = androidx.compose.ui.platform.LocalView.current
+    androidx.compose.runtime.SideEffect {
+        val window = (view.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window ?: return@SideEffect
+        androidx.core.view.WindowCompat.getInsetsController(window, view).apply {
+            systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            hide(androidx.core.view.WindowInsetsCompat.Type.navigationBars())
+        }
+    }
+}
+
 /** Full-screen page. There is no on-screen title or Back button (system Back leaves); [title] is only announced to TalkBack. */
 @Composable
 fun Page(title: String, maxWidth: Dp = 640.dp, content: @Composable ColumnScope.() -> Unit) {

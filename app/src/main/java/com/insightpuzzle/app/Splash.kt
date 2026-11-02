@@ -27,8 +27,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
@@ -41,7 +41,7 @@ internal val SplashGrey = Color(0xFF1F1F1F)
 
 /**
  * The first screen: the same grey as dark mode, "INSIGHT" in the app's font and a white tile, centred, drawn over the main menu while it composes underneath.
- * That time is the app's loading time: the sounds and the ambience get ready, and for a signed-in player the first pages of Worlds and Bookmarked are fetched, so
+ * That time is the app's loading time: the sounds and the ambience get ready, and for a signed-in player the first pages of Worlds and Bookmarked are fetched in the background, so
  * the menu and everything behind its buttons is quick from the first touch. It fades away when all of that is ready (or at [SPLASH_MAX_MS]).
  */
 @Composable
@@ -53,13 +53,9 @@ fun SplashGate(m: GameModel) {
         val started = SystemClock.uptimeMillis()
         // Under test the minimum hold is skipped; the loading is still waited for.
         val minimum = if (m.store.motion == "on") 0L else SPLASH_MIN_MS
-        withTimeoutOrNull(SPLASH_MAX_MS) {
-            coroutineScope {
-                val fetched = async { m.warmUp() }
-                snapshotFlow { m.audio.ready }.first { it }
-                fetched.await()
-            }
-        }
+        // The first pages are fetched in the background and never waited for: a blocking request cannot be cancelled, so waiting on it let a slow server hold the splash.
+        m.viewModelScope.launch { m.warmUp() }
+        withTimeoutOrNull(SPLASH_MAX_MS) { snapshotFlow { m.audio.ready }.first { it } }
         val left = minimum - (SystemClock.uptimeMillis() - started)
         if (left > 0) delay(left)
         if (!reduce) alpha.animateTo(0f, tween(260))

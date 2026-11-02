@@ -12,7 +12,6 @@ import androidx.activity.viewModels
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import kotlinx.coroutines.delay
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -48,6 +47,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge(SystemBarStyle.dark(Color.TRANSPARENT), SystemBarStyle.dark(Color.TRANSPARENT))
         // The splash screen is dark grey whatever the theme, so the window starts that colour and the system bars stay dark until the splash is gone.
         window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(0xFF1F1F1F.toInt()))
+        hideNavBar()
         setContent {
             val dark = model.dark
             val barsDark = dark || !model.splashDone
@@ -55,19 +55,22 @@ class MainActivity : ComponentActivity() {
                 val bars = if (barsDark) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
                 enableEdgeToEdge(bars, bars)
             }
-            // While a puzzle (or the creator) is open, the system gesture handle is hidden and a swipe up from the bottom edge shows it for a moment. This is only the
-            // handle's visibility: every screen keeps its room reserved (see [appInsets]), so nothing is laid out again when it hides, and it waits for the screen to
-            // settle so it never runs while a sheet is moving.
-            val immersive = Route.Game in model.stack || Route.Create in model.stack
-            LaunchedEffect(immersive) {
-                val controller = WindowCompat.getInsetsController(window, window.decorView)
-                controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                if (immersive) { delay(400); controller.hide(WindowInsetsCompat.Type.navigationBars()) } else controller.show(WindowInsetsCompat.Type.navigationBars())
-            }
             CompositionLocalProvider(LocalPalette provides if (dark) DarkPalette else LightPalette, LocalReduceMotion provides (reduceMotion || model.store.motion == "on")) { App(model) }
         }
     }
 
+    /**
+     * The system gesture handle is hidden on every screen from the first frame, and a swipe up from the bottom edge shows it for a moment. This is only the handle's
+     * visibility: every screen keeps its room reserved (see [appInsets]), so nothing is laid out again. Android shows the bars again after a dialog, the keyboard or
+     * a return from another app, so it is hidden again whenever the window regains focus.
+     */
+    private fun hideNavBar() {
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
+        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        controller.hide(WindowInsetsCompat.Type.navigationBars())
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) { super.onWindowFocusChanged(hasFocus); if (hasFocus) hideNavBar() }
     override fun onStart() { super.onStart(); reduceMotion = readReduceMotion(); model.audio.onForeground(true) }
     override fun onStop() { model.audio.onForeground(false); super.onStop() }
 }
