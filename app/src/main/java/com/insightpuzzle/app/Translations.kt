@@ -207,6 +207,8 @@ object Translations {
         t("This month", "Este mes", "Ce mois-ci", "Questo mese", "Diesen Monat")
         t("This year", "Este año", "Cette année", "Quest'anno", "Dieses Jahr")
         t("Level {0}", "Nivel {0}", "Niveau {0}", "Livello {0}", "Level {0}")
+        t("Designed", "Diseñados", "Créés", "Creati", "Erstellt")
+        t("Solved", "Resueltos", "Résolus", "Risolti", "Gelöst")
         t("Designed {0}", "Diseñados {0}", "Créés {0}", "Creati {0}", "Erstellt {0}")
         t("Solved {0}", "Resueltos {0}", "Résolus {0}", "Risolti {0}", "Gelöst {0}")
         t("Offline. Pull down to retry.", "Sin conexión. Desliza hacia abajo para reintentar.", "Hors ligne. Tirez vers le bas pour réessayer.", "Offline. Trascina verso il basso per riprovare.", "Offline. Nach unten ziehen, um es erneut zu versuchen.")

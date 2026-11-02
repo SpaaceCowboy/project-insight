@@ -242,18 +242,14 @@ fun Modifier.plush(shape: androidx.compose.ui.graphics.Shape, press: Float, face
         .then(if (shrink) Modifier.graphicsLayer { val s = 1f - .03f * press; scaleX = s; scaleY = s } else Modifier)
         // [shadowFades]: the shadow is gone as soon as the key starts to sink (a big key whose face sinks its whole wall), so the strip it leaves above the face is plain background.
         .shadow(if (shadowFades) rest * (1f - (sink * 4f).coerceAtMost(1f)) else rest - (rest - 1.dp) * press, shape, clip = false, ambientColor = shade, spotColor = shade)
-        .drawWithCache {
-            // The side: the same shape fixed a little lower; the face covers more of it as it sinks onto it. With the smooth 3D look on it is a band that tapers to nothing at the ends.
+        .drawBehind {
+            // The side: the same shape fixed a little lower; the face covers more of it as it sinks onto it.
             val outline = shape.createOutline(size, layoutDirection, this)
-            val wall = if (Art.smooth) taperedWall(outline, depth.toPx()) else null
-            fun DrawScope.paintSide(color: Color) { if (wall != null) drawPath(wall, color) else translate(0f, depth.toPx()) { drawOutline(outline, color) } }
-            onDrawBehind {
-                paintSide(side)
-                if (lit != null) {
-                    // The light stays on the visible wall: never under the face, where its anti-aliased edge would show as a halo around the outline.
-                    val top = androidx.compose.ui.graphics.Path().apply { addOutline(outline); translate(Offset(0f, press * travel * depth.toPx())) }
-                    clipPath(top, androidx.compose.ui.graphics.ClipOp.Difference) { paintSide(lit) }
-                }
+            translate(0f, depth.toPx()) { drawOutline(outline, side) }
+            if (lit != null) {
+                // The light stays on the visible wall: never under the face, where its anti-aliased edge would show as a halo around the outline.
+                val top = androidx.compose.ui.graphics.Path().apply { addOutline(outline); translate(Offset(0f, press * travel * depth.toPx())) }
+                clipPath(top, androidx.compose.ui.graphics.ClipOp.Difference) { translate(0f, depth.toPx()) { drawOutline(outline, lit) } }
             }
         }
         .graphicsLayer { translationY = sink * travel * depth.toPx() }
@@ -280,7 +276,7 @@ fun sideFor(face: Color): Color {
 @Composable
 fun MenuButton(text: String, modifier: Modifier = Modifier, height: Dp = 48.dp, primary: Boolean = false, enabled: Boolean = true, fontSize: TextUnit = 14.sp, description: String? = null, subtitle: String? = null, cue: Cue? = Cue.PRESS,
                weight: FontWeight = FontWeight.SemiBold, raised: Boolean = true, depth: Dp = 3.dp, shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(14.dp),
-               textColor: Color? = null, shrink: Boolean = true, shadowFades: Boolean = false, onClick: (() -> Unit)?) {
+               textColor: Color? = null, shrink: Boolean = true, shadowFades: Boolean = false, footer: (@Composable BoxScope.() -> Unit)? = null, onClick: (() -> Unit)?) {
     val p = LocalPalette.current
     val feedback = LocalFeedback.current
     val soon = onClick == null
@@ -301,6 +297,8 @@ fun MenuButton(text: String, modifier: Modifier = Modifier, height: Dp = 48.dp, 
             val sub = subtitle ?: if (soon) "Coming soon" else null
             if (sub != null) Label(sub, 12.sp, Modifier.padding(top = 2.dp), color = if (primary) p.accentInk else p.muted, align = TextAlign.Center)
         }
+        // [footer] sits along the bottom edge of the key, inside its padding.
+        footer?.invoke(this)
     }
 }
 
@@ -394,10 +392,10 @@ fun HideNavBarInDialog() {
 internal val homeInsets: WindowInsets
     @Composable get() = WindowInsets.statusBars.union(WindowInsets.displayCutout).union(WindowInsets.navigationBarsIgnoringVisibility)
 
-/** Full-screen page. There is no on-screen title or Back button (system Back leaves); [title] is only announced to TalkBack. */
+/** Full-screen page. There is no on-screen title or Back button (system Back leaves); [title] is only announced to TalkBack. With [ime] off the keyboard simply covers the page instead of lifting it (a search field at the top, buttons at the bottom that must stay put). */
 @Composable
-fun Page(title: String, maxWidth: Dp = 640.dp, content: @Composable ColumnScope.() -> Unit) {
-    Box(Modifier.fillMaxSize().windowInsetsPadding(appInsets).semantics { paneTitle = tr(title) }, contentAlignment = Alignment.TopCenter) {
+fun Page(title: String, maxWidth: Dp = 640.dp, ime: Boolean = true, content: @Composable ColumnScope.() -> Unit) {
+    Box(Modifier.fillMaxSize().windowInsetsPadding(if (ime) appInsets else homeInsets).semantics { paneTitle = tr(title) }, contentAlignment = Alignment.TopCenter) {
         Column(Modifier.widthIn(max = maxWidth).fillMaxSize().padding(16.dp), content = content)
     }
 }

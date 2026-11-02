@@ -82,7 +82,13 @@ class MainActivity : ComponentActivity() {
 
     override fun onWindowFocusChanged(hasFocus: Boolean) { super.onWindowFocusChanged(hasFocus); if (hasFocus) hideNavBar() }
     override fun onStart() { super.onStart(); reduceMotion = readReduceMotion(); model.audio.onForeground(true) }
-    override fun onStop() { model.audio.onForeground(false); super.onStop() }
+    override fun onStop() {
+        model.audio.onForeground(false)
+        // The icon picked in Options is switched now that the game is no longer on screen; Android would close the running task if it were switched sooner.
+        val wanted = model.store.iconWanted
+        if (wanted.isNotEmpty()) { model.store.iconWanted = ""; if ((wanted == "alt") != AppIcon.isAlternative(this)) AppIcon.set(this, wanted == "alt") }
+        super.onStop()
+    }
 }
 
 @Composable

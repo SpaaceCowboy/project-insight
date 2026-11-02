@@ -12,8 +12,8 @@ android {
         applicationId = "com.insightpuzzle.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 35
-        versionName = "0.2.24"
+        versionCode = 36
+        versionName = "0.2.25"
         buildConfigField("boolean", "ONLINE_DEMO", onlineDemo.toString())
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         if (onlineDemo) {

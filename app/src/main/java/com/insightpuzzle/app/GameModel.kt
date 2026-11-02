@@ -102,8 +102,6 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     /** Rulebook sandbox: kept for the session so it resumes where the player left it. */
     var rulebookBoard by mutableStateOf(listOf("RBG", "PWY", "BGR"))
     var colorblind by mutableStateOf(store.colorblind.also { Art.colorblind = it }); private set
-    var freshColours by mutableStateOf(store.fresh.also { Art.fresh = it }); private set
-    var smooth3d by mutableStateOf(store.smooth.also { Art.smooth = it }); private set
     var language by mutableStateOf(store.language.also { L10n.language = it }); private set
     /** The gameplay-tips icon is on, and the step of the tips on show (0 = none, 1 grid, 2 restart, 3 swipe, 4 title key, 5 like and bookmark; the creator numbers its own steps per stage). */
     var guideOn by mutableStateOf(store.guide); private set
@@ -498,8 +496,6 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     }
     /** A tap anywhere moves the tips on to the next step, and after the last one they end. */
     fun advanceGuide() { guidePhase = guideSteps().let { it.getOrNull(it.indexOf(guidePhase) + 1) ?: 0 } }
-    fun toggleFreshColours() { freshColours = !freshColours; store.fresh = freshColours; Art.fresh = freshColours }
-    fun toggleSmooth3d() { smooth3d = !smooth3d; store.smooth = smooth3d; Art.smooth = smooth3d }
     fun toggleColorblind() { colorblind = !colorblind; store.colorblind = colorblind; Art.colorblind = colorblind }
     fun changeEffects(value: Float) { effects = value; store.effects = value; audio.effects = value }
     fun changeAmbience(value: Float) { ambience = value; store.ambience = value; audio.ambience = value }

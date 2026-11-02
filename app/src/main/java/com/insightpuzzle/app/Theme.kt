@@ -5,7 +5,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 
 // Dark mode is neutral near-black greys. Light mode is a warm cream key (face F4EDE5, wall E1D4C4) on near-white, with warm charcoal ink.
 data class Palette(
@@ -35,32 +34,17 @@ object Art {
     /** Colourblind-friendly palette on (Options). Compose state, so tiles redraw the moment it flips. */
     var colorblind by mutableStateOf(false)
 
-    /** The new solid palette on (Options → About, for trying it out). Colour-blind mode keeps its own colours when both are on. */
-    var fresh by mutableStateOf(false)
-    /** The smooth 3D look on (Options → About, for trying it out): the side of every plate and tile tapers away to nothing at its ends. Compose state, so drawing follows it. */
-    var smooth by mutableStateOf(false)
-    /** True while the solid palette is the one showing: flat faces with only the side shaded. */
-    val solid: Boolean get() = fresh && !colorblind
-
     /** Tile body gradients (light, deep). */
-    val TILE: Map<Char, Pair<Color, Color>> get() = if (colorblind) CB_TILE else if (fresh) FRESH_TILE else STD_TILE
-    val LIGHT: Map<Char, Color> get() = if (colorblind) CB_LIGHT else if (fresh) FRESH_COLOR else STD_LIGHT
+    val TILE: Map<Char, Pair<Color, Color>> get() = if (colorblind) CB_TILE else STD_TILE
+    val LIGHT: Map<Char, Color> get() = if (colorblind) CB_LIGHT else STD_LIGHT
     /** Symbol ink on a tile body: white, except on the pale tiles (and, in the colour-blind palette, on yellow, pink-purple and off-white). */
     fun ink(type: Char): Color = when {
         colorblind -> if (type == 'Y' || type == 'P' || type == 'W') CB_INK else Color.White
-        fresh -> if (FRESH_COLOR.getValue(type).luminance() > .3f) CB_INK else Color.White
         type == 'W' -> Color(0xFF45474C)
         else -> Color.White
     }
     /** Dark symbol ink of the colour-blind palette. */
     val CB_INK = Color(0xFF303238)
-
-    // The solid palette: one exact colour per tile (the face has no gradient, so light and deep are the same).
-    private val FRESH_COLOR = mapOf(
-        'R' to Color(0xFFF04465), 'B' to Color(0xFF3189D0), 'G' to Color(0xFF2BC03F),
-        'Y' to Color(0xFFFFB52C), 'P' to Color(0xFFAA86D7), 'W' to Color(0xFFF2EEE6),
-    )
-    private val FRESH_TILE = FRESH_COLOR.mapValues { (_, c) -> c to c }
 
     private val STD_TILE = mapOf(
         'R' to (Color(0xFFE09A91) to Color(0xFFAE546B)),

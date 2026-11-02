@@ -255,7 +255,7 @@ fun WorldsScreen(m: GameModel) {
                 close = ::closeSearch) { state.query = it; state.requestedPage = 0 }
         }
     }
-    Page("Worlds", 560.dp) {
+    Page("Worlds", 560.dp, ime = false) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
             Box(Modifier.fillMaxWidth().height(48.dp)) {
                 HomeIconButton("Options", Modifier.align(Alignment.CenterStart).semantics { traversalIndex = -4f }, { m.push(Route.Options) }, optionsIcon, Cue.STOP)

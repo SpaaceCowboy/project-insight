@@ -114,6 +114,18 @@ fun HomeScreen(m: GameModel) {
         val homeSize = minOf(30f, titleSize.value).sp
         // On the dark keys the words are a touch below pure white, so they read as etched into the face.
         val modeText = if (p.dark) p.ink.copy(alpha = .86f) else p.ink
+        // Like the game board, the two keys start a little up each time Home appears and settle down once nothing covers it any more.
+        val reduce = LocalReduceMotion.current
+        val cover = LocalCover.current
+        val lift = remember { androidx.compose.animation.core.Animatable(if (reduce) 0f else 1f) }
+        LaunchedEffect(reduce) {
+            androidx.compose.runtime.snapshotFlow { m.splashDone && cover() <= .02f }.collect { ready ->
+                if (reduce) lift.snapTo(0f)
+                else if (ready) lift.animateTo(0f, tween(300, easing = androidx.compose.animation.core.FastOutSlowInEasing))
+                else lift.snapTo(1f)
+            }
+        }
+        val liftUp = Modifier.graphicsLayer { translationY = -lift.value * 8.dp.toPx() }
         // The two modes split the space below the header: Journey the top half, Worlds the bottom half.
         Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(if (compact) 10.dp else 14.dp)) {
             // These two shortcuts have physical left/right positions even in RTL layouts.
@@ -125,11 +137,35 @@ fun HomeScreen(m: GameModel) {
                 }
             }
             // Slightly smaller than the half each mode owns, with room under it for the tall sidewall.
-            Box(Modifier.weight(1f).fillMaxWidth().padding(bottom = MODE_WALL), contentAlignment = Alignment.Center) {
-                MenuButton(tr("Journey").uppercase(), Modifier.fillMaxWidth(MODE_SCALE).fillMaxHeight(MODE_SCALE), fontSize = homeSize, shape = MODE_SHAPE, textColor = modeText, description = "Journey", weight = FontWeight.Bold, raised = true, depth = MODE_WALL, shrink = false, shadowFades = true, cue = Cue.FORWARD) { m.startJourney() }
+            Box(Modifier.weight(1f).fillMaxWidth().padding(bottom = MODE_WALL).then(liftUp), contentAlignment = Alignment.Center) {
+                MenuButton(tr("Journey").uppercase(), Modifier.fillMaxWidth(MODE_SCALE).fillMaxHeight(MODE_SCALE), fontSize = homeSize, shape = MODE_SHAPE, textColor = modeText, description = "Journey", weight = FontWeight.Bold, raised = true, depth = MODE_WALL, shrink = false, shadowFades = true, cue = Cue.FORWARD,
+                    footer = {
+                        // The levels solved, out of all of them: a thin line that fills, and the count centred under it.
+                        val total = m.levels.size
+                        val solved = m.done.count { it in 1..total }
+                        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth(.6f), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Box(Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(50)).background(p.muted.copy(alpha = .25f))) {
+                                Box(Modifier.fillMaxWidth(if (total > 0) solved / total.toFloat() else 0f).height(3.dp).background(p.accent))
+                            }
+                            Label("$solved / $total", 10.5.sp, Modifier.padding(top = 3.dp), color = p.muted, lines = 1, translate = false)
+                        }
+                    }) { m.startJourney() }
             }
-            Box(Modifier.weight(1f).fillMaxWidth().padding(bottom = MODE_WALL), contentAlignment = Alignment.Center) {
-                MenuButton(tr("Worlds").uppercase(), Modifier.fillMaxWidth(MODE_SCALE).fillMaxHeight(MODE_SCALE), fontSize = homeSize, shape = MODE_SHAPE, textColor = modeText, description = "Worlds", weight = FontWeight.Bold, raised = true, depth = MODE_WALL, shrink = false, shadowFades = true, cue = Cue.FORWARD) { m.openOnline(Route.Online) }
+            Box(Modifier.weight(1f).fillMaxWidth().padding(bottom = MODE_WALL).then(liftUp), contentAlignment = Alignment.Center) {
+                MenuButton(tr("Worlds").uppercase(), Modifier.fillMaxWidth(MODE_SCALE).fillMaxHeight(MODE_SCALE), fontSize = homeSize, shape = MODE_SHAPE, textColor = modeText, description = "Worlds", weight = FontWeight.Bold, raised = true, depth = MODE_WALL, shrink = false, shadowFades = true, cue = Cue.FORWARD,
+                    footer = {
+                        // Puzzles designed and solved, facing each other with their numbers underneath; only for a signed-in player, as the numbers belong to the account.
+                        if (m.online.user != null) Row(Modifier.align(Alignment.BottomCenter).fillMaxWidth(.6f), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Label("Designed", 10.5.sp, color = p.muted, lines = 1)
+                                Label("${m.onlineStats.designedCount}", 10.5.sp, color = p.muted, lines = 1, translate = false)
+                            }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Label("Solved", 10.5.sp, color = p.muted, lines = 1)
+                                Label("${m.communityDone.size}", 10.5.sp, color = p.muted, lines = 1, translate = false)
+                            }
+                        }
+                    }) { m.openOnline(Route.Online) }
             }
         }
     }
@@ -302,7 +338,7 @@ fun OptionsScreen(m: GameModel) {
             // it bleeds past the page by the room it pads them with.
             Tabs(tabs, tab) { tab = it }
             if (tab == "rulebook") RulebookTab(m)
-            else Column(Modifier.bleed().verticalScroll(rememberScrollState()).padding(horizontal = ShadowRoom, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            else Column(Modifier.bleed().verticalScroll(rememberScrollState()).padding(horizontal = ShadowRoom, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 when (tab) {
                     "options" -> {
                         ToggleRow("Haptics", m.haptics) { m.toggleHaptics() }
@@ -317,8 +353,9 @@ fun OptionsScreen(m: GameModel) {
                         ToggleRow("Colourblind mode", m.colorblind) { m.toggleColorblind() }
                         ToggleRow("Gameplay tips", m.guideOn) { m.toggleGuide() }
                         // The app's icon with its background and mark colours swapped; the launcher may take a few seconds to show it.
-                        var altIcon by remember { mutableStateOf(AppIcon.isAlternative(context)) }
-                        ToggleRow("Alternative icon", altIcon) { altIcon = !altIcon; AppIcon.set(context, altIcon) }
+                        // The switch itself waits until the app is left (MainActivity.onStop): doing it now would close the game.
+                        var altIcon by remember { mutableStateOf(m.store.iconWanted.let { if (it.isEmpty()) AppIcon.isAlternative(context) else it == "alt" }) }
+                        ToggleRow("Alternative icon", altIcon) { altIcon = !altIcon; m.store.iconWanted = if (altIcon) "alt" else "default" }
                         // Each language is named in itself; the same sound as the Light and Dark buttons.
                         Tabs(L10n.LANGUAGES, m.language, Cue.CHECK, labelSize = 10.5.sp, bottom = 0.dp) { m.changeLanguage(it) }
                     }
@@ -333,9 +370,6 @@ fun OptionsScreen(m: GameModel) {
                         if (AppLinks.CONTACT_EMAIL.isNotEmpty()) InfoRow("Contact", AppLinks.CONTACT_EMAIL, onClick = { context.startActivity(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:${AppLinks.CONTACT_EMAIL}"))) })
 
                         if (BuildConfig.DEBUG) ToggleRow("Developer mode", m.dev) { m.toggleDev() }
-                        // Two looks to try out; if they are liked they replace the current ones.
-                        ToggleRow("New colours", m.freshColours) { m.toggleFreshColours() }
-                        ToggleRow("Smooth 3D", m.smooth3d) { m.toggleSmooth3d() }
                     }
                 }
             }
@@ -423,9 +457,9 @@ private fun VolumeSlider(label: String, value: Float, onChange: (Float) -> Unit)
         else androidx.compose.animation.core.spring(dampingRatio = .5f, stiffness = 600f), label = "swell")
     fun set(next: Int) { if (next != current) { change(next / STOPS.toFloat()); feedback(null) } }
     Column {
-        Row { Label(label, 13.sp, weight = FontWeight.SemiBold); Spacer(Modifier.weight(1f)); Label("$stop", 13.sp, color = p.muted) }
+        Row { Label(label, 12.sp, weight = FontWeight.SemiBold); Spacer(Modifier.weight(1f)); Label("$stop", 12.sp, color = p.muted) }
         val knob = 32.dp
-        Canvas(Modifier.fillMaxWidth().height(44.dp)
+        Canvas(Modifier.fillMaxWidth().height(38.dp)
             .pointerInput(Unit) {
                 val r = knob.toPx() / 2
                 fun raw(x: Float) = ((x - r) / (size.width - 2 * r) * STOPS).coerceIn(0f, STOPS.toFloat())

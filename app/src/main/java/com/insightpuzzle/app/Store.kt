@@ -80,9 +80,8 @@ class Store(context: Context) {
     var ambience by float("ambience", .8f)
     var background by string("background", "forest")
     var colorblind by bool("colorblind", false)
-    /** Two looks being tried out (Options → About): the solid tile colours and the smooth 3D side. */
-    var fresh by bool("fresh", false)
-    var smooth by bool("smooth", false)
+    /** The launcher icon picked in Options ("alt", "default", or "" for none picked). It is applied when the app goes to the background, because switching the launcher entry the running task was started from makes Android close that task. */
+    var iconWanted by string("iconWanted", "")
     /** The language the player picked in Options; until then the phone's language if the app has it, else English. */
     var language: String
         get() = prefs.getString("language", null)?.takeIf { L10n.supported(it) } ?: L10n.deviceLanguage()
