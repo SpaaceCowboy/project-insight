@@ -20,7 +20,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.togetherWith
 import android.os.SystemClock
@@ -36,6 +39,7 @@ import kotlinx.coroutines.flow.drop
 class MainActivity : ComponentActivity() {
     private val model: GameModel by viewModels()
     private var reduceMotion by mutableStateOf(false)
+    private var keyboardUp = false
 
     // "Remove animations" can change while the app is in the background, so it is read on every resume.
     private fun readReduceMotion() = Settings.Global.getFloat(contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
@@ -55,6 +59,9 @@ class MainActivity : ComponentActivity() {
                 val bars = if (barsDark) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
                 enableEdgeToEdge(bars, bars)
             }
+            // While the keyboard is up the handle comes back so the keyboard sits above it, as it always did; the room is reserved either way, so nothing moves.
+            @OptIn(ExperimentalLayoutApi::class) val keyboard = WindowInsets.isImeVisible
+            LaunchedEffect(keyboard) { keyboardUp = keyboard; if (keyboard) showNavBar() else hideNavBar() }
             CompositionLocalProvider(LocalPalette provides if (dark) DarkPalette else LightPalette, LocalReduceMotion provides (reduceMotion || model.store.motion == "on")) { App(model) }
         }
     }
@@ -65,10 +72,13 @@ class MainActivity : ComponentActivity() {
      * a return from another app, so it is hidden again whenever the window regains focus.
      */
     private fun hideNavBar() {
+        if (keyboardUp) return
         val controller = WindowCompat.getInsetsController(window, window.decorView)
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         controller.hide(WindowInsetsCompat.Type.navigationBars())
     }
+
+    private fun showNavBar() = WindowCompat.getInsetsController(window, window.decorView).show(WindowInsetsCompat.Type.navigationBars())
 
     override fun onWindowFocusChanged(hasFocus: Boolean) { super.onWindowFocusChanged(hasFocus); if (hasFocus) hideNavBar() }
     override fun onStart() { super.onStart(); reduceMotion = readReduceMotion(); model.audio.onForeground(true) }
