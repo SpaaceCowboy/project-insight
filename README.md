@@ -29,6 +29,10 @@ The TypeScript/PostgreSQL service and deployment instructions are in [server/REA
 
 Rebuild the local preview with `./gradlew assembleDebug -PinsightOnlineDemo=true`. Build a backend-connected APK with `./gradlew assembleDebug -PinsightApiUrl=https://YOUR_API`. Release builds reject cleartext service addresses. Preview data, saves, and credentials are kept separate from real service data.
 
+## Android v0.2.23 - Two looks to try, a second icon and a warmer start
+
+Version 0.2.23 (code 34) adds two looks to try in Options → About: "New colours" paints every tile one exact colour with only its side shaded, and "Smooth 3D" tapers the side of every plate and tile to nothing at its ends. Options also switches between the app icon and an alternative with its colours swapped, through a second launcher alias that never disables the activity. The splash holds 1300–3000ms, waits for the local preload and composes the first screens underneath it; a leaving screen lets go of the keyboard, Home no longer shrinks for it, the board lifts on every game entry until its sheet has settled, and a rebuilt profile starts from the copy in memory. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.23); see [deployment notes](DEPLOYMENT.md).
+
 ## Android v0.2.22 - Glued slurs refused, a quieter chrome
 
 Version 0.2.22 (code 33) refuses usernames that are nothing but banned words glued together ("killjew", "dickass") with the strongest rule among the pieces, while names with letters left over such as "Assassin" still pass; the app and the server share the rule and its case list. The gesture handle now stays hidden on every screen from the first frame and is hidden again whenever the window regains focus, dialogs and sheets hide it in their own window, and every screen still reserves its room. A puzzle opened from outside a game settles 2dp over 220ms once its sheet arrives, and the splash no longer waits for the first community pages. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.22); see [deployment notes](DEPLOYMENT.md).
