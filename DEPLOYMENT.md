@@ -1,3 +1,13 @@
+# Server hotfix — Google sign-in verification (4 November 2026)
+
+Google sign-in reached the API and was refused with `GOOGLE_INVALID` for every real account. The token was fine: `google-auth-library` verifies an ID token by fetching Google's signing keys from `https://www.googleapis.com/oauth2/v3/certs`, and that host answers this VPS with Google's own `403 Forbidden` page, so no key could ever be loaded. `oauth2.googleapis.com` and `accounts.google.com` are reachable from the same machine, so the block is specific to `www.googleapis.com` and not a general egress problem.
+
+`googleVerifier` now keeps the library path first and, when it throws, has Google validate the token at `https://oauth2.googleapis.com/tokeninfo?id_token=…` — signature, issuer and expiry are checked there — while the audience, expiry and verified email are still checked here. A token whose audience is not the Web client, whose issuer is not Google, whose expiry has passed, whose email is unverified, or whose call fails, is refused with the same `GOOGLE_INVALID`. The fallback disappears by itself if the block is lifted. Six new unit tests cover the fallback, the audience, issuer, expiry and unverified-email refusals (25 server unit tests in total, all passing).
+
+The same rollout exposed a second problem: `server/deploy/native-backup.sh` is committed as mode 644, so the v0.2.26 deployment stripped its execute bit and `insight-backup.service` failed with `203/EXEC` from 03:33 until it was found here — two scheduled backups were missed. The file is executable again in git and on the server, and a fresh backup (`insight-20261104T094147Z.dump.age`) succeeded before this module was replaced. Check `systemctl show insight-backup.service -p Result` after any deployment that refreshes `server/`.
+
+Deployed: `server/dist/google.js` alone; previous module kept at `/opt/insight-rollback-before-047/dist/google.js`. One 502 during restart before the health retry succeeded. `/v1/capabilities` still reports Google available, and a junk token still returns `401 GOOGLE_INVALID`. No Android build or APK changed. Confirmation with a real Google account is still outstanding.
+
 # Android v0.2.26 — Google sign-in, email recovery and guest progress (4 November 2026)
 
 Published [v0.2.26 APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.26), version code 37. The package ID, signing certificate, saved preferences and download address are unchanged.
