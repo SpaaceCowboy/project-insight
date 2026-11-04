@@ -22,6 +22,7 @@ DISK_LIMIT=${DISK_LIMIT:-80}
 MEMORY_FLOOR_MB=${MEMORY_FLOOR_MB:-250}
 CERT_DAYS=${CERT_DAYS:-3}
 HTTP5XX_LIMIT=${HTTP5XX_LIMIT:-5}
+DRILL_HOURS=${DRILL_HOURS:-840}
 STATE_DIR=${STATE_DIR:-/var/lib/insight-ops}
 SERVICES=${SERVICES:-"insight-online nginx postgresql@16-main"}
 TIMERS=${TIMERS:-"insight-backup.timer insight-certificate.timer"}
@@ -84,6 +85,16 @@ else
 fi
 result=$(systemctl show insight-backup.service -p Result --value 2>/dev/null)
 [[ $result == success ]] || add backup-result "insight-backup.service last result: ${result:-unknown}"
+
+# The monthly drill proves the dumps are usable; alert if it fails or stalls.
+drill_result=$(systemctl show insight-restore-drill.service -p Result --value 2>/dev/null)
+[[ -z ${drill_result:-} || $drill_result == success ]] || add restore-drill "insight-restore-drill.service last result: $drill_result"
+if [[ -r $STATE_DIR/restore-drill ]]; then
+  drill_age_h=$(( ( $(date +%s) - $(cat "$STATE_DIR/restore-drill") ) / 3600 ))
+  (( drill_age_h <= DRILL_HOURS )) || add restore-drill-age "restore drill is ${drill_age_h}h old; limit ${DRILL_HOURS}h"
+else
+  add restore-drill-age "restore drill has never run"
+fi
 
 used=$(df --output=pcent / 2>/dev/null | tail -1 | tr -dc '0-9')
 if [[ -z ${used:-} ]]; then

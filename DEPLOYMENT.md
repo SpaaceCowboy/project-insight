@@ -1,3 +1,11 @@
+# Backup restore drill — first run and monthly automation (4 November 2026)
+
+The newest dump (`insight-20261104T094153Z.dump.age`, 490,685 bytes) was decrypted through a pipe directly into `pg_restore`, so plaintext never landed on disk. It restored into a scratch `insight_restore_drill` database in 0.57 s and was verified before being dropped: the table list matched the live schema exactly (26 tables), and `users`, `grids`, `completions`, `xp_ledger`, `schema_migrations`, `campaign_progress` and `content_claims` matched exactly — 20, 172, 162, 340, 11, 119 and 377 rows. `schema_migrations` records `name`/`applied_at` rather than a `version` column; migration 011 is the newest.
+
+`insight-restore-drill.timer` now runs `restore-drill.sh` on the first of each month at 04:30 UTC (randomised, persistent): restore the newest dump with `--exit-on-error`, refuse a table list that differs from live, refuse a database with no users or grids, drop the scratch database, and record a success timestamp in `/var/lib/insight-ops/restore-drill`. The box watcher alerts if the unit's last result is not success or the timestamp is older than 35 days.
+
+Both paths were exercised: a deliberately wrong age key exited 1 and still dropped the scratch database, and a normal run through systemd logged `drill passed: … -> users=20 grids=172`. The drill is read-only against the live database — it reads `information_schema` and table counts from `insight`, nothing else.
+
 # Box watcher — silent-failure alerts (4 November 2026)
 
 `insight-watch.timer` runs `/opt/insight-ops/insight-watch.sh` every five minutes and messages Telegram when a condition appears or clears — never repeatedly while it persists. It checks the API on `127.0.0.1:3000` and again through nginx with TLS validated, the published APK's content length, `insight-online`/`nginx`/`postgresql` and the backup and certificate timers, the backup unit's last result plus newest dump age (27h limit), root disk (80%), available RAM (250 MB floor), the certificate nginx actually serves (3-day threshold — these are ~6-day IP certificates, renewed twice daily), five or more 5xx responses in six minutes, and the service's automatic restart count.

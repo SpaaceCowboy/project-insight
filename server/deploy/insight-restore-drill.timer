@@ -1,0 +1,10 @@
+[Unit]
+Description=Run the INSIGHT backup restore drill monthly
+
+[Timer]
+OnCalendar=*-*-01 04:30:00
+RandomizedDelaySec=1800
+Persistent=true
+
+[Install]
+WantedBy=timers.target

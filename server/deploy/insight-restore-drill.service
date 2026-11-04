@@ -1,0 +1,9 @@
+[Unit]
+Description=INSIGHT backup restore drill
+After=postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/insight-ops/restore-drill.sh
+Nice=10
