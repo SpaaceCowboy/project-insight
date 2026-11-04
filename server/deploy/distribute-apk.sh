@@ -7,13 +7,16 @@
 # variables exported in the environment:
 #   FIREBASE_APP_ID, GOOGLE_APPLICATION_CREDENTIALS, FIREBASE_GROUPS
 #
-# Two environment quirks learned the hard way:
+# Two environment quirks:
+#   - this host resolves Google over IPv6 first, and its IPv6 route to Google
+#     answers with error pages (a 17 MB upload sat until the CLI's 300 s task
+#     timeout). `--dns-result-order=ipv4first` makes the same upload finish in
+#     seconds.
 #   - firebase-tools' uploader breaks on Node 26 ("invalid onError method"), so
 #     run this under Node 20-24.
-#   - this VPS's egress to Google is slow enough that a 17 MB upload can hit the
-#     CLI's 300 s task timeout. Distribute from the workstation; the VPS keeps
-#     building and publishing.
 set -euo pipefail
+
+export NODE_OPTIONS="--dns-result-order=ipv4first${NODE_OPTIONS:+ $NODE_OPTIONS}"
 
 CONFIG=${CONFIG:-/etc/insight-ops/firebase.env}
 if [[ -r $CONFIG ]]; then

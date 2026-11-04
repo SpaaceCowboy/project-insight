@@ -6,7 +6,7 @@ First release: v0.2.26 (37), release `5n0rs65vkltvg`. Testers accept the invite 
 
 The service account key is `/etc/insight-ops/firebase-sa.json` on the VPS (root, 600) with a copy at `~/.config/insight/firebase-sa.json` for workstation uploads; it is project-scoped and revocable from GCP → IAM → Service accounts at any time. Distribution is `server/deploy/distribute-apk.sh <apk> ["notes"]`.
 
-Two caveats. The CLI's uploader fails on Node 26 with `InvalidArgumentError: invalid onError method`, so it runs under Node 20–24. And this VPS's egress to `firebaseappdistribution.googleapis.com` burned the CLI's full 300 s task timeout on a 17 MB binary (the upload did complete server-side, which is why the retry reported "already existing release"). The reliable procedure is therefore: build and publish on the VPS, upload from the workstation.
+Two environment quirks. The CLI's uploader fails on Node 26 with `InvalidArgumentError: invalid onError method`, so it runs under Node 20–24. And this host resolves Google over IPv6 first while its IPv6 route answers with error pages — the first upload burned the CLI's full 300 s task timeout on a 17 MB binary (the upload had actually completed server-side, which is why the retry reported "already existing release"). With `NODE_OPTIONS=--dns-result-order=ipv4first`, now inside `distribute-apk.sh`, the same upload finishes in about seven seconds, so distribution stays on the VPS after publishing.
 
 # Backup restore drill — first run and monthly automation (4 November 2026)
 
@@ -26,7 +26,7 @@ Source of truth: `server/deploy/insight-watch.sh`, `insight-watch.service`, `ins
 
 # Server hotfix — Google sign-in verification (4 November 2026)
 
-Google sign-in reached the API and was refused with `GOOGLE_INVALID` for every real account. The token was fine: `google-auth-library` verifies an ID token by fetching Google's signing keys from `https://www.googleapis.com/oauth2/v3/certs`, and that host answers this VPS with Google's own `403 Forbidden` page, so no key could ever be loaded. `oauth2.googleapis.com` and `accounts.google.com` are reachable from the same machine, so the block is specific to `www.googleapis.com` and not a general egress problem.
+Google sign-in reached the API and was refused with `GOOGLE_INVALID` for every real account. The token was fine: `google-auth-library` verifies an ID token by fetching Google's signing keys from `https://www.googleapis.com/oauth2/v3/certs`, and that host answered this VPS with Google's own `403 Forbidden` page over IPv6, which the host tried first, so no key could be loaded (see the correction below). `oauth2.googleapis.com` and `accounts.google.com` are reachable from the same machine, so the block is specific to `www.googleapis.com` and not a general egress problem.
 
 `googleVerifier` now keeps the library path first and, when it throws, has Google validate the token at `https://oauth2.googleapis.com/tokeninfo?id_token=…` — signature, issuer and expiry are checked there — while the audience, expiry and verified email are still checked here. A token whose audience is not the Web client, whose issuer is not Google, whose expiry has passed, whose email is unverified, or whose call fails, is refused with the same `GOOGLE_INVALID`. The fallback disappears by itself if the block is lifted. Six new unit tests cover the fallback, the audience, issuer, expiry and unverified-email refusals (25 server unit tests in total, all passing).
 
@@ -35,6 +35,8 @@ The same rollout exposed a second problem: `server/deploy/native-backup.sh` is c
 Deployed: `server/dist/google.js` alone; previous module kept at `/opt/insight-rollback-before-047/dist/google.js`. One 502 during restart before the health retry succeeded. `/v1/capabilities` still reports Google available, and a junk token still returns `401 GOOGLE_INVALID`. No Android build or APK changed.
 
 Confirmed with a real Google account on 4 November: `/v1/auth/google` answered `200` in 322 ms (roughly 200 ms of that is the refused key fetch before the fallback) and the player reached the username step. If `www.googleapis.com` is ever reachable from this host again, the library path takes over and the extra round trip disappears on its own.
+
+**Correction, later the same day:** the 403 is not a general block on `www.googleapis.com` — it happens only over IPv6, which this host tried first. `curl -4 https://www.googleapis.com/oauth2/v3/certs` returns `200`; `curl -6` returns Google's 403 page. The same broken IPv6 route made the first Firebase App Distribution upload exhaust its 300 s timeout. The API service now runs with `NODE_OPTIONS=--dns-result-order=ipv4first` (drop-in `/etc/systemd/system/insight-online.service.d/ipv4-first.conf`, source `server/deploy/insight-online-ipv4-first.conf`), so `google-auth-library` fetches the signing keys normally and the tokeninfo fallback is dormant: a JWT-shaped junk token now returns `401` in about 140 ms instead of 320–410 ms. The fallback stays as a guard in case this IP is refused for real.
 
 # Android v0.2.26 — Google sign-in, email recovery and guest progress (4 November 2026)
 

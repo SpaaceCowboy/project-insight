@@ -23,6 +23,7 @@
 **Ops**
 - Builds happen on the VPS itself (prod machine = build machine). No CI.
 - On-box watcher (`insight-watch.timer`, 5 min → Telegram): health, APK, units, backup, disk, RAM, cert, 5xx, restarts. No external liveness check, no error tracking, no metrics.
+- IPv6 route to Google is broken (403s, stalled uploads); Node services run with `--dns-result-order=ipv4first`.
 - Backups: daily age-encrypted dumps **on the same disk**, restore drill automated monthly, no offsite copy.
 - Known incidents that shaped this plan: Google `www.googleapis.com` 403 (IP reputation; tokeninfo fallback live), backup service silent failure 03:33→09:41 (mode 644 regression), hotfixes ship straight to prod.
 
@@ -51,7 +52,7 @@
 
 - [ ] Generate release keystore — offline, encrypted copies in 2+ places, never unencrypted on the shared VPS.
 - [ ] CI on GitHub Actions: server `tsc` + 25 unit tests; app lint + release **AAB** + checksums as artifacts. Keystore in Actions secrets.
-- [x] Tester update channel: Firebase App Distribution (project `portfolio-51f12`, group `testers`) — interim until Play internal testing. Upload from the workstation under Node 20–24; the VPS build/publish step is unchanged.
+- [x] Tester update channel: Firebase App Distribution (project `portfolio-51f12`, group `testers`) — interim until Play internal testing. Runs on the VPS after publishing (~7 s); the CLI needs Node 20–24.
 - [ ] In-app crash reporting (Crashlytics or Sentry Android), mapping files uploaded from CI.
 - [ ] Play Console developer account ($25, ID verification). Decide personal vs organization (D-U-N-S) — personal accounts get the testing gate below.
 - [ ] Closed-testing gate: new personal accounts must run a closed test with **~20 opted-in testers for 14 consecutive days** before production access. Verify the current number in Play Console — Google adjusts it. Line up testers now; this alone pushes launch ~3 weeks out.
