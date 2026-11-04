@@ -91,7 +91,7 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
     await c.query('INSERT INTO play_sessions(id,user_id,grid_id,casual_cycle) SELECT $1,$2,$3,cycle FROM casual_cycles WHERE user_id=$2', [sessionId, account, grid.id]);
     return { sessionId, grid: { ...grid, ...(await socialFields(c, account, grid.id)) } };
   }));
-  app.get('/v1/capabilities', async () => ({ emailDelivery: 'disabled' }));
+  app.get('/v1/capabilities', async () => ({ emailDelivery: config.mailDeliveryMode ?? 'smtp', googleSignIn: !!config.googleClientId }));
 
   app.get('/v1/progress', { preHandler: ready }, async req => {
     const done = (await db.query('SELECT level_id FROM campaign_progress WHERE user_id=$1 ORDER BY level_id', [user(req)])).rows.map(r => r.level_id);

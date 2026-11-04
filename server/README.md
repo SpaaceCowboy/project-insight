@@ -1,6 +1,6 @@
 # INSIGHT Online
 
-Android Online test service with email/password registration and unique usernames. Campaign play remains free and offline. No billing or public launch is included.
+Android Online test service with email/password or Google registration and unique usernames. Campaign play remains free and offline. No billing or public launch is included.
 
 ## Local setup
 
@@ -11,15 +11,17 @@ cp server/.env.example .env
 openssl rand -hex 32
 ```
 
-Put that key in `ENCRYPTION_KEY` and set a random `POSTGRES_PASSWORD`. Keep the key backed up securely: session refresh responses depend on it. Use URL-safe characters for the database password in Compose's connection URL. Email delivery is not needed.
+Put that key in `ENCRYPTION_KEY` and set a random `POSTGRES_PASSWORD`. Keep the key backed up securely: session refresh responses depend on it. Use URL-safe characters for the database password in Compose's connection URL. Password-reset email is optional in development: leave `MAIL_DELIVERY_MODE=disabled` to hide it, or run the local Mailpit profile and use `test-inbox`.
 
 ```sh
 docker compose up --build -d
 ```
 
-API: http://localhost:3000; OpenAPI UI: http://localhost:3000/docs; JSON contract: http://localhost:3000/docs/json. Register using email, password and a unique username. Registration starts a session immediately. Login uses email and password only.
+API: http://localhost:3000; OpenAPI UI: http://localhost:3000/docs; JSON contract: http://localhost:3000/docs/json. Register using email, password and a unique username, or sign in with a Google ID token. Registration starts a session immediately. Password login uses email and password.
 
-Verification, OTP, and recovery-code endpoints have been removed. Migration `003_password_only_auth.sql` enables existing accounts and cancels outstanding email challenges. The `verified` response field remains for compatibility with older clients; it no longer gates access.
+Google sign-in requires a Web OAuth client ID in `GOOGLE_CLIENT_ID`; the Android build must use the same value as `-PinsightGoogleClientId`. A first Google sign-in returns `{needsName:true, suggestedName}` until the app chooses a username. Google's verified email links to an existing password account automatically. The server never receives a Google password and stores only the stable Google subject.
+
+Password recovery reuses the `challenges` and `email_outbox` tables. `MAIL_DELIVERY_MODE=disabled` makes recovery unavailable (the app reads this from `/v1/capabilities`); `smtp` sends through the configured SMTP server; `test-inbox` sends to Mailpit. Codes are eight digits, expire in 15 minutes, allow five attempts, and revoke every old session when a reset succeeds. Migration `003_password_only_auth.sql` remains the compatibility point for accounts created before password-only auth; `011_google_and_recovery.sql` adds the Google subject and outbox index.
 
 For a host-run service, start `db`; set `DATABASE_URL` and `ENCRYPTION_KEY` in the process environment, then:
 
@@ -32,9 +34,17 @@ npm run dev
 
 The emulator's debug default is `http://10.0.2.2:3000`. For a physical device, use HTTPS or `adb reverse tcp:3000 tcp:3000` and build with `-PinsightDebugApiUrl=http://127.0.0.1:3000`. Cleartext is permitted only for those local debug hosts. Release builds require HTTPS; an unset release URL shows an explicit unavailable state.
 
+### Google and reset mail
+
+1. Create a Google Cloud OAuth consent screen with `openid`, `email` and `profile`.
+2. Create an Android OAuth client for `com.insightpuzzle.app` and the APK signing certificate SHA-1.
+3. Create a Web OAuth client and copy its ID into both `GOOGLE_CLIENT_ID` and the Android build property `-PinsightGoogleClientId=...`.
+4. For Gmail, turn on 2-Step Verification, create an App Password, and set `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_SECURE=false`, `MAIL_FROM=Midori <address>`, `SMTP_USER`, `SMTP_PASSWORD`, and `MAIL_DELIVERY_MODE=smtp`.
+5. Keep `MAIL_DELIVERY_MODE=disabled` until those credentials are installed; `/v1/capabilities` then hides password recovery in the app.
+
 ## Interfaces and invariants
 
-- `/v1/auth/*`: register, log in, refresh, logout. Passwords are 12–128 characters. Login and registration are rate-limited. Duplicate emails and usernames return actionable 409 errors; incorrect credentials return 401. No email codes are sent.
+- `/v1/auth/*`: register, log in, Google sign-in, refresh, logout, and email password recovery. Passwords are 12–128 characters. Login, registration and Google sign-in are rate-limited. Duplicate emails and usernames return actionable 409 errors; incorrect credentials return 401. Recovery requests are account-neutral and codes are delivered only when mail is configured.
 - `/v1/account/name`: signed-in users can change their username with an idempotent PATCH. New usernames use 3–20 English letters, numbers, spaces, underscores or hyphens after NFKC/space normalization. Profane, hateful, violent and reserved names receive specific validation errors; existing accounts are not rechecked. A database unique index enforces uniqueness ignoring case and compatibility variants. Existing names remain until their owner changes them.
 - World and level names are free text (1–32 visible characters) checked by `src/names.ts` against `src/blocked-words.ts` (profanity, slurs, sexual, hate and violent/dangerous terms; leetspeak, diacritics and spaced-out letters are folded). Rejections return `INVALID_NAME`. The same list ships in the app as `app/src/main/assets/blocked-words.json`; `npm test` fails if the two differ. The former `/v1/vocabulary` word picker is gone.
 - `/v1/profiles/:id`, `/v1/progress`, `/v1/progress/import`: public statistics and account progress. `communityDone` contains the requesting account's completed grid IDs; world-grid listings expose the requesting player's `completed` flag. Android saves a completion mark immediately after a legal solve and reconciles with verified server history. Campaign resets and account switches keep community history separate. Imported solves/badges are legacy claims and award no XP. They are not proof of a verified solve.
@@ -79,7 +89,7 @@ It exercises simplified registration, visible login errors, password retention a
 ## Staging deployment and operations
 
 1. Configure a staging DNS name and an HTTPS reverse proxy to the API's loopback port 3000. For example, Caddy: `online.example.com { reverse_proxy 127.0.0.1:3000 }`. Keep PostgreSQL and Mailpit off public interfaces. Do not enable the local Mailpit profile in staging.
-2. Set `NODE_ENV=production` and a private `ENCRYPTION_KEY` and database URL. Only trust proxy addresses actually controlled by the deployment. Configure the reverse proxy's forwarding headers accordingly; arbitrary incoming forwarding headers are not trusted by default. Authentication no longer needs email delivery.
+2. Set `NODE_ENV=production` and a private `ENCRYPTION_KEY` and database URL. Only trust proxy addresses actually controlled by the deployment. Configure the reverse proxy's forwarding headers accordingly; arbitrary incoming forwarding headers are not trusted by default. Google sign-in additionally needs `GOOGLE_CLIENT_ID`; password recovery needs `MAIL_DELIVERY_MODE=smtp` plus `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `MAIL_FROM`, and optional credentials. Use `disabled` until mail is ready.
 3. Back up PostgreSQL and `ENCRYPTION_KEY` before applying an update. Compose applies pending SQL migrations before starting the API. Migrations are forward-only and additive; rollback means restoring the prior application image while retaining the schema, not dropping tables. Test every schema change against a restored backup first.
 4. Build a release with `-PinsightApiUrl=https://online.example.com`. Registration is open and immediately enables community features. Check login errors, discovery, publication, a second account's solve and both XP outcomes before distributing it.
 5. Collect request status/latency/correlation IDs. Alert on persistent 5xx responses, database health and aged pending client submissions.

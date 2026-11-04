@@ -19,6 +19,26 @@ class Store(context: Context) {
     var importedInto: String?
         get() = prefs.getString("importedInto", null)
         set(value) { check(prefs.edit().putString("importedInto", value).commit()) }
+
+    /**
+     * Copies the guest Journey save into [account], keeping the guest copy in place. Called only for the first account on this device.
+     * Solved levels and badges are also sent to the server; unfinished moves and the last open level stay local and resume on Journey.
+     */
+    fun claimGuestProgress(account: String) {
+        val editor = prefs.edit()
+        val guestDone = prefs.getStringSet("done", emptySet()) ?: emptySet()
+        val guestBadges = prefs.getStringSet("earned", emptySet()) ?: emptySet()
+        val doneKey = scoped("done", account); val earnedKey = scoped("earned", account)
+        if (guestDone.isNotEmpty()) editor.putStringSet(doneKey, (prefs.getStringSet(doneKey, emptySet()) ?: emptySet()) + guestDone)
+        if (guestBadges.isNotEmpty()) editor.putStringSet(earnedKey, (prefs.getStringSet(earnedKey, emptySet()) ?: emptySet()) + guestBadges)
+        val lastKey = scoped("lastLevel", account)
+        val guestLast = prefs.getInt("lastLevel", 0)
+        if (guestLast > 0) editor.putInt(lastKey, maxOf(guestLast, prefs.getInt(lastKey, 0)))
+        for ((key, value) in prefs.all) {
+            if (key.startsWith("attempt_") && value is String) editor.putString(scoped(key, account), value)
+        }
+        check(editor.commit())
+    }
     var creatorDraft: String?
         get() = prefs.getString("creatorDraft", null)
         set(value) { check(prefs.edit().putString("creatorDraft", value).commit()) }

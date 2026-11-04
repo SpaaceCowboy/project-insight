@@ -13,11 +13,17 @@ const socialProgress = { onlineSolved: integer, designedCount: integer, bestStre
 const page = object({ items: array(grid), nextPage: nullable(integer) });
 const accepted = object({ accepted: boolean, message: text }, ['accepted']);
 const tokenResponse = object({ accessToken: text, refreshToken: text, user });
+// Google sign-in either returns a session or asks the app to choose a username for a new account.
+const googleResponse = { type: 'object', additionalProperties: false, properties: {
+  accessToken: text, refreshToken: text, user, needsName: boolean, suggestedName: text,
+} };
 const responses: Record<string, object> = {
   'GET /health': object({ status: text }),
-  'GET /v1/capabilities': object({ emailDelivery: text }),
+  'GET /v1/capabilities': object({ emailDelivery: text, googleSignIn: boolean }),
   'GET /v1/account': object({ user }),
   'POST /v1/auth/register': tokenResponse, 'POST /v1/auth/login': tokenResponse, 'POST /v1/auth/refresh': tokenResponse,
+  'POST /v1/auth/google': googleResponse,
+  'POST /v1/auth/recover/request': accepted, 'POST /v1/auth/recover/confirm': tokenResponse,
   'GET /v1/progress': object({ done: array(integer), communityDone: array(text), badges: array(text), ...socialProgress, ...progressFields }),
   'POST /v1/progress/import': object({ accepted: boolean, awardedMilli: text }),
   'GET /v1/profiles/:id': object({ id: text, username: text, gridCount: integer, campaignCount: integer, communityCount: integer, beatenCount: integer, badges: array(text), followerCount: integer, followingCount: integer, bookmarkCount: integer, following: boolean, streak: integer, ...progressFields }),

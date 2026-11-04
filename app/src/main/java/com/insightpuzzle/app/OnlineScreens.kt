@@ -4,8 +4,14 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.util.Log
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.GetCredentialException
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -22,6 +28,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -30,6 +37,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -45,10 +53,13 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import org.json.JSONObject
 import java.net.URLEncoder
 import java.text.NumberFormat
 import java.util.Locale
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -130,11 +141,37 @@ internal fun OnlineCard(modifier: Modifier = Modifier, pushable: Boolean = false
 }
 
 @Composable
+private fun GoogleButton(enabled: Boolean, onClick: () -> Unit) {
+    val p = LocalPalette.current
+    val shape = RoundedCornerShape(14.dp)
+    val source = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val feedback = LocalFeedback.current
+    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).alpha(if (enabled) 1f else .4f).plush(shape, pressProgress(source), p.paper2)
+        .then(if (enabled) Modifier.pressOnTouch(source).clickable(source, null, role = Role.Button, onClickLabel = tr("Continue with Google")) { feedback(Cue.PRESS); onClick() } else Modifier)
+        .padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+        Image(painterResource(R.drawable.google_g), contentDescription = null, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(12.dp))
+        Label(tr("Continue with Google"), 15.sp, weight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+private fun OrDivider() {
+    val p = LocalPalette.current
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.weight(1f).height(1.dp).background(p.line))
+        Label(tr("or"), 12.sp, Modifier.padding(horizontal = 12.dp), color = p.muted)
+        Box(Modifier.weight(1f).height(1.dp).background(p.line))
+    }
+}
+
+@Composable
 fun AuthScreen(m: GameModel, destination: Route?) {
     val o = m.online
     val keyboard = LocalSoftwareKeyboardController.current
     val focus = LocalFocusManager.current
-    val usernames = UsernameFilter.get(LocalContext.current)
+    val context = LocalContext.current
+    val usernames = UsernameFilter.get(context)
     if (BuildConfig.ONLINE_DEMO) {
         var previewName by rememberSaveable { mutableStateOf("Quiet Cove") }
         OnlinePage(m, "Your Worlds preview") {
@@ -146,17 +183,81 @@ fun AuthScreen(m: GameModel, destination: Route?) {
         }
         return
     }
+    LaunchedEffect(Unit) { o.loadCapabilities() }
     var mode by rememberSaveable { mutableStateOf("login") }
     var email by rememberSaveable { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var repeat by remember { mutableStateOf("") }
     var name by rememberSaveable { mutableStateOf("") }
-    OnlinePage(m, if (mode == "register") "Make yourself at home" else "Login", messages = false) {
-        Tabs(listOf("login" to "Login", "register" to "Register"), mode) {
-            if (!o.busy) { mode = it; password = ""; repeat = ""; o.clearMessages() }
+    var code by rememberSaveable { mutableStateOf("") }
+    var googleName by rememberSaveable { mutableStateOf("") }
+    var googleSuggestion by rememberSaveable { mutableStateOf("") }
+    var googleToken by remember { mutableStateOf<String?>(null) }
+    var googleBusy by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val credentialManager = remember(context) { runCatching { CredentialManager.create(context) }.getOrNull() }
+    val googleAvailable = BuildConfig.GOOGLE_CLIENT_ID.isNotBlank() && o.googleSignIn
+    val title = when (mode) {
+        "register" -> "Make yourself at home"
+        "recover" -> "Reset password"
+        "googleName" -> "Choose your username"
+        else -> "Login"
+    }
+
+    fun validEmail() = android.util.Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches()
+    fun startGoogle() {
+        if (googleBusy || o.busy) return
+        googleBusy = true; o.clearMessages()
+        scope.launch {
+            try {
+                val manager = credentialManager ?: throw OnlineException(400, "GOOGLE_UNAVAILABLE", "Google sign-in isn't available on this device. Use email and password.")
+                val request = GetCredentialRequest.Builder()
+                    .addCredentialOption(GetGoogleIdOption.Builder()
+                        .setFilterByAuthorizedAccounts(false)
+                        .setServerClientId(BuildConfig.GOOGLE_CLIENT_ID)
+                        .setAutoSelectEnabled(false)
+                        .build())
+                    .build()
+                val result = manager.getCredential(context, request)
+                val credential = GoogleIdTokenCredential.createFrom(result.credential.data)
+                o.google(credential.idToken, null, destination) { suggestion ->
+                    googleToken = credential.idToken
+                    googleSuggestion = suggestion
+                    googleName = suggestion
+                    mode = "googleName"
+                    o.clearMessages()
+                }
+            } catch (_: GetCredentialCancellationException) {
+                // The player closed the account picker; no message is needed.
+            } catch (error: GetCredentialException) {
+                Log.w("InsightOnline", "google_credential_failed type=${error.type}")
+                o.report(OnlineException(400, "GOOGLE_UNAVAILABLE", "Google sign-in isn't available on this device. Use email and password."))
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                o.report(error)
+            } finally {
+                googleBusy = false
+            }
         }
-        OnlineField("Email", email, keyboard = KeyboardType.Email, enabled = !o.busy) { email = it.take(254) }
-        OnlineField("Password", password, password = true, enabled = !o.busy) { password = it.take(128) }
+    }
+
+    OnlinePage(m, title, messages = false) {
+        if (mode == "login" || mode == "register") {
+            Tabs(listOf("login" to "Login", "register" to "Register"), mode) {
+                if (!o.busy) { mode = it; password = ""; repeat = ""; o.clearMessages() }
+            }
+            if (googleAvailable) {
+                GoogleButton(enabled = !o.busy && !googleBusy) { startGoogle() }
+                OrDivider()
+            }
+        }
+        if (mode != "googleName") {
+            OnlineField("Email", email, keyboard = KeyboardType.Email, enabled = !o.busy) { email = it.take(254) }
+        }
+        if (mode == "login" || mode == "register") {
+            OnlineField("Password", password, password = true, enabled = !o.busy) { password = it.take(128) }
+        }
         if (mode == "register") {
             // Typed twice, so a slip of the finger can't lock the player out of a new account.
             OnlineField("Repeat password", repeat, password = true, enabled = !o.busy) { repeat = it.take(128) }
@@ -167,24 +268,69 @@ fun AuthScreen(m: GameModel, destination: Route?) {
             val note = problem?.let { Nicknames.message(it) } ?: o.nameError
             if (note != null) Label(note, 12.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                 color = if (problem == NameProblem.LENGTH) LocalPalette.current.muted else LocalPalette.current.accent)
+            if (m.store.importedInto == null) Label(tr("Journey progress saved on this device will be added to your new account."), 12.sp, color = LocalPalette.current.muted)
+        }
+        if (mode == "recover") {
+            Label(tr("Enter your email to receive an eight-digit code. It expires in 15 minutes."), 13.sp, color = LocalPalette.current.muted)
+            if (o.emailDelivery == "disabled") Label(tr("Password reset by email isn't available right now."), 13.sp, color = LocalPalette.current.accent)
+            OnlineField("Code from email", code, keyboard = KeyboardType.Number, enabled = !o.busy) { code = it.filter(Char::isDigit).take(8) }
+            OnlineField("New password", password, password = true, enabled = !o.busy) { password = it.take(128) }
+            OnlineField("Repeat new password", repeat, password = true, enabled = !o.busy) { repeat = it.take(128) }
+        }
+        if (mode == "googleName") {
+            Label(tr("Your Google profile suggested this name. You can change it before creating your account."), 13.sp, color = LocalPalette.current.muted)
+            OnlineField("Username", googleName, enabled = !o.busy) { googleName = Nicknames.clip(it); o.clearNameError() }
+            val problem = if (googleName.isBlank()) null else usernames.problem(googleName)
+            val note = problem?.let { Nicknames.message(it) } ?: o.nameError
+            if (note != null) Label(note, 12.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                color = if (problem == NameProblem.LENGTH) LocalPalette.current.muted else LocalPalette.current.accent)
+            if (googleSuggestion.isNotBlank() && googleName.isBlank()) Label(tr("Suggested: {0}", googleSuggestion), 12.sp, color = LocalPalette.current.muted)
+            if (m.store.importedInto == null) Label(tr("Journey progress saved on this device will be added to your new account."), 12.sp, color = LocalPalette.current.muted)
         }
         OnlineMessages(m)
-        MenuButton(if (mode == "register") "Create account" else "Login", primary = true, enabled = !o.busy && authFilled(mode == "register", email, password, repeat, name)) {
-            val validation = when {
-                !android.util.Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches() -> tr("Enter a valid email address.")
-                password.isBlank() -> tr("Enter your password.")
-                mode == "register" && password.length < 12 -> tr("Choose a password with at least 12 characters.")
-                mode == "register" && repeat != password -> tr("The passwords don't match.")
-                else -> null
+        if (mode == "login" || mode == "register") {
+            MenuButton(if (mode == "register") "Create account" else "Login", primary = true, enabled = !o.busy && authFilled(mode == "register", email, password, repeat, name)) {
+                val validation = when {
+                    !validEmail() -> tr("Enter a valid email address.")
+                    password.isBlank() -> tr("Enter your password.")
+                    mode == "register" && password.length < 12 -> tr("Choose a password with at least 12 characters.")
+                    mode == "register" && repeat != password -> tr("The passwords don't match.")
+                    else -> null
+                }
+                // A username that breaks a rule is explained under its box already, so nothing more is said or sent for it.
+                val badName = mode == "register" && usernames.problem(name) != null
+                if (validation != null) o.report(OnlineException(400, "INVALID_INPUT", validation))
+                else if (!badName) {
+                    focus.clearFocus(); keyboard?.hide()
+                    if (mode == "register") o.register(email, password, Nicknames.normalize(name), destination) { password = ""; repeat = "" }
+                    else o.login(email, password, destination) { password = "" }
+                }
             }
-            // A username that breaks a rule is explained under its box already, so nothing more is said or sent for it.
-            val badName = mode == "register" && usernames.problem(name) != null
-            if (validation != null) o.report(OnlineException(400, "INVALID_INPUT", validation))
-            else if (!badName) {
-                focus.clearFocus(); keyboard?.hide()
-                if (mode == "register") o.register(email, password, Nicknames.normalize(name), destination) { password = ""; repeat = "" }
-                else o.login(email, password, destination) { password = "" }
+            if (mode == "login") {
+                MenuButton("Forgot password?", enabled = !o.busy && o.emailDelivery != "disabled") {
+                    mode = "recover"; password = ""; repeat = ""; code = ""; o.clearMessages()
+                }
+                if (o.emailDelivery == "disabled") Label(tr("Password reset by email isn't available right now."), 12.sp, color = LocalPalette.current.muted)
             }
+        } else if (mode == "recover") {
+            MenuButton("Send code", enabled = !o.busy && validEmail() && o.emailDelivery != "disabled") {
+                focus.clearFocus(); keyboard?.hide(); o.requestRecovery(email)
+            }
+            MenuButton("Change password", primary = true, enabled = !o.busy && validEmail() && code.length == 8 && password.length >= 12 && repeat == password) {
+                focus.clearFocus(); keyboard?.hide(); o.recover(email, code, password, destination) { password = ""; repeat = ""; code = "" }
+            }
+            MenuButton("Back to login", enabled = !o.busy) { mode = "login"; password = ""; repeat = ""; code = ""; o.clearMessages() }
+        } else {
+            MenuButton("Create account", primary = true, enabled = !o.busy && googleToken != null && googleName.isNotBlank() && usernames.problem(googleName) == null) {
+                val token = googleToken
+                if (token != null) {
+                    focus.clearFocus(); keyboard?.hide()
+                    o.google(token, Nicknames.normalize(googleName), destination) { suggestion ->
+                        googleSuggestion = suggestion; if (googleName.isBlank()) googleName = suggestion
+                    }
+                }
+            }
+            MenuButton("Back to login", enabled = !o.busy) { mode = "login"; googleToken = null; googleName = ""; googleSuggestion = ""; o.clearMessages() }
         }
     }
 }

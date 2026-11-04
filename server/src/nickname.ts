@@ -1,6 +1,7 @@
+import { randomInt } from 'node:crypto';
 import type { PoolClient } from 'pg';
 import { requireValue } from './rules.js';
-import { NAME_MESSAGES, usernameProblem } from './username.js';
+import { NAME_MAX, NAME_MESSAGES, usernameProblem } from './username.js';
 
 /**
  * A username for registration or rename: English letters, numbers, spaces, _ and -, 3–20 characters, no profanity, hate speech, violence or reserved names
@@ -17,4 +18,15 @@ export async function claimNickname(c: PoolClient, name: string, owner: string |
   await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1 || lower(normalize($2, NFKC)),0))', ['username:', name]);
   const exists = await c.query('SELECT 1 FROM users WHERE lower(normalize(username, NFKC))=lower(normalize($1, NFKC)) AND ($2::uuid IS NULL OR id<>$2)', [name, owner]);
   requireValue(!exists.rowCount, 'NAME_TAKEN', 'That username is already taken. Choose another.', 409);
+}
+
+/**
+ * A valid starting username for a new Google account. The app shows it in a editable username step, so a collision can be fixed there.
+ * A display name in another script, or one that breaks a rule, falls back to a numbered "Player" name.
+ */
+export function suggestedName(value: string | undefined): string {
+  const cleaned = (value ?? '').normalize('NFD').replace(/\p{M}+/gu, '').normalize('NFKC')
+    .replace(/[^A-Za-z0-9 _-]+/gu, ' ').replace(/\s+/gu, ' ').trim().slice(0, NAME_MAX).trim();
+  if (cleaned.length >= 3 && !usernameProblem(cleaned).problem) return cleaned;
+  return `Player ${randomInt(100, 1000)}`;
 }

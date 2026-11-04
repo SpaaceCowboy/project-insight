@@ -5,6 +5,8 @@ plugins {
 
 android {
     val onlineDemo = providers.gradleProperty("insightOnlineDemo").getOrElse("false").toBooleanStrict()
+    val googleClientId = providers.gradleProperty("insightGoogleClientId").orElse(providers.environmentVariable("INSIGHT_GOOGLE_CLIENT_ID")).getOrElse("")
+    require(googleClientId.isEmpty() || googleClientId.endsWith(".apps.googleusercontent.com")) { "insightGoogleClientId must be a Google Web OAuth client ID (got '$googleClientId')" }
     namespace = "com.insightpuzzle.app"
     compileSdk = 37
     defaultConfig {
@@ -12,9 +14,10 @@ android {
         applicationId = "com.insightpuzzle.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 36
-        versionName = "0.2.25"
+        versionCode = 37
+        versionName = "0.2.26"
         buildConfigField("boolean", "ONLINE_DEMO", onlineDemo.toString())
+        buildConfigField("String", "GOOGLE_CLIENT_ID", "\"${googleClientId.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         if (onlineDemo) {
             applicationIdSuffix = ".preview"
@@ -61,6 +64,10 @@ dependencies {
     implementation("androidx.room:room-runtime:2.8.4")
     annotationProcessor("androidx.room:room-compiler:2.8.4")
     implementation("androidx.work:work-runtime-ktx:2.11.2")
+    // Google Sign-In: Credential Manager asks Play Services for a verified ID token; the app never sees a password.
+    implementation("androidx.credentials:credentials:1.6.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.6.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.2.1")
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20250517")

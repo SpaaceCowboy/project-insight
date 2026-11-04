@@ -33,7 +33,7 @@ The rules are the tiles themselves: each colour moves in its own fixed direction
 - **Gameplay fits on one screen.** Options → Rulebook explains the six tile rules with a practice board outside the puzzle flow. Practice never changes campaign progress or awards badges.
 - **No pressure mechanics:** no move limits, timers or star ratings. The web game removed stars and tile limits in revision 3.
 - **Dev Mode** (all levels unlocked, achievements paused) exists only in debug builds.
-- **Private Online test:** verified email/password accounts, profiles, community worlds and grids, legal-solution publishing, discovery, code lookup, and server-owned XP. The creator's Create step publishes a successfully checked grid. Guests retain the campaign and local creator.
+- **Private Online test:** verified email/password or Google accounts, profiles, community worlds and grids, legal-solution publishing, discovery, code lookup, and server-owned XP. Password accounts can recover access by email when SMTP is configured. The creator's Create step publishes a successfully checked grid. Guests retain the campaign and local creator.
 - **Local Online preview:** a separate installable build demonstrates the same flows on-device with labelled sample players/worlds. It makes no network calls and is not a real account service.
 - **Deferred:** What's Next, profile search, additional discovery filters, and billing.
 - **Distribution:** Google Play. The campaign is free. Online play is the paid part. The purchase mechanism (IAP and its price) is undecided.

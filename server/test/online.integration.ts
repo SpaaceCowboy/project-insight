@@ -9,6 +9,10 @@ import { migrate } from '../src/migrate.js';
 import { campaign } from '../src/campaign.js';
 import { contentHash, replay, type Move, type Puzzle } from '../src/rules.js';
 import type { Config } from '../src/config.js';
+import { DomainError } from '../src/rules.js';
+import type { GoogleVerifier } from '../src/google.js';
+import { deliverMail } from '../src/mail.js';
+import { decrypt } from '../src/crypto.js';
 
 const baseUrl = process.env.TEST_DATABASE_URL;
 if (!baseUrl) throw new Error('Set TEST_DATABASE_URL to an isolated PostgreSQL database.');
@@ -16,9 +20,17 @@ const schema = `test_${randomUUID().replaceAll('-', '')}`;
 const admin = database(baseUrl); const url = new URL(baseUrl); url.searchParams.set('options', `-c search_path=${schema}`);
 let db: Db; let app: FastifyInstance; let ip = 1;
 const key = '17'.repeat(32);
-const config: Config = { databaseUrl: url.toString(), encryptionKey: key, host: '127.0.0.1', port: 0, smtpHost: 'localhost', smtpPort: 1025, smtpSecure: false, mailFrom: 'test@localhost', environment: 'test', trustProxy: false, createDailyLimit: 30 };
+const config: Config = { databaseUrl: url.toString(), encryptionKey: key, host: '127.0.0.1', port: 0, smtpHost: 'localhost', smtpPort: 1025, smtpSecure: false, mailFrom: 'test@localhost', environment: 'test', trustProxy: false, createDailyLimit: 30, googleClientId: 'test-client.apps.googleusercontent.com' };
 const routes = JSON.parse(readFileSync(new URL('../../app/src/test/resources/solutions.json', import.meta.url), 'utf8')) as Move[][];
-before(async () => { await admin.query(`CREATE SCHEMA ${schema}`); db = database(config.databaseUrl); await migrate(db); app = await buildApp(db, config, false); await app.ready(); });
+// The token is a tiny JSON document in tests; the real verifier checks Google's signature instead.
+const fakeGoogle: GoogleVerifier = async idToken => {
+  const p = JSON.parse(idToken);
+  if (p.email_verified !== true) throw new DomainError(401, 'GOOGLE_INVALID', 'Google sign-in could not be completed. Please try again.');
+  return { sub: p.sub, email: p.email.toLowerCase(), name: p.name };
+};
+const googleToken = (sub: string, email: string, name?: string, verified = true) =>
+  JSON.stringify({ sub, email, name, email_verified: verified, padding: 'x'.repeat(32) });
+before(async () => { await admin.query(`CREATE SCHEMA ${schema}`); db = database(config.databaseUrl); await migrate(db); app = await buildApp(db, config, false, fakeGoogle); await app.ready(); });
 after(async () => { await app?.close(); await db?.end(); await admin.query(`DROP SCHEMA ${schema} CASCADE`); await admin.end(); });
 async function call(method: any, path: string, body?: any, account?: any, status = 200, address?: string) {
   const r = await app.inject({ method, url: path, payload: body, headers: account ? { authorization: `Bearer ${account.accessToken}` } : {}, remoteAddress: address ?? `10.0.${Math.floor(ip / 250)}.${ip++ % 250 + 1}` });
@@ -30,6 +42,13 @@ async function makeAccount() {
   const a = await call('POST', '/v1/auth/register', { email, password: 'long-test-password', name: `Player ${op().slice(0, 12)}` });
   assert.equal(a.user.verified, true);
   return { ...a, email };
+}
+/** Reads the pending recover code straight from the outbox, as the mail worker would. */
+async function recoverCode(email: string) {
+  const row = (await db.query(`SELECT o.encrypted_payload FROM email_outbox o JOIN challenges ch ON ch.id=o.challenge_id
+    JOIN users u ON u.id=ch.user_id WHERE u.email=$1 AND o.status='pending' ORDER BY ch.created_at DESC LIMIT 1`, [email])).rows[0];
+  assert.ok(row, `No pending recover code for ${email}`);
+  return decrypt<{ email: string; code: string }>(row.encrypted_payload, key).code;
 }
 function custom(n = 0) {
   const cells = [...'RBGYWPBGYWPBGYWPBGYWPBGYW'];
@@ -80,9 +99,6 @@ test('password-only registration, refresh recovery, and revocation', async () =>
   await call('GET', '/v1/account', undefined, a, 401);
   await call('POST', '/v1/auth/logout', undefined, rotated);
   await call('POST', '/v1/auth/refresh', { refreshToken: rotated.refreshToken, operationId: op() }, undefined, 401);
-  for (const route of ['verify/request', 'verify/confirm', 'recover/request', 'recover/confirm']) {
-    await call('POST', '/v1/auth/' + route, { email: a.email }, undefined, 404);
-  }
   assert.equal((await db.query('SELECT count(*)::int AS n FROM challenges')).rows[0].n, 0);
   assert.equal((await db.query('SELECT count(*)::int AS n FROM email_outbox')).rows[0].n, 0);
   const duplicate = await call('POST', '/v1/auth/register', { email: a.email.toUpperCase(), password: 'different-password', name: 'Duplicate email' }, undefined, 409);
@@ -90,6 +106,96 @@ test('password-only registration, refresh recovery, and revocation', async () =>
   const wrong = await call('POST', '/v1/auth/login', { email: a.email, password: 'incorrect password' }, undefined, 401);
   assert.equal(wrong.message, 'Email or password is incorrect.');
   await call('POST', '/v1/auth/login', { email: a.email, password: 'long-test-password' });
+});
+
+test('Google creates an account only after a username is chosen, links a verified email, and refuses conflicts', async () => {
+  const sub = `google-${op()}`; const email = `${op()}@example.test`;
+  const before = (await db.query('SELECT count(*)::int AS n FROM users')).rows[0].n;
+  const pending = await call('POST', '/v1/auth/google', { idToken: googleToken(sub, email, 'Grace Hopper') });
+  assert.equal(pending.needsName, true);
+  assert.equal(pending.suggestedName, 'Grace Hopper');
+  assert.equal((await db.query('SELECT count(*)::int AS n FROM users')).rows[0].n, before);
+  const created = await call('POST', '/v1/auth/google', { idToken: googleToken(sub, email, 'Grace Hopper'), name: 'Grace Hopper' });
+  assert.ok(created.accessToken);
+  assert.equal(created.user.username, 'Grace Hopper');
+  assert.equal((await db.query('SELECT google_sub FROM users WHERE id=$1', [created.user.id])).rows[0].google_sub, sub);
+  // A Google-only account has no usable password until it is reset by email.
+  await call('POST', '/v1/auth/login', { email, password: 'does not matter' }, undefined, 401);
+  const again = await call('POST', '/v1/auth/google', { idToken: googleToken(sub, email, 'Grace Hopper') });
+  assert.equal(again.user.id, created.user.id);
+
+  const a = await makeAccount();
+  const linked = await call('POST', '/v1/auth/google', { idToken: googleToken(`google-${op()}`, a.email, 'Linked') });
+  assert.equal(linked.user.id, a.user.id);
+  await call('POST', '/v1/auth/login', { email: a.email, password: 'long-test-password' });
+  await call('POST', '/v1/auth/google', { idToken: googleToken(`google-${op()}`, a.email, 'Other') }, undefined, 409);
+  await call('POST', '/v1/auth/google', { idToken: googleToken(`google-${op()}`, `${op()}@example.test`, 'No', false) }, undefined, 401);
+});
+
+test('password recovery is account-neutral, changes the password, and revokes old sessions', async () => {
+  const a = await makeAccount();
+  const unknown = `${op()}@example.test`;
+  await call('POST', '/v1/auth/recover/request', { email: unknown });
+  assert.equal((await db.query("SELECT count(*)::int AS n FROM challenges ch JOIN users u ON u.id=ch.user_id WHERE u.email=$1", [unknown])).rows[0].n, 0);
+  assert.deepEqual(await call('POST', '/v1/auth/recover/request', { email: a.email }), { accepted: true });
+  const code = await recoverCode(a.email);
+  const wrong = code === '00000000' ? '11111111' : '00000000';
+  await call('POST', '/v1/auth/recover/confirm', { email: a.email, code: wrong, password: 'new-long-password' }, undefined, 400);
+  assert.equal((await db.query(`SELECT ch.attempts FROM challenges ch JOIN users u ON u.id=ch.user_id
+    WHERE u.email=$1 AND ch.purpose='recover' ORDER BY ch.created_at DESC LIMIT 1`, [a.email])).rows[0].attempts, 1);
+  const fresh = await call('POST', '/v1/auth/recover/confirm', { email: a.email, code, password: 'new-long-password' });
+  assert.ok(fresh.accessToken);
+  await call('GET', '/v1/account', undefined, a, 401);
+  await call('GET', '/v1/account', undefined, fresh);
+  await call('POST', '/v1/auth/login', { email: a.email, password: 'long-test-password' }, undefined, 401);
+  await call('POST', '/v1/auth/login', { email: a.email, password: 'new-long-password' });
+  await call('POST', '/v1/auth/recover/confirm', { email: a.email, code, password: 'another-password' }, undefined, 400);
+});
+
+test('five wrong recovery codes exhaust the challenge', async () => {
+  const a = await makeAccount();
+  await call('POST', '/v1/auth/recover/request', { email: a.email });
+  const code = await recoverCode(a.email);
+  const wrong = code === '00000000' ? '11111111' : '00000000';
+  for (let n = 0; n < 5; n++) await call('POST', '/v1/auth/recover/confirm', { email: a.email, code: wrong, password: 'new-long-password' }, undefined, 400);
+  await call('POST', '/v1/auth/recover/confirm', { email: a.email, code, password: 'new-long-password' }, undefined, 400);
+});
+
+test('a Google-created account can set a password by email recovery', async () => {
+  const sub = `google-${op()}`; const email = `${op()}@example.test`; const name = `Google ${op().slice(0, 8)}`;
+  await call('POST', '/v1/auth/google', { idToken: googleToken(sub, email, name), name });
+  await call('POST', '/v1/auth/recover/request', { email });
+  const code = await recoverCode(email);
+  assert.ok((await call('POST', '/v1/auth/recover/confirm', { email, code, password: 'password-from-mail' })).accessToken);
+  await call('POST', '/v1/auth/login', { email, password: 'password-from-mail' });
+});
+
+test('mail delivery retries a refused code and clears the payload once accepted', async () => {
+  const silent = { info() {}, warn() {} } as any;
+  const drain = async (transport: any) => { while (await deliverMail(db, config, silent, transport)); };
+  await drain({ async sendMail(m: any) { return { accepted: [m.to], rejected: [] }; } });
+  const a = await makeAccount();
+  await call('POST', '/v1/auth/recover/request', { email: a.email });
+  await deliverMail(db, config, silent, { async sendMail() { throw new Error('SMTP down'); } });
+  const pending = (await db.query(`SELECT o.attempts FROM email_outbox o JOIN challenges ch ON ch.id=o.challenge_id
+    JOIN users u ON u.id=ch.user_id WHERE u.email=$1`, [a.email])).rows[0];
+  assert.equal(pending.attempts, 1);
+  await db.query('UPDATE email_outbox SET next_attempt=now() WHERE status=\'pending\'');
+  const sent: any[] = [];
+  await drain({ async sendMail(m: any) { sent.push(m); return { accepted: [m.to], rejected: [] }; } });
+  const mine = sent.filter(m => m.to === a.email);
+  assert.equal(mine.length, 1);
+  assert.match(mine[0].subject, /Midori password/);
+  const accepted = (await db.query(`SELECT o.status,o.encrypted_payload FROM email_outbox o JOIN challenges ch ON ch.id=o.challenge_id
+    JOIN users u ON u.id=ch.user_id WHERE u.email=$1`, [a.email])).rows[0];
+  assert.equal(accepted.status, 'accepted');
+  assert.equal(accepted.encrypted_payload, '');
+});
+
+test('capabilities reports mail and Google availability', async () => {
+  const caps = await call('GET', '/v1/capabilities');
+  assert.equal(caps.emailDelivery, 'smtp');
+  assert.equal(caps.googleSignIn, true);
 });
 
 test('email verification is not required, login is throttled, and OpenAPI is available', async () => {

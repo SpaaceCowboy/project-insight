@@ -32,6 +32,7 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       MAIL_FROM: ${MAIL_FROM:-INSIGHT <accounts@localhost>}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       FEEDBACK_TO: ${FEEDBACK_TO:-Insight.correspondence@gmail.com}
       FEEDBACK_DELIVERY_MODE: ${FEEDBACK_DELIVERY_MODE:-store}
       MAIL_DELIVERY_MODE: ${MAIL_DELIVERY_MODE:-smtp}

@@ -18,6 +18,10 @@ class OnlineState(private val model: GameModel, app: Application, private val sc
     var busy by mutableStateOf(false); private set
     var error by mutableStateOf(repository.client.credentialError); private set
     var notice by mutableStateOf<String?>(null); private set
+    /** What the server can do: the mail mode for reset codes, and whether its Google client is configured. */
+    var emailDelivery by mutableStateOf("smtp"); private set
+    var googleSignIn by mutableStateOf(BuildConfig.GOOGLE_CLIENT_ID.isNotBlank()); private set
+    private var capabilitiesLoaded = false
     /** The last background load could not reach the server. Worlds and Profile show a small mark instead of a message; pulling down retries. */
     var offline by mutableStateOf(false)
     /** Background loads: a connection failure only marks [offline]; anything else is reported as usual. */
@@ -69,6 +73,39 @@ class OnlineState(private val model: GameModel, app: Application, private val sc
         finally { refreshing = false }
     }
     fun refreshProgressAsync() { scope.launch { refreshProgress() } }
+    /** A quiet capabilities read; the auth screen keeps its safe defaults when the server cannot be reached. */
+    fun loadCapabilities() {
+        if (capabilitiesLoaded || BuildConfig.ONLINE_DEMO) return
+        capabilitiesLoaded = true
+        scope.launch {
+            try {
+                val result = repository.client.capabilities()
+                emailDelivery = result.optString("emailDelivery", "smtp")
+                googleSignIn = result.optBoolean("googleSignIn", googleSignIn)
+            } catch (error: CancellationException) { throw error }
+            catch (error: Exception) { capabilitiesLoaded = false; Log.w("InsightOnline", "capabilities_failed type=${error.javaClass.simpleName}") }
+        }
+    }
+    /** The first Google call may return a suggested name; the form then asks the player and calls again with it. */
+    fun google(idToken: String, name: String?, destination: Route?, needsName: (String) -> Unit) = task {
+        val result = repository.client.google(idToken, name)
+        val signed = result.user
+        if (signed == null) { needsName(result.suggestedName.orEmpty()); return@task }
+        user = signed
+        model.selectAccount(signed.id)
+        finishLogin(destination); activate()
+    }
+    fun requestRecovery(email: String) = task {
+        repository.client.requestRecovery(email.trim())
+        notice = tr("If an account exists for this email, a code has been sent.")
+    }
+    fun recover(email: String, code: String, password: String, destination: Route?, complete: () -> Unit = {}) = task {
+        val signed = repository.client.recover(email.trim(), code.trim(), password)
+        user = signed
+        model.selectAccount(signed.id)
+        complete()
+        finishLogin(destination); activate()
+    }
     fun login(email: String, password: String, destination: Route?, complete: () -> Unit = {}) = task {
         user = repository.client.login(email.trim(), password)
         model.selectAccount(user!!.id)
@@ -87,7 +124,12 @@ class OnlineState(private val model: GameModel, app: Application, private val sc
     }
     private suspend fun activate() {
         val account = user?.id ?: return
-        if (model.store.importedInto == null) model.store.importedInto = account
+        val firstAccount = model.store.importedInto == null
+        if (firstAccount) {
+            model.store.importedInto = account
+            // Bring the guest save into the account at once, so Journey shows it before the server answers.
+            model.claimGuestProgress()
+        }
         if (model.store.importedInto == account) {
             var imported = repository.cached(account, "guest-import")
             if (imported == null) {

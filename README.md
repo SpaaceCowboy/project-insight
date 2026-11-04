@@ -22,12 +22,16 @@ Differences from the web project: the Android game is portrait only; its campaig
 
 ## Online and installable builds
 
-The TypeScript/PostgreSQL service and deployment instructions are in [server/README.md](server/README.md). Register with an email, password and unique username; log in with email and password. No email codes or verification are required. Community features require an account; campaign and local creation work offline. No billing is enabled for the private test.
+The TypeScript/PostgreSQL service and deployment instructions are in [server/README.md](server/README.md). Register with an email, password and unique username, or continue with Google. Password accounts can recover access by email once SMTP is configured. Community features require an account; campaign and local creation work offline. No billing is enabled for the private test.
 
 - **INSIGHT-preview.apk** at the repository root is a signed debug build with a clearly labelled, persistent local Online demonstration. It needs no server or internet. Its package is `com.insightpuzzle.app.preview`, so it can coexist with the real app.
 - **INSIGHT-online.apk** at the repository root is a signed debug build configured for the deployed private-test backend. The campaign still works without connectivity; real accounts and community discovery require it. This is an installable test build, not a Play release.
 
-Rebuild the local preview with `./gradlew assembleDebug -PinsightOnlineDemo=true`. Build a backend-connected APK with `./gradlew assembleDebug -PinsightApiUrl=https://YOUR_API`. Release builds reject cleartext service addresses. Preview data, saves, and credentials are kept separate from real service data.
+Rebuild the local preview with `./gradlew assembleDebug -PinsightOnlineDemo=true`. Build a backend-connected APK with `./gradlew assembleDebug -PinsightApiUrl=https://YOUR_API` and a Web Google OAuth client with `-PinsightGoogleClientId=...`. Release builds reject cleartext service addresses. Preview data, saves, and credentials are kept separate from real service data.
+
+## Android v0.2.26 - Google sign-in, recovery and guest progress
+
+Version 0.2.26 (code 37) adds **Continue with Google** on the auth screen. A first Google sign-in asks the player to choose a public username; an existing verified email links to its password account. Password accounts gain **Forgot password?**, an eight-digit email code and automatic sign-in after a reset. Journey progress saved while signed out (solved levels, badges and the unfinished attempt) now moves into the first account created on the device. The server adds migration 011 for Google subjects and recovery mail; email delivery stays disabled until SMTP credentials are installed, so the reset entry point is hidden meanwhile. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.26); see [deployment notes](DEPLOYMENT.md).
 
 ## Android v0.2.25 - Home counts, a quicker Options and an icon that waits
 

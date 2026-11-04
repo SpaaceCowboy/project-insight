@@ -24,8 +24,8 @@ export async function deliverMail(db: Db, config: Config, log: FastifyBaseLogger
     const started = Date.now();
     try {
       const result = await transport.sendMail({ from: config.mailFrom, to: payload.email, messageId: `<${row.id}@insight-online>`,
-        subject: payload.purpose === 'verify' ? 'Verify your INSIGHT account' : 'Recover your INSIGHT account',
-        text: `Your INSIGHT code is ${payload.code}. It expires in 15 minutes. If you did not request this, ignore this message.` });
+        subject: payload.purpose === 'verify' ? 'Verify your Midori account' : 'Reset your Midori password',
+        text: `Your Midori code is ${payload.code}. It expires in 15 minutes. If you did not request this, ignore this message.` });
       if (result.rejected?.length || !result.accepted?.length) throw new Error('SMTP_REJECTED');
       await c.query("UPDATE email_outbox SET status='accepted',attempts=attempts+1,encrypted_payload='' WHERE id=$1", [row.id]);
       log.info({ correlationId: row.id, status: 'smtp_accepted', latencyMs: Date.now() - started }, 'email outcome');

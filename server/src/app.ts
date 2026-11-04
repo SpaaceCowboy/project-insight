@@ -9,8 +9,9 @@ import { onlineRoutes } from './online.js';
 import { feedbackRoutes } from './feedback.js';
 import { DomainError } from './rules.js';
 import { responseSchema } from './contracts.js';
+import type { GoogleVerifier } from './google.js';
 
-export async function buildApp(db: Db, config: Config, logging = true) {
+export async function buildApp(db: Db, config: Config, logging = true, google?: GoogleVerifier) {
   const app = Fastify({ logger: logging ? { level: 'info', serializers: {
     req: req => ({ method: req.method, route: req.routeOptions?.url }),
     res: res => ({ statusCode: res.statusCode }),
@@ -37,7 +38,7 @@ export async function buildApp(db: Db, config: Config, logging = true) {
       ...(route.url.startsWith('/v1/') && !route.url.startsWith('/v1/auth/') && route.url !== '/v1/capabilities' && route.url !== '/v1/feedback' ? { security: [{ bearerAuth: [] }] } : {}) };
   });
   app.get('/health', async () => { await db.query('SELECT 1'); return { status: 'ok' }; });
-  await authRoutes(app, db, config);
+  await authRoutes(app, db, config, google);
   await onlineRoutes(app, db, config);
   await feedbackRoutes(app, db, config);
   return app;

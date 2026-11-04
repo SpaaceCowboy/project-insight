@@ -1,3 +1,19 @@
+# Android v0.2.26 — Google sign-in, email recovery and guest progress (4 November 2026)
+
+Published [v0.2.26 APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.26), version code 37. The package ID, signing certificate, saved preferences and download address are unchanged.
+
+This batch adds **Continue with Google** to the auth screen. A new Google account returns a suggested public username and is created only after the player confirms or edits it; a verified Google email that already belongs to a password account links to that account. Password accounts gain **Forgot password?**: an eight-digit email code (15 minutes, five attempts) sets a new password, revokes every old session and signs the player in automatically. The server stores only Google's stable subject; Google passwords never reach the app or service.
+
+Journey progress saved while signed out now moves into the first account created on the device: solved levels and badges are sent through the existing import endpoint, while the unfinished attempt and last open level are copied locally so the player resumes where they left off. Imported levels still award no XP.
+
+The backend adds migration `011_google_and_recovery.sql` (`users.google_sub`, a unique partial index, and a pending-outbox index), `google-auth-library`, and the `/v1/auth/google`, `/v1/auth/recover/request` and `/v1/auth/recover/confirm` routes. `/v1/capabilities` now reports the mail mode and Google availability. **Email delivery is intentionally disabled** (`MAIL_DELIVERY_MODE=disabled`): the app hides password recovery until Gmail SMTP credentials are installed and that setting is changed to `smtp`. Google Cloud still needs an **Android OAuth client** for package `com.insightpuzzle.app` and signing SHA-1 `B9:1D:DA:64:02:61:F0:5F:E1:F3:89:90:AE:B7:F0:88:CE:A3:D2:D0`; the Web client ID `23451949348-8sq17di0cd7qnubngpbae2l1m6c5v9vm.apps.googleusercontent.com` is configured in both the app and `.env`.
+
+VPS validation: 19 server unit tests and 26 integration tests; 63 Android unit tests; the 31-test Android device suite against an isolated local fixture (including registration/login, email reset with auto-login, guest progress import, discovery, creator publishing, feedback, persistence and upgrade checks); and the final APK metadata, signature, embedded HTTPS URL and Google client ID. The server was backed up first (`/opt/insight-online/backups/insight-20261103T212915Z.dump.age`), migration 011 applied, and counts before/after were 20 users, 172 grids, 119 campaign rows and 340 XP rows. Health and `/v1/capabilities` were checked; an invalid Google token returns `GOOGLE_INVALID`, and recovery returns `MAIL_UNAVAILABLE` while mail is disabled.
+
+The prior public APK is `/root/insight-apk-rollbacks/INSIGHT-online-v0.2.25-before-046.apk`; publication replaced the download atomically and verified its public SHA-256. Build source: `/opt/insight-release-046-android`; artifacts: `/root/insight-046-apks`. Physical-phone checks and real Google account-picker sign-in were not run; that flow still needs a device with Play Services and a Google account.
+
+Online SHA-256: 00ac99d7f703222c956e970f920f4f2c061e23c19d173879cc53b2d81df83848. Preview SHA-256: bb2f1aeb20c385e3baae4aa9aa6d08e93b32d33e36b4efb7f9b8b875283e925d. Certificate SHA-256: 3008529664ef52092022f4a3a0fc77a43f56d18ccaa947ecdf0be5daabd28c9a.
+
 # Android v0.2.25 — Home counts, a quicker Options and an icon that waits (2 November 2026)
 
 Published [v0.2.25 APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.25), version code 36. This is an APK-only release: package ID, signing key, saved preferences, download address and the backend are unchanged.

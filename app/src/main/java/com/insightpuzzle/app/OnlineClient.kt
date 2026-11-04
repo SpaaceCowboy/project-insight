@@ -26,6 +26,8 @@ import javax.crypto.spec.GCMParameterSpec
 data class OnlineUser(val id: String, val username: String, val verified: Boolean) {
     companion object { fun parse(json: JSONObject) = OnlineUser(json.getString("id"), json.getString("username"), json.getBoolean("verified")) }
 }
+/** Either a signed-in Google account, or the server's suggestion for a new account's username. */
+data class GoogleSignIn(val user: OnlineUser?, val suggestedName: String?)
 class OnlineException(val status: Int, val code: String, override val message: String) : IOException(message)
 
 /** Credentials never enter Room, regular game preferences, backups, or logs. */
@@ -137,6 +139,28 @@ class OnlineClient(context: Context) {
             save(response); user!!
         }
     }
+    /** Google ID tokens are verified by the server; a new account only gets created after its player picks a username. */
+    suspend fun google(idToken: String, name: String?): GoogleSignIn = withContext(Dispatchers.IO) {
+        sessionLock.withLock {
+            val body = JSONObject().put("idToken", idToken)
+            if (!name.isNullOrBlank()) body.put("name", name)
+            val response = raw("POST", "/v1/auth/google", body, null)
+            if (response.optBoolean("needsName")) return@withLock GoogleSignIn(null, response.optString("suggestedName").takeIf { it.isNotBlank() })
+            save(response); GoogleSignIn(user!!, null)
+        }
+    }
+    suspend fun requestRecovery(email: String) = withContext(Dispatchers.IO) {
+        raw("POST", "/v1/auth/recover/request", JSONObject().put("email", email), null)
+    }
+    /** A successful reset revokes every old session and starts this one. */
+    suspend fun recover(email: String, code: String, password: String): OnlineUser = withContext(Dispatchers.IO) {
+        sessionLock.withLock {
+            val response = raw("POST", "/v1/auth/recover/confirm",
+                JSONObject().put("email", email).put("code", code).put("password", password), null)
+            save(response); user!!
+        }
+    }
+    suspend fun capabilities(): JSONObject = withContext(Dispatchers.IO) { raw("GET", "/v1/capabilities", null, null) }
     suspend fun updateVerifiedUser(): OnlineUser = withContext(Dispatchers.IO) {
         val account = user?.id ?: throw OnlineException(401, "AUTH_REQUIRED", "Please log in.")
         val response = request("GET", "/v1/account", account = account)

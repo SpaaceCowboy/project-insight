@@ -211,6 +211,13 @@ class GameModel(app: Application) : AndroidViewModel(app) {
         load(levels.indices.firstOrNull { (it + 1) !in done } ?: 0)
     }
 
+    /** Moves the guest save into the account that has just been signed in for the first time on this device. */
+    fun claimGuestProgress() {
+        val account = store.activeAccount ?: return
+        store.claimGuestProgress(account)
+        done = store.done; earned = store.earned
+    }
+
     fun mergeAccountProgress(json: JSONObject) {
         val solved = json.getJSONArray("done")
         done = done + List(solved.length()) { solved.getInt(it) }; store.done = done

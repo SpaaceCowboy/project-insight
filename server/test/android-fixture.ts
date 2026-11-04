@@ -5,6 +5,7 @@ import { database } from '../src/db.js';
 import { migrate } from '../src/migrate.js';
 import type { Config } from '../src/config.js';
 import { campaign } from '../src/campaign.js';
+import { decrypt } from '../src/crypto.js';
 import { readFileSync } from 'node:fs';
 
 if (!process.env.TEST_DATABASE_URL) throw new Error('Set TEST_DATABASE_URL to an isolated UTF-8 PostgreSQL database.');
@@ -29,6 +30,12 @@ const fixtureLevel = paths.findIndex((p: any[]) => p.length > 1);
 app.get('/test/discovery',async()=>({gridId:fixtureGrid.id,solution:paths[fixtureLevel],solutions:fixtureSolutions}));
 app.get('/test/discovery-stats',async()=>({failures:(await db.query("SELECT count(*)::int AS n FROM play_attempt_outcomes WHERE grid_id=$1 AND outcome='failed'",[fixtureGrid.id])).rows[0].n}));
 app.get('/test/feedback',async()=>({reports:(await db.query('SELECT kind,body,user_id,app_version,status,attempts FROM feedback ORDER BY created_at DESC LIMIT 1')).rows}));
+app.get('/test/recover-code',async req=>{
+  const email=String((req.query as any).email??'').toLowerCase();
+  const row=(await db.query(`SELECT o.encrypted_payload FROM email_outbox o JOIN challenges ch ON ch.id=o.challenge_id
+    JOIN users u ON u.id=ch.user_id WHERE u.email=$1 AND o.status='pending' ORDER BY ch.created_at DESC LIMIT 1`,[email])).rows[0];
+  return {code: row ? decrypt<{code:string}>(row.encrypted_payload,config.encryptionKey).code : null};
+});
 await app.ready();
 async function seedCall(path: string, body: object, access?: string) {
   const response = await app.inject({ method: 'POST', url: path, payload: body, headers: access ? {authorization:`Bearer ${access}`} : {}, remoteAddress: '192.0.2.200' });
