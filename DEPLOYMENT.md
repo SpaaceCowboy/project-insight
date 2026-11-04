@@ -6,7 +6,9 @@ Google sign-in reached the API and was refused with `GOOGLE_INVALID` for every r
 
 The same rollout exposed a second problem: `server/deploy/native-backup.sh` is committed as mode 644, so the v0.2.26 deployment stripped its execute bit and `insight-backup.service` failed with `203/EXEC` from 03:33 until it was found here — two scheduled backups were missed. The file is executable again in git and on the server, and a fresh backup (`insight-20261104T094147Z.dump.age`) succeeded before this module was replaced. Check `systemctl show insight-backup.service -p Result` after any deployment that refreshes `server/`.
 
-Deployed: `server/dist/google.js` alone; previous module kept at `/opt/insight-rollback-before-047/dist/google.js`. One 502 during restart before the health retry succeeded. `/v1/capabilities` still reports Google available, and a junk token still returns `401 GOOGLE_INVALID`. No Android build or APK changed. Confirmation with a real Google account is still outstanding.
+Deployed: `server/dist/google.js` alone; previous module kept at `/opt/insight-rollback-before-047/dist/google.js`. One 502 during restart before the health retry succeeded. `/v1/capabilities` still reports Google available, and a junk token still returns `401 GOOGLE_INVALID`. No Android build or APK changed.
+
+Confirmed with a real Google account on 4 November: `/v1/auth/google` answered `200` in 322 ms (roughly 200 ms of that is the refused key fetch before the fallback) and the player reached the username step. If `www.googleapis.com` is ever reachable from this host again, the library path takes over and the extra round trip disappears on its own.
 
 # Android v0.2.26 — Google sign-in, email recovery and guest progress (4 November 2026)
 
