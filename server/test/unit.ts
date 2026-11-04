@@ -4,3 +4,4 @@ import './crypto.test.js';
 import './badges.test.js';
 import './names.test.js';
 import './username.test.js';
+import './google.test.js';
