@@ -51,6 +51,7 @@
 
 - [ ] Generate release keystore — offline, encrypted copies in 2+ places, never unencrypted on the shared VPS.
 - [ ] CI on GitHub Actions: server `tsc` + 25 unit tests; app lint + release **AAB** + checksums as artifacts. Keystore in Actions secrets.
+- [x] Tester update channel: Firebase App Distribution (project `portfolio-51f12`, group `testers`) — interim until Play internal testing. Upload from the workstation under Node 20–24; the VPS build/publish step is unchanged.
 - [ ] In-app crash reporting (Crashlytics or Sentry Android), mapping files uploaded from CI.
 - [ ] Play Console developer account ($25, ID verification). Decide personal vs organization (D-U-N-S) — personal accounts get the testing gate below.
 - [ ] Closed-testing gate: new personal accounts must run a closed test with **~20 opted-in testers for 14 consecutive days** before production access. Verify the current number in Play Console — Google adjusts it. Line up testers now; this alone pushes launch ~3 weeks out.
