@@ -2,7 +2,7 @@
 
 Until Play internal testing exists, testers get builds through Firebase App Distribution instead of downloading the APK by hand. The Firebase project is `portfolio-51f12` (the existing Google Cloud project), the Android app is `com.insightpuzzle.app` with App ID `1:151163156759:android:6f1ac10b6f68910c5adf52`, and the tester group is `testers`. No Firebase SDK, `google-services.json` or SHA-1 is involved — this is a distribution channel only.
 
-First release: v0.2.26 (37), release `5n0rs65vkltvg`. Testers accept the invite once and install; later builds arrive as updates in the App Tester app. The build is signed with the current debug key, so it installs in place over the sideloaded APK — no uninstall.
+First release: v0.2.26 (37), release `5n0rs65vkltvg`. Testers accept the invite once and install; later builds arrive as updates in the App Tester app. Confirmed on 4 November: the invite arrived and the build installed over the sideloaded copy in place, with data intact. The build is signed with the current debug key — that stops being true when the release keystore lands, and testers will need one uninstall/reinstall at that point.
 
 The service account key is `/etc/insight-ops/firebase-sa.json` on the VPS (root, 600) with a copy at `~/.config/insight/firebase-sa.json` for workstation uploads; it is project-scoped and revocable from GCP → IAM → Service accounts at any time. Distribution is `server/deploy/distribute-apk.sh <apk> ["notes"]`.
 
