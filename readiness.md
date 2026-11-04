@@ -22,7 +22,7 @@
 
 **Ops**
 - Builds happen on the VPS itself (prod machine = build machine). No CI.
-- No external monitoring, no alerting, no error tracking, no metrics.
+- On-box watcher (`insight-watch.timer`, 5 min → Telegram): health, APK, units, backup, disk, RAM, cert, 5xx, restarts. No external liveness check, no error tracking, no metrics.
 - Backups: daily age-encrypted dumps **on the same disk**, never restore-tested, no offsite copy.
 - Known incidents that shaped this plan: Google `www.googleapis.com` 403 (IP reputation; tokeninfo fallback live), backup service silent failure 03:33→09:41 (mode 644 regression), hotfixes ship straight to prod.
 
@@ -39,8 +39,8 @@
 
 ## Phase 1 — Harden what exists (cheap, do first)
 
-- [ ] External monitoring (UptimeRobot or Betterstack): `/health`, HTTPS expiry, APK URL.
-- [ ] Alerts: backup-service failure, disk >80%, restart loops, 5xx rate, cert expiry within 7 days. Telegram or email channel.
+- [ ] External monitoring account (UptimeRobot/Betterstack): HTTPS keyword monitor on `/health`, alert to email. The on-box watcher cannot report the box being dead.
+- [x] On-box watcher (`insight-watch.timer`, every 5 min → Telegram, state-change alerts only): API health both direct and through nginx, APK content length, service/timer state, backup last result + dump age (<27h), disk >80%, RAM floor, served cert <3 days, ≥5 5xx in 6 min, restart count. Config `/etc/insight-ops/watch.env` (600), state `/var/lib/insight-ops`. Verified with a simulated disk failure and its resolution.
 - [ ] Backup restore drill: decrypt latest `.dump.age` into a scratch DB on the box, verify schema + row counts. Automate monthly.
 - [ ] Offsite backup replication (R2/B2 — dumps are age-encrypted, safe to ship).
 - [ ] Server baseline: `unattended-upgrades`, fail2ban, audit `/root/.ssh/authorized_keys`, set `MemoryMax` on `insight-online`, nginx security headers.

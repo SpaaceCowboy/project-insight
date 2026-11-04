@@ -1,0 +1,9 @@
+[Unit]
+Description=INSIGHT box watcher (health, backup, disk, certificate)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/insight-ops/insight-watch.sh
+Nice=10

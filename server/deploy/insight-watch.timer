@@ -1,0 +1,10 @@
+[Unit]
+Description=Run the INSIGHT box watcher every five minutes
+
+[Timer]
+OnBootSec=90s
+OnUnitActiveSec=5min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

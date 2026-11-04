@@ -1,3 +1,11 @@
+# Box watcher — silent-failure alerts (4 November 2026)
+
+`insight-watch.timer` runs `/opt/insight-ops/insight-watch.sh` every five minutes and messages Telegram when a condition appears or clears — never repeatedly while it persists. It checks the API on `127.0.0.1:3000` and again through nginx with TLS validated, the published APK's content length, `insight-online`/`nginx`/`postgresql` and the backup and certificate timers, the backup unit's last result plus newest dump age (27h limit), root disk (80%), available RAM (250 MB floor), the certificate nginx actually serves (3-day threshold — these are ~6-day IP certificates, renewed twice daily), five or more 5xx responses in six minutes, and the service's automatic restart count.
+
+Configuration is `/etc/insight-ops/watch.env` (root, 600): the Telegram bot token and chat id, plus optional threshold overrides. State lives in `/var/lib/insight-ops` and holds the currently-open problems and the last restart count. `--dry-run` prints the current state without sending or saving anything; `--test` sends one message. If the token or chat id is missing, alerts are logged to the journal and suppressed rather than failing the unit.
+
+Source of truth: `server/deploy/insight-watch.sh`, `insight-watch.service`, `insight-watch.timer`, `watch.env.example`. Installed at `/opt/insight-ops/insight-watch.sh` (755) with the units in `/etc/systemd/system`. Verified on 4 November with a test message, a simulated disk problem (`DISK_LIMIT=1`) and its resolution — the journal recorded `1 new` then `1 resolved`, and the state file returned to empty.
+
 # Server hotfix — Google sign-in verification (4 November 2026)
 
 Google sign-in reached the API and was refused with `GOOGLE_INVALID` for every real account. The token was fine: `google-auth-library` verifies an ID token by fetching Google's signing keys from `https://www.googleapis.com/oauth2/v3/certs`, and that host answers this VPS with Google's own `403 Forbidden` page, so no key could ever be loaded. `oauth2.googleapis.com` and `accounts.google.com` are reachable from the same machine, so the block is specific to `www.googleapis.com` and not a general egress problem.
