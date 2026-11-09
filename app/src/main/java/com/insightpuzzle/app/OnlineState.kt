@@ -3,10 +3,12 @@ package com.insightpuzzle.app
 import android.app.Application
 import android.util.Log
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
@@ -24,6 +26,23 @@ class OnlineState(private val model: GameModel, app: Application, private val sc
     private var capabilitiesLoaded = false
     /** The last background load could not reach the server. Worlds and Profile show a small mark instead of a message; pulling down retries. */
     var offline by mutableStateOf(false)
+    /**
+     * Bumped to make every screen whose load failed try again: by [reconnect] while [offline], and by a tap on the end-of-list mark. Loaders add it to their keys.
+     * Pulling down still retries at once; this only means the player does not have to.
+     */
+    var retry by mutableIntStateOf(0); private set
+    fun retryNow() { retry++ }
+    /** While offline and signed in: wait 2 s, 4 s, 8 s … up to 30 s (a little random so phones do not retry in step), ask the server for progress, and bump [retry]. A 429/503 cooldown is not a connection error, so it never starts this, and the client refuses requests inside one without sending them. */
+    suspend fun reconnect() {
+        var wait = 2_000L
+        while (offline && user != null) {
+            delay(wait + kotlin.random.Random.nextLong(0, 500))
+            if (!offline) break
+            refreshProgress()
+            if (offline) retry++
+            wait = (wait * 2).coerceAtMost(30_000L)
+        }
+    }
     /** Background loads: a connection failure only marks [offline]; anything else is reported as usual. */
     fun quiet(error: Throwable) { if (isConnectionError(error)) offline = true else report(error) }
     /** The server's reason for refusing a username; the sign-up form shows it as the one line under the username box. */
@@ -68,6 +87,8 @@ class OnlineState(private val model: GameModel, app: Application, private val sc
             repository.sync()
             val progress = repository.fetch("/v1/progress", account)
             if (user?.id == account) model.mergeAccountProgress(progress)
+            // The server answered, so whatever marked the connection lost is over; screens that failed reload on [retry].
+            if (offline) { offline = false; retry++ }
         } catch (error: CancellationException) { throw error }
         catch (error: Exception) { Log.w("InsightOnline", "refresh_failed type=${error.javaClass.simpleName}") }
         finally { refreshing = false }

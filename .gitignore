@@ -20,3 +20,4 @@ secrets/
 server/.seed-community/
 backups/
 acme/
+graphify-out/

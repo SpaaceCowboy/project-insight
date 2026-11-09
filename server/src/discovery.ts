@@ -20,7 +20,7 @@ async function creatorRows(db: Db, o: { query: string; sort: string; period: str
   const unit = periodUnits[o.period];
   const likedSince = unit ? `AND l.created_at >= (date_trunc('${unit}',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')` : '';
   const order = o.sort === 'designed' ? '"gridCount" DESC,xp DESC' : o.sort === 'played' ? '"beatenCount" DESC,xp DESC'
-    : o.sort === 'liked' ? '"likeCount" DESC,xp DESC' : 'xp DESC';
+    : o.sort === 'liked' ? '"likeCount" DESC,xp DESC' : o.sort === 'followed' ? '"followerCount" DESC,xp DESC' : 'xp DESC';
   const join = o.follower ? 'JOIN follows f ON f.followee_id=u.id AND f.follower_id=$4 LEFT JOIN publications p ON p.owner_id=u.id'
     : o.followee ? 'JOIN follows f ON f.follower_id=u.id AND f.followee_id=$4 LEFT JOIN publications p ON p.owner_id=u.id' : 'JOIN publications p ON p.owner_id=u.id';
   const related = o.follower ?? o.followee;
@@ -30,15 +30,16 @@ async function creatorRows(db: Db, o: { query: string; sort: string; period: str
         WHERE g.published_at IS NOT NULL AND NOT g.hidden AND NOT g.moderated),
       publications AS (SELECT owner_id,count(*)::int AS "gridCount" FROM public_grids GROUP BY owner_id),
       likes AS (SELECT pg.owner_id,count(*)::int AS n FROM grid_likes l JOIN public_grids pg ON pg.id=l.grid_id WHERE true ${likedSince} GROUP BY pg.owner_id),
+      follower_totals AS (SELECT followee_id AS user_id,count(*)::int AS n FROM follows GROUP BY followee_id),
       xp_totals AS (SELECT user_id,sum(amount) AS xp FROM xp_ledger GROUP BY user_id),
       campaign_totals AS (SELECT user_id,count(*)::int AS n FROM campaign_progress GROUP BY user_id),
       community_totals AS (SELECT gc.user_id,count(DISTINCT g.content_hash)::int AS n FROM grid_completions gc JOIN grids g ON g.id=gc.grid_id
         WHERE g.owner_id<>gc.user_id AND NOT EXISTS (SELECT 1 FROM campaign_progress cp JOIN campaign_hashes ch ON ch.level_id=cp.level_id
           WHERE cp.user_id=gc.user_id AND ch.hash=g.content_hash) GROUP BY gc.user_id)
       SELECT u.id,u.username,coalesce(p."gridCount",0)::int AS "gridCount",coalesce(x.xp,0)::text AS "xpMilli",coalesce(x.xp,0) AS xp,
-        (coalesce(c.n,0)+coalesce(t.n,0))::int AS "beatenCount",coalesce(lk.n,0)::int AS "likeCount"
+        (coalesce(c.n,0)+coalesce(t.n,0))::int AS "beatenCount",coalesce(lk.n,0)::int AS "likeCount",coalesce(fw.n,0)::int AS "followerCount"
       FROM users u ${join} LEFT JOIN xp_totals x ON x.user_id=u.id
-      LEFT JOIN campaign_totals c ON c.user_id=u.id LEFT JOIN community_totals t ON t.user_id=u.id LEFT JOIN likes lk ON lk.owner_id=u.id
+      LEFT JOIN campaign_totals c ON c.user_id=u.id LEFT JOIN community_totals t ON t.user_id=u.id LEFT JOIN likes lk ON lk.owner_id=u.id LEFT JOIN follower_totals fw ON fw.user_id=u.id
       WHERE NOT u.suspended AND u.username ILIKE $2 ORDER BY ${order},u.id ASC LIMIT 25 OFFSET $3`,
     [campaignHashes, searchPattern(o.query), o.page * 24, ...(related ? [related] : [])])).rows
     .map(({ xp, ...row }) => ({ ...row, ...progression(BigInt(row.xpMilli)) }));
@@ -47,7 +48,7 @@ async function creatorRows(db: Db, o: { query: string; sort: string; period: str
 export async function creators(app: FastifyInstance, db: Db, config: Config) {
   app.get('/v1/creators', { preHandler: authentication(db, config), schema: { querystring: objectSchema({
     query: { type: 'string', maxLength: 80, default: '' },
-    sort: { type: 'string', enum: ['level', 'designed', 'played', 'liked'], default: 'level' },
+    sort: { type: 'string', enum: ['level', 'designed', 'played', 'liked', 'followed'], default: 'level' },
     period: { type: 'string', enum: ['all', 'today', 'week', 'month', 'year'], default: 'all' },
     page: { type: 'integer', minimum: 0, maximum: 100000, default: 0 },
   }, []) } }, async req => {

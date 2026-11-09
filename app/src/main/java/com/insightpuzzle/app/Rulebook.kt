@@ -27,12 +27,12 @@ import androidx.compose.ui.unit.sp
 
 /** What each tile does, in the order the sandbox shows them. Mirrors [Rules.MOVES]. "{0}" is the tile's colour name ([Art.name]: the standard name in the colour-blind palette). */
 private val RULES = listOf(
-    'R' to "{0} slides one cell up or down.",
-    'B' to "{0} slides one cell left or right.",
-    'G' to "{0} steps diagonally, up-right or down-left.",
-    'Y' to "{0} steps diagonally, up-left or down-right.",
-    'P' to "{0} jumps two cells up, down, left or right.",
-    'W' to "{0} never moves itself; other tiles can only swap places with it.",
+    'R' to "{0} swaps up or down",
+    'B' to "{0} swaps left or right",
+    'G' to "{0} swaps up-right or down-left",
+    'Y' to "{0} swaps up-left or down-right",
+    'P' to "{0} only swaps two cells up, down, left or right.",
+    'W' to "{0} never moves itself; other tiles can swap with it.",
 )
 
 /** Options → Rulebook: six rules on top, a free 3x3 board below. Nothing here is saved or scored. */

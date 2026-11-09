@@ -161,7 +161,7 @@ class DemoBackend(context: Context) {
                     .put("bookmarkCount", if (who != player) 0 else list("bookmarks").count { b -> b.getString("userId") == who && list("grids").any { it.getString("id") == b.getString("gridId") && visible(it) } })
         }
         fun progress(): JSONObject = xp(player).put("done", person(player).getJSONArray("done")).put("badges", person(player).getJSONArray("badges"))
-            .put("onlineSolved", stats(player).onlineSolved).put("designedCount", stats(player).designedCount).put("bestStreak", stats(player).bestStreak)
+            .put("communityCount", profile(player).getInt("communityCount")).put("onlineSolved", stats(player).onlineSolved).put("designedCount", stats(player).designedCount).put("bestStreak", stats(player).bestStreak)
             .put("communityDone", JSONArray(list("gridCompletions").filter { it.getString("userId") == player }.map { it.getString("gridId") }))
         fun qualify(g: JSONObject) {
             if (g.getString("ownerId") == player || list("plays").any { it.getString("gridId") == g.getString("id") && it.getString("userId") == player }) return
@@ -224,7 +224,7 @@ class DemoBackend(context: Context) {
                 val since = since(uri.getQueryParameter("period"))
                 val rows = list("users").map { creator(it.getString("id"), since) }.filter { it.getInt("gridCount") > 0 && it.getString("username").contains(query, ignoreCase = true) }
                     .sortedWith(compareByDescending<JSONObject> {
-                        when (sort) { "designed" -> it.getInt("gridCount").toBigInteger(); "played" -> it.getInt("beatenCount").toBigInteger(); "liked" -> it.getInt("likeCount").toBigInteger(); else -> it.getString("xpMilli").toBigInteger() }
+                        when (sort) { "designed" -> it.getInt("gridCount").toBigInteger(); "played" -> it.getInt("beatenCount").toBigInteger(); "liked" -> it.getInt("likeCount").toBigInteger(); "followed" -> it.getInt("followerCount").toBigInteger(); else -> it.getString("xpMilli").toBigInteger() }
                     }.thenByDescending { it.getString("xpMilli").toBigInteger() }.thenBy { it.getString("id") })
                 JSONObject().put("items", JSONArray(rows.drop(page * 24).take(24))).put("nextPage", if ((page + 1) * 24 < rows.size) page + 1 else JSONObject.NULL)
             }

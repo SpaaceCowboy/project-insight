@@ -223,7 +223,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
         done = done + List(solved.length()) { solved.getInt(it) }; store.done = done
         communityDone = communityDone + (json.optJSONArray("communityDone")?.strings() ?: emptyList()); store.communityDone = communityDone
         earned = earned + json.getJSONArray("badges").strings().associateWith { earned[it] ?: System.currentTimeMillis() }; store.earned = earned
-        onlineStats = OnlineStats(json.optInt("onlineSolved"), json.optInt("designedCount"), json.optInt("bestStreak"), json.optInt("level", 1))
+        onlineStats = OnlineStats(json.optInt("onlineSolved"), json.optInt("designedCount"), json.optInt("bestStreak"), json.optInt("level", 1), json.optInt("communityCount", json.optInt("onlineSolved")))
     }
 
     fun toggleLike() = toggleSocial("like", !liked) { liked = it }
@@ -386,7 +386,11 @@ class GameModel(app: Application) : AndroidViewModel(app) {
                 online.proofSaved()
             } else online.completion(proof)
         }
-        if (!dev && current != null) { communityDone = communityDone + current.id; store.communityDone = communityDone }
+        if (!dev && current != null) {
+            // Optimistic until the next progress refresh; the server then applies the campaign-duplicate rule.
+            if (current.id !in communityDone && current.grid.optString("ownerId") != current.account) onlineStats = onlineStats.copy(communityCount = onlineStats.communityCount + 1)
+            communityDone = communityDone + current.id; store.communityDone = communityDone
+        }
         if (current?.attempt != null) {
             community = current.copy(attempt = current.attempt.copy(closed = true))
         }
@@ -431,7 +435,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     val levelTargets: List<Board> = levels.map { Rules.crop(it.target) }
 
     fun publishCreator() {
-        if (creator.phase != Phase.CHECK || dev || creator.proof.isEmpty()) return
+        if (creator.phase != Phase.CHECK || creator.proof.isEmpty()) return
         if (online.user == null) { push(Route.Auth(Route.Create)); return }
         online.task {
             val account = online.user?.id ?: return@task
@@ -475,10 +479,12 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     val dark get() = theme != "light"
     fun changeTheme(value: String) { theme = value; store.theme = value }
     fun toggleHaptics() { haptics = !haptics; store.haptics = haptics }
-    /** Touch feedback: the 10 ms haptic when Haptics is on, then [cue]'s sound when Sound is on. */
+    /** Touch feedback: the 11 ms haptic when Haptics is on, then [cue]'s sound when Sound is on. */
     fun feedback(cue: Cue?) { if (haptics) vibration.tick(); cue?.let(audio::play) }
     /** The short, silent tick for each step of a continuous drag (a row or column added or removed while resizing the creator's grid). */
-    fun fineTick() { if (haptics) vibration.tick(Haptics.FINE_TICK_MS) }
+    fun fineTick() { if (haptics) vibration.tick(Haptics.FINE_TICK_MS, Haptics.FINE_TICK_AMPLITUDE) }
+    /** Hold-to-restart and the creator's clear: three haptic pulses lined up with the three notes of [Cue.REORDER]. */
+    fun feedbackTriple() { if (haptics) vibration.triple(); audio.play(Cue.REORDER) }
 
     /** Back to level 1 with nothing solved. Badges stay. */
     fun resetProgress() {

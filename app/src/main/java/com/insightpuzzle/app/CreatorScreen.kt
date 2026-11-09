@@ -237,7 +237,7 @@ fun CreatorScreen(m: GameModel) {
         if (!canReset()) return
         scope.launch {
             resetting = true
-            m.feedback(Cue.REORDER)
+            m.feedbackTriple()
             resetPlan = s.start?.takeIf { s.phase != Phase.BUILD }?.let { rewindMoves(s.board, it) }
             reset.snapTo(0f)
             // Clearing a grid being built takes the tiles away at once; the later phases slide them back to where they started.
@@ -322,6 +322,14 @@ fun CreatorScreen(m: GameModel) {
             if (grab is Grab.Resize) m.feedback(Cue.PRESS)
             val legal = if (grab is Grab.Cell && s.phase != Phase.BUILD) Rules.legalMoves(s.board, grab.pos) else emptyList()
             var moved = false; var last = down.position
+            // After Start a lifted tile is held inside the outline's room, as in the game; building (Start) is free, since tiles are dragged in and out of the grid there.
+            val room = rect(shellBox)
+            val lift = grid?.cell?.let { it * 1.045f } ?: 0f
+            val home = (grab as? Grab.Cell)?.let { c -> grid?.let { shellOrigin() + it.topLeft(c.pos) - Offset(it.cell * .0225f, it.cell * .0225f) } } ?: Offset.Zero
+            fun held(): Offset {
+                val raw = last - down.position
+                return if (s.phase == Phase.BUILD || room == null || grab !is Grab.Cell) raw else clampDrag(raw, home, lift, 4.dp.toPx(), room.left, room.top, room.right, room.bottom)
+            }
             while (true) {
                 val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
                 last = change.position
@@ -338,17 +346,17 @@ fun CreatorScreen(m: GameModel) {
                         if (s.phase != Phase.BUILD) s.picked = null
                     }
                     if (moved) {
-                        if (grab is Grab.Palette || s.phase == Phase.BUILD) drag = type to last else dragOffset = last - down.position
+                        if (grab is Grab.Palette || s.phase == Phase.BUILD) drag = type to last else dragOffset = held()
                         val at = cellAt(last)?.takeIf { it != (grab as? Grab.Cell)?.pos }
                         // Swapping (after Start) uses the game's rule: the tile itself must be over the cell it swaps with.
-                        hover = if (s.phase == Phase.BUILD) at else if (grab is Grab.Cell) grid?.let { dropTarget(it, grab.pos, last - down.position, legal) } else null
+                        hover = if (s.phase == Phase.BUILD) at else if (grab is Grab.Cell) grid?.let { dropTarget(it, grab.pos, held(), legal) } else null
                     }
                 }
                 change.consume()
                 if (!change.pressed) break
             }
             val target = cellAt(last); val offset = dragOffset
-            val dropped = (grab as? Grab.Cell)?.let { g -> grid?.let { dropTarget(it, g.pos, last - down.position, legal) } }
+            val dropped = (grab as? Grab.Cell)?.let { g -> grid?.let { dropTarget(it, g.pos, held(), legal) } }
             drag = null; dragFrom = null; hover = null; dragOffset = Offset.Zero
             when (grab) {
                 is Grab.Resize -> Unit
@@ -521,7 +529,7 @@ fun CreatorScreen(m: GameModel) {
                 }
             }
             // One button walks the stages: Next fixes the start grid, Next fixes the target, Create publishes. Back and a swipe step back.
-            val publishable = s.proof.isNotEmpty() && !m.dev && !m.online.busy
+            val publishable = s.proof.isNotEmpty() && !m.online.busy
             when (s.phase) {
                 Phase.BUILD -> MenuButton("Next", Modifier.widthIn(max = 560.dp).padding(top = 12.dp).onGloballyPositioned { buttonBox = it }, height = buttonHeight, primary = true, fontSize = 17.sp, description = "Start position", cue = Cue.START) { s.pressStart(); s.picked = null }
                 Phase.SHAPE -> MenuButton("Next", Modifier.widthIn(max = 560.dp).padding(top = 12.dp).onGloballyPositioned { buttonBox = it }, height = buttonHeight, primary = true, fontSize = 17.sp, description = "Target position", cue = Cue.SEEK) { runTarget() }

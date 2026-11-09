@@ -74,12 +74,12 @@ object Translations {
         t("Continue", "Continuar", "Continuer", "Continua", "Weiter")
 
         // The Rulebook: {0} is the tile's colour name.
-        t("{0} slides one cell up or down.", "{0} se desliza una casilla hacia arriba o hacia abajo.", "{0} glisse d'une case vers le haut ou vers le bas.", "{0} scorre di una casella in alto o in basso.", "{0} gleitet ein Feld nach oben oder unten.")
-        t("{0} slides one cell left or right.", "{0} se desliza una casilla hacia la izquierda o la derecha.", "{0} glisse d'une case vers la gauche ou vers la droite.", "{0} scorre di una casella a sinistra o a destra.", "{0} gleitet ein Feld nach links oder rechts.")
-        t("{0} steps diagonally, up-right or down-left.", "{0} avanza en diagonal, arriba a la derecha o abajo a la izquierda.", "{0} avance en diagonale, en haut à droite ou en bas à gauche.", "{0} procede in diagonale, in alto a destra o in basso a sinistra.", "{0} geht diagonal, nach oben rechts oder unten links.")
-        t("{0} steps diagonally, up-left or down-right.", "{0} avanza en diagonal, arriba a la izquierda o abajo a la derecha.", "{0} avance en diagonale, en haut à gauche ou en bas à droite.", "{0} procede in diagonale, in alto a sinistra o in basso a destra.", "{0} geht diagonal, nach oben links oder unten rechts.")
-        t("{0} jumps two cells up, down, left or right.", "{0} salta dos casillas hacia arriba, abajo, izquierda o derecha.", "{0} saute de deux cases vers le haut, le bas, la gauche ou la droite.", "{0} salta di due caselle in alto, in basso, a sinistra o a destra.", "{0} springt zwei Felder nach oben, unten, links oder rechts.")
-        t("{0} never moves itself; other tiles can only swap places with it.", "{0} nunca se mueve por sí mismo; las demás fichas solo pueden intercambiar su lugar con él.", "{0} ne bouge jamais de lui-même ; les autres tuiles peuvent seulement échanger leur place avec lui.", "{0} non si muove mai da solo; le altre tessere possono solo scambiarsi di posto con lui.", "{0} bewegt sich nie von selbst; andere Kacheln können nur den Platz mit ihm tauschen.")
+        t("{0} swaps up or down", "{0} se intercambia hacia arriba o abajo", "{0} échange vers le haut ou le bas", "{0} scambia in alto o in basso", "{0} tauscht nach oben oder unten")
+        t("{0} swaps left or right", "{0} se intercambia hacia la izquierda o la derecha", "{0} échange vers la gauche ou la droite", "{0} scambia a sinistra o a destra", "{0} tauscht nach links oder rechts")
+        t("{0} swaps up-right or down-left", "{0} se intercambia arriba a la derecha o abajo a la izquierda", "{0} échange en haut à droite ou en bas à gauche", "{0} scambia in alto a destra o in basso a sinistra", "{0} tauscht nach oben rechts oder unten links")
+        t("{0} swaps up-left or down-right", "{0} se intercambia arriba a la izquierda o abajo a la derecha", "{0} échange en haut à gauche ou en bas à droite", "{0} scambia in alto a sinistra o in basso a destra", "{0} tauscht nach oben links oder unten rechts")
+        t("{0} only swaps two cells up, down, left or right.", "{0} solo se intercambia dos casillas hacia arriba, abajo, izquierda o derecha.", "{0} n'échange que de deux cases vers le haut, le bas, la gauche ou la droite.", "{0} scambia solo di due caselle in alto, in basso, a sinistra o a destra.", "{0} tauscht nur zwei Felder nach oben, unten, links oder rechts.")
+        t("{0} never moves itself; other tiles can swap with it.", "{0} nunca se mueve por sí mismo; las demás fichas pueden intercambiarse con él.", "{0} ne bouge jamais de lui-même ; les autres tuiles peuvent échanger leur place avec lui.", "{0} non si muove mai da solo; le altre tessere possono scambiarsi di posto con lui.", "{0} bewegt sich nie von selbst; andere Kacheln können mit ihm tauschen.")
 
         // Tile colours: the plain names, then the colour-blind palette's names.
         t("Red", "Rojo", "Rouge", "Rosso", "Rot")
@@ -200,6 +200,7 @@ object Translations {
         t("Newest", "Más recientes", "Les plus récents", "Più recenti", "Neueste")
         t("Most popular", "Más populares", "Les plus populaires", "Più popolari", "Beliebteste")
         t("Highest level", "Nivel más alto", "Niveau le plus élevé", "Livello più alto", "Höchstes Level")
+        t("Most followed", "Más seguidos", "Les plus suivis", "Più seguiti", "Meistgefolgte")
         t("Most popular puzzles", "Puzles más populares", "Puzzles les plus populaires", "Puzzle più popolari", "Beliebteste Rätsel")
         t("All time", "Siempre", "Depuis toujours", "Di sempre", "Allzeit")
         t("Today", "Hoy", "Aujourd'hui", "Oggi", "Heute")
@@ -283,7 +284,6 @@ object Translations {
         t("Confirm logout", "Confirmar cierre de sesión", "Confirmer la déconnexion", "Conferma l'uscita", "Abmeldung bestätigen")
         t("Your profile", "Tu perfil", "Votre profil", "Il tuo profilo", "Dein Profil")
         t("Player profile", "Perfil del jugador", "Profil du joueur", "Profilo del giocatore", "Spielerprofil")
-        t("{0} pending submissions", "{0} envíos pendientes", "{0} envois en attente", "{0} invii in sospeso", "{0} ausstehende Einreichungen")
         t("Submission needs attention: {0}", "Un envío necesita atención: {0}", "Un envoi demande votre attention : {0}", "Un invio richiede attenzione: {0}", "Eine Einreichung braucht Aufmerksamkeit: {0}")
         t("Level {0}", "Nivel {0}", "Niveau {0}", "Livello {0}", "Level {0}")
         t("{0} XP · {1} for next level", "{0} XP · {1} para el siguiente nivel", "{0} XP · {1} pour le niveau suivant", "{0} XP · {1} per il livello successivo", "{0} XP · {1} bis zum nächsten Level")

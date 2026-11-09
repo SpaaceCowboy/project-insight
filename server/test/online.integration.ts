@@ -286,6 +286,31 @@ test('a player can publish ten puzzles a UTC day; the eleventh is refused and a 
  } finally { await limited.close(); }
 });
 
+test('accounts in DEVELOPER_USER_IDS are exempt from the daily limit; others are not',async()=>{
+ const a=await makeAccount(),b=await makeAccount();
+ const limited=await buildApp(db,{...config,createDailyLimit:2,developerUserIds:[a.user.id.toLowerCase()]},false); await limited.ready();
+ try {
+  const publish=(who:any,n:number)=>limited.inject({method:'POST',url:'/v1/grids',remoteAddress:`10.8.${n}.1`,headers:{authorization:`Bearer ${who.accessToken}`},payload:{operationId:op(),...custom(n+500)}});
+  for(let n=0;n<3;n++) assert.equal((await publish(a,n)).statusCode,200);
+  assert.equal((await publish(b,10)).statusCode,200); assert.equal((await publish(b,11)).statusCode,200);
+  assert.equal((await publish(b,12)).json().code,'DAILY_LIMIT');
+ } finally { await limited.close(); }
+});
+
+test('progress communityCount ignores the player\'s own puzzles and equals the profile figure',async()=>{
+ const maker=await makeAccount(),player=await makeAccount();
+ const mine=await create(player,601),theirs=await create(maker,602);
+ for(const [who,grid,n] of [[player,mine,601],[player,theirs,602]] as const) {
+   const s=await call('POST',`/v1/grids/${grid.id}/sessions`,{operationId:op()},who);
+   await call('POST','/v1/completions',{operationId:op(),kind:'community',sessionId:s.sessionId,attemptId:op(),path:custom(n).path},who);
+ }
+ const progress=await call('GET','/v1/progress',undefined,player);
+ assert.equal(progress.communityDone.length,2);
+ assert.equal(progress.communityCount,1);
+ const profile=await call('GET',`/v1/profiles/${player.user.id}`,undefined,player);
+ assert.equal(progress.communityCount,profile.communityCount);
+});
+
 test('visibility, own profile collection, moderation and creator discovery agree',async()=>{
  const owner=await makeAccount(),viewer=await makeAccount(); const d=await create(owner,95);
  await call('PATCH',`/v1/grids/${d.id}`,{operationId:op(),hidden:true},viewer,404);
@@ -381,6 +406,8 @@ test('likes, bookmarks, follows, streaks and online badges', async () => {
   const profile = await call('GET', `/v1/profiles/${maker.user.id}`, undefined, player);
   assert.deepEqual([profile.followerCount, profile.following], [1, true]);
   assert.deepEqual((await call('GET', '/v1/following', undefined, player)).items.map((u: any) => u.id), [maker.user.id]);
+  const followed = (await call('GET', `/v1/creators?sort=followed&query=${encodeURIComponent(maker.user.username)}`, undefined, player)).items;
+  assert.deepEqual([followed[0].id, followed[0].followerCount], [maker.user.id, 1]);
   assert.equal((await call('GET', '/v1/following', undefined, maker)).items.length, 0);
   // Streak and badges: a community solve dated by the player's calendar, earlier days backfilled.
   const today = new Date().toISOString().slice(0, 10);

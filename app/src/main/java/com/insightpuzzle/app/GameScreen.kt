@@ -212,7 +212,7 @@ fun GameScreen(m: GameModel) {
         if (rewinding) return
         scope.launch {
             rewinding = true
-            m.feedback(Cue.REORDER)
+            m.feedbackTriple()
             if (!reduceMotion && glow.value < 1f) glow.animateTo(1f, tween(150))
             rewind.snapTo(0f)
             if (!reduceMotion) rewind.animateTo(1f, tween(REWIND_MS))
@@ -380,6 +380,15 @@ private fun dirWords(dr: Int, dc: Int): String {
 
 class Ink(val from: Offset, val to: Offset, val color: Color, val t: Animatable<Float, *>)
 
+/**
+ * The finger's movement [raw] from a tile's lifted top-left [home], kept so the [lifted]-sized tile stays [edge] inside the room (left, top, right, bottom). Shared by the
+ * game and the creator's later phases: a tile can be dragged to the platform's edge but no further.
+ */
+internal fun clampDrag(raw: Offset, home: Offset, lifted: Float, edge: Float, left: Float, top: Float, right: Float, bottom: Float): Offset {
+    val at = home + raw
+    return Offset(at.x.coerceIn(left + edge, (right - edge - lifted).coerceAtLeast(left + edge)), at.y.coerceIn(top + edge, (bottom - edge - lifted).coerceAtLeast(top + edge))) - home
+}
+
 /** Where a tile lifted from [at] and dragged by [drag] lands: the legal cell its centre is over (within 0.6 of a cell of that cell's centre), else nowhere. */
 internal fun dropTarget(grid: Grid, at: Pos, drag: Offset, legal: List<Pos>): Pos? {
     val centre = grid.center(at) + drag
@@ -522,8 +531,7 @@ fun Board(
                     val raw = change.position - down.position
                     if (!moved && hypot(raw.x, raw.y) >= slop) { moved = true; selected = null; dragFrom = at; feedback(Cue.DRAG_START) }
                     if (moved) {
-                        val top = home + raw
-                        val delta = Offset(top.x.coerceIn(edge, (w - edge - lifted).coerceAtLeast(edge)), top.y.coerceIn(edge, (h - edge - lifted).coerceAtLeast(edge))) - home
+                        val delta = clampDrag(raw, home, lifted, edge, 0f, 0f, w.toFloat(), h.toFloat())
                         dragOffset = delta; lastDelta = delta
                         hover = dropTarget(grid, at, delta, legal)
                         change.consume()

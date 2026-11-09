@@ -2,19 +2,19 @@
 
 > Owner: solo dev. Scope: infrastructure, distribution, compliance, operations.
 > Out of scope: game design, core gameplay mechanics.
-> Last updated: 2026-11-06 · Repo: `github.com:SpaaceCowboy/project-insight` (branch `android`; v0.2.27 release changes in working tree)
+> Last updated: 2026-11-09 · Repo: `github.com:SpaaceCowboy/project-insight` (branch `android`; v0.2.28 released)
 
 ---
 
-## Current state snapshot (updated 2026-11-06)
+## Current state snapshot (updated 2026-11-09)
 
 **App**
-- `com.insightpuzzle.app`, v0.2.27 (versionCode 38), minSdk 26; Firebase release `2bb24q5e4qa2g` distributed to the existing 2-person tester group.
+- `com.insightpuzzle.app`, v0.2.28 (versionCode 39), minSdk 26; Firebase release `1embbaeavv6m8` distributed to the existing 3-person tester group.
 - Signed with a **debug keystore** (`/root/.android/debug.keystore` on the VPS). Blocking for Play.
 - Google sign-in live; email recovery implemented but `MAIL_DELIVERY_MODE=disabled` (no SMTP).
 
 **Server** (`13.140.89.146`, single VPS)
-- Ubuntu 24.04 · 2 vCPU · 3.8 GB RAM · 38 GB disk at 53%.
+- Ubuntu 24.04 · 2 vCPU · 3.8 GB RAM · 38 GB disk at 61%.
 - Fastify v5 (Node 22) under nginx (`server_name _`, cert covers the raw IP only).
 - systemd: `insight-online` (`Restart=on-failure`, `MemoryMax` unset), `insight-backup.service/.timer`, `insight-certificate.service/.timer`.
 - Postgres 16.15. Rate limits: shared Redis token buckets with stacked IP/account/action budgets, nginx request/connection ceilings, bounded authentication work and persistent Android cooldowns. Dedicated Redis uses a private group-restricted Unix socket, AOF and no eviction. Deployed in v0.2.27; sustained traffic tuning remains pending.

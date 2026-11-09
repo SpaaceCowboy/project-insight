@@ -6,6 +6,7 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.compose.runtime.staticCompositionLocalOf
+import kotlinx.coroutines.flow.drop
 
 /**
  * Interface sounds from the uisfx package (CC0, https://uisfx.com): the "zen" pack, with its "streak" for a solved puzzle. Ogg Opus on Android 10+,
@@ -38,7 +39,7 @@ const val ZEN_STORED = 1.5f
 /** The cues added later are stored +3 dB: two MP3 gain steps, an Opus output gain of 3 dB. */
 val ADDED_STORED = Math.pow(2.0, .5).toFloat()
 
-/** One 10 ms one-shot for every touch: a light tingle on simple and high-definition actuators alike. */
+/** One 11 ms one-shot for every touch: a light tingle on simple and high-definition actuators alike. */
 class Haptics(private val context: Context) {
     private fun vibrator(): Vibrator? =
         if (Build.VERSION.SDK_INT >= 31) context.getSystemService(VibratorManager::class.java)?.defaultVibrator
@@ -46,12 +47,23 @@ class Haptics(private val context: Context) {
 
     // Looked up on every touch rather than kept: plugging in headphones or earphones can change which output the system routes to,
     // and a vibrator reference (or a "has vibrator" answer) taken earlier must not go stale with it.
-    /** [ms] is the tick's length: [TICK_MS] for a touch, [FINE_TICK_MS] for each step of a continuous drag (resizing the creator's grid). */
-    fun tick(ms: Long = TICK_MS) {
+    /** [ms] is the tick's length: [TICK_MS] for a touch, [FINE_TICK_MS] for each step of a continuous drag or list scroll; [amplitude] is 1..255 where the actuator honours it. */
+    fun tick(ms: Long = TICK_MS, amplitude: Int = TICK_AMPLITUDE) {
         val v = vibrator()?.takeIf { it.hasVibrator() } ?: return
         // Always the same one-shot, never a predefined effect whose length the system picks. DEFAULT_AMPLITUDE is full strength on some devices,
         // so the strength is explicit wherever the actuator can honour it.
-        val effect = VibrationEffect.createOneShot(ms, if (v.hasAmplitudeControl()) TICK_AMPLITUDE else VibrationEffect.DEFAULT_AMPLITUDE)
+        play(v, VibrationEffect.createOneShot(ms, if (v.hasAmplitudeControl()) amplitude else VibrationEffect.DEFAULT_AMPLITUDE))
+    }
+
+    /** Three [TICK_MS] pulses 62 ms apart, as one waveform so the gaps cannot drift: they line up with the three notes of the restart cue (onsets near 0, 62 and 125 ms). */
+    fun triple() {
+        val v = vibrator()?.takeIf { it.hasVibrator() } ?: return
+        val a = if (v.hasAmplitudeControl()) TICK_AMPLITUDE else VibrationEffect.DEFAULT_AMPLITUDE
+        val gap = TRIPLE_STEP_MS - TICK_MS
+        play(v, VibrationEffect.createWaveform(longArrayOf(0, TICK_MS, gap, TICK_MS, gap, TICK_MS), intArrayOf(0, a, 0, a, 0, a), -1))
+    }
+
+    private fun play(v: Vibrator, effect: VibrationEffect) {
         // Touch usage lets the system's touch-vibration setting scale it.
         if (Build.VERSION.SDK_INT >= 33) v.vibrate(effect, android.os.VibrationAttributes.createForUsage(android.os.VibrationAttributes.USAGE_TOUCH))
         else @Suppress("DEPRECATION") v.vibrate(effect, android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_ASSISTANCE_SONIFICATION).build())
@@ -60,8 +72,28 @@ class Haptics(private val context: Context) {
     /** Looks the vibrator up and asks what it can do, without vibrating, so the first real touch does not pay for it. */
     fun warm() { vibrator()?.let { it.hasVibrator(); it.hasAmplitudeControl() } }
 
-    companion object { const val TICK_MS = 10L; const val FINE_TICK_MS = 6L; const val TICK_AMPLITUDE = 80 }
+    // TICK_AMPLITUDE 128 is about 50%: 80 (31%) felt right on the Xiaomi's simple motor but muted on the Samsung's. FINE ticks stay the quieter, shorter ones.
+    companion object { const val TICK_MS = 11L; const val FINE_TICK_MS = 7L; const val TICK_AMPLITUDE = 128; const val FINE_TICK_AMPLITUDE = 80; const val TRIPLE_STEP_MS = 62L }
 }
 
-/** Touch feedback for UI code: the 10 ms haptic (if Haptics is on) plus [Cue]'s sound (if Sound is on). A null cue is haptic only. */
+/** Touch feedback for UI code: the 11 ms haptic (if Haptics is on) plus [Cue]'s sound (if Sound is on). A null cue is haptic only. */
 val LocalFeedback = staticCompositionLocalOf<(Cue?) -> Unit> { {} }
+
+/**
+ * A quiet tick for every row that scrolls into view at either end of [list], so a fast fling feels like running a thumb along a ratchet.
+ * Fires on a change of the first or last visible row (not the initial layout) and at most every [SCROLL_TICK_GAP_MS].
+ */
+@androidx.compose.runtime.Composable
+fun ScrollTick(list: androidx.compose.foundation.lazy.LazyListState, tick: () -> Unit) {
+    val latest = androidx.compose.runtime.rememberUpdatedState(tick)
+    androidx.compose.runtime.LaunchedEffect(list) {
+        var last = 0L
+        androidx.compose.runtime.snapshotFlow { list.layoutInfo.visibleItemsInfo.let { (it.firstOrNull()?.index ?: -1) to (it.lastOrNull()?.index ?: -1) } }
+            .drop(1)
+            .collect {
+                val now = android.os.SystemClock.uptimeMillis()
+                if (now - last >= SCROLL_TICK_GAP_MS) { last = now; latest.value() }
+            }
+    }
+}
+private const val SCROLL_TICK_GAP_MS = 40L

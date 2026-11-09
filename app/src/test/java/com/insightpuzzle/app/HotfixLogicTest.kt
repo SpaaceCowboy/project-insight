@@ -72,6 +72,29 @@ class HotfixLogicTest {
         assertEquals("Quiet Cove", Nicknames.clip("Quiet Cove"))
     }
 
+    @Test fun aPageIsOnlySwipeableOnceItsItemsAreAllLoaded() {
+        // Nothing more coming: every item is reachable, including a short last page.
+        assertEquals(2, loadedPages(29, 28, false))
+        assertEquals(1, loadedPages(0, 28, false))
+        // More coming: only full pages count, so the swipe stops at the edge of what has loaded instead of showing a blank or half page.
+        assertEquals(1, loadedPages(24, 24, true))
+        assertEquals(2, loadedPages(48, 24, true))
+        assertEquals(1, loadedPages(30, 24, true))
+        // A first page shorter than a full one still shows (never zero pages).
+        assertEquals(1, loadedPages(10, 24, true))
+    }
+
+    @Test fun clampDragKeepsTheLiftedTileInsideTheRoom() {
+        val inside = clampDrag(androidx.compose.ui.geometry.Offset(10f, 10f), androidx.compose.ui.geometry.Offset(50f, 50f), 40f, 4f, 0f, 0f, 300f, 300f)
+        assertEquals(androidx.compose.ui.geometry.Offset(10f, 10f), inside)
+        // Dragged far past every edge, the tile stops 4 px inside the room: its top-left 4 px from the left/top, its far side 4 px from the right/bottom.
+        val far = clampDrag(androidx.compose.ui.geometry.Offset(-900f, 900f), androidx.compose.ui.geometry.Offset(50f, 50f), 40f, 4f, 0f, 0f, 300f, 300f)
+        assertEquals(androidx.compose.ui.geometry.Offset(4f - 50f, 256f - 50f), far)
+        // A room that does not start at the origin (the creator's outline) shifts the limits with it.
+        val shifted = clampDrag(androidx.compose.ui.geometry.Offset(-900f, -900f), androidx.compose.ui.geometry.Offset(150f, 150f), 40f, 4f, 100f, 100f, 400f, 400f)
+        assertEquals(androidx.compose.ui.geometry.Offset(104f - 150f, 104f - 150f), shifted)
+    }
+
     @Test fun moreItemsAreFetchedAheadOfTheReader() {
         // 20 loaded, 24 per page: the first page is already within reach of the end.
         assertTrue(needsMore(20, 0, 24, true))

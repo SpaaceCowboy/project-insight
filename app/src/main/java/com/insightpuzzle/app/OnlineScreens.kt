@@ -365,7 +365,7 @@ fun ProfileScreen(m: GameModel, requestedId: String?) {
     LaunchedEffect(account, revision) { outcomes = m.online.repository.outcomes(account) }
     // Opening your own profile syncs quietly, then reloads so new XP shows without any button.
     LaunchedEffect(account, own) { if (own) { m.online.refreshProgress(); revision++ } }
-    LaunchedEffect(path, account, revision) {
+    LaunchedEffect(path, account, revision, m.online.retry) {
         try {
             if (profile == null) profile = m.online.repository.cached(account, path)
             profile = m.online.repository.fetch(path, account); m.online.offline = false
@@ -449,8 +449,7 @@ fun ProfileScreen(m: GameModel, requestedId: String?) {
                     }
                     // The player's own puzzles, in the same four-column cards as Levels and Worlds.
                     Box(fade) { PuzzleCardList(m, puzzles, null) { detail = it } }
-                    if (own && outcomes.isNotEmpty()) Column(fade, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Label(tr("{0} pending submissions", outcomes.count { it.state == "pending" }), 12.sp, color = p.muted, translate = false)
+                    if (own && outcomes.any { it.state == "failed" }) Column(fade, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         outcomes.filter { it.state == "failed" }.forEach { Label(tr("Submission needs attention: {0}", it.error), 12.sp, color = p.accent, translate = false) }
                     }
                 }

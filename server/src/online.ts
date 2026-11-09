@@ -49,6 +49,12 @@ async function socialStats(c: PoolClient | Db, user: string) {
     (SELECT count(*)::int FROM grids WHERE owner_id=$1 AND published_at IS NOT NULL) AS "designedCount"`, [user])).rows[0];
   return { onlineSolved: counts.onlineSolved as number, designedCount: counts.designedCount as number, bestStreak: longestRun(await activityDays(c, user)) };
 }
+/** Distinct community puzzles by other creators that [user] solved, minus any already represented by a beaten campaign level. Profile and Worlds button share this. */
+async function communityCount(c: PoolClient | Db, user: string, done: number[]): Promise<number> {
+  const beaten = new Set(done.map(n => contentHash(campaign[n - 1]!)));
+  const hashes = (await c.query('SELECT DISTINCT g.content_hash FROM grid_completions gc JOIN grids g ON g.id=gc.grid_id WHERE gc.user_id=$1 AND g.owner_id<>$1', [user])).rows.map(r => r.content_hash);
+  return hashes.filter(h => !beaten.has(h)).length;
+}
 async function activityDays(c: PoolClient | Db, user: string): Promise<string[]> {
   return (await c.query(`SELECT to_char(day,'YYYY-MM-DD') AS day FROM activity_days WHERE user_id=$1 ORDER BY day`, [user])).rows.map(r => r.day);
 }
@@ -98,7 +104,7 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
     const communityDone = (await db.query('SELECT grid_id FROM grid_completions WHERE user_id=$1 ORDER BY grid_id', [user(req)])).rows.map(r => r.grid_id);
     const progression = await xp(db, user(req));
     const badges = new Set([...earnedBadges(done), ...levelBadges(progression.level), ...(await db.query('SELECT badge_id FROM imported_badges WHERE user_id=$1', [user(req)])).rows.map(r => r.badge_id)]);
-    return { done, communityDone, badges: [...badges], ...(await socialStats(db, user(req))), ...progression };
+    return { done, communityDone, communityCount: await communityCount(db, user(req), done), badges: [...badges], ...(await socialStats(db, user(req))), ...progression };
   });
   app.post('/v1/progress/import', { preHandler: ready, schema: { body: objectSchema({ operationId: operationSchema,
     done: { type: 'array', maxItems: Math.max(campaign.length, 206), uniqueItems: true, items: { type: 'integer', minimum: 1, maximum: Math.max(campaign.length, 206) } },
@@ -120,10 +126,7 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
     const badges = [...new Set([...earnedBadges(done), ...levelBadges(progression.level), ...(await db.query('SELECT badge_id FROM imported_badges WHERE user_id=$1', [id])).rows.map(r => r.badge_id)])];
     const counts = (await db.query(`SELECT count(*)::int AS "gridCount" FROM grids g
       WHERE g.owner_id=$1 AND g.published_at IS NOT NULL AND NOT g.hidden AND NOT g.moderated`, [id])).rows[0];
-    // Community count excludes hashes already represented by completed campaign grids.
-    const completedHashes = new Set(done.map((n: number) => contentHash(campaign[n - 1]!)));
-    const communityHashes = (await db.query('SELECT DISTINCT g.content_hash FROM grid_completions gc JOIN grids g ON g.id=gc.grid_id WHERE gc.user_id=$1 AND g.owner_id<>$1', [id])).rows.map(r => r.content_hash);
-    const communityCount = communityHashes.filter(h => !completedHashes.has(h)).length;
+    const community = await communityCount(db, id, done);
     // Bookmarks are private: only your own profile counts them.
     const follow = (await db.query(`SELECT (SELECT count(*)::int FROM follows WHERE followee_id=$1) AS "followerCount",
       (SELECT count(*)::int FROM follows WHERE follower_id=$1) AS "followingCount",
@@ -131,7 +134,7 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
         WHERE b.user_id=$1 AND g.published_at IS NOT NULL AND NOT g.hidden AND NOT g.moderated) ELSE 0 END AS "bookmarkCount",
       EXISTS(SELECT 1 FROM follows WHERE followee_id=$1 AND follower_id=$2) AS following`, [id, user(req)])).rows[0];
     const streak = currentRun(await activityDays(db, id), today);
-    return { ...person, gridCount: counts.gridCount, campaignCount: done.length, communityCount, beatenCount: done.length + communityCount, badges,
+    return { ...person, gridCount: counts.gridCount, campaignCount: done.length, communityCount: community, beatenCount: done.length + community, badges,
       followerCount: follow.followerCount, followingCount: follow.followingCount, bookmarkCount: follow.bookmarkCount, following: follow.following, streak, ...progression };
   });
 
@@ -204,7 +207,7 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
     const owner = user(req), id = randomUUID();
     // operation() holds the account lock, so two publishes at once cannot both pass the count. Days are UTC, like XP and discovery.
     const today = (await c.query("SELECT count(*)::int AS n FROM grids WHERE owner_id=$1 AND published_at >= (date_trunc('day',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')",[owner])).rows[0].n;
-    const limit = config.createDailyLimit ?? 10;
+    const limit = config.developerUserIds?.includes(owner) ? Infinity : config.createDailyLimit ?? 10;
     requireValue(today < limit,'DAILY_LIMIT',`You have reached the daily limit of ${limit} puzzles. Try again tomorrow.`,403);
     // operation() holds the account lock, serializing creator numbers and retries.
     const number = (await c.query('SELECT coalesce(max(level_number),0)+1 AS n FROM grids WHERE owner_id=$1',[owner])).rows[0].n;

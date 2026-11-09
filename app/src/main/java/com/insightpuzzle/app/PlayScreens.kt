@@ -93,7 +93,7 @@ class PlayDiscoveryState {
 
 internal fun formatted(value: Int) = NumberFormat.getIntegerInstance().format(value)
 private val puzzleSorts = listOf("popular" to "Most played", "newest" to "Newest", "liked" to "Most popular")
-private val creatorSorts = listOf("level" to "Highest level", "liked" to "Most popular puzzles")
+private val creatorSorts = listOf("level" to "Highest level", "liked" to "Most popular puzzles", "followed" to "Most followed")
 private val periods = listOf("all" to "All time", "today" to "Today", "week" to "This week", "month" to "This month", "year" to "This year")
 
 @Composable
@@ -121,7 +121,7 @@ internal fun discoveryKey(puzzles: Boolean, state: DiscoveryListState): String {
 @Composable
 internal fun LoadDiscovery(m: GameModel, state: DiscoveryListState, key: String, resetScroll: Boolean = true) {
     val account = m.online.user?.id ?: return
-    LaunchedEffect(account, key, state.requestedPage, state.revision) {
+    LaunchedEffect(account, key, state.requestedPage, state.revision, m.online.retry) {
         // Only a changed query or sort waits (typing); entering the screen, pulling to refresh and the pages after the first load at once.
         if (state.loadedKey != null && state.loadedKey != key) delay(300)
         val page = state.requestedPage
@@ -344,6 +344,7 @@ internal const val PLAYERS_AHEAD = 50
 @Composable
 internal fun PlayerList(m: GameModel, state: DiscoveryListState, modifier: Modifier = Modifier, empty: String? = "No results for these settings.") {
     val list = androidx.compose.foundation.lazy.rememberLazyListState()
+    ScrollTick(list) { m.fineTick() }
     val hasMore = state.nextPage != null && !state.failed
     LaunchedEffect(list, state.items.size, hasMore) {
         snapshotFlow { list.firstVisibleItemIndex + list.layoutInfo.visibleItemsInfo.size }.collect { lastShown ->

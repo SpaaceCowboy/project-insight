@@ -166,7 +166,7 @@ class MainMenuFlowTest {
         assertFalse(has("Continue")); assertFalse(has("What's Next")); assertFalse(has("Achievements"))
         assertEquals("Only four home actions", 4, nodes().count { it.isClickable })
         tap("Options"); assertEquals(Route.Options, model.top)
-        tap("Rulebook"); await("rulebook") { nodes().any { it.contentDescription?.toString()?.startsWith("Red slides") == true } }
+        tap("Rulebook"); await("rulebook") { nodes().any { it.contentDescription?.toString()?.startsWith("Red swaps") == true } }
         tap("Back"); assertEquals(Route.Home, model.top)
         tap("Profile"); assertEquals(Route.Auth(Route.Profile()), model.top); back()
         tap("Worlds"); assertEquals(Route.Auth(Route.Online), model.top); back()

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -162,7 +163,7 @@ fun HomeScreen(m: GameModel) {
                             }
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Label("Solved", 10.5.sp, color = p.muted, lines = 1)
-                                Label("${m.communityDone.size}", 10.5.sp, color = p.muted, lines = 1, translate = false)
+                                Label("${m.onlineStats.communityCount}", 10.5.sp, color = p.muted, lines = 1, translate = false)
                             }
                         }
                     }) { m.openOnline(Route.Online) }
@@ -516,8 +517,10 @@ fun AchievementsScreen(m: GameModel, player: Route.PlayerAchievements? = null) {
     val earnedIds: Collection<String> = player?.badges ?: m.earned.keys
     Page(if (player == null) "Achievements" else tr("{0}'s achievements", player.name)) {
             ChevronBar(m)
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                for (badge in badges) {
+            val list = androidx.compose.foundation.lazy.rememberLazyListState()
+            ScrollTick(list) { m.fineTick() }
+            androidx.compose.foundation.lazy.LazyColumn(Modifier.weight(1f), list, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                items(badges) { badge ->
                     val earned = m.achievements.has(badge, earnedIds)
                     val shape = RoundedCornerShape(16.dp)
                     // The rows do nothing when tapped, but they sink like every other key, with a haptic tick and no sound.
@@ -539,7 +542,7 @@ fun AchievementsScreen(m: GameModel, player: Route.PlayerAchievements? = null) {
                         }
                     }
                 }
-                Spacer(Modifier.height(12.dp))
+                item { Spacer(Modifier.height(12.dp)) }
             }
     }
 }

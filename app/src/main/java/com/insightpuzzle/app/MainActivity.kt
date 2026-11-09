@@ -52,6 +52,15 @@ class MainActivity : ComponentActivity() {
         // The splash screen is dark grey whatever the theme, so the window starts that colour and the system bars stay dark until the splash is gone.
         window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(0xFF1F1F1F.toInt()))
         hideNavBar()
+        // Whatever shows the handle again (the keyboard closing, a dialog, a late system restore, a swipe or touch near the bottom edge) hides it again at once, unless the
+        // keyboard is up. Only with gesture navigation: with three buttons a swipe up stays the one way to reach them.
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(window.decorView) { view, insets ->
+            val imeUp = insets.isVisible(WindowInsetsCompat.Type.ime())
+            keyboardUp = imeUp
+            val gestureNavigation = insets.getInsets(WindowInsetsCompat.Type.systemGestures()).bottom > 0
+            if (!imeUp && gestureNavigation && insets.isVisible(WindowInsetsCompat.Type.navigationBars())) view.post { hideNavBar() }
+            androidx.core.view.ViewCompat.onApplyWindowInsets(view, insets)
+        }
         setContent {
             val dark = model.dark
             val barsDark = dark || !model.splashDone
@@ -105,6 +114,8 @@ fun App(m: GameModel) {
         val gate = remember { TouchGate() }
         // A screen opening or closing locks touches until it has settled, so fast taps can't open two screens.
         LaunchedEffect(m) { snapshotFlow { m.stack.toList() }.drop(1).collect { gate.lockFor(TOUCH_LOCK_MS) } }
+        // A lost connection is retried by itself, with growing waits, until the server answers; pulling down still retries at once.
+        LaunchedEffect(m.online.offline, m.online.user) { if (m.online.offline) m.online.reconnect() }
         Box(Modifier.fillMaxSize().singleTouch(gate)) {
             Screens(m)
             SplashGate(m)

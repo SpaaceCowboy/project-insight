@@ -122,13 +122,6 @@ internal fun PuzzleRow(m: GameModel, row: List<JSONObject>, cell: Dp, startIndex
     }
 }
 
-/** An empty raised card standing in for a puzzle whose page has not arrived yet, so a swipe never meets a blank page. */
-@Composable
-private fun SkeletonCard(modifier: Modifier = Modifier) {
-    val p = LocalPalette.current
-    Box(modifier.aspectRatio(1f).alpha(.5f).plush(RoundedCornerShape(12.dp), 0f, p.paper2, rest = 4.dp))
-}
-
 /** Space between the cards of a row. */
 internal val CARD_GAP = 8.dp
 
@@ -137,12 +130,10 @@ internal fun cardSide(width: Dp): Dp = (width - ShadowRoom * 2 - CARD_GAP * 3) /
 
 /** The cards of one page, four to a row, numbered from [first]. */
 @Composable
-private fun PuzzlePage(m: GameModel, items: List<JSONObject>, first: Int, cell: Dp, source: DiscoveryListState, modifier: Modifier = Modifier, skeletonRows: Int = 0, onDetail: (DetailAnchor) -> Unit) {
+private fun PuzzlePage(m: GameModel, items: List<JSONObject>, first: Int, cell: Dp, source: DiscoveryListState, modifier: Modifier = Modifier, onDetail: (DetailAnchor) -> Unit) {
     val rows = items.chunked(CARD_COLUMNS)
     Column(modifier.fillMaxWidth().padding(horizontal = ShadowRoom), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         rows.forEachIndexed { index, row -> PuzzleRow(m, row, cell, first + index * CARD_COLUMNS, source, bottomRow = index > 0 && index == rows.lastIndex, onDetail = onDetail) }
-        // The page after the last loaded one: raised blanks until its puzzles arrive.
-        if (items.isEmpty()) repeat(skeletonRows) { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { repeat(CARD_COLUMNS) { SkeletonCard(Modifier.weight(1f)) } } }
     }
 }
 
@@ -176,11 +167,11 @@ internal fun PuzzleGrid(m: GameModel, state: DiscoveryListState, modifier: Modif
         Refreshable(state.pulling, { m.online.clearMessages(); state.pull() }, Modifier.fillMaxSize()) { Column(Modifier.fillMaxSize()) {
             // The grid bleeds past the page edge by the shadow room; the header (Worlds' search bar) stays on the page edge.
             Box(Modifier.padding(horizontal = ShadowRoom)) { header() }
-            PagedItems(state, rows * CARD_COLUMNS, Modifier.weight(1f).fillMaxWidth().then(if (scroll != null) Modifier.nestedScroll(scroll) else Modifier), lookahead = true) { items, first ->
+            PagedItems(state, rows * CARD_COLUMNS, Modifier.weight(1f).fillMaxWidth().then(if (scroll != null) Modifier.nestedScroll(scroll) else Modifier), onRetry = { m.online.retryNow() }) { items, first ->
                 // The rows sit in the middle of the room the page has, so the space above the first row equals the space below the last one. That is worked out
                 // while laying out, not while composing, so a page whose room changes every frame (Worlds' search bar sliding) is only re-laid-out, never recomposed.
                 Column(Modifier.fillMaxSize().centredIn(cardRowsHeight(side, rows), minTop).verticalScroll(rememberScrollState()).padding(bottom = 8.dp)) {
-                    PuzzlePage(m, items, first, cell, state, skeletonRows = if (state.items.isNotEmpty()) rows else 0, onDetail = onDetail)
+                    PuzzlePage(m, items, first, cell, state, onDetail = onDetail)
                     if (items.isEmpty()) Box(Modifier.padding(horizontal = ShadowRoom)) { DiscoveryFooter(m, state, empty) }
                 }
             }
@@ -201,7 +192,7 @@ internal fun PuzzleCardList(m: GameModel, state: DiscoveryListState, empty: Stri
                 if (state.settled && !state.loading && !state.failed && empty != null) Label(empty, 14.sp, Modifier.padding(horizontal = 6.dp), color = LocalPalette.current.muted)
             }
         } else {
-            PagedItems(state, PROFILE_ROWS * CARD_COLUMNS, Modifier.fillMaxWidth().height(height)) { items, first -> PuzzlePage(m, items, first, cell, state, Modifier.padding(vertical = 4.dp), onDetail = onDetail) }
+            PagedItems(state, PROFILE_ROWS * CARD_COLUMNS, Modifier.fillMaxWidth().height(height), onRetry = { m.online.retryNow() }) { items, first -> PuzzlePage(m, items, first, cell, state, Modifier.padding(vertical = 4.dp), onDetail = onDetail) }
         }
     }
 }
