@@ -8,6 +8,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.Operation
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import kotlinx.coroutines.Dispatchers
@@ -61,11 +62,11 @@ class OnlineRepository private constructor(private val context: Context) {
         })
         if (scheduleWork) schedule()
     }
-    fun schedule(delayMillis: Long = 0) {
+    fun schedule(delayMillis: Long = 0): Operation {
         val work = OneTimeWorkRequestBuilder<OnlineSyncWorker>().setConstraints(Constraints.Builder().setRequiredNetworkType(if (BuildConfig.ONLINE_DEMO) NetworkType.NOT_REQUIRED else NetworkType.CONNECTED).build())
             .setInitialDelay(delayMillis.coerceAtLeast(0), TimeUnit.MILLISECONDS)
             .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS).build()
-        WorkManager.getInstance(context).enqueueUniqueWork("online-sync", ExistingWorkPolicy.APPEND_OR_REPLACE, work)
+        return WorkManager.getInstance(context).enqueueUniqueWork("online-sync", ExistingWorkPolicy.APPEND_OR_REPLACE, work)
     }
     /** Proofs with a future `_notBefore` stay in preferences until their time comes. */
     suspend fun importProofs(store: Store) {
@@ -98,6 +99,7 @@ class OnlineRepository private constructor(private val context: Context) {
                         queries.acknowledge(account, pending.id)
                     } catch (error: OnlineException) {
                         if (error.status == 401) throw error
+                        if ((error.status == 429 || error.status == 503) && error.retryAfterMillis > 0) throw error
                         if (error.status >= 500 || error.status == 429 || error.status == 408) return@withContext false
                         queries.fail(account, pending.id, error.message)
                     } catch (_: IOException) { return@withContext false }
@@ -120,6 +122,21 @@ class OnlineSyncWorker(context: Context, parameters: WorkerParameters) : Corouti
         val repository = OnlineRepository.get(applicationContext)
         repository.importProofs(Store(applicationContext))
         if (repository.sync()) Result.success() else Result.retry()
+    } catch (error: OnlineException) {
+        if ((error.status == 429 || error.status == 503) && error.retryAfterMillis > 0) {
+            // A replacement work item observes the server deadline across process death.
+            // Positive jitter avoids synchronized reconnects; the outbox is untouched.
+            try {
+                val scheduled = OnlineRepository.get(applicationContext).schedule(error.retryAfterMillis + kotlin.random.Random.nextLong(250, 1251))
+                // Do not acknowledge this worker until the replacement is durably queued.
+                withContext(Dispatchers.IO) { scheduled.result.get(5, TimeUnit.SECONDS) }
+                Result.success()
+            } catch (failure: Exception) {
+                if (failure is kotlinx.coroutines.CancellationException) throw failure
+                Log.w("InsightOnline", "sync_reschedule_failed type=${failure.javaClass.simpleName}")
+                Result.retry()
+            }
+        } else Result.retry()
     } catch (error: Exception) {
         if (error is kotlinx.coroutines.CancellationException) throw error
         Log.e("InsightOnline", "sync_failed type=${error.javaClass.simpleName}")

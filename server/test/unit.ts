@@ -5,3 +5,4 @@ import './badges.test.js';
 import './names.test.js';
 import './username.test.js';
 import './google.test.js';
+import './rate-limit.test.js';

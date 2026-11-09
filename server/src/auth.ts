@@ -45,6 +45,7 @@ export function authentication(db: Db, config: Config) {
       WHERE access_hash=$1 AND access_until>now() AND refresh_until>now() AND NOT revoked AND NOT suspended`, [digest(bearer, config.encryptionKey)])).rows[0];
     requireValue(row, 'AUTH_REQUIRED', 'Please log in again.', 401);
     req.account = { id: row.id, username: row.username, verified: row.verified, sessionId: row.session_id };
+    await req.server.rateLimits.account(req);
   };
 }
 
@@ -56,7 +57,6 @@ export async function authRoutes(app: FastifyInstance, db: Db, config: Config, g
   const dummyHash = await argon2.hash(token(), passwords);
   // Google-only accounts still carry a password hash, but of a random token that is never stored: password login stays impossible until a reset.
   const googleOnlyHash = await argon2.hash(token(), passwords);
-  const limited = { rateLimit: { max: 8, timeWindow: '15 minutes' } };
   const mailEnabled = config.mailDeliveryMode !== 'disabled';
   const drainMail = async () => {
     if (!mailEnabled || config.environment === 'test') return;
@@ -68,9 +68,9 @@ export async function authRoutes(app: FastifyInstance, db: Db, config: Config, g
     app.addHook('onClose', async () => clearInterval(timer));
   }
   // Registration needs only an email, password and unique username.
-  app.post('/v1/auth/register', { config: limited, schema: { body: objectSchema({ email: emailSchema, password: passwordSchema, name: { type: 'string', minLength: 1, maxLength: 128 } }, ['email', 'password', 'name']) } }, async req => {
+  app.post('/v1/auth/register', { schema: { body: objectSchema({ email: emailSchema, password: passwordSchema, name: { type: 'string', minLength: 1, maxLength: 128 } }, ['email', 'password', 'name']) } }, async req => {
     const b = req.body as any; const email = b.email.trim().toLowerCase(); const name = nickname(b.name);
-    const passwordHash = await argon2.hash(b.password, passwords);
+    const passwordHash = await app.rateLimits.authWork(() => argon2.hash(b.password, passwords));
     return transaction(db, async c => {
       // Serialize duplicate registrations and return an actionable conflict.
       await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [`register:${email}`]);
@@ -81,22 +81,23 @@ export async function authRoutes(app: FastifyInstance, db: Db, config: Config, g
       return issue(c, id, key);
     });
   });
-  app.post('/v1/auth/login', { config: limited, schema: { body: objectSchema({ email: emailSchema, password: { type: 'string', minLength: 1, maxLength: 128 } }) } }, async req => {
+  app.post('/v1/auth/login', { schema: { body: objectSchema({ email: emailSchema, password: { type: 'string', minLength: 1, maxLength: 128 } }) } }, async req => {
     const b = req.body as any;
     return transaction(db, async c => {
       // Serialize credential checks on the account row.
       const user = (await c.query('SELECT * FROM users WHERE email=$1 FOR UPDATE', [b.email.trim().toLowerCase()])).rows[0];
-      const valid = await argon2.verify(user?.password_hash ?? dummyHash, b.password);
+      const valid = await app.rateLimits.authWork(() => argon2.verify(user?.password_hash ?? dummyHash, b.password));
       requireValue(user && valid && !user.suspended, 'LOGIN_FAILED', 'Email or password is incorrect.', 401);
       return issue(c, user.id, key);
     });
   });
-  app.post('/v1/auth/google', { config: limited, schema: { body: objectSchema({
+  app.post('/v1/auth/google', { schema: { body: objectSchema({
     idToken: { type: 'string', minLength: 20, maxLength: 8192 }, name: { type: 'string', minLength: 1, maxLength: 128 },
   }, ['idToken']) } }, async req => {
     requireValue(verifyGoogle, 'GOOGLE_UNAVAILABLE', 'Google sign-in is unavailable right now.', 503);
     const b = req.body as any;
-    const profile = await verifyGoogle!(b.idToken);
+    const profile = await app.rateLimits.authWork(() => verifyGoogle!(b.idToken));
+    await app.rateLimits.enforce(req, 'googleIdentity', profile.sub);
     return transaction(db, async c => {
       // Serialize the Google identity and the email claim, in a stable order.
       await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [`google:${profile.sub}`]);
@@ -120,7 +121,7 @@ export async function authRoutes(app: FastifyInstance, db: Db, config: Config, g
       return issue(c, id, key);
     });
   });
-  app.post('/v1/auth/recover/request', { config: limited, schema: { body: objectSchema({ email: emailSchema }) } }, async req => {
+  app.post('/v1/auth/recover/request', { schema: { body: objectSchema({ email: emailSchema }) } }, async req => {
     requireValue(mailEnabled, 'MAIL_UNAVAILABLE', "Password reset by email isn't available right now.", 503);
     const email = (req.body as any).email.trim().toLowerCase();
     let queued = false;
@@ -133,12 +134,12 @@ export async function authRoutes(app: FastifyInstance, db: Db, config: Config, g
     // The same answer for every address, so the form cannot be used to discover accounts.
     return { accepted: true };
   });
-  app.post('/v1/auth/recover/confirm', { config: { rateLimit: { max: 12, timeWindow: '15 minutes' } }, schema: { body: objectSchema({
+  app.post('/v1/auth/recover/confirm', { schema: { body: objectSchema({
     email: emailSchema, code: { type: 'string', pattern: '^[0-9]{8}$' }, password: passwordSchema,
   }, ['email', 'code', 'password']) } }, async req => {
     const b = req.body as any;
     // Hashing before the lookup keeps missing and existing addresses on similar work.
-    const passwordHash = await argon2.hash(b.password, passwords);
+    const passwordHash = await app.rateLimits.authWork(() => argon2.hash(b.password, passwords));
     const result = await transaction(db, async c => {
       const user = (await c.query('SELECT * FROM users WHERE email=$1 FOR UPDATE', [b.email.trim().toLowerCase()])).rows[0];
       if (!user || user.suspended) return null;
@@ -162,13 +163,14 @@ export async function authRoutes(app: FastifyInstance, db: Db, config: Config, g
     requireValue(result, 'INVALID_CODE', 'The code is invalid, expired, or has too many attempts.');
     return result;
   });
-  app.post('/v1/auth/refresh', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } }, schema: { body: objectSchema({ refreshToken: { type: 'string', minLength: 43, maxLength: 43 }, operationId: operationSchema }) } }, async req => {
+  app.post('/v1/auth/refresh', { schema: { body: objectSchema({ refreshToken: { type: 'string', minLength: 43, maxLength: 43 }, operationId: operationSchema }) } }, async req => {
     const b = req.body as any;
     const result = await transaction(db, async c => {
       const hash = digest(b.refreshToken, key);
       const s = (await c.query(`SELECT s.*,u.suspended FROM sessions s JOIN users u ON u.id=s.user_id
         WHERE (refresh_hash=$1 OR previous_refresh_hash=$1) FOR UPDATE OF s`, [hash])).rows[0];
       if (!s || s.revoked || s.suspended || new Date(s.refresh_until).getTime() <= Date.now()) return null;
+      await app.rateLimits.enforce(req, 'refreshAccount', s.user_id);
       if (s.previous_refresh_hash === hash) {
         if (s.refresh_operation === b.operationId && Date.now() - new Date(s.rotated_at).getTime() < 120000) return decrypt(s.refresh_response, key);
         await c.query('UPDATE sessions SET revoked=true WHERE id=$1', [s.id]);

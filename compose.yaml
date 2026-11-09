@@ -37,10 +37,26 @@ services:
       FEEDBACK_DELIVERY_MODE: ${FEEDBACK_DELIVERY_MODE:-store}
       MAIL_DELIVERY_MODE: ${MAIL_DELIVERY_MODE:-smtp}
       TRUST_PROXY: ${TRUST_PROXY:-}
+      RATE_LIMIT_REDIS_URL: redis://rate-limit:6379/0
+      RATE_LIMIT_NAMESPACE: ${RATE_LIMIT_NAMESPACE:-insight:rate:v1}
     command: ["sh", "-c", "node dist/migrate.js && exec node dist/main.js"]
     ports: ["127.0.0.1:3000:3000"]
     depends_on:
       db: { condition: service_healthy }
+      rate-limit: { condition: service_healthy }
+    restart: unless-stopped
+  rate-limit:
+    image: redis:7.4-alpine
+    mem_limit: 384m
+    cpus: 0.5
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec", "--maxmemory", "128mb", "--maxmemory-policy", "noeviction", "--save", ""]
+    volumes: ["rate-limit-data:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 2s
+      retries: 5
     restart: unless-stopped
 volumes:
   online-db:
+  rate-limit-data:

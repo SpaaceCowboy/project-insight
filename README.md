@@ -29,6 +29,10 @@ The TypeScript/PostgreSQL service and deployment instructions are in [server/REA
 
 Rebuild the local preview with `./gradlew assembleDebug -PinsightOnlineDemo=true`. Build a backend-connected APK with `./gradlew assembleDebug -PinsightApiUrl=https://YOUR_API` and a Web Google OAuth client with `-PinsightGoogleClientId=...`. Release builds reject cleartext service addresses. Preview data, saves, and credentials are kept separate from real service data.
 
+## Android v0.2.27 - Shared rate limits and persistent cooldowns
+
+Version 0.2.27 (code 38) adds persistent, scoped server cooldowns and preserves queued progress while waiting to retry. The backend now uses shared Redis counters and layered nginx/IP/account/action protection. Published to the existing Firebase tester group with the same package and signing key. [Download the APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.27). The new device retry test remains unresolved; see [deployment notes](DEPLOYMENT.md) for validation and rollback details.
+
 ## Android v0.2.26 - Google sign-in, recovery and guest progress
 
 Version 0.2.26 (code 37) adds **Continue with Google** on the auth screen. A first Google sign-in asks the player to choose a public username; an existing verified email links to its password account. Password accounts gain **Forgot password?**, an eight-digit email code and automatic sign-in after a reset. Journey progress saved while signed out (solved levels, badges and the unfinished attempt) now moves into the first account created on the device. The server adds migration 011 for Google subjects and recovery mail; email delivery stays disabled until SMTP credentials are installed, so the reset entry point is hidden meanwhile. [Download the published APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.26); see [deployment notes](DEPLOYMENT.md).

@@ -28,7 +28,7 @@ data class OnlineUser(val id: String, val username: String, val verified: Boolea
 }
 /** Either a signed-in Google account, or the server's suggestion for a new account's username. */
 data class GoogleSignIn(val user: OnlineUser?, val suggestedName: String?)
-class OnlineException(val status: Int, val code: String, override val message: String) : IOException(message)
+class OnlineException(val status: Int, val code: String, override val message: String, val retryAfterMillis: Long = 0) : IOException(message)
 
 /** Credentials never enter Room, regular game preferences, backups, or logs. */
 private class CredentialVault(context: Context) {
@@ -64,6 +64,8 @@ private class CredentialVault(context: Context) {
 
 class OnlineClient(context: Context) {
     private val vault = CredentialVault(context)
+    private val cooldownPrefs = context.getSharedPreferences("online_cooldowns", Context.MODE_PRIVATE)
+    private val cooldowns = RateLimitCooldown(cooldownPrefs.all.mapNotNull { (key, value) -> (value as? Long)?.let { key to it } }.toMap())
     private val sessionLock = Mutex()
     private val demo by lazy { DemoBackend(context) }
     private val http = OkHttpClient.Builder().connectTimeout(5, TimeUnit.SECONDS).readTimeout(15, TimeUnit.SECONDS)
@@ -77,9 +79,14 @@ class OnlineClient(context: Context) {
     }
     private fun save(value: JSONObject?) { vault.save(value); credentials = value; credentialError = null }
 
-    private fun raw(method: String, path: String, body: JSONObject?, access: String?): JSONObject {
+    private fun raw(method: String, path: String, body: JSONObject?, access: String?, account: String? = null): JSONObject {
         if (BuildConfig.ONLINE_DEMO) return demo.request(method, path, body ?: JSONObject(), access)
         if (!configured) throw OnlineException(503, "NOT_CONFIGURED", "Online is not configured for this build.")
+        val identity = body?.optString("email")?.takeIf { it.isNotBlank() }
+        cooldowns.remaining(method, path, account, identity)?.let {
+            throw OnlineException(it.status, if (it.status == 429) "RATE_LIMITED" else "RATE_LIMIT_UNAVAILABLE",
+                "Too many requests. Please try again later.", it.remainingMillis)
+        }
         val request = Request.Builder().url(BuildConfig.ONLINE_BASE_URL.trimEnd('/') + path)
             .header("Accept", "application/json").apply {
                 if (access != null) header("Authorization", "Bearer $access")
@@ -92,12 +99,25 @@ class OnlineClient(context: Context) {
                 val route = path.substringBefore('?').replace(Regex("[0-9a-fA-F-]{36}|[A-F0-9]{16}"), ":id")
                 Log.i("InsightOnline", "route=$route status=${response.code} latencyMs=${(System.nanoTime() - started) / 1_000_000} correlation=$correlation")
                 val text = response.body?.string().orEmpty()
+                val retryHeader = response.header("Retry-After")
+                fun rememberCooldown(json: JSONObject?): Long {
+                    if (response.code != 429 && response.code != 503) return 0
+                    val delay = retryAfterMillis(retryHeader, json?.optLong("retryAfterSeconds") ?: 0)
+                    val policy = response.header("X-RateLimit-Policy") ?: json?.optString("policy") ?: "endpoint"
+                    synchronized(cooldowns) {
+                        cooldowns.remember(response.code, policy, method, path, account, delay, identity)
+                        val snapshot = cooldowns.snapshot()
+                        // Serialize snapshots so concurrent replies cannot overwrite a newer deadline.
+                        cooldownPrefs.edit().clear().apply { snapshot.forEach { (key, value) -> putLong(key, value) } }.apply()
+                    }
+                    return delay
+                }
                 val json = try { JSONObject(text) } catch (_: org.json.JSONException) {
                     if (!response.isSuccessful) throw OnlineException(response.code, "REQUEST_FAILED",
-                        if (response.code == 401) "Your session has expired. Please log in again." else "Online request failed. Please try again.")
+                        if (response.code == 401) "Your session has expired. Please log in again." else "Online request failed. Please try again.", rememberCooldown(null))
                     throw OnlineException(response.code, "INVALID_RESPONSE", "Online returned an unreadable response. Please retry.")
                 }
-                if (!response.isSuccessful) throw OnlineException(response.code, json.optString("code", "REQUEST_FAILED"), json.optString("message", "Online request failed."))
+                if (!response.isSuccessful) throw OnlineException(response.code, json.optString("code", "REQUEST_FAILED"), json.optString("message", "Online request failed."), rememberCooldown(json))
                 return json
             }
         } catch (error: IOException) {
@@ -109,7 +129,7 @@ class OnlineClient(context: Context) {
         val snapshot = credentials
         if (account != null && snapshot?.getJSONObject("user")?.getString("id") != account) throw OnlineException(401, "ACCOUNT_CHANGED", "Please log in to the original account.")
         val access = if (account == null) null else snapshot?.getString("accessToken")
-        try { raw(method, path, body, access) }
+        try { raw(method, path, body, access, account) }
         catch (error: OnlineException) {
             if (error.status != 401 || account == null) throw error
             sessionLock.withLock {
@@ -119,12 +139,12 @@ class OnlineClient(context: Context) {
                     val refreshId = current.optString("refreshOperation").ifBlank { UUID.randomUUID().toString() }
                     // Save before sending: retrying a lost rotation response uses the same operation ID.
                     save(JSONObject(current.toString()).put("refreshOperation", refreshId))
-                    val fresh = raw("POST", "/v1/auth/refresh", JSONObject().put("refreshToken", current.getString("refreshToken")).put("operationId", refreshId), null)
+                    val fresh = raw("POST", "/v1/auth/refresh", JSONObject().put("refreshToken", current.getString("refreshToken")).put("operationId", refreshId), null, account)
                     save(fresh)
                 }
             }
             if (user?.id != account) throw error
-            raw(method, path, body, credentials!!.getString("accessToken"))
+            raw(method, path, body, credentials!!.getString("accessToken"), account)
         }
     }
     suspend fun login(email: String, password: String): OnlineUser = withContext(Dispatchers.IO) {

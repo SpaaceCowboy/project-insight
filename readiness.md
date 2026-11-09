@@ -2,14 +2,14 @@
 
 > Owner: solo dev. Scope: infrastructure, distribution, compliance, operations.
 > Out of scope: game design, core gameplay mechanics.
-> Last updated: 2026-11-04 · Repo: `github.com:SpaaceCowboy/project-insight` (branch `android`, `2fdbc40`)
+> Last updated: 2026-11-06 · Repo: `github.com:SpaaceCowboy/project-insight` (branch `android`; v0.2.27 release changes in working tree)
 
 ---
 
-## Current state snapshot (facts, verified 2026-11-04)
+## Current state snapshot (updated 2026-11-06)
 
 **App**
-- `com.insightpuzzle.app`, v0.2.26 (versionCode 37), minSdk 26.
+- `com.insightpuzzle.app`, v0.2.27 (versionCode 38), minSdk 26; Firebase release `2bb24q5e4qa2g` distributed to the existing 2-person tester group.
 - Signed with a **debug keystore** (`/root/.android/debug.keystore` on the VPS). Blocking for Play.
 - Google sign-in live; email recovery implemented but `MAIL_DELIVERY_MODE=disabled` (no SMTP).
 
@@ -17,7 +17,7 @@
 - Ubuntu 24.04 · 2 vCPU · 3.8 GB RAM · 38 GB disk at 53%.
 - Fastify v5 (Node 22) under nginx (`server_name _`, cert covers the raw IP only).
 - systemd: `insight-online` (`Restart=on-failure`, `MemoryMax` unset), `insight-backup.service/.timer`, `insight-certificate.service/.timer`.
-- Postgres 16.15. Rate limits: global 120/min, auth 8/15 min.
+- Postgres 16.15. Rate limits: shared Redis token buckets with stacked IP/account/action budgets, nginx request/connection ceilings, bounded authentication work and persistent Android cooldowns. Dedicated Redis uses a private group-restricted Unix socket, AOF and no eviction. Deployed in v0.2.27; sustained traffic tuning remains pending.
 - No fail2ban, no unattended-upgrades.
 
 **Ops**
@@ -52,6 +52,7 @@
 
 - [ ] Generate release keystore — offline, encrypted copies in 2+ places, never unencrypted on the shared VPS.
 - [ ] CI on GitHub Actions: server `tsc` + 25 unit tests; app lint + release **AAB** + checksums as artifacts. Keystore in Actions secrets.
+- [ ] Fix the existing Google fallback-username flake before release: `suggestedName()` can generate `Player 455`, which `usernameProblem()` rejects as profanity. Observed during rate-limit validation on 6 November; this behavior is unchanged by the rate-limit work.
 - [x] Tester update channel: Firebase App Distribution (project `portfolio-51f12`, group `testers`) — interim until Play internal testing. Runs on the VPS after publishing (~7 s); the CLI needs Node 20–24.
 - [ ] In-app crash reporting (Crashlytics or Sentry Android), mapping files uploaded from CI.
 - [ ] Play Console developer account ($25, ID verification). Decide personal vs organization (D-U-N-S) — personal accounts get the testing gate below.
@@ -70,6 +71,8 @@
 
 ## Phase 4 — Resilience & capacity
 
+- [x] Deploy shared rate limiting and retry-aware Android client (v0.2.27). Backend health, store failure probes and uploaded binary hashes verified; see `server/deploy/RATE_LIMITING.md`.
+- [ ] Resolve the new Android `RateLimitFlowTest` assertion failure. Publication was explicitly requested before further device verification; the device regression/upgrade suites were not completed for v0.2.27.
 - [ ] Staging environment + smoke test in the deploy path (stop hotfixing prod directly).
 - [ ] Load test (k6) against staging: auth, sync, leaderboards; tune rate limits from real numbers.
 - [ ] Postgres: WAL archiving + PITR, autovacuum sanity, connection-pool sizing.

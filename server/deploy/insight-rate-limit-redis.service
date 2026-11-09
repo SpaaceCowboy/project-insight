@@ -1,0 +1,26 @@
+[Unit]
+Description=INSIGHT dedicated rate-limit counters
+After=network.target
+
+[Service]
+Type=simple
+User=redis
+Group=insight-rate-limit
+RuntimeDirectory=insight-rate-limit
+RuntimeDirectoryMode=0750
+StateDirectory=insight-rate-limit
+StateDirectoryMode=0750
+UMask=0077
+ExecStart=/usr/bin/redis-server /etc/insight-rate-limit-redis.conf
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+MemoryMax=384M
+CPUQuota=50%
+
+[Install]
+WantedBy=multi-user.target

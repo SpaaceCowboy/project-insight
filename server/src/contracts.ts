@@ -17,6 +17,8 @@ const tokenResponse = object({ accessToken: text, refreshToken: text, user });
 const googleResponse = { type: 'object', additionalProperties: false, properties: {
   accessToken: text, refreshToken: text, user, needsName: boolean, suggestedName: text,
 } };
+export const errorResponseSchema = object({ code: text, message: text, correlationId: text,
+  retryAfterSeconds: { type: 'integer', minimum: 1 }, policy: text }, ['code', 'message', 'correlationId']);
 const responses: Record<string, object> = {
   'GET /health': object({ status: text }),
   'GET /v1/capabilities': object({ emailDelivery: text, googleSignIn: boolean }),

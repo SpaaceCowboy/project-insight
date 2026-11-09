@@ -18,7 +18,11 @@ internal fun authFilled(register: Boolean, email: String, password: String, repe
 /** Shared wording for failures from forms, community screens and progress sync. */
 fun playerErrorMessage(error: Throwable): String = when (error) {
     is OnlineException -> when {
-        error.status == 429 -> tr("Too many attempts. Please wait a few minutes and try again.")
+        error.status == 429 -> if (error.retryAfterMillis > 0) {
+            val seconds = (error.retryAfterMillis + 999) / 1000
+            if (seconds >= 60) tr("Too many attempts. Please wait {0} minutes before trying again.", (seconds + 59) / 60)
+            else tr("Too many attempts. Please wait {0} seconds before trying again.", seconds)
+        } else tr("Too many attempts. Please wait a few minutes and try again.")
         error.status >= 500 -> tr("Online is temporarily unavailable. Please try again shortly.")
         // The server's own wording is the key, so every message it can send a player is translated here; an unknown one is shown as it came.
         error.code == "DAILY_LIMIT" -> tr("You have reached the daily limit of {0} puzzles. Try again tomorrow.", CREATE_DAILY_LIMIT)

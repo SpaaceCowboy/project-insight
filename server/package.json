@@ -14,7 +14,8 @@
     "operator": "tsx src/operator.ts",
     "seed:community": "tsx src/seed-community.ts",
     "test": "node --import tsx test/unit.ts",
-    "test:integration": "node --import tsx --test test/*.integration.ts"
+    "test:integration": "node --import tsx --test test/*.integration.ts",
+    "test:rate-limit:redis": "node --import tsx test/rate-limit.redis.ts"
   },
   "dependencies": {
     "@fastify/rate-limit": "^11.2.1",
@@ -23,6 +24,7 @@
     "argon2": "^0.45.1",
     "fastify": "^5.12.7",
     "google-auth-library": "^11.3.3",
+    "ioredis": "^5.11.1",
     "nodemailer": "^10.1.2",
     "pg": "^8.23.1"
   },

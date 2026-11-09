@@ -33,7 +33,7 @@ export async function deliverFeedback(db: Db, config: Config, log: FastifyBaseLo
 export async function feedbackRoutes(app: FastifyInstance, db: Db, config: Config) {
   const auth = authentication(db, config);
   const deliver = async () => { try { while (await deliverFeedback(db, config, app.log)); } catch { app.log.warn('feedback delivery failed'); } };
-  app.post('/v1/feedback', { config: { rateLimit: { max: 5, timeWindow: '1 hour' } }, schema: { body: objectSchema({
+  app.post('/v1/feedback', { schema: { body: objectSchema({
     operationId: operationSchema, kind: { type: 'string', enum: ['feedback', 'bug'] },
     text: { type: 'string', minLength: 1, maxLength: 4000, pattern: '\\S' }, appVersion: { type: 'string', maxLength: 40 },
   }, ['operationId', 'kind', 'text']) } }, async (req: FastifyRequest) => {

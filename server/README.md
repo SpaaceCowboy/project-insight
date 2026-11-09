@@ -44,6 +44,8 @@ The emulator's debug default is `http://10.0.2.2:3000`. For a physical device, u
 
 ## Interfaces and invariants
 
+Rate limiting uses shared Redis token buckets in production, stacked IP/account/action budgets, and retryable 429/503 responses. `RATE_LIMIT_REDIS_URL` is required before deploying the API. Policies, proxy setup, failure behavior, rollback and isolated VPS checks are documented in [deploy/RATE_LIMITING.md](deploy/RATE_LIMITING.md).
+
 - `/v1/auth/*`: register, log in, Google sign-in, refresh, logout, and email password recovery. Passwords are 12–128 characters. Login, registration and Google sign-in are rate-limited. Duplicate emails and usernames return actionable 409 errors; incorrect credentials return 401. Recovery requests are account-neutral and codes are delivered only when mail is configured.
 - `/v1/account/name`: signed-in users can change their username with an idempotent PATCH. New usernames use 3–20 English letters, numbers, spaces, underscores or hyphens after NFKC/space normalization. Profane, hateful, violent and reserved names receive specific validation errors; existing accounts are not rechecked. A database unique index enforces uniqueness ignoring case and compatibility variants. Existing names remain until their owner changes them.
 - World and level names are free text (1–32 visible characters) checked by `src/names.ts` against `src/blocked-words.ts` (profanity, slurs, sexual, hate and violent/dangerous terms; leetspeak, diacritics and spaced-out letters are folded). Rejections return `INVALID_NAME`. The same list ships in the app as `app/src/main/assets/blocked-words.json`; `npm test` fails if the two differ. The former `/v1/vocabulary` word picker is gone.

@@ -22,10 +22,18 @@ const paths = JSON.parse(readFileSync(new URL('../../app/src/test/resources/solu
 let fixtureGrid: any;
 const fixtureSolutions: Record<string, number[][]> = {};
 let offline = false;
+let throttleImport = false;
+let importRequests = 0;
 app.addHook('onRequest',async(req,reply)=>{
   if(offline && (req.url.startsWith('/v1/creators') || req.url.startsWith('/v1/casual/sessions'))) { reply.hijack(); req.raw.socket.destroy(); }
+  if (req.method === 'POST' && req.routeOptions.url === '/v1/progress/import') {
+    importRequests++;
+    if (throttleImport) return reply.code(429).header('Retry-After', '3').header('X-RateLimit-Policy', 'sync')
+      .send({ code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.', policy: 'sync', retryAfterSeconds: 3, correlationId: req.id });
+  }
 });
 app.post('/test/outage',async req=>{ offline=!!(req.body as any).offline; return {accepted:true}; });
+app.post('/test/throttle-import', async req => { throttleImport = !!(req.body as any).enabled; return { accepted: true, importRequests }; });
 const fixtureLevel = paths.findIndex((p: any[]) => p.length > 1);
 app.get('/test/discovery',async()=>({gridId:fixtureGrid.id,solution:paths[fixtureLevel],solutions:fixtureSolutions}));
 app.get('/test/discovery-stats',async()=>({failures:(await db.query("SELECT count(*)::int AS n FROM play_attempt_outcomes WHERE grid_id=$1 AND outcome='failed'",[fixtureGrid.id])).rows[0].n}));

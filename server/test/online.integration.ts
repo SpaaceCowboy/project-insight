@@ -204,7 +204,7 @@ test('email verification is not required, login is throttled, and OpenAPI is ava
   assert.equal(malformed.json().code, 'INVALID_REQUEST');
   const a = await makeAccount(); await db.query('UPDATE users SET verified=false WHERE id=$1', [a.user.id]);
   await call('GET', '/v1/grids', undefined, a);
-  for (let n = 0; n < 8; n++) await call('POST', '/v1/auth/login', { email: 'unknown@example.test', password: 'bad' }, undefined, 401, '192.0.2.1');
+  for (let n = 0; n < 10; n++) await call('POST', '/v1/auth/login', { email: 'unknown@example.test', password: 'bad' }, undefined, 401, '192.0.2.1');
   await call('POST', '/v1/auth/login', { email: 'unknown@example.test', password: 'bad' }, undefined, 429, '192.0.2.1');
   const spec = await call('GET', '/docs/json'); assert.ok(spec.paths['/v1/completions']);
 });
