@@ -1,0 +1,95 @@
+/* Midori's palette and type, from the app's Theme.kt, Ui.kt and TileArt.kt. */
+@font-face { font-family:'JetBrains Mono'; src:url('/fonts/jetbrains_mono_regular.ttf') format('truetype'); font-weight:400; font-display:swap; }
+@font-face { font-family:'JetBrains Mono'; src:url('/fonts/jetbrains_mono_semibold.ttf') format('truetype'); font-weight:600; font-display:swap; }
+@font-face { font-family:'JetBrains Mono'; src:url('/fonts/jetbrains_mono_bold.ttf') format('truetype'); font-weight:700; font-display:swap; }
+
+:root {
+  color-scheme:light;
+  --mono:'JetBrains Mono',ui-monospace,'Cascadia Mono',Menlo,Consolas,monospace;
+  --backdrop:linear-gradient(135deg,#FEFEFE,#FDFCFA 35%,#FBF8F5 70%,#F9F5F0);
+  --backdrop-flat:#FBF8F5;
+  --paper:#FAF6F1; --paper2:#F4EDE5; --side:#E1D4C4;
+  --shell:linear-gradient(#F4EDE5,#F1E9DF);
+  --ink:#3B342D; --muted:#7C7166;
+  --accent:#3B342D; --accent-ink:#F4EDE5; --accent-side:#211C17;
+  --line:rgba(59,52,45,.2);
+  --key-shadow:rgba(42,30,18,.16);
+  --sheen:rgba(255,255,255,.12);
+  --arrive:#3B342D; --reject:#E0796B;
+  --scrim:rgba(0,0,0,.6);
+  --cell:64px;
+  --out:cubic-bezier(.16,1,.3,1);
+  --field-alpha:.3;
+}
+/* Dark is written twice on purpose: once for the system setting, once for the toggle. */
+@media (prefers-color-scheme:dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme:dark;
+    --backdrop:#1F1F1F; --backdrop-flat:#1F1F1F;
+    --paper:#262626; --paper2:#2F2F2F; --side:#212121;
+    --shell:linear-gradient(#252525,#222222);
+    --ink:#EDEDED; --muted:#A6A8AD;
+    --accent:#D4D6DA; --accent-ink:#1B1C1E; --accent-side:#8E9095;
+    --line:rgba(255,255,255,.12);
+    --key-shadow:rgba(0,0,0,.42);
+    --sheen:rgba(255,255,255,.035);
+    --arrive:#F5FFEA; --reject:#FFB4A8; --field-alpha:.16;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme:dark;
+  --backdrop:#1F1F1F; --backdrop-flat:#1F1F1F;
+  --paper:#262626; --paper2:#2F2F2F; --side:#212121;
+  --shell:linear-gradient(#252525,#222222);
+  --ink:#EDEDED; --muted:#A6A8AD;
+  --accent:#D4D6DA; --accent-ink:#1B1C1E; --accent-side:#8E9095;
+  --line:rgba(255,255,255,.12);
+  --key-shadow:rgba(0,0,0,.42);
+  --sheen:rgba(255,255,255,.035);
+  --arrive:#F5FFEA; --reject:#FFB4A8; --field-alpha:.16;
+}
+
+.red { --light:#E09A91; --deep:#AE546B; --flat:#E69A99; }
+.blue { --light:#93D2DB; --deep:#3B88A6; --flat:#88CEDD; }
+.green { --light:#A6D7AD; --deep:#4B896B; --flat:#9FD6B5; }
+.yellow { --light:#F0D38B; --deep:#B88A43; --flat:#EDCC82; }
+.purple { --light:#C9B8E1; --deep:#8464A9; --flat:#BBA9DC; }
+.white { --light:#F3F4DF; --deep:#C3CFBC; --flat:#E4ECDF; }
+
+*,*::before,*::after { box-sizing:border-box; }
+html { scroll-behavior:smooth; -webkit-text-size-adjust:100%; }
+body { margin:0; min-height:100vh; background:var(--backdrop) fixed; background-color:var(--backdrop-flat); color:var(--ink); font:400 16px/1.6 var(--mono); }
+h1,h2,h3,p,ul,ol,dl,dd { margin:0; padding:0; }
+ul,ol { list-style:none; }
+a { color:inherit; }
+button { font:inherit; color:inherit; }
+:focus-visible { outline:2px solid var(--ink); outline-offset:3px; border-radius:6px; }
+
+/* The app's raised key: a matte face on a darker wall, no border. */
+.key {
+  --depth:3px; --wall:var(--side); --face:var(--paper2);
+  display:inline-flex; align-items:center; justify-content:center; gap:10px;
+  min-height:48px; padding:10px 18px; border:0; border-radius:14px; cursor:pointer;
+  background:linear-gradient(to bottom,var(--sheen),transparent 50%),var(--face); color:var(--ink);
+  font:600 14px/1.2 var(--mono); letter-spacing:.05em; text-decoration:none; text-align:center;
+  box-shadow:0 var(--depth) 0 var(--wall),0 calc(var(--depth) + 6px) 14px var(--key-shadow);
+  transition:transform 220ms cubic-bezier(.34,1.56,.64,1),box-shadow 220ms ease-out;
+  -webkit-tap-highlight-color:transparent; user-select:none;
+}
+.key:active:not([aria-disabled="true"]) { transform:translateY(var(--depth)) scale(.97); box-shadow:0 0 0 var(--wall),0 1px 3px var(--key-shadow); transition-duration:45ms; transition-timing-function:ease-out; }
+.key.primary { --face:var(--accent); --wall:var(--accent-side); color:var(--accent-ink); }
+.key.invert { --face:var(--accent-ink); --wall:color-mix(in srgb,var(--accent-ink) 72%,#000); color:var(--accent); }
+.key.icon { width:48px; padding:0; }
+.key svg { width:20px; height:20px; flex:none; }
+.key[aria-disabled="true"] { cursor:default; color:var(--muted); }
+.key small { display:block; font-weight:400; font-size:12px; letter-spacing:0; opacity:.75; }
+
+.label { font:700 11px/1.2 var(--mono); letter-spacing:.16em; text-transform:uppercase; color:var(--muted); }
+::selection { background:var(--accent); color:var(--accent-ink); }
+html { scrollbar-color:var(--muted) transparent; }
+.wordmark { font-weight:700; letter-spacing:.3em; margin-right:-.3em; color:var(--accent); }
+
+@media (prefers-reduced-motion:reduce) {
+  html { scroll-behavior:auto; }
+  *,*::before,*::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+}

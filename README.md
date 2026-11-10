@@ -29,6 +29,10 @@ The TypeScript/PostgreSQL service and deployment instructions are in [server/REA
 
 Rebuild the local preview with `./gradlew assembleDebug -PinsightOnlineDemo=true`. Build a backend-connected APK with `./gradlew assembleDebug -PinsightApiUrl=https://YOUR_API` and a Web Google OAuth client with `-PinsightGoogleClientId=...`. Release builds reject cleartext service addresses. Preview data, saves, and credentials are kept separate from real service data.
 
+## Website
+
+`web/` holds the Midori marketing site (Vite + React, static output in `web/dist`): a playable board, the six tiles, and Journey (free) versus Worlds (one-time purchase). Run `npm install`, then `npm run dev`, `npm test` or `npm run build` inside `web/`. The Play link, Worlds price and contact address are set in `web/src/config.js`. Checkout is a stub behind `web/src/checkout/provider.js`: production builds say "Checkout opens soon" and take no payment. The privacy and terms pages are placeholders.
+
 ## Android v0.2.28 - Hotfix polish
 
 Version 0.2.28 (code 39): swiping stops at the edge of the loaded puzzles instead of showing blank or half-drawn pages; the Worlds "Solved" figure excludes your own puzzles and matches Profile; the navigation handle is hidden again whenever the system restores it (gesture navigation); creator phases 2 and 3 hold a dragged tile inside the outline; haptics are one millisecond longer, about 50% amplitude, with a quiet tick per list row and a triple pulse for restart and clear; "pending submissions" text removed; players can be sorted by most followed; lost connections retry automatically with backoff; shorter rulebook sentences in all five languages. The backend adds `communityCount` on `/v1/progress`, `sort=followed` and `followerCount` on `/v1/creators`, and `DEVELOPER_USER_IDS` exempting listed accounts from the daily puzzle limit; no migration. Published to the existing Firebase tester group with the same package and signing key. [Download the APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.28); see [deployment notes](DEPLOYMENT.md).
