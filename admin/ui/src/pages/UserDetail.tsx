@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { api, ago, when } from '../api';
-import { Avatar, CopyIcon } from '../art';
-import { ActionDialog, ActionRow, Chip, Empty, ErrorNote, Loading, PageHeader, Section, Stat, StatusChip, Tabs, useToast, type Field } from '../ui';
+import { ActionDialog, ActionRow, Empty, ErrorNote, Loading, PageHeader, Section, StatusText, Tabs, useToast, type Field } from '../ui';
 import { AuditList } from './Audit';
 
 const reason: Field = { name: 'reason', label: 'Reason', type: 'textarea', min: 3, max: 500, hint: 'Saved in the audit log. The player never sees it.' };
@@ -44,69 +43,72 @@ export function UserDetail({ id, mail }: { id: string; mail: boolean }) {
   };
   const open = (k: string) => () => setActive(actions[k]!);
   const copyId = () => navigator.clipboard?.writeText(u.id).then(() => toast('Player ID copied.'), () => toast('Could not copy. Select the ID by hand.'));
+  const facts = (rows: [string, ReactNode][]) => <dl className="facts card">{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       <PageHeader back={{ href: '#/users', label: 'Back to players' }} title={u.username}
-        aside={<Avatar id={u.id} name={u.username} size={48} />}
         subtitle={<>
-          <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5"><StatusChip status={u.status} />
-            {deleted && <Chip>by {u.deleted_by} · {ago(u.deleted_at)}</Chip>}</span>
-          <span className="mt-2 block break-all">{u.email}</span>
-          <button type="button" onClick={copyId} className="mt-1 inline-flex min-h-8 items-center gap-1.5 break-all text-left hover:text-text" title="Copy player ID"><CopyIcon size={13} />{u.id}</button>
+          <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <StatusText status={u.status} />{deleted && <span>by {u.deleted_by}, {ago(u.deleted_at)}</span>}
+            <span className="break-all">{u.email}</span>
+          </span>
+          <span className="mt-1 flex flex-wrap items-center gap-x-3"><span className="break-all">{u.id}</span><button type="button" className="link" onClick={copyId}>Copy ID</button></span>
         </>} />
 
       <Tabs label="Player sections" value={tab} onChange={setTab} items={TABS} />
 
-      {tab === 'overview' && <>
-        <div className="grid grid-cols-3 gap-2.5 md:grid-cols-6">
-          <Stat label="Level" value={s.level} /><Stat label="XP" value={s.xp.toLocaleString()} /><Stat label="Sessions" value={s.sessions} />
-          <Stat label="Campaign" value={s.campaign} /><Stat label="Community" value={s.community} /><Stat label="Published" value={s.published} />
+      {tab === 'overview' && (
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="flex flex-col gap-6">
+            <Section title="Progress">{facts([['Level', s.level], ['XP', s.xp.toLocaleString()], ['Campaign solved', s.campaign], ['Community solved', s.community], ['Levels published', s.published]])}</Section>
+            <Section title="Account">{facts([['Joined', when(u.created_at)], ['Last active', s.lastActive ? when(s.lastActive) : '—'], ['Signs in with', u.google ? 'Google or password' : 'Password'], ['Active sessions', s.sessions], ['Unread messages', s.unreadMessages], ['Worlds access', ent?.status ?? 'none']])}</Section>
+          </div>
+          <div className="flex flex-col gap-5">
+            {deleted ? (
+              <Section title="Account"><ActionRow tone="primary" title="Restore this account" support="Brings the player and their levels back" onClick={open('restore')} /></Section>
+            ) : <>
+              <Section title="Account">
+                <ActionRow title="Change username" support={u.username} onClick={open('rename')} />
+                <ActionRow title="Change email" support={u.email} onClick={open('email')} />
+                <ActionRow title="Send a password reset code" support={!mail ? noMail : suspended ? 'Not for suspended accounts' : '8 digits, valid for 15 minutes'} disabled={!mail || suspended} onClick={open('recovery')} />
+                <ActionRow title="Sign out everywhere" support={`${s.sessions} active ${s.sessions === 1 ? 'session' : 'sessions'}`} onClick={open('signout')} />
+              </Section>
+              <Section title="Status">
+                {suspended ? <ActionRow title="Lift the suspension" support="Lets the player sign in again" onClick={open('unsuspend')} />
+                  : <ActionRow title="Suspend this player" support="Blocks sign-in and hides them" onClick={open('suspend')} />}
+                <ActionRow title="Delete this account" support="Restorable. Nothing is erased" onClick={open('softDelete')} />
+              </Section>
+            </>}
+            <Section title="Danger zone">
+              <ActionRow tone="danger" title="Delete permanently" support="Erases the player and their levels. Cannot be undone" onClick={open('hard')} />
+            </Section>
+          </div>
         </div>
-        <dl className="card grid grid-cols-2 gap-x-4 gap-y-3.5 p-4 text-sm md:grid-cols-4">
-          {[['Signs in with', u.google ? 'Google or password' : 'Password'], ['Joined', when(u.created_at)], ['Last active', s.lastActive ?? '—'], ['Unread messages', s.unreadMessages]].map(([k, v]) => <div key={k as string}><dt className="eyebrow">{k}</dt><dd className="mt-1.5">{v as ReactNode}</dd></div>)}
-        </dl>
-        {deleted ? (
-          <Section title="Account"><ActionRow tone="primary" title="Restore this account" support="Brings the player and their levels back" onClick={open('restore')} /></Section>
-        ) : <div className="grid items-start gap-6 md:grid-cols-2">
-          <Section title="Account">
-            <ActionRow title="Change username" support={u.username} onClick={open('rename')} />
-            <ActionRow title="Change email" support={u.email} onClick={open('email')} />
-            <ActionRow title="Send a password reset code" support={!mail ? noMail : suspended ? 'Not for suspended accounts' : '8 digits, valid for 15 minutes'} disabled={!mail || suspended} onClick={open('recovery')} />
-            <ActionRow title="Sign out everywhere" support={`${s.sessions} active ${s.sessions === 1 ? 'session' : 'sessions'}`} onClick={open('signout')} />
-          </Section>
-          <Section title="Status">
-            {suspended ? <ActionRow title="Lift the suspension" support="Lets the player sign in again" onClick={open('unsuspend')} />
-              : <ActionRow title="Suspend this player" support="Blocks sign-in and hides them" onClick={open('suspend')} />}
-            <ActionRow title="Delete this account" support="Restorable. Nothing is erased" onClick={open('softDelete')} />
-          </Section>
-        </div>}
-        <Section title="Danger zone">
-          <ActionRow tone="danger" title="Delete permanently" support="Erases the player and their levels. Cannot be undone" onClick={open('hard')} />
-        </Section>
-      </>}
+      )}
 
-      {tab === 'payments' && <Section>
-        <div className="card flex flex-col gap-3 p-4">
-          <div className="flex items-center justify-between gap-3"><div><p className="eyebrow">Worlds</p><p className="mt-2 text-2xl leading-none">{ent?.status ?? 'none'}</p></div>
-            <Chip tone={ent?.status === 'active' ? 'ok' : undefined}>{ent ? ent.source : 'no record'}</Chip></div>
-          {ent ? <p className="support">Updated {ago(ent.updated_at)}{ent.note ? <> · “{ent.note}”</> : null}</p> : <p className="support">This player has never had a Worlds record.</p>}
+      {tab === 'payments' && (
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <Section title="Worlds">
+            {facts([['Status', ent?.status ?? 'none'], ['Source', ent?.source ?? '—'], ['Updated', ent ? when(ent.updated_at) : '—'], ['Note', ent?.note || '—']])}
+            <p className="small muted">Google Play and Stripe purchases will appear here once they are connected. Until then every change is made by hand and recorded in the audit log.</p>
+          </Section>
+          {!deleted && <Section title="Actions"><ActionRow tone="primary" title="Set Worlds access" support="Grant, revoke or refund by hand" onClick={open('entitlement')} /></Section>}
         </div>
-        {!deleted && <ActionRow tone="primary" title="Set Worlds access" support="Grant, revoke or refund by hand" onClick={open('entitlement')} />}
-        <p className="support">Google Play and Stripe purchases will appear here once they are connected. Until then every change is made by hand and recorded in the audit log.</p>
-      </Section>}
+      )}
 
-      {tab === 'contact' && <Section>
-        {deleted ? <Empty>Deleted accounts can’t be contacted. Restore it first.</Empty> : <>
+      {tab === 'contact' && (deleted ? <Empty>Deleted accounts can’t be contacted. Restore it first.</Empty> : (
+        <div className="grid gap-2 md:max-w-md">
           <ActionRow title="Send an email" support={mail ? u.email : noMail} disabled={!mail} onClick={open('sendEmail')} />
           <ActionRow title="Send an in-game message" support={s.unreadMessages ? `${s.unreadMessages} unread` : 'Shown in the app once its inbox ships'} onClick={open('message')} />
-        </>}
-      </Section>}
+        </div>
+      ))}
 
       {tab === 'history' && <>
         <Section title="Activity"><AuditList rows={u.history} showPlayer={false} /></Section>
         {u.feedback.length > 0 && <Section title="Feedback and bug reports">
-          <ul className="flex flex-col gap-2.5">{u.feedback.map((f: any) => <li key={f.id} className="card flex items-center justify-between gap-3 px-4 py-3"><span className="text-sm font-semibold">{f.kind === 'bug' ? 'Bug report' : 'Feedback'}</span><span className="support">v{f.app_version || '?'} · {ago(f.created_at)}</span></li>)}</ul>
+          <div className="card overflow-x-auto"><table className="tbl"><thead><tr><th>When</th><th>Type</th><th>App version</th></tr></thead>
+            <tbody>{u.feedback.map((f: any) => <tr key={f.id}><td className="muted whitespace-nowrap">{when(f.created_at)}</td><td className="font-semibold">{f.kind === 'bug' ? 'Bug report' : 'Feedback'}</td><td className="muted">{f.app_version || '?'}</td></tr>)}</tbody></table></div>
         </Section>}
       </>}
 

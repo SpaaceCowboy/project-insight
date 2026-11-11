@@ -1,25 +1,27 @@
 import { useEffect, useState } from 'react';
-import { api, actionLabel, ago, when, type AuditRow } from '../api';
+import { api, actionLabel, when, type AuditRow } from '../api';
 import { Button, Empty, ErrorNote, Loading, PageHeader, Tabs } from '../ui';
 
+/** One row per change: when, what, (who it was done to), who did it, and why. */
 export function AuditList({ rows, showPlayer = true }: { rows: AuditRow[]; showPlayer?: boolean }) {
   if (rows.length === 0) return <Empty>Nothing recorded yet.</Empty>;
   return (
-    <ul className="flex flex-col gap-2.5">
-      {rows.map(r => (
-        <li key={r.id} className="card px-4 py-3">
-          <div className="flex items-baseline justify-between gap-3">
-            <p className="text-sm font-semibold tracking-wide">{actionLabel(r.action)}</p>
-            <p className="support flex-none" title={when(r.created_at)}>{ago(r.created_at)}</p>
-          </div>
-          {r.reason && <p className="mt-1.5 text-sm leading-relaxed">{r.reason}</p>}
-          <p className="support mt-1.5">
-            {r.admin ?? 'system'}
-            {showPlayer && r.subject_user_id && <> · <a className="text-accent underline-offset-2 hover:underline" href={`#/users/${r.subject_user_id}`}>open player</a></>}
-          </p>
-        </li>
-      ))}
-    </ul>
+    <div className="card overflow-x-auto">
+      <table className="tbl">
+        <thead><tr><th>When</th><th>Action</th>{showPlayer && <th>Player</th>}<th>By</th><th>Reason</th></tr></thead>
+        <tbody>
+          {rows.map(r => (
+            <tr key={r.id}>
+              <td className="whitespace-nowrap muted">{when(r.created_at)}</td>
+              <td className="font-semibold">{actionLabel(r.action)}</td>
+              {showPlayer && <td>{r.subject_user_id ? <a className="link" href={`#/users/${r.subject_user_id}`}>Open</a> : <span className="muted">—</span>}</td>}
+              <td className="muted">{r.admin ?? 'system'}</td>
+              <td className="min-w-48">{r.reason ?? <span className="muted">—</span>}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -36,8 +38,8 @@ export function Audit() {
     return () => { live = false; };
   }, [scope, page, tick]);
   return (
-    <div className="flex flex-col gap-5">
-      <PageHeader eyebrow="Control" title="Audit log" subtitle="Every change, who made it and why" />
+    <div className="flex flex-col gap-4">
+      <PageHeader title="Audit log" subtitle="Every change, who made it and why. Newest first." />
       <Tabs label="Filter the log" value={scope} onChange={v => { setScope(v); setPage(0); }} items={SCOPES} />
       {error != null ? <ErrorNote error={error} retry={() => setTick(t => t + 1)} /> : !rows ? <Loading label="Loading the log" /> : (
         <>
