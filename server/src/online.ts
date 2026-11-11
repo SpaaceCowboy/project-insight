@@ -45,14 +45,16 @@ async function qualify(c: PoolClient, user: string, grid: any) {
 /** Counts behind the online, design and streak achievements. */
 async function socialStats(c: PoolClient | Db, user: string) {
   const counts = (await c.query(`SELECT
-    (SELECT count(DISTINCT gc.grid_id)::int FROM grid_completions gc JOIN grids g ON g.id=gc.grid_id WHERE gc.user_id=$1 AND g.owner_id<>$1) AS "onlineSolved",
+    ((SELECT count(DISTINCT gc.grid_id)::int FROM grid_completions gc JOIN grids g ON g.id=gc.grid_id WHERE gc.user_id=$1 AND g.owner_id<>$1)
+      + (SELECT count(*)::int FROM retained_completions WHERE user_id=$1)) AS "onlineSolved",
     (SELECT count(*)::int FROM grids WHERE owner_id=$1 AND published_at IS NOT NULL) AS "designedCount"`, [user])).rows[0];
   return { onlineSolved: counts.onlineSolved as number, designedCount: counts.designedCount as number, bestStreak: longestRun(await activityDays(c, user)) };
 }
-/** Distinct community puzzles by other creators that [user] solved, minus any already represented by a beaten campaign level. Profile and Worlds button share this. */
+/** Distinct community puzzles by other creators that [user] solved (including ones whose creator was later hard-deleted), minus any already represented by a beaten campaign level. Profile and Worlds button share this. */
 async function communityCount(c: PoolClient | Db, user: string, done: number[]): Promise<number> {
   const beaten = new Set(done.map(n => contentHash(campaign[n - 1]!)));
-  const hashes = (await c.query('SELECT DISTINCT g.content_hash FROM grid_completions gc JOIN grids g ON g.id=gc.grid_id WHERE gc.user_id=$1 AND g.owner_id<>$1', [user])).rows.map(r => r.content_hash);
+  const hashes = (await c.query(`SELECT g.content_hash FROM grid_completions gc JOIN grids g ON g.id=gc.grid_id WHERE gc.user_id=$1 AND g.owner_id<>$1
+    UNION SELECT content_hash FROM retained_completions WHERE user_id=$1`, [user])).rows.map(r => r.content_hash);
   return hashes.filter(h => !beaten.has(h)).length;
 }
 async function activityDays(c: PoolClient | Db, user: string): Promise<string[]> {

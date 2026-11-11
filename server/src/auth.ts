@@ -9,7 +9,7 @@ import { requireValue } from './rules.js';
 import { claimNickname, nickname, suggestedName } from './nickname.js';
 import type { GoogleVerifier } from './google.js';
 import { googleVerifier } from './google.js';
-import { deliverMail } from './mail.js';
+import { challenge, deliverMail } from './mail.js';
 
 export const uuidSchema = { type: 'string', format: 'uuid' };
 export const operationSchema = { ...uuidSchema };
@@ -26,16 +26,6 @@ async function issue(c: PoolClient, userId: string, key: string, id = randomUUID
     VALUES($1,$2,$3,$4,now()+interval '15 minutes',now()+interval '30 days')`, [id, userId, digest(accessToken, key), digest(refreshToken, key)]);
   const user = (await c.query('SELECT id,username,verified FROM users WHERE id=$1', [userId])).rows[0];
   return { accessToken, refreshToken, user };
-}
-/** Queues one recoverable code, replacing any earlier one. Returns false when a code was sent less than a minute ago. */
-async function challenge(c: PoolClient, userId: string, email: string, purpose: 'recover', key: string) {
-  const recent = (await c.query("SELECT 1 FROM challenges WHERE user_id=$1 AND purpose=$2 AND created_at>now()-interval '1 minute'", [userId, purpose])).rowCount;
-  if (recent) return false;
-  await c.query('UPDATE challenges SET consumed=true WHERE user_id=$1 AND purpose=$2', [userId, purpose]);
-  const id = randomUUID(); const code = String(randomInt(10000000, 100000000));
-  await c.query("INSERT INTO challenges(id,user_id,purpose,code_hash,expires_at) VALUES($1,$2,$3,$4,now()+interval '15 minutes')", [id, userId, purpose, digest(`${id}:${code}`, key)]);
-  await c.query('INSERT INTO email_outbox(id,challenge_id,encrypted_payload) VALUES($1,$2,$3)', [randomUUID(), id, encrypt({ email, code, purpose }, key)]);
-  return true;
 }
 export function authentication(db: Db, config: Config) {
   return async (req: FastifyRequest) => {

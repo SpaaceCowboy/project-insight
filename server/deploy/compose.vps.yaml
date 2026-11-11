@@ -9,6 +9,11 @@ services:
       SMTP_SECURE: ${SMTP_SECURE:-false}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       TRUST_PROXY: 172.16.0.0/12
+  admin:
+    environment:
+      NODE_ENV: production
+      MAIL_DELIVERY_MODE: ${MAIL_DELIVERY_MODE:-test-inbox}
+      TRUST_PROXY: 172.16.0.0/12
   mailpit:
     profiles: !reset []
     ports: !override ["127.0.0.1:8026:8025"]

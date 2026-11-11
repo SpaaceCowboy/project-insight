@@ -21,3 +21,6 @@ server/.seed-community/
 backups/
 acme/
 graphify-out/
+
+admin/dist/
+admin/ui/dist/

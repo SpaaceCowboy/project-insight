@@ -33,9 +33,11 @@ async function creatorRows(db: Db, o: { query: string; sort: string; period: str
       follower_totals AS (SELECT followee_id AS user_id,count(*)::int AS n FROM follows GROUP BY followee_id),
       xp_totals AS (SELECT user_id,sum(amount) AS xp FROM xp_ledger GROUP BY user_id),
       campaign_totals AS (SELECT user_id,count(*)::int AS n FROM campaign_progress GROUP BY user_id),
-      community_totals AS (SELECT gc.user_id,count(DISTINCT g.content_hash)::int AS n FROM grid_completions gc JOIN grids g ON g.id=gc.grid_id
-        WHERE g.owner_id<>gc.user_id AND NOT EXISTS (SELECT 1 FROM campaign_progress cp JOIN campaign_hashes ch ON ch.level_id=cp.level_id
-          WHERE cp.user_id=gc.user_id AND ch.hash=g.content_hash) GROUP BY gc.user_id)
+      solved_elsewhere AS (SELECT gc.user_id,g.content_hash FROM grid_completions gc JOIN grids g ON g.id=gc.grid_id WHERE g.owner_id<>gc.user_id
+        UNION SELECT user_id,content_hash FROM retained_completions),
+      community_totals AS (SELECT s.user_id,count(*)::int AS n FROM solved_elsewhere s
+        WHERE NOT EXISTS (SELECT 1 FROM campaign_progress cp JOIN campaign_hashes ch ON ch.level_id=cp.level_id
+          WHERE cp.user_id=s.user_id AND ch.hash=s.content_hash) GROUP BY s.user_id)
       SELECT u.id,u.username,coalesce(p."gridCount",0)::int AS "gridCount",coalesce(x.xp,0)::text AS "xpMilli",coalesce(x.xp,0) AS xp,
         (coalesce(c.n,0)+coalesce(t.n,0))::int AS "beatenCount",coalesce(lk.n,0)::int AS "likeCount",coalesce(fw.n,0)::int AS "followerCount"
       FROM users u ${join} LEFT JOIN xp_totals x ON x.user_id=u.id

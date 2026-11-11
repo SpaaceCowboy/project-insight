@@ -41,8 +41,40 @@ services:
       RATE_LIMIT_NAMESPACE: ${RATE_LIMIT_NAMESPACE:-insight:rate:v1}
     command: ["sh", "-c", "node dist/migrate.js && exec node dist/main.js"]
     ports: ["127.0.0.1:3000:3000"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 10s
+      timeout: 4s
+      retries: 6
+      start_period: 20s
     depends_on:
       db: { condition: service_healthy }
+      rate-limit: { condition: service_healthy }
+    restart: unless-stopped
+  # Control dashboard (cp.midoripuzzle.com). Shares the database; waits for the API so its migrations (012_admin) have run.
+  admin:
+    build:
+      context: .
+      dockerfile: admin/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://insight:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@db:5432/insight
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?Set ENCRYPTION_KEY in .env}
+      NODE_ENV: ${NODE_ENV:-development}
+      HOST: 0.0.0.0
+      PORT: 4000
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-INSIGHT <accounts@localhost>}
+      MAIL_DELIVERY_MODE: ${MAIL_DELIVERY_MODE:-smtp}
+      TRUST_PROXY: ${TRUST_PROXY:-}
+      RATE_LIMIT_REDIS_URL: redis://rate-limit:6379/0
+      RATE_LIMIT_NAMESPACE: ${RATE_LIMIT_NAMESPACE:-insight:rate:v1}
+    ports: ["127.0.0.1:4000:4000"]
+    depends_on:
+      api: { condition: service_healthy }
       rate-limit: { condition: service_healthy }
     restart: unless-stopped
   rate-limit:

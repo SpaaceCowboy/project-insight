@@ -1,7 +1,9 @@
+import { randomInt, randomUUID } from 'node:crypto';
 import nodemailer from 'nodemailer';
+import type { PoolClient } from 'pg';
 import type { FastifyBaseLogger } from 'fastify';
 import type { Config } from './config.js';
-import { decrypt } from './crypto.js';
+import { decrypt, digest, encrypt } from './crypto.js';
 import { transaction, type Db } from './db.js';
 
 export function mailTransport(config: Config) {
@@ -9,6 +11,16 @@ export function mailTransport(config: Config) {
     requireTLS: config.environment === 'production' && !config.smtpSecure && config.mailDeliveryMode !== 'test-inbox',
     auth: config.smtpUser ? { user: config.smtpUser, pass: config.smtpPassword } : undefined,
     connectionTimeout: 10000, greetingTimeout: 5000, socketTimeout: 10000 });
+}
+/** Queues one recoverable code, replacing any earlier one. Returns false when a code was sent less than a minute ago. */
+export async function challenge(c: PoolClient, userId: string, email: string, purpose: 'recover', key: string) {
+  const recent = (await c.query("SELECT 1 FROM challenges WHERE user_id=$1 AND purpose=$2 AND created_at>now()-interval '1 minute'", [userId, purpose])).rowCount;
+  if (recent) return false;
+  await c.query('UPDATE challenges SET consumed=true WHERE user_id=$1 AND purpose=$2', [userId, purpose]);
+  const id = randomUUID(); const code = String(randomInt(10000000, 100000000));
+  await c.query("INSERT INTO challenges(id,user_id,purpose,code_hash,expires_at) VALUES($1,$2,$3,$4,now()+interval '15 minutes')", [id, userId, purpose, digest(`${id}:${code}`, key)]);
+  await c.query('INSERT INTO email_outbox(id,challenge_id,encrypted_payload) VALUES($1,$2,$3)', [randomUUID(), id, encrypt({ email, code, purpose }, key)]);
+  return true;
 }
 /** One locked job at a time; an SMTP crash may resend the SAME code, never create a different challenge. */
 export async function deliverMail(db: Db, config: Config, log: FastifyBaseLogger, transport = mailTransport(config)) {
