@@ -1,11 +1,21 @@
-import { useEffect, useState } from 'react';
-import { api, when, type UserRow } from '../api';
-import { Badge, Button, ErrorNote, Loading, inputClass, statusBadge } from '../ui';
+import { useEffect, useRef, useState } from 'react';
+import { api, ago, when, type UserRow } from '../api';
+import { Avatar, SearchIcon } from '../art';
+import { Button, Chip, Empty, ErrorNote, Loading, PageHeader, StatusChip, Tabs } from '../ui';
+
+type Filter = '' | 'active' | 'suspended' | 'deleted';
+const FILTERS: { id: Filter; label: string }[] = [{ id: '', label: 'All' }, { id: 'active', label: 'Active' }, { id: 'suspended', label: 'Suspended' }, { id: 'deleted', label: 'Deleted' }];
 
 export function Users() {
-  const [q, setQ] = useState(''); const [status, setStatus] = useState(''); const [page, setPage] = useState(0);
+  const [q, setQ] = useState(''); const [status, setStatus] = useState<Filter>(''); const [page, setPage] = useState(0);
   const [data, setData] = useState<{ total: number; users: UserRow[] } | null>(null);
   const [error, setError] = useState<unknown>(null); const [tick, setTick] = useState(0);
+  const search = useRef<HTMLInputElement>(null);
+  // "/" jumps to search from anywhere that isn't a text field.
+  useEffect(() => {
+    const f = (e: KeyboardEvent) => { if (e.key === '/' && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement)) { e.preventDefault(); search.current?.focus(); } };
+    addEventListener('keydown', f); return () => removeEventListener('keydown', f);
+  }, []);
   useEffect(() => {
     let live = true; setError(null);
     const t = setTimeout(() => {
@@ -16,44 +26,41 @@ export function Users() {
   }, [q, status, page, tick]);
   const pages = data ? Math.max(1, Math.ceil(data.total / 50)) : 1;
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="flex min-w-60 flex-1 flex-col gap-1.5 text-sm font-medium">Search
-          <input className={inputClass} type="search" placeholder="Email, username or player ID" value={q} onChange={e => { setQ(e.target.value); setPage(0); }} />
-        </label>
-        <label className="flex flex-col gap-1.5 text-sm font-medium">Status
-          <select className={inputClass} value={status} onChange={e => { setStatus(e.target.value); setPage(0); }}>
-            <option value="">All</option><option value="active">Active</option><option value="suspended">Suspended</option><option value="deleted">Deleted</option>
-          </select>
-        </label>
+    <div className="flex flex-col gap-5">
+      <PageHeader eyebrow="Control" title="Players" subtitle={data ? `${data.total} ${data.total === 1 ? 'player' : 'players'}${q || status ? ' match' : ''}` : 'Loading'} />
+      <div className="relative">
+        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted"><SearchIcon size={18} /></span>
+        <input ref={search} className="field pl-11" type="search" aria-label="Search players" placeholder="Search email, username or ID  ·  press /" value={q} onChange={e => { setQ(e.target.value); setPage(0); }} />
       </div>
-      {error != null ? <ErrorNote error={error} retry={() => setTick(t => t + 1)} /> : !data ? <Loading label="Loading players" /> : (
+      <Tabs label="Filter by status" value={status} onChange={v => { setStatus(v); setPage(0); }} items={FILTERS} />
+      {error != null ? <ErrorNote error={error} retry={() => setTick(t => t + 1)} /> : !data ? <Loading label="Loading players" /> : data.users.length === 0 ? <Empty>No players match.</Empty> : (
         <>
-          <p className="text-sm text-muted" aria-live="polite">{data.total} {data.total === 1 ? 'player' : 'players'}</p>
-          <div className="overflow-x-auto rounded-xl border border-line bg-panel">
-            <table className="w-full min-w-[40rem] text-left text-sm">
-              <thead className="border-b border-line text-xs uppercase tracking-wide text-muted">
-                <tr><th className="p-3">Player</th><th className="p-3">Email</th><th className="p-3">Status</th><th className="p-3">Worlds</th><th className="p-3">Joined</th></tr>
-              </thead>
-              <tbody>
-                {data.users.map(u => (
-                  <tr key={u.id} className="border-b border-line/60 last:border-0 hover:bg-raise">
-                    <td className="p-0"><a className="block p-3 font-semibold text-accent underline-offset-2 hover:underline" href={`#/users/${u.id}`}>{u.username}</a></td>
-                    <td className="p-3 font-mono text-xs">{u.email}</td>
-                    <td className="p-3">{statusBadge(u.status)}</td>
-                    <td className="p-3"><Badge kind={u.worlds === 'active' ? 'ok' : u.worlds === 'none' ? 'neutral' : 'warn'}>{u.worlds}</Badge></td>
-                    <td className="p-3 text-muted">{when(u.created_at)}</td>
-                  </tr>
-                ))}
-                {data.users.length === 0 && <tr><td colSpan={5} className="p-6 text-center text-muted">No players match.</td></tr>}
-              </tbody>
-            </table>
-          </div>
-          <div className="flex items-center justify-between">
-            <Button disabled={page === 0} onClick={() => setPage(page - 1)}>Previous</Button>
-            <span className="text-sm text-muted">Page {page + 1} of {pages}</span>
-            <Button disabled={page + 1 >= pages} onClick={() => setPage(page + 1)}>Next</Button>
-          </div>
+          <ul className="flex flex-col gap-2.5">
+            {data.users.map(u => (
+              <li key={u.id}>
+                <a href={`#/users/${u.id}`} className="row-link glass">
+                  <Avatar id={u.id} name={u.username} />
+                  <span className="min-w-0 flex-1">
+                    <span className="title block truncate">{u.username}</span>
+                    <span className="support block truncate">{u.email}</span>
+                    <span className="support mt-0.5 block sm:hidden" title={when(u.created_at)}>Joined {ago(u.created_at)}</span>
+                  </span>
+                  <span className="hidden text-right sm:block"><span className="support" title={when(u.created_at)}>Joined {ago(u.created_at)}</span></span>
+                  <span className="flex flex-col items-end gap-1.5 sm:flex-row sm:items-center">
+                    {u.worlds === 'active' && <Chip tone="ok">Worlds</Chip>}
+                    <StatusChip status={u.status} />
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+          {pages > 1 && (
+            <div className="flex items-center justify-between gap-3">
+              <Button disabled={page === 0} onClick={() => setPage(page - 1)}>Previous</Button>
+              <span className="support">Page {page + 1} of {pages}</span>
+              <Button disabled={page + 1 >= pages} onClick={() => setPage(page + 1)}>Next</Button>
+            </div>
+          )}
         </>
       )}
     </div>

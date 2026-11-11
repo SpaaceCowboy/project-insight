@@ -1,27 +1,123 @@
 @import "tailwindcss";
 
-/* Midori palette (DESIGN.md): pool-ink and kelp at night, shell-white and sea-glass by day. Status hues come from the tile set. */
+/* Midori's "Tide Pool" (DESIGN.md): glass over a slow teal backdrop, hairline edges, one mint accent, JetBrains Mono throughout.
+   Colour belongs to the stones, so chrome is glass + mint; the tile hues appear only on tiles and as small status dots next to words. */
+@font-face { font-family: "JetBrains Mono"; src: url("/fonts/jetbrains_mono_regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url("/fonts/jetbrains_mono_semibold.ttf") format("truetype"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url("/fonts/jetbrains_mono_bold.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+
 :root {
-  --bg: #f3f7e7; --panel: #ffffff; --raise: #e7efdc; --ink: #102f32; --muted: #4c6b68; --line: #cfe0d2;
-  --accent: #2c6963; --accent-ink: #ffffff; --ok: #2f7a56; --warn: #8a5f12; --danger: #a8364f;
-  --ok-bg: #dcefe0; --warn-bg: #f6ecc9; --danger-bg: #f6dde0; --focus: #1f7a8c;
+  color-scheme: dark;
+  --text: #edf5e9;          /* foam */
+  --muted: #aac9c8;         /* lichen */
+  --line: #b4e0d22e;        /* hairline */
+  --glass: #091f27a6;
+  --pool: #102a34;          /* deep pool: the one opaque surface */
+  --lit: #25434a;           /* pool lit: earned / selected rows */
+  --accent: #a8dfcf;        /* sea-glass mint */
+  --accent-ink: #102f32;    /* pool ink */
+  --danger: #ffb4a8;        /* coral: the game's rejection ring, never red */
+  --danger-ink: #102f32;
+  --ok: #9fd6b5; --warn: #edcc82; --bad: #e69a99; /* tile flats, used as status dots beside a word */
+  --scrim: #03131999;
+  --field: #0c252e99;
+  --base: linear-gradient(165deg, #142b41, #0c252e 50%, #182f35);
+  --glow-a: #234958; --glow-b: #1e4843;
 }
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
   :root {
-    --bg: #0c252e; --panel: #102f32; --raise: #173e3f; --ink: #f3f7e7; --muted: #aac9c8; --line: #25504f;
-    --accent: #a8dfcf; --accent-ink: #102f32; --ok: #a6d7ad; --warn: #f0d38b; --danger: #e69a99;
-    --ok-bg: #1c4338; --warn-bg: #3d3520; --danger-bg: #4a2a33; --focus: #93d2db;
+    color-scheme: light;
+    --text: #173e3f; --muted: #365c58; --line: #18463e33;
+    --glass: #ebf6eaa8; --pool: #e2efe6; --lit: #c8dcd4;
+    --accent: #2c6963; --accent-ink: #f3f7e7;
+    --danger: #ae546b; --danger-ink: #f3f7e7;
+    --ok: #4b896b; --warn: #b88a43; --bad: #ae546b;
+    --scrim: #03131966; --field: #ffffff80;
+    --base: linear-gradient(165deg, #c5d6df, #d9e9dc 50%, #bbd2c5);
+    --glow-a: #e7eee2; --glow-b: #bfd9d5;
   }
 }
+
 @theme inline {
-  --color-bg: var(--bg); --color-panel: var(--panel); --color-raise: var(--raise); --color-ink: var(--ink); --color-muted: var(--muted);
-  --color-line: var(--line); --color-accent: var(--accent); --color-accent-ink: var(--accent-ink); --color-ok: var(--ok); --color-warn: var(--warn);
-  --color-danger: var(--danger); --color-ok-bg: var(--ok-bg); --color-warn-bg: var(--warn-bg); --color-danger-bg: var(--danger-bg);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --color-text: var(--text); --color-muted: var(--muted); --color-line: var(--line); --color-glass: var(--glass); --color-pool: var(--pool); --color-lit: var(--lit);
+  --color-accent: var(--accent); --color-accent-ink: var(--accent-ink); --color-danger: var(--danger); --color-danger-ink: var(--danger-ink);
+  --color-ok: var(--ok); --color-warn: var(--warn); --color-bad: var(--bad); --color-field: var(--field);
+  --font-sans: "JetBrains Mono", ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
 }
-html { background: var(--bg); color: var(--ink); font-family: var(--font-sans); }
-body { margin: 0; min-height: 100dvh; }
-:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-dialog::backdrop { background: color-mix(in srgb, #03131a 65%, transparent); }
-@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation: none !important; transition: none !important; } }
+
+html { background: #0c252e; color: var(--text); font-family: var(--font-sans); font-size: 14px; line-height: 1.45; -webkit-text-size-adjust: 100%; }
+@media (prefers-color-scheme: light) { html { background: #d9e9dc; } }
+body { margin: 0; min-height: 100dvh; background: transparent; }
+@layer base {
+  h1, h2, h3, p, dl, dd, ul { margin: 0; padding: 0; }
+  ul { list-style: none; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  a { color: inherit; text-decoration: none; }
+}
+::selection { background: color-mix(in srgb, var(--accent) 35%, transparent); }
+
+/* The living backdrop: a 165-degree base and two slow lights (42 s and 57 s). Fixed behind everything; the glass panels let it show through. */
+.backdrop { position: fixed; inset: 0; z-index: -1; background: var(--base); overflow: hidden; pointer-events: none; }
+.backdrop::before, .backdrop::after { content: ""; position: absolute; width: 90vmax; height: 90vmax; border-radius: 50%; will-change: transform; }
+.backdrop::before { left: -35vmax; top: -35vmax; background: radial-gradient(circle, var(--glow-a) 0%, transparent 65%); animation: drift-a 42s ease-in-out infinite alternate; }
+.backdrop::after { right: -40vmax; bottom: -40vmax; background: radial-gradient(circle, var(--glow-b) 0%, transparent 60%); animation: drift-b 57s ease-in-out infinite alternate; }
+@keyframes drift-a { to { transform: translate3d(14vmax, 10vmax, 0); } }
+@keyframes drift-b { to { transform: translate3d(-12vmax, -9vmax, 0); } }
+
+/* The hero's outer columns float out of phase over 7 s, as on the app's home screen. */
+.float-a, .float-b { animation: float 7s ease-in-out infinite alternate; transform-box: fill-box; }
+.float-b { animation-delay: -3.5s; }
+@keyframes float { from { transform: translateY(-4px); } to { transform: translateY(4px); } }
+@media (prefers-reduced-motion: reduce) {
+  .backdrop::before, .backdrop::after, .float-a, .float-b { animation: none; }
+  * { transition: none !important; }
+}
+
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 10px; }
+
+@layer components {
+/* Type roles. One voice: regular weight marks a moment, 600 marks something you act on. */
+.eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); line-height: 1.2; }
+.headline { font-size: 24px; font-weight: 400; line-height: 1.2; }
+.title { font-size: 16px; font-weight: 600; letter-spacing: .04em; line-height: 1.25; }
+.support { font-size: 12px; color: var(--muted); line-height: 1.4; }
+.section-title { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .04em; }
+.wordmark { font-size: 15px; font-weight: 600; letter-spacing: .3em; color: var(--accent); text-transform: uppercase; }
+
+/* Surfaces: glass and hairline, no shadows (only stones cast shadows). */
+.glass { background: var(--glass); border: 1px solid var(--line); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.pool { background: var(--pool); border: 1px solid var(--line); }
+
+.pebble { min-height: 48px; border-radius: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 18px;
+  font-size: 14px; font-weight: 600; letter-spacing: .05em; cursor: pointer; transition: background-color .18s, border-color .18s, opacity .18s; }
+.pebble-menu { background: var(--glass); border: 1px solid var(--line); color: var(--text); }
+.pebble-menu:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 14%, var(--glass)); border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
+.pebble-primary { background: var(--accent); border: 1px solid var(--accent); color: var(--accent-ink); }
+.pebble-primary:hover:not(:disabled) { filter: brightness(1.06); }
+.pebble-danger { background: var(--danger); border: 1px solid var(--danger); color: var(--danger-ink); }
+.pebble-danger:hover:not(:disabled) { filter: brightness(1.05); }
+.pebble:disabled { opacity: .4; cursor: not-allowed; }
+.round { width: 48px; height: 48px; flex: none; border-radius: 50%; background: var(--pool); border: 1px solid var(--line); display: inline-grid; place-items: center; cursor: pointer; transition: border-color .18s; }
+.round:hover { border-color: var(--accent); }
+
+.tabs { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
+.tab { min-height: 48px; padding: 0 10px; border-radius: 14px; background: var(--glass); border: 1px solid var(--line); font-size: 13px; font-weight: 600; letter-spacing: .04em; cursor: pointer; transition: background-color .18s; }
+.tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.tab:hover:not([aria-selected="true"]) { background: color-mix(in srgb, var(--accent) 12%, var(--glass)); }
+
+.field { min-height: 48px; width: 100%; border-radius: 14px; border: 1px solid var(--line); background: var(--field); padding: 0 14px; font-size: 14px; }
+textarea.field { padding: 12px 14px; min-height: 96px; resize: vertical; line-height: 1.45; }
+.field::placeholder { color: var(--muted); opacity: .8; }
+.field:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.chip { display: inline-flex; align-items: center; gap: 7px; min-height: 26px; padding: 0 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--glass); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--dot, var(--muted)); }
+.chip-ok { --dot: var(--ok); } .chip-warn { --dot: var(--warn); } .chip-bad { --dot: var(--bad); }
+.chip-plain::before { display: none; }
+
+.row-link { display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 16px; min-height: 64px; transition: background-color .18s, border-color .18s; }
+.row-link:hover { background: color-mix(in srgb, var(--accent) 10%, var(--glass)); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+}
+
+dialog { color: var(--text); }
+dialog::backdrop { background: var(--scrim); }

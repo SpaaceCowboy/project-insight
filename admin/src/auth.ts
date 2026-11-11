@@ -63,6 +63,8 @@ export function requireAdmin(db: Db, config: Config) {
 export async function authRoutes(app: FastifyInstance, db: Db, config: Config, store: RateLimitStore) {
   const key = config.encryptionKey;
   const need = requireAdmin(db, config);
+  // The UI disables the email actions when the server cannot deliver mail.
+  const mail = config.mailDeliveryMode !== 'disabled';
   // Unknown emails still pay for one verification, so response time does not reveal which addresses are admins.
   const dummyHash = await hashPassword(token());
 
@@ -83,9 +85,9 @@ export async function authRoutes(app: FastifyInstance, db: Db, config: Config, s
     await db.query('UPDATE admins SET last_login_at=now() WHERE id=$1', [admin.id]);
     await audit(db, admin.id, 'admin.login', null, null, {});
     reply.header('Set-Cookie', setSessionCookie(config, sessionToken, SESSION_HOURS * 3600));
-    return { email: admin.email, csrf: csrfFor(sessionToken, key) };
+    return { email: admin.email, csrf: csrfFor(sessionToken, key), mail };
   });
-  app.get('/api/me', { preHandler: need }, async req => ({ email: req.admin!.email, csrf: req.admin!.csrf }));
+  app.get('/api/me', { preHandler: need }, async req => ({ email: req.admin!.email, csrf: req.admin!.csrf, mail }));
   app.post('/api/logout', { preHandler: need }, async (req, reply) => {
     await db.query('UPDATE admin_sessions SET revoked=true WHERE id=$1', [req.admin!.sessionId]);
     reply.header('Set-Cookie', setSessionCookie(config, '', 0));

@@ -1,58 +1,96 @@
 import { useEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { ApiError } from './api';
+import { BackIcon, ChevronIcon } from './art';
 
-const tone = {
-  neutral: 'bg-raise text-ink', ok: 'bg-ok-bg text-ok', warn: 'bg-warn-bg text-warn', danger: 'bg-danger-bg text-danger',
-} as const;
-export function Badge({ kind = 'neutral', children }: { kind?: keyof typeof tone; children: ReactNode }) {
-  return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${tone[kind]}`}>{children}</span>;
-}
-export const statusBadge = (status: string) => <Badge kind={status === 'active' ? 'ok' : status === 'suspended' ? 'warn' : 'danger'}>{status}</Badge>;
+const cx = (...c: (string | false | undefined)[]) => c.filter(Boolean).join(' ');
 
-type Variant = 'primary' | 'quiet' | 'danger';
-const variants: Record<Variant, string> = {
-  primary: 'bg-accent text-accent-ink hover:brightness-110',
-  quiet: 'border border-line bg-panel text-ink hover:bg-raise',
-  danger: 'bg-danger text-bg hover:brightness-110',
-};
-// min-h-11 keeps a real touch target.
-export function Button({ variant = 'quiet', className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
-  return <button {...props} className={`inline-flex min-h-11 items-center justify-center rounded-lg px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant]} ${className}`} />;
+/** Status words always travel with their dot: colour is never the only signal. */
+export const STATUS_LABEL = { active: 'Active', suspended: 'Suspended', deleted: 'Deleted' } as const;
+export function StatusChip({ status }: { status: keyof typeof STATUS_LABEL }) {
+  return <span className={cx('chip', status === 'active' ? 'chip-ok' : status === 'suspended' ? 'chip-warn' : 'chip-bad')}>{STATUS_LABEL[status]}</span>;
 }
-export function Panel({ title, children, tint }: { title?: string; children: ReactNode; tint?: 'danger' }) {
+export const Chip = ({ children, tone }: { children: ReactNode; tone?: 'ok' | 'warn' | 'bad' }) => <span className={cx('chip', tone ? `chip-${tone}` : 'chip-plain')}>{children}</span>;
+
+type Variant = 'menu' | 'primary' | 'danger';
+export function Button({ variant = 'menu', className, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
+  return <button {...props} className={cx('pebble', `pebble-${variant}`, className)} />;
+}
+
+export function BackButton({ href, label }: { href: string; label: string }) {
+  return <a href={href} aria-label={label} className="round"><BackIcon /></a>;
+}
+
+/** Page anatomy from the app: round Back, then the title over a quiet subtitle, then content. */
+export function PageHeader({ title, subtitle, back, aside, eyebrow }: { title: ReactNode; subtitle?: ReactNode; back?: { href: string; label: string }; aside?: ReactNode; eyebrow?: string }) {
   return (
-    <section className={`rounded-xl border p-5 ${tint === 'danger' ? 'border-danger/60 bg-danger-bg/30' : 'border-line bg-panel'}`}>
-      {title && <h2 className={`mb-3 text-sm font-semibold uppercase tracking-wide ${tint === 'danger' ? 'text-danger' : 'text-muted'}`}>{title}</h2>}
-      {children}
-    </section>
+    <header className="flex items-start gap-3.5">
+      {back && <BackButton {...back} />}
+      <div className="min-w-0 flex-1">
+        {eyebrow && <p className="eyebrow mb-1.5">{eyebrow}</p>}
+        <h1 className="headline break-words">{title}</h1>
+        {subtitle && <div className="support mt-1.5">{subtitle}</div>}
+      </div>
+      {aside}
+    </header>
   );
 }
-export const inputClass = 'min-h-11 w-full rounded-lg border border-line bg-bg px-3 text-sm text-ink placeholder:text-muted';
 
-export function Loading({ label }: { label: string }) { return <p role="status" className="py-10 text-center text-muted">{label}…</p>; }
-export function ErrorNote({ error, retry }: { error: unknown; retry?: () => void }) {
-  const e = error instanceof ApiError ? error : null;
+export function Tabs<T extends string>({ value, onChange, items, label }: { value: T; onChange: (v: T) => void; items: { id: T; label: string }[]; label: string }) {
   return (
-    <div role="alert" className="rounded-lg border border-danger/60 bg-danger-bg p-4 text-sm text-danger">
-      <p className="font-semibold">{e?.message ?? 'Something went wrong.'}</p>
-      {e?.correlationId && <p className="mt-1 font-mono text-xs opacity-80">ref {e.correlationId}</p>}
-      {retry && <Button className="mt-3" onClick={retry}>Retry</Button>}
+    <div role="tablist" aria-label={label} className="tabs">
+      {items.map(t => <button key={t.id} role="tab" type="button" aria-selected={value === t.id} className="tab" onClick={() => onChange(t.id)}>{t.label}</button>)}
     </div>
   );
 }
 
-/** Transient confirmation. aria-live so screen readers hear it. */
+export const Section = ({ title, children }: { title?: string; children: ReactNode }) => (
+  <section className="flex flex-col gap-3">{title && <h2 className="section-title">{title}</h2>}{children}</section>
+);
+
+export function Stat({ label, value }: { label: string; value: ReactNode }) {
+  return <div className="glass rounded-2xl p-3.5"><p className="eyebrow">{label}</p><p className="mt-2 text-2xl leading-none">{value}</p></div>;
+}
+
+/** A whole-row pebble: label and a line of support on the left, a chevron on the right. */
+export function ActionRow({ title, support, onClick, tone, disabled }: { title: string; support?: ReactNode; onClick: () => void; tone?: 'danger' | 'primary'; disabled?: boolean }) {
+  return (
+    <button type="button" disabled={disabled} onClick={onClick}
+      className={cx('flex min-h-14 w-full items-center gap-3 rounded-[14px] border px-4 py-2.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40',
+        tone === 'primary' ? 'border-accent bg-accent text-accent-ink hover:brightness-105' : tone === 'danger' ? 'border-danger/60 bg-glass hover:bg-danger/10' : 'glass hover:bg-accent/10')}>
+      <span className="min-w-0 flex-1">
+        <span className={cx('block text-sm font-semibold tracking-wide', tone === 'danger' && 'text-danger')}>{title}</span>
+        {support && <span className={cx('mt-0.5 block text-xs', tone === 'primary' ? 'opacity-80' : 'text-muted')}>{support}</span>}
+      </span>
+      <ChevronIcon size={18} />
+    </button>
+  );
+}
+
+export function Loading({ label }: { label: string }) { return <p role="status" className="support py-16 text-center">{label}…</p>; }
+export function Empty({ children }: { children: ReactNode }) { return <p className="glass rounded-2xl p-8 text-center text-sm text-muted">{children}</p>; }
+export function ErrorNote({ error, retry }: { error: unknown; retry?: () => void }) {
+  const e = error instanceof ApiError ? error : null;
+  return (
+    <div role="alert" className="rounded-2xl border border-danger/60 bg-glass p-4 text-sm">
+      <p className="font-semibold text-danger">{e?.message ?? 'Something went wrong.'}</p>
+      {e?.correlationId && <p className="support mt-1">ref {e.correlationId}</p>}
+      {retry && <Button className="mt-3" onClick={retry}>Try again</Button>}
+    </div>
+  );
+}
+
+/** Transient confirmation pebble; aria-live so screen readers hear it. */
 export function useToast() {
   const [text, setText] = useState('');
   useEffect(() => { if (!text) return; const t = setTimeout(() => setText(''), 5000); return () => clearTimeout(t); }, [text]);
-  const node = <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-4 flex justify-center px-4">{text && <p className="pointer-events-auto rounded-lg bg-ink px-4 py-3 text-sm font-medium text-bg shadow-lg">{text}</p>}</div>;
+  const node = <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-5 z-50 flex justify-center px-4">{text && <p className="pool pointer-events-auto rounded-[14px] px-5 py-3.5 text-sm font-semibold">{text}</p>}</div>;
   return [setText, node] as const;
 }
 
 export interface Field { name: string; label: string; type?: 'text' | 'textarea' | 'password' | 'select' | 'email'; options?: string[]; hint?: string; initial?: string; min?: number; max?: number }
 /**
- * A native <dialog>: focus is trapped and Esc closes it for free. The operation ID is minted each time it opens, so a retry after a
- * network error resends the same ID and the server applies the action once.
+ * The overlay sheet from the app: scrim, a deep-pool sheet (28 radius), title, a support line, pebble buttons. A native <dialog>, so focus is
+ * trapped and Esc closes it. The operation ID is minted when it opens: a retry after a network error resends it and the server applies the action once.
  */
 export function ActionDialog({ open, title, description, fields, confirm, danger, onClose, onSubmit }: {
   open: boolean; title: string; description?: ReactNode; fields: Field[]; confirm: string; danger?: boolean;
@@ -72,24 +110,28 @@ export function ActionDialog({ open, title, description, fields, confirm, danger
     e.preventDefault(); setBusy(true); setError(null);
     try { await onSubmit(values, op.current); } catch (err) { setError(err); setBusy(false); }
   };
+  const set = (name: string, v: string) => setValues(s => ({ ...s, [name]: v }));
   return (
-    <dialog ref={ref} onClose={onClose} aria-labelledby="dlg-title" className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-2xl border border-line bg-panel p-0 text-ink">
+    <dialog ref={ref} onClose={onClose} onClick={e => { if (e.target === ref.current) onClose(); }} aria-labelledby="dlg-title"
+      className="pool m-auto w-[min(26.25rem,calc(100vw-2rem))] rounded-[28px] p-0 max-h-[calc(100dvh-2rem)]">
       <form onSubmit={submit} className="flex flex-col gap-4 p-6">
-        <h2 id="dlg-title" className={`text-lg font-semibold ${danger ? 'text-danger' : ''}`}>{title}</h2>
-        {description && <div className="text-sm text-muted">{description}</div>}
+        <div className="text-center">
+          <h2 id="dlg-title" className="headline">{title}</h2>
+          {description && <div className="support mt-2.5 leading-relaxed">{description}</div>}
+        </div>
         {fields.map(f => (
-          <label key={f.name} className="flex flex-col gap-1.5 text-sm font-medium">
-            {f.label}
-            {f.type === 'textarea' ? <textarea required minLength={f.min} maxLength={f.max} rows={4} className={`${inputClass} py-2`} value={values[f.name] ?? ''} onChange={e => setValues({ ...values, [f.name]: e.target.value })} />
-              : f.type === 'select' ? <select className={inputClass} value={values[f.name] ?? ''} onChange={e => setValues({ ...values, [f.name]: e.target.value })}>{f.options?.map(o => <option key={o}>{o}</option>)}</select>
-                : <input required minLength={f.min} maxLength={f.max} type={f.type ?? 'text'} autoComplete="off" className={inputClass} value={values[f.name] ?? ''} onChange={e => setValues({ ...values, [f.name]: e.target.value })} />}
-            {f.hint && <span className="text-xs font-normal text-muted">{f.hint}</span>}
+          <label key={f.name} className="flex flex-col gap-1.5">
+            <span className="section-title">{f.label}</span>
+            {f.type === 'textarea' ? <textarea required minLength={f.min} maxLength={f.max} className="field" value={values[f.name] ?? ''} onChange={e => set(f.name, e.target.value)} />
+              : f.type === 'select' ? <select className="field" value={values[f.name] ?? ''} onChange={e => set(f.name, e.target.value)}>{f.options?.map(o => <option key={o}>{o}</option>)}</select>
+                : <input required minLength={f.min} maxLength={f.max} type={f.type ?? 'text'} autoComplete="off" className="field" value={values[f.name] ?? ''} onChange={e => set(f.name, e.target.value)} />}
+            {f.hint && <span className="support">{f.hint}</span>}
           </label>
         ))}
         {error != null && <ErrorNote error={error} />}
-        <div className="flex justify-end gap-2">
-          <Button type="button" onClick={onClose}>Cancel</Button>
+        <div className="flex flex-col gap-2">
           <Button type="submit" variant={danger ? 'danger' : 'primary'} disabled={busy} aria-busy={busy}>{busy ? 'Working…' : confirm}</Button>
+          <Button type="button" onClick={onClose}>Cancel</Button>
         </div>
       </form>
     </dialog>
