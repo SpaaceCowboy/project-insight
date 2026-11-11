@@ -7,7 +7,7 @@ export function AuditList({ rows, showPlayer = true }: { rows: AuditRow[]; showP
   return (
     <ul className="flex flex-col gap-2.5">
       {rows.map(r => (
-        <li key={r.id} className="glass rounded-2xl px-4 py-3.5">
+        <li key={r.id} className="card px-4 py-3">
           <div className="flex items-baseline justify-between gap-3">
             <p className="text-sm font-semibold tracking-wide">{actionLabel(r.action)}</p>
             <p className="support flex-none" title={when(r.created_at)}>{ago(r.created_at)}</p>

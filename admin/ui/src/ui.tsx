@@ -13,11 +13,11 @@ export const Chip = ({ children, tone }: { children: ReactNode; tone?: 'ok' | 'w
 
 type Variant = 'menu' | 'primary' | 'danger';
 export function Button({ variant = 'menu', className, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
-  return <button {...props} className={cx('pebble', `pebble-${variant}`, className)} />;
+  return <button {...props} className={cx('key pebble', variant === 'primary' && 'key-primary', variant === 'danger' && 'key-danger', className)} />;
 }
 
 export function BackButton({ href, label }: { href: string; label: string }) {
-  return <a href={href} aria-label={label} className="round"><BackIcon /></a>;
+  return <a href={href} aria-label={label} className="key round"><BackIcon /></a>;
 }
 
 /** Page anatomy from the app: round Back, then the title over a quiet subtitle, then content. */
@@ -38,7 +38,7 @@ export function PageHeader({ title, subtitle, back, aside, eyebrow }: { title: R
 export function Tabs<T extends string>({ value, onChange, items, label }: { value: T; onChange: (v: T) => void; items: { id: T; label: string }[]; label: string }) {
   return (
     <div role="tablist" aria-label={label} className="tabs">
-      {items.map(t => <button key={t.id} role="tab" type="button" aria-selected={value === t.id} className="tab" onClick={() => onChange(t.id)}>{t.label}</button>)}
+      {items.map(t => <button key={t.id} role="tab" type="button" aria-selected={value === t.id} className="key tab" onClick={() => onChange(t.id)}>{t.label}</button>)}
     </div>
   );
 }
@@ -48,15 +48,14 @@ export const Section = ({ title, children }: { title?: string; children: ReactNo
 );
 
 export function Stat({ label, value }: { label: string; value: ReactNode }) {
-  return <div className="glass rounded-2xl p-3.5"><p className="eyebrow">{label}</p><p className="mt-2 text-2xl leading-none">{value}</p></div>;
+  return <div className="card px-3.5 py-3"><p className="eyebrow">{label}</p><p className="mt-1.5 text-xl leading-none">{value}</p></div>;
 }
 
 /** A whole-row pebble: label and a line of support on the left, a chevron on the right. */
 export function ActionRow({ title, support, onClick, tone, disabled }: { title: string; support?: ReactNode; onClick: () => void; tone?: 'danger' | 'primary'; disabled?: boolean }) {
   return (
     <button type="button" disabled={disabled} onClick={onClick}
-      className={cx('flex min-h-14 w-full items-center gap-3 rounded-[14px] border px-4 py-2.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40',
-        tone === 'primary' ? 'border-accent bg-accent text-accent-ink hover:brightness-105' : tone === 'danger' ? 'border-danger/60 bg-glass hover:bg-danger/10' : 'glass hover:bg-accent/10')}>
+      className={cx('key flex min-h-14 w-full items-center gap-3 px-4 py-2.5 text-left', tone === 'primary' && 'key-primary')}>
       <span className="min-w-0 flex-1">
         <span className={cx('block text-sm font-semibold tracking-wide', tone === 'danger' && 'text-danger')}>{title}</span>
         {support && <span className={cx('mt-0.5 block text-xs', tone === 'primary' ? 'opacity-80' : 'text-muted')}>{support}</span>}
@@ -67,11 +66,11 @@ export function ActionRow({ title, support, onClick, tone, disabled }: { title: 
 }
 
 export function Loading({ label }: { label: string }) { return <p role="status" className="support py-16 text-center">{label}…</p>; }
-export function Empty({ children }: { children: ReactNode }) { return <p className="glass rounded-2xl p-8 text-center text-sm text-muted">{children}</p>; }
+export function Empty({ children }: { children: ReactNode }) { return <p className="card p-8 text-center text-sm text-muted">{children}</p>; }
 export function ErrorNote({ error, retry }: { error: unknown; retry?: () => void }) {
   const e = error instanceof ApiError ? error : null;
   return (
-    <div role="alert" className="rounded-2xl border border-danger/60 bg-glass p-4 text-sm">
+    <div role="alert" className="rounded-2xl border border-danger/70 p-4 text-sm">
       <p className="font-semibold text-danger">{e?.message ?? 'Something went wrong.'}</p>
       {e?.correlationId && <p className="support mt-1">ref {e.correlationId}</p>}
       {retry && <Button className="mt-3" onClick={retry}>Try again</Button>}
@@ -83,7 +82,7 @@ export function ErrorNote({ error, retry }: { error: unknown; retry?: () => void
 export function useToast() {
   const [text, setText] = useState('');
   useEffect(() => { if (!text) return; const t = setTimeout(() => setText(''), 5000); return () => clearTimeout(t); }, [text]);
-  const node = <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-5 z-50 flex justify-center px-4">{text && <p className="pool pointer-events-auto rounded-[14px] px-5 py-3.5 text-sm font-semibold">{text}</p>}</div>;
+  const node = <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-5 z-50 flex justify-center px-4">{text && <p className="sheet pointer-events-auto rounded-[14px] px-5 py-3.5 text-sm font-semibold">{text}</p>}</div>;
   return [setText, node] as const;
 }
 
@@ -113,7 +112,7 @@ export function ActionDialog({ open, title, description, fields, confirm, danger
   const set = (name: string, v: string) => setValues(s => ({ ...s, [name]: v }));
   return (
     <dialog ref={ref} onClose={onClose} onClick={e => { if (e.target === ref.current) onClose(); }} aria-labelledby="dlg-title"
-      className="pool m-auto w-[min(26.25rem,calc(100vw-2rem))] rounded-[28px] p-0 max-h-[calc(100dvh-2rem)]">
+      className="sheet m-auto w-[min(26.25rem,calc(100vw-2rem))] rounded-[28px] p-0 max-h-[calc(100dvh-2rem)]">
       <form onSubmit={submit} className="flex flex-col gap-4 p-6">
         <div className="text-center">
           <h2 id="dlg-title" className="headline">{title}</h2>

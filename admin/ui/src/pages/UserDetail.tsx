@@ -59,16 +59,16 @@ export function UserDetail({ id, mail }: { id: string; mail: boolean }) {
       <Tabs label="Player sections" value={tab} onChange={setTab} items={TABS} />
 
       {tab === 'overview' && <>
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+        <div className="grid grid-cols-3 gap-2.5 md:grid-cols-6">
           <Stat label="Level" value={s.level} /><Stat label="XP" value={s.xp.toLocaleString()} /><Stat label="Sessions" value={s.sessions} />
           <Stat label="Campaign" value={s.campaign} /><Stat label="Community" value={s.community} /><Stat label="Published" value={s.published} />
         </div>
-        <dl className="glass grid grid-cols-2 gap-x-4 gap-y-3.5 rounded-2xl p-4 text-sm">
+        <dl className="card grid grid-cols-2 gap-x-4 gap-y-3.5 p-4 text-sm md:grid-cols-4">
           {[['Signs in with', u.google ? 'Google or password' : 'Password'], ['Joined', when(u.created_at)], ['Last active', s.lastActive ?? '—'], ['Unread messages', s.unreadMessages]].map(([k, v]) => <div key={k as string}><dt className="eyebrow">{k}</dt><dd className="mt-1.5">{v as ReactNode}</dd></div>)}
         </dl>
         {deleted ? (
           <Section title="Account"><ActionRow tone="primary" title="Restore this account" support="Brings the player and their levels back" onClick={open('restore')} /></Section>
-        ) : <>
+        ) : <div className="grid items-start gap-6 md:grid-cols-2">
           <Section title="Account">
             <ActionRow title="Change username" support={u.username} onClick={open('rename')} />
             <ActionRow title="Change email" support={u.email} onClick={open('email')} />
@@ -80,14 +80,14 @@ export function UserDetail({ id, mail }: { id: string; mail: boolean }) {
               : <ActionRow title="Suspend this player" support="Blocks sign-in and hides them" onClick={open('suspend')} />}
             <ActionRow title="Delete this account" support="Restorable. Nothing is erased" onClick={open('softDelete')} />
           </Section>
-        </>}
+        </div>}
         <Section title="Danger zone">
           <ActionRow tone="danger" title="Delete permanently" support="Erases the player and their levels. Cannot be undone" onClick={open('hard')} />
         </Section>
       </>}
 
       {tab === 'payments' && <Section>
-        <div className="glass flex flex-col gap-3 rounded-2xl p-4">
+        <div className="card flex flex-col gap-3 p-4">
           <div className="flex items-center justify-between gap-3"><div><p className="eyebrow">Worlds</p><p className="mt-2 text-2xl leading-none">{ent?.status ?? 'none'}</p></div>
             <Chip tone={ent?.status === 'active' ? 'ok' : undefined}>{ent ? ent.source : 'no record'}</Chip></div>
           {ent ? <p className="support">Updated {ago(ent.updated_at)}{ent.note ? <> · “{ent.note}”</> : null}</p> : <p className="support">This player has never had a Worlds record.</p>}
@@ -106,7 +106,7 @@ export function UserDetail({ id, mail }: { id: string; mail: boolean }) {
       {tab === 'history' && <>
         <Section title="Activity"><AuditList rows={u.history} showPlayer={false} /></Section>
         {u.feedback.length > 0 && <Section title="Feedback and bug reports">
-          <ul className="flex flex-col gap-2.5">{u.feedback.map((f: any) => <li key={f.id} className="glass flex items-center justify-between gap-3 rounded-2xl px-4 py-3.5"><span className="text-sm font-semibold">{f.kind === 'bug' ? 'Bug report' : 'Feedback'}</span><span className="support">v{f.app_version || '?'} · {ago(f.created_at)}</span></li>)}</ul>
+          <ul className="flex flex-col gap-2.5">{u.feedback.map((f: any) => <li key={f.id} className="card flex items-center justify-between gap-3 px-4 py-3"><span className="text-sm font-semibold">{f.kind === 'bug' ? 'Bug report' : 'Feedback'}</span><span className="support">v{f.app_version || '?'} · {ago(f.created_at)}</span></li>)}</ul>
         </Section>}
       </>}
 

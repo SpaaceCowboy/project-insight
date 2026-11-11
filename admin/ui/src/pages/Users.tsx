@@ -35,11 +35,11 @@ export function Users() {
       <Tabs label="Filter by status" value={status} onChange={v => { setStatus(v); setPage(0); }} items={FILTERS} />
       {error != null ? <ErrorNote error={error} retry={() => setTick(t => t + 1)} /> : !data ? <Loading label="Loading players" /> : data.users.length === 0 ? <Empty>No players match.</Empty> : (
         <>
-          <ul className="flex flex-col gap-2.5">
+          <ul className="flex flex-col gap-2">
             {data.users.map(u => (
               <li key={u.id}>
-                <a href={`#/users/${u.id}`} className="row-link glass">
-                  <Avatar id={u.id} name={u.username} />
+                <a href={`#/users/${u.id}`} className="row-link card">
+                  <Avatar id={u.id} name={u.username} size={38} />
                   <span className="min-w-0 flex-1">
                     <span className="title block truncate">{u.username}</span>
                     <span className="support block truncate">{u.email}</span>
