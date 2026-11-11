@@ -43,7 +43,7 @@ export default function CheckoutSheet({shown, onClose}) {
       {checkout.simulated && <p className="notice">This was a test run. No payment was taken and nothing was unlocked.</p>}
       <button type="button" className="key primary" onClick={onClose}>Done</button>
     </> : <>
-      <p>A one-time purchase: pay once and keep the whole community side of Midori. Journey stays free.</p>
+      <p>A one-time purchase to play community puzzles and publish your own boards. Journey stays free.</p>
       {WORLDS_PRICE ? <span className="price">{WORLDS_PRICE}</span> : <p className="notice">Price announced soon.</p>}
       <ul>{WORLDS_INCLUDES.map(text => <li key={text}><Icon name="check" /><span>{text}</span></li>)}</ul>
 

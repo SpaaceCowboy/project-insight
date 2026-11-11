@@ -4,6 +4,7 @@ import {resolve} from 'node:path';
 
 export default defineConfig({
   plugins: [react()],
+  optimizeDeps: {include: ['react-dom']},
   build: {
     rollupOptions: {
       input: {

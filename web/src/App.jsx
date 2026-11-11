@@ -5,6 +5,7 @@ import Hero from './sections/Hero.jsx';
 import Intro from './sections/Intro.jsx';
 import Tiles from './sections/Tiles.jsx';
 import Modes from './sections/Modes.jsx';
+import Create from './sections/Create.jsx';
 import Screens from './sections/Screens.jsx';
 import Faq from './sections/Faq.jsx';
 import Footer from './sections/Footer.jsx';
@@ -25,6 +26,7 @@ export default function App() {
       <Intro />
       <Tiles onSandbox={sandbox} />
       <Modes onUnlock={unlock} />
+      <Create onUnlock={unlock} />
       <Screens />
       <Faq />
       <Footer onUnlock={unlock} />

@@ -20,6 +20,7 @@ export default function Header({onUnlock}) {
         <a href="#play">Play</a>
         <a href="#tiles">Tiles</a>
         <a href="#modes">Journey &amp; Worlds</a>
+        <a href="#create">Create</a>
         <a href="#faq">Questions</a>
       </nav>
       <div className="header-actions">

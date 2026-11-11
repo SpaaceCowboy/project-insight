@@ -1,11 +1,11 @@
 import {useEffect, useMemo, useState} from 'react';
-import {Board, TargetMini, TileFace} from '../game/Board.jsx';
+import {Board, TargetMini} from '../game/Board.jsx';
 import HeroField from '../game/HeroField.jsx';
 import {useBoard} from '../game/useBoard.js';
 import {LEVELS, SANDBOX} from '../game/levels.js';
 import {TILES, TILE_ORDER} from '../game/tileArt.js';
 import {LEVEL_COUNT} from '../config.js';
-import {Icon, Live, PlayButton} from '../ui.jsx';
+import {Icon, PlayButton} from '../ui.jsx';
 
 /** Small tile-coloured squares thrown from the board when a level is solved. */
 function Burst() {
@@ -46,20 +46,18 @@ function Stage({level, last, picker, onNext, onSolved}) {
       <p className="stage-title"><span className="label">{sandbox ? 'Free play' : `Journey · level ${level.id}`}</span>{level.name}</p>
       {level.target && <div className="stage-target"><span className="label">Target</span><TargetMini board={level.target} /></div>}
     </div>
-    <div className={'platform' + (game.solved ? ' solved' : '')}>
+    <div ref={game.platformRef} className={'platform' + (game.ui.resetting ? ' resetting' : game.solved ? ' solved' : '')}>
       <Board game={game} label={`${level.name} board`} />
-      {game.solved && <Burst />}
+      {game.solved && !game.ui.resetting && <Burst />}
     </div>
     <div className="stage-controls">
-      <button type="button" className="key icon" onClick={game.restart} aria-label="Restart this board"><Icon name="restart" /></button>
-      {!sandbox && <button type="button" className="key icon" onClick={game.hint} disabled={game.solved} aria-label="Show a hint"><Icon name="lamp" /></button>}
+      <button type="button" className="key icon" onClick={game.restart} disabled={!!game.ui.moving} aria-label="Restart this board"><Icon name="restart" /></button>
+      {!sandbox && <button type="button" className="key icon" onClick={game.hint} disabled={game.solved || !!game.ui.moving} aria-label="Show a hint"><Icon name="lamp" /></button>}
       {picker}
     </div>
     <p className={'stage-note' + (won ? ' win' : '')} role="status">{note}</p>
   </>;
 }
-
-const BAND = ['Journey is free', `${LEVEL_COUNT} handcrafted levels`, 'No timers', 'Six tiles, six rules', 'No ads', 'Plays offline'];
 
 export default function Hero({index, setIndex, onUnlock}) {
   const [done, setDone] = useState(() => new Set());
@@ -90,12 +88,5 @@ export default function Hero({index, setIndex, onUnlock}) {
         </div>
       </div>
     </section>
-    <Live className="band" aria-hidden="true">
-      <div className="band-track">
-        {[0, 1].map(copy => <ul key={copy}>
-          {BAND.map((text, i) => <li key={text}><TileFace type={TILE_ORDER[i]} />{text}</li>)}
-        </ul>)}
-      </div>
-    </Live>
   </>;
 }
