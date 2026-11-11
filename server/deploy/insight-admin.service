@@ -1,0 +1,25 @@
+# /etc/systemd/system/insight-admin.service  (control dashboard; runs beside insight-online.service)
+[Unit]
+Description=Midori control dashboard
+Wants=network-online.target insight-rate-limit-redis.service
+After=network-online.target insight-online.service insight-rate-limit-redis.service
+
+[Service]
+User=insight
+Group=insight
+WorkingDirectory=/opt/insight-online/admin
+# Same private environment as the API (DATABASE_URL, ENCRYPTION_KEY, SMTP_*, MAIL_*, RATE_LIMIT_REDIS_URL, TRUST_PROXY).
+EnvironmentFile=/opt/insight-online/.env
+Environment=NODE_ENV=production HOST=127.0.0.1 PORT=4000 ADMIN_UI_DIR=/opt/insight-online/admin/ui/dist
+# This host tries IPv6 first and its IPv6 route misbehaves (see the Firebase note in DEPLOYMENT.md); SMTP to Gmail needs the same fix as the API.
+Environment=NODE_OPTIONS=--dns-result-order=ipv4first
+ExecStart=/opt/node/bin/node dist/admin/src/main.js
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -36,6 +36,39 @@ cd ui && npm run dev             # UI on :5190, proxies /api to :4000
 TEST_DATABASE_URL=postgresql://... npm run test:integration   # isolated schema per run
 ```
 
-## Deploy
+## Deploy (the native VPS: systemd + host nginx, as in DEPLOYMENT.md)
 
-`compose.yaml` defines the `admin` service (127.0.0.1:4000, starts after the API is healthy so migration `012_admin.sql` has run). `server/deploy/cp-nginx.conf` + `cp-proxy.conf` are the host-nginx server block and snippet; they need the DNS record for `cp.midoripuzzle.com` and a Let's Encrypt certificate (command in the file). Set real SMTP credentials and `MAIL_DELIVERY_MODE=smtp` (the VPS override defaults to the test inbox) or emails will not reach players.
+Prerequisites: DNS A record `cp.midoripuzzle.com` to the VPS; the API's `/opt/insight-online/.env` already has working SMTP (`MAIL_DELIVERY_MODE=smtp`, `SMTP_*`, `MAIL_FROM`), since the dashboard shares it.
+
+```sh
+# 1. Back up, then update the source (preserve .env, certificates, backups) and let the API apply migration 012
+/opt/insight-online/server/deploy/native-backup.sh
+cd /opt/insight-online/server && PATH=/opt/node/bin:$PATH npm ci && PATH=/opt/node/bin:$PATH npm run build
+chown -R insight:insight /opt/insight-online/server /opt/insight-online/admin && systemctl restart insight-online
+curl --fail https://13.140.89.146/health
+
+# 2. Build the dashboard
+cd /opt/insight-online/admin && PATH=/opt/node/bin:$PATH npm ci && PATH=/opt/node/bin:$PATH npm run build
+cd ui && PATH=/opt/node/bin:$PATH npm ci && PATH=/opt/node/bin:$PATH npm run build
+chown -R insight:insight /opt/insight-online/admin
+
+# 3. Service
+install -m 644 /opt/insight-online/server/deploy/insight-admin.service /etc/systemd/system/insight-admin.service
+systemctl daemon-reload && systemctl enable --now insight-admin
+curl --fail http://127.0.0.1:4000/health
+
+# 4. First admin (printed once; keep it out of logs)
+(umask 077; set -a; . /opt/insight-online/.env; set +a; cd /opt/insight-online/admin; runuser -u insight -- /opt/node/bin/node dist/admin/src/create-admin.js you@example.com > ~/cp-admin.json)
+
+# 5. nginx + certificate
+install -d /var/www/cp-acme
+install -m 644 /opt/insight-online/server/deploy/cp-proxy.conf /etc/nginx/snippets/cp-proxy.conf
+install -m 644 /opt/insight-online/server/deploy/cp-nginx-http.conf /etc/nginx/conf.d/cp.conf && nginx -t && systemctl reload nginx
+/opt/insight-online/certbot/bin/certbot certonly --webroot -w /var/www/cp-acme -d cp.midoripuzzle.com \
+  --config-dir /opt/insight-online/acme/config --work-dir /opt/insight-online/acme/work --logs-dir /opt/insight-online/acme/logs \
+  --deploy-hook "systemctl reload nginx"
+install -m 644 /opt/insight-online/server/deploy/cp-nginx.conf /etc/nginx/conf.d/cp.conf && nginx -t && systemctl reload nginx
+curl --fail https://cp.midoripuzzle.com/health
+```
+
+`compose.yaml` also defines an `admin` service for Docker-based development; production uses the unit above.
