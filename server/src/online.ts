@@ -208,9 +208,12 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
     const b = req.body as any; replay(b,b.path);
     const owner = user(req), id = randomUUID();
     // operation() holds the account lock, so two publishes at once cannot both pass the count. Days are UTC, like XP and discovery.
-    const today = (await c.query("SELECT count(*)::int AS n FROM grids WHERE owner_id=$1 AND published_at >= (date_trunc('day',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')",[owner])).rows[0].n;
-    const limit = config.developerUserIds?.includes(owner) ? Infinity : config.createDailyLimit ?? 10;
-    requireValue(today < limit,'DAILY_LIMIT',`You have reached the daily limit of ${limit} puzzles. Try again tomorrow.`,403);
+    // No daily cap unless the operator asks for one with CREATE_DAILY_LIMIT; developer accounts stay exempt.
+    const limit = config.developerUserIds?.includes(owner) ? Infinity : config.createDailyLimit ?? Infinity;
+    if (limit !== Infinity) {
+      const today = (await c.query("SELECT count(*)::int AS n FROM grids WHERE owner_id=$1 AND published_at >= (date_trunc('day',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')",[owner])).rows[0].n;
+      requireValue(today < limit,'DAILY_LIMIT',`You have reached the daily limit of ${limit} puzzles. Try again tomorrow.`,403);
+    }
     // operation() holds the account lock, serializing creator numbers and retries.
     const number = (await c.query('SELECT coalesce(max(level_number),0)+1 AS n FROM grids WHERE owner_id=$1',[owner])).rows[0].n;
     let code = '';

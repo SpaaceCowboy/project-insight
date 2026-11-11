@@ -36,39 +36,25 @@ cd ui && npm run dev             # UI on :5190, proxies /api to :4000
 TEST_DATABASE_URL=postgresql://... npm run test:integration   # isolated schema per run
 ```
 
-## Deploy (the native VPS: systemd + host nginx, as in DEPLOYMENT.md)
+## Deploy (the native VPS: systemd + host nginx; deployed 11 November 2026)
 
-Prerequisites: DNS A record `cp.midoripuzzle.com` to the VPS; the API's `/opt/insight-online/.env` already has working SMTP (`MAIL_DELIVERY_MODE=smtp`, `SMTP_*`, `MAIL_FROM`), since the dashboard shares it.
+Live at `https://cp.midoripuzzle.com`, behind Cloudflare (Full mode). The VPS's `/opt/insight-online/server` is **not** a git checkout, and its `dist/` is built elsewhere (release directories `/opt/insight-release-NNN`); never run `npm run build` in its `src/`, which is stale. The dashboard therefore ships as a prebuilt bundle and never touches the API's `dist/`.
 
 ```sh
-# 1. Back up, then update the source (preserve .env, certificates, backups) and let the API apply migration 012
-/opt/insight-online/server/deploy/native-backup.sh
-cd /opt/insight-online/server && PATH=/opt/node/bin:$PATH npm ci && PATH=/opt/node/bin:$PATH npm run build
-chown -R insight:insight /opt/insight-online/server /opt/insight-online/admin && systemctl restart insight-online
-curl --fail https://13.140.89.146/health
-
-# 2. Build the dashboard
-cd /opt/insight-online/admin && PATH=/opt/node/bin:$PATH npm ci && PATH=/opt/node/bin:$PATH npm run build
-cd ui && PATH=/opt/node/bin:$PATH npm ci && PATH=/opt/node/bin:$PATH npm run build
-chown -R insight:insight /opt/insight-online/admin
-
-# 3. Service
-install -m 644 /opt/insight-online/server/deploy/insight-admin.service /etc/systemd/system/insight-admin.service
-systemctl daemon-reload && systemctl enable --now insight-admin
-curl --fail http://127.0.0.1:4000/health
-
-# 4. First admin (printed once; keep it out of logs)
-(umask 077; set -a; . /opt/insight-online/.env; set +a; cd /opt/insight-online/admin; runuser -u insight -- /opt/node/bin/node dist/admin/src/create-admin.js you@example.com > ~/cp-admin.json)
-
-# 5. nginx + certificate
-install -d /var/www/cp-acme
-install -m 644 /opt/insight-online/server/deploy/cp-proxy.conf /etc/nginx/snippets/cp-proxy.conf
-install -m 644 /opt/insight-online/server/deploy/cp-nginx-http.conf /etc/nginx/conf.d/cp.conf && nginx -t && systemctl reload nginx
-/opt/insight-online/certbot/bin/certbot certonly --webroot -w /var/www/cp-acme -d cp.midoripuzzle.com \
-  --config-dir /opt/insight-online/acme/config --work-dir /opt/insight-online/acme/work --logs-dir /opt/insight-online/acme/logs \
-  --deploy-hook "systemctl reload nginx"
-install -m 644 /opt/insight-online/server/deploy/cp-nginx.conf /etc/nginx/conf.d/cp.conf && nginx -t && systemctl reload nginx
-curl --fail https://cp.midoripuzzle.com/health
+# Build locally (from admin/): tsc output + the SPA
+npm ci && npm run build && (cd ui && npm ci && npm run build)
+tar cf - admin/dist admin/package.json admin/package-lock.json admin/ui/dist ... | ssh root@VPS 'tar xf - -C /opt/insight-online'   # keep dist/ and ui/dist layout
+ssh root@VPS 'cd /opt/insight-online/admin && PATH=/opt/node/bin:$PATH npm ci --omit=dev && chown -R insight:insight . && systemctl restart insight-admin'
 ```
 
-`compose.yaml` also defines an `admin` service for Docker-based development; production uses the unit above.
+One-time setup, already done:
+- Migration `012_admin.sql` copied to `/opt/insight-online/server/migrations/` and applied with `dist/migrate.js` (any API restart applies it too). Additive only.
+- The six API files changed for retained completions (`auth.js discovery.js mail.js online.js rate-limit.js rate-store.js`) were copied over the live `dist/`; the previous `dist/` is `/opt/insight-rollback-before-admin/dist`.
+- `server/deploy/insight-admin.service` -> `/etc/systemd/system/` (reads `/opt/insight-online/.env`; `ADMIN_PORT`, not `PORT`, because the env file sets `PORT=3000` and beats `Environment=`).
+- nginx: `cp-proxy.conf` and `cp-cloudflare-realip.conf` -> `/etc/nginx/snippets/`; `cp-nginx.conf` -> `/etc/nginx/sites-enabled/zz-cp.conf`. The `zz-` prefix is load-bearing: the first-loaded 443 server is nginx's default, and `sites-enabled/insight` must stay it so the app (which connects by IP, no SNI) keeps getting the IP certificate. Refresh the Cloudflare ranges occasionally.
+- Certificate: `/opt/certbot/bin/certbot certonly --webroot -w /var/www/insight-acme -d cp.midoripuzzle.com`; the existing `insight-certificate.timer` renews it.
+- Admin account: `create-admin.js` as above, run with the API's env as user `insight`.
+
+Rollback: `systemctl disable --now insight-admin`, remove `sites-enabled/zz-cp.conf` and reload nginx. To undo the API files, copy `/opt/insight-rollback-before-admin/dist/*.js` back and restart `insight-online` (migration 012 stays; it is additive).
+
+Email: the dashboard reads the API's SMTP settings. With `MAIL_DELIVERY_MODE=disabled` (the current production value) the reset-code and email actions answer "Email delivery is disabled" and queue nothing.
