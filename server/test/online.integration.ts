@@ -286,6 +286,15 @@ test('a player can publish ten puzzles a UTC day; the eleventh is refused and a 
  } finally { await limited.close(); }
 });
 
+test('without CREATE_DAILY_LIMIT a player can publish more than ten puzzles a UTC day',async()=>{
+ const unlimited=await buildApp(db,{...config,createDailyLimit:undefined},false); await unlimited.ready();
+ try {
+  const a=await makeAccount();
+  const publish=(n:number)=>unlimited.inject({method:'POST',url:'/v1/grids',remoteAddress:`10.7.${n}.1`,headers:{authorization:`Bearer ${a.accessToken}`},payload:{operationId:op(),...custom(n+700)}});
+  for(let n=0;n<11;n++) assert.equal((await publish(n)).statusCode,200);
+ } finally { await unlimited.close(); }
+});
+
 test('accounts in DEVELOPER_USER_IDS are exempt from the daily limit; others are not',async()=>{
  const a=await makeAccount(),b=await makeAccount();
  const limited=await buildApp(db,{...config,createDailyLimit:2,developerUserIds:[a.user.id.toLowerCase()]},false); await limited.ready();

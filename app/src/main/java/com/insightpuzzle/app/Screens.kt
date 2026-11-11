@@ -106,6 +106,8 @@ private val MODE_SHAPE = RoundedCornerShape(18)
 @Composable
 fun HomeScreen(m: GameModel) {
     val p = LocalPalette.current
+    // The Worlds key shows the account's last known counts at once from the saved copy; ask the server for fresh ones while Home is open.
+    LaunchedEffect(m.online.user?.id) { if (m.online.user != null) m.online.refreshProgress() }
     // Home has no text field, so the keyboard never shrinks it: the safe area without the keyboard (the navigation bar's room stays, as in [appInsets]).
     BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(homeInsets).padding(16.dp)) {
         val compact = maxHeight < 640.dp
@@ -549,7 +551,7 @@ fun AchievementsScreen(m: GameModel, player: Route.PlayerAchievements? = null) {
 
 /** The result: two text-free bars along the bottom (restart left, next right), in the page colours, with the solved board still visible above. GameScreen animates it in and out; while it leaves ([interactive] false) nothing in it can be pressed again. */
 @Composable
-fun WinPopup(m: GameModel, interactive: Boolean = true, onRestart: () -> Unit = { m.restart() }) {
+fun WinPopup(m: GameModel, interactive: Boolean = true, onRestart: () -> Unit = { m.restart() }, onNext: () -> Unit = { m.next() }) {
     val final = m.level == m.levels.size - 1
     val casual = m.community?.casual == true
     val nextEnabled = if (casual) !m.online.busy else if (m.community != null || final) true else m.canAccess(m.level + 1)
@@ -576,7 +578,7 @@ fun WinPopup(m: GameModel, interactive: Boolean = true, onRestart: () -> Unit = 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             // The restart itself plays its cue and haptic once (runRestart), so the button adds none of its own.
             WinButton("Restart level", Modifier.weight(1f), true, onRestart, cue = null) { restartIcon(ink) }
-            WinButton("Next level", Modifier.weight(1f), nextEnabled, { m.next() }, Cue.PRESS) { polyline(ink, 4f, 12f, 20f, 12f); polyline(ink, 14f, 6f, 20f, 12f); polyline(ink, 14f, 18f, 20f, 12f) }
+            WinButton("Next level", Modifier.weight(1f), nextEnabled, onNext, Cue.PRESS) { polyline(ink, 4f, 12f, 20f, 12f); polyline(ink, 14f, 6f, 20f, 12f); polyline(ink, 14f, 18f, 20f, 12f) }
         }
     }
 }

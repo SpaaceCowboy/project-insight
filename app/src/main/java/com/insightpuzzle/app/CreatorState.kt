@@ -25,8 +25,6 @@ class CreatorState(saved: String? = null, private val persist: (String) -> Unit 
     var holding by mutableStateOf<Char?>(null)
     var picked by mutableStateOf<Pos?>(null)
     var note by mutableStateOf("")
-    /** The server refused the last publish: today's puzzle limit is used up. Shown at the top of the last phase until the player leaves it or publishes again. */
-    var limitReached by mutableStateOf(false)
     var creationId = java.util.UUID.randomUUID().toString(); private set
     var previousTarget: Board? = null; private set
     /**
@@ -136,7 +134,7 @@ class CreatorState(saved: String? = null, private val persist: (String) -> Unit 
     fun tapPalette(type: Char) { holding = if (holding == type) null else type; note = "" }
 
     fun pressStart() {
-        if (phase != Phase.BUILD) { phase = Phase.BUILD; board = start!!; stash = merged(EMPTY_STASH, board); previousTarget = target; start = null; target = null; picked = null; note = ""; limitReached = false; checkPath.clear(); constructionPath.clear(); save(); return }
+        if (phase != Phase.BUILD) { phase = Phase.BUILD; board = start!!; stash = merged(EMPTY_STASH, board); previousTarget = target; start = null; target = null; picked = null; note = ""; checkPath.clear(); constructionPath.clear(); save(); return }
         val tiles = board.sumOf { row -> row.count { it != '.' } }
         if (tiles < 2) { note = tr("Place at least two tiles first."); return }
         val canMove = board.indices.any { r -> board[r].indices.any { c -> Rules.legalMoves(board, Pos(r, c)).isNotEmpty() } }
@@ -169,7 +167,7 @@ class CreatorState(saved: String? = null, private val persist: (String) -> Unit 
                 target = chosen; board = start!!; phase = Phase.CHECK; picked = null; note = ""; checkPath.clear()
                 creationId = java.util.UUID.randomUUID().toString(); save()
             }
-            Phase.CHECK -> { board = target!!; target = null; phase = Phase.SHAPE; picked = null; note = ""; limitReached = false; checkPath.clear(); save() }
+            Phase.CHECK -> { board = target!!; target = null; phase = Phase.SHAPE; picked = null; note = ""; checkPath.clear(); save() }
             Phase.BUILD -> Unit
         }
     }
@@ -177,7 +175,7 @@ class CreatorState(saved: String? = null, private val persist: (String) -> Unit 
     fun created() {
         phase = Phase.BUILD; board = Rules.fit(emptyList(), 3, 3); stash = EMPTY_STASH; start = null; target = null; previousTarget = null
         holding = null; picked = null; checkPath.clear(); constructionPath.clear()
-        creationId = java.util.UUID.randomUUID().toString(); note = tr("Puzzle created."); limitReached = false; save()
+        creationId = java.util.UUID.randomUUID().toString(); note = tr("Puzzle created."); save()
     }
 
     /** Clears a held palette tile or picked board tile. Returns true when something was cleared. */

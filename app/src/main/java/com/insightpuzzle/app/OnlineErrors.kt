@@ -25,7 +25,6 @@ fun playerErrorMessage(error: Throwable): String = when (error) {
         } else tr("Too many attempts. Please wait a few minutes and try again.")
         error.status >= 500 -> tr("Online is temporarily unavailable. Please try again shortly.")
         // The server's own wording is the key, so every message it can send a player is translated here; an unknown one is shown as it came.
-        error.code == "DAILY_LIMIT" -> tr("You have reached the daily limit of {0} puzzles. Try again tomorrow.", CREATE_DAILY_LIMIT)
         else -> tr(error.message)
     }
     is SocketTimeoutException -> tr("The connection timed out. Please check your internet connection and try again.")

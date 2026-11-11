@@ -50,6 +50,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -74,6 +75,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.liveRegion
@@ -91,6 +93,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -162,9 +165,22 @@ internal fun solveSwell(bloom: Float, diagonal: Int, maxDiagonal: Int = 8): Floa
     return ((bloom * BLOOM_MS - diagonal * BLOOM_STAGGER_MS) / window).coerceIn(0f, 1f)
 }
 
+/** How long a level or puzzle takes to slide out while the next one slides in, and how far its last/first sliver fades at the page margin. */
+private const val LEVEL_SLIDE_MS = 340
+private const val LEVEL_SLIDE_FADE = .08f
+/** After Next, the result bar sinks for this long before the board starts its slide. */
+private const val WIN_EXIT_MS = 350L
+
 /** What the game screen shows of the model: frozen while the screen slides away, so leaving an online puzzle never flashes the Journey board. */
-private class GameView(val spec: Level, val board: Board, val community: CommunityAttempt?, val level: Int, val solved: Boolean)
+private class GameView(val spec: Level, val board: Board, val community: CommunityAttempt?, val level: Int, val solved: Boolean) {
+    /** A level or a community puzzle; a change of this is what animates a swipe or Next. */
+    val identity: String get() = community?.let { "c:${it.id}" } ?: "j:$level"
+}
 private class GameViewHolder { var view: GameView? = null }
+/** A swipe or Next has been asked for; the slide starts when the model actually shows the new puzzle. */
+private class PendingSwap(val from: GameView, val direction: Int)
+/** The slide in flight: [from] is the settled board being left, [direction] 1 for next and -1 for previous. */
+private class LevelSwap(val from: GameView, val direction: Int)
 
 @Composable
 fun GameScreen(m: GameModel) {
@@ -172,6 +188,8 @@ fun GameScreen(m: GameModel) {
     val held = remember { GameViewHolder() }
     val now = GameView(m.spec, m.board, m.community, m.level, m.solved)
     val view = if (exiting) held.view ?: now else now.also { held.view = it }
+    // pointerInput runs once and keeps its first lambdas, so the swipe handler reads the view through this updated state.
+    val latestView by rememberUpdatedState(view)
     val spec = view.spec
     val community = view.community
     val solved = view.solved
@@ -181,8 +199,14 @@ fun GameScreen(m: GameModel) {
     val glow = remember { Animatable(0f) }
     val rewind = remember { Animatable(0f) }
     var rewinding by remember { mutableStateOf(false) }
-    val canRewind by rememberUpdatedState(!exiting && m.changed && !m.solved && !rewinding)
-    val canSwipe by rememberUpdatedState(m.community.let { it == null || it.casual || it.source != null } && Route.Win !in m.stack && !m.online.busy && !rewinding && m.guidePhase == 0)
+    // A swipe or Next is pending until the model shows the new puzzle; then one animation slides the old board out and the new one in.
+    var pendingSwap by remember { mutableStateOf<PendingSwap?>(null) }
+    var activeSwap by remember { mutableStateOf<LevelSwap?>(null) }
+    val swapSlide = remember { Animatable(0f) }
+    var advancing by remember { mutableStateOf(false) }
+    val canRewind by rememberUpdatedState(!exiting && m.changed && !m.solved && !rewinding && pendingSwap == null && activeSwap == null && !advancing)
+    val canSwipe by rememberUpdatedState(m.community.let { it == null || it.casual || it.source != null } && Route.Win !in m.stack && !m.online.busy && !rewinding &&
+        m.guidePhase == 0 && pendingSwap == null && activeSwap == null && !advancing)
     val reduceMotion by rememberUpdatedState(LocalReduceMotion.current)
     // Every time the game screen appears (from Home or Worlds, back from Options or the Journey level screen, a level picked there) the outline and its grid
     // start a little up and settle down into place. A screen is composed fresh each time it comes back; moving between puzzles, or winning, does not compose
@@ -196,6 +220,31 @@ fun GameScreen(m: GameModel) {
         androidx.compose.runtime.snapshotFlow { (sheet?.progress?.value ?: 1f) >= 1f && cover() <= .02f }.first { it }
         lift.animateTo(0f, tween(BOARD_SETTLE_MS, easing = FastOutSlowInEasing))
     }
+    // The first-play tips wait for the screen to settle, then another half second, so Journey 1 is seen before its borders and text arrive.
+    LaunchedEffect(m.onboardPending, m.top) {
+        if (!m.onboardPending) return@LaunchedEffect
+        androidx.compose.runtime.snapshotFlow { m.top == Route.Game && (sheet?.progress?.value ?: 1f) >= 1f && cover() <= .02f }.first { it }
+        delay(500)
+        if (m.onboardPending && m.top == Route.Game && m.level == 0 && m.community == null && m.guideOn && !exiting) m.revealOnboardGuide()
+        else m.cancelOnboardGuide()
+    }
+    // The model has changed to the puzzle the player swiped or pressed Next for: freeze the old board and slide it away while the new one arrives.
+    LaunchedEffect(view.identity) {
+        val pending = pendingSwap
+        if (pending != null && pending.from.identity != view.identity) {
+            pendingSwap = null
+            if (reduceMotion) return@LaunchedEffect
+            swapSlide.snapTo(0f)
+            activeSwap = LevelSwap(pending.from, pending.direction)
+            swapSlide.animateTo(1f, tween(LEVEL_SLIDE_MS, easing = FastOutSlowInEasing))
+            activeSwap = null
+        }
+    }
+    // A failed online request leaves the old board where it is; a route change (the end of a list, or Back) ends the request too.
+    LaunchedEffect(m.online.busy, view.identity) {
+        if (!m.online.busy) pendingSwap?.let { if (it.from.identity == view.identity) pendingSwap = null }
+    }
+    LaunchedEffect(m.top) { if (m.top != Route.Game) pendingSwap = null }
     // Where things are, for telling the hold zone and the swipe zones apart.
     var root by remember { mutableStateOf<LayoutCoordinates?>(null) }
     var shellBox by remember { mutableStateOf<LayoutCoordinates?>(null) }
@@ -220,7 +269,33 @@ fun GameScreen(m: GameModel) {
             rewinding = false; rewind.snapTo(0f); glow.animateTo(0f, tween(220))
         }
     }
-    Box(Modifier.fillMaxSize().windowInsetsPadding(appInsets).onGloballyPositioned { root = it; refresh() }.semantics {
+    /**
+     * Next on the result bar: the bar sinks first (as it always did), then the same platform slide opens the next level or puzzle. If the
+     * next step leaves the game (the campaign's end, the end of a list), the game's own screen transition takes over instead.
+     */
+    fun runNext() {
+        if (advancing) return
+        advancing = true
+        val from = view
+        m.hideWin()
+        scope.launch {
+            delay(WIN_EXIT_MS)
+            if (m.top == Route.Game) {
+                m.next()
+                pendingSwap = PendingSwap(from, 1)
+                // An online next is a request: if it fails, the bar comes back so the player can retry instead of being left on a solved board.
+                if (m.community != null) {
+                    androidx.compose.runtime.snapshotFlow { m.online.busy }.first { !it }
+                    if (m.top == Route.Game && m.community?.id == from.community?.id && m.solved) {
+                        pendingSwap = null
+                        m.showWin()
+                    }
+                }
+            }
+            advancing = false
+        }
+    }
+    Box(Modifier.fillMaxSize().windowInsetsPadding(appInsets).clipToBounds().onGloballyPositioned { root = it; refresh() }.semantics {
         isTraversalGroup = true
         customActions = if (canRewind) listOf(CustomAccessibilityAction(tr("Restart level")) { m.restart(); true }) else emptyList()
     }
@@ -260,7 +335,10 @@ fun GameScreen(m: GameModel) {
                 }
                 if (skipped != 0) {
                     if (glow.value > 0f) scope.launch { glow.snapTo(0f) }
-                    m.feedback(if (!m.swipe(skipped)) Cue.INVALID_DROP else if (skipped > 0) Cue.FORWARD else Cue.BACK)
+                    val from = latestView
+                    val opened = m.swipe(skipped)
+                    m.feedback(if (!opened) Cue.INVALID_DROP else if (skipped > 0) Cue.FORWARD else Cue.BACK)
+                    if (opened) pendingSwap = PendingSwap(from, skipped)
                     return@awaitEachGesture
                 }
                 if (!held || !canRewind) { scope.launch { glow.animateTo(0f, tween(180)) }; return@awaitEachGesture }
@@ -299,21 +377,44 @@ fun GameScreen(m: GameModel) {
                 }
                 // The target sits as far below the key as the key sits below the Back chevron's point (see [TARGET_DROP]).
                 Spacer(Modifier.height(TARGET_DROP))
-                TargetMini(target, targetCell, 2.6.dp, Modifier.onGloballyPositioned { targetBox = it }.semantics {
+                Box(Modifier.onGloballyPositioned { targetBox = it }.semantics {
                     contentDescription = tr("Target arrangement") + ": " + spec.target.mapIndexed { i, row -> tr("row {0}", i + 1) + ": " + row.map { Art.name(it) ?: tr("gap") }.joinToString(", ") }.joinToString("; ")
-                })
+                }) {
+                    val swap = activeSwap
+                    if (swap != null) MorphTarget(Rules.crop(swap.from.spec.target), target, swapSlide.value, targetCell, 2.6.dp)
+                    else TargetMini(target, targetCell, 2.6.dp)
+                }
                 Spacer(Modifier.height(12.dp))
                 // The outline keeps the shared board height and sits at the bottom, so it is shorter from the top.
                 BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
                     val p = LocalPalette.current
+                    val moving = activeSwap != null
                     // The lamp is etched into the outline under the tiles, so a tile dragged over it covers it; it sinks with the platform.
                     val lampInk = lerp(p.paper2, p.ink, .5f).copy(alpha = if (solved) .45f else 1f)
                     val lit = m.guidePhase != 0
-                    val lamp: (DrawScope.() -> Unit)? = if (m.guideOn && !exiting) {
+                    val lamp: (DrawScope.() -> Unit)? = if (m.guideOn && !exiting && !moving) {
                         { lampArt(lampInk, lit, Offset(size.width - LAMP_INSET.toPx() - LAMP_ART.toPx(), LAMP_TOP.toPx()), LAMP_ART.toPx(), if (p.dark) Color.White else p.ink.copy(alpha = if (solved) .45f else 1f)) }
                     } else null
-                    Board(Modifier.graphicsLayer { translationY = -lift.value * BOARD_LIFT.toPx() }.fillMaxWidth().height(boardShellHeight(maxHeight)).onGloballyPositioned { shellBox = it; refresh() }, view.board, Pair(view.level, community?.id), spec.target, solved, { m.board },
-                        holdGlow = glow.value, rewindTo = if (rewinding) spec.start else null, rewindProgress = rewind.value, onGrid = { gridRect = it }, beneath = lamp) { a, b -> m.move(a, b) }
+                    val boardHeight = boardShellHeight(maxHeight)
+                    val swap = activeSwap
+                    if (swap == null) {
+                        Board(Modifier.graphicsLayer { translationY = -lift.value * BOARD_LIFT.toPx() }.fillMaxWidth().height(boardHeight).onGloballyPositioned { shellBox = it; refresh() }, view.board, Pair(view.level, community?.id), spec.target, solved, { m.board },
+                            holdGlow = glow.value, rewindTo = if (rewinding) spec.start else null, rewindProgress = rewind.value, onGrid = { gridRect = it }, beneath = lamp) { a, b -> m.move(a, b) }
+                    } else {
+                        // The old platform and the next one travel together: the same width apart, so their edges meet cleanly at the middle of the slide.
+                        val travel = constraints.maxWidth.toFloat()
+                        val t = swapSlide.value
+                        val oldAlpha = ((1f - t) / LEVEL_SLIDE_FADE).coerceIn(0f, 1f)
+                        val newAlpha = (t / LEVEL_SLIDE_FADE).coerceIn(0f, 1f)
+                        Board(Modifier.clearAndSetSemantics { }.graphicsLayer {
+                                translationY = -lift.value * BOARD_LIFT.toPx(); translationX = -swap.direction * travel * t; alpha = oldAlpha
+                            }.fillMaxWidth().height(boardHeight), swap.from.board, swap.from.identity + "-out", swap.from.spec.target, false, { swap.from.board },
+                            interactive = false) { _, _ -> }
+                        Board(Modifier.graphicsLayer {
+                                translationY = -lift.value * BOARD_LIFT.toPx(); translationX = swap.direction * travel * (1f - t); alpha = newAlpha
+                            }.fillMaxWidth().height(boardHeight).onGloballyPositioned { shellBox = it; refresh() }, view.board, Pair(view.level, community?.id), spec.target, solved, { m.board },
+                            holdGlow = 0f, onGrid = { gridRect = it }, beneath = lamp) { a, b -> m.move(a, b) }
+                    }
                 }
             }
             // The bar grows in from below while the board area shrinks, so the outline's bottom lifts in step with it; Next and Restart send it back down the same way.
@@ -322,7 +423,7 @@ fun GameScreen(m: GameModel) {
                 enter = if (motion) androidx.compose.animation.expandVertically(tween(260), expandFrom = Alignment.Top) + androidx.compose.animation.fadeIn(tween(260)) + androidx.compose.animation.slideInVertically(tween(260)) { it / 4 } else androidx.compose.animation.EnterTransition.None,
                 exit = if (motion) shrinkVertically(tween(260), shrinkTowards = Alignment.Top) + fadeOut(tween(200)) + androidx.compose.animation.slideOutVertically(tween(260)) { it / 4 } else androidx.compose.animation.ExitTransition.None) {
                 // While the tiles slide back after Restart, nothing in the popup can be pressed again.
-                WinPopup(m, interactive = transition.targetState == androidx.compose.animation.EnterExitState.Visible && !rewinding, onRestart = ::runRestart)
+                WinPopup(m, interactive = transition.targetState == androidx.compose.animation.EnterExitState.Visible && !rewinding && !advancing, onRestart = ::runRestart, onNext = ::runNext)
             }
         }
         // Same corners as Home and every page: 16dp in from the safe edges.
@@ -336,8 +437,8 @@ fun GameScreen(m: GameModel) {
             val dp = LocalDensity.current.density
             val sink = glow.value * BOARD_TRAVEL * BOARD_WALL.value * dp - lift.value * BOARD_LIFT.value * dp
             val lampAt = Rect(shell.right - 52 * dp, shell.top + 4 * dp + sink, shell.right - 4 * dp, shell.top + 52 * dp + sink)
-            if (m.guideOn && !exiting) GuideButton(Modifier.offset { guideLampOffset(shell).let { IntOffset(it.x, it.y + sink.roundToInt()) } }, enabled = !solved) { m.tapGuide() }
-            if (m.guidePhase != 0 && !solved && !exiting) {
+            if (m.guideOn && !exiting && activeSwap == null) GuideButton(Modifier.offset { guideLampOffset(shell).let { IntOffset(it.x, it.y + sink.roundToInt()) } }, enabled = !solved) { m.tapGuide() }
+            if (m.guidePhase != 0 && !solved && !exiting && activeSwap == null) {
                 val size = root?.size
                 val own = community?.grid?.optString("ownerId") == m.online.user?.id
                 val like = if (!own) Rect(16 * dp, 72 * dp, 64 * dp, 120 * dp) else null
@@ -417,7 +518,7 @@ class Grid(val rows: Int, val cols: Int, val cell: Float, val gap: Float, val or
 fun Board(
     modifier: Modifier, board: Board, key: Any, target: Board?, solved: Boolean,
     latest: () -> Board, holdGlow: Float = 0f, rewindTo: Board? = null, rewindProgress: Float = 0f, onGrid: ((Rect) -> Unit)? = null,
-    beneath: (DrawScope.() -> Unit)? = null, onMove: (Pos, Pos) -> Unit,
+    beneath: (DrawScope.() -> Unit)? = null, interactive: Boolean = true, onMove: (Pos, Pos) -> Unit,
 ) {
     val rewindPlan = remember(key, rewindTo) { rewindTo?.let { rewindMoves(latest(), it) } }
     val busy by rememberUpdatedState(rewindTo != null)
@@ -511,6 +612,7 @@ fun Board(
         }
 
         Canvas(Modifier.fillMaxSize().pointerInput(key, cell, origin, w, h) {
+            if (!interactive) return@pointerInput
             val slop = 8.dp.toPx()
             val edge = 4.dp.toPx()
             awaitEachGesture {
@@ -581,7 +683,7 @@ fun Board(
             late.forEach { it() }
         }
         // TalkBack and keyboard: one node per tile, same tap behaviour, with what the tile can do right now and where it belongs.
-        for (r in 0 until rows) for (c in 0 until cols) {
+        if (interactive) for (r in 0 until rows) for (c in 0 until cols) {
             val type = board[r][c]; if (type == '.') continue
             val pos = Pos(r, c)
             val tl = grid.topLeft(pos)

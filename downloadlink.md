@@ -1,10 +1,10 @@
 # Download
 
-**Midori / INSIGHT Online 0.2.26 (version code 37)**
+**Midori / INSIGHT Online 0.2.29 (version code 40)**
 
-https://13.140.89.146/INSIGHT-online.apk?v=0.2.26
+https://13.140.89.146/INSIGHT-online.apk?v=0.2.29
 
-SHA-256: `00ac99d7f703222c956e970f920f4f2c061e23c19d173879cc53b2d81df83848`
+SHA-256: `9dcbea36bfbefaf4710e2aa11ea02a4baff1701228c71a45d74fc53e7ba22a2e`
 
 ## Notes
 

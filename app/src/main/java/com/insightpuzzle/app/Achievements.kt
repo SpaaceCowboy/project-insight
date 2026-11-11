@@ -1,11 +1,24 @@
 package com.insightpuzzle.app
 
+import org.json.JSONObject
+
 enum class Metric { CAMPAIGN, ONLINE, DESIGNED, STREAK, LEVEL, MASTER }
 /** [name] and [requirement] are the English wording; [nameTemplate] and [requirementTemplate] are the same with {0} for [goal], which [tr] puts in the chosen language. */
 data class Badge(val id: String, val name: String, val requirement: String, val goal: Int, val metric: Metric = Metric.CAMPAIGN, val nameTemplate: String = name, val requirementTemplate: String = requirement)
 /** Online numbers from the last /v1/progress: distinct community puzzles solved, puzzles designed, longest daily streak, player level. */
 /** [communityCount] is other creators' puzzles solved, minus campaign duplicates: the Profile figure, unlike [onlineSolved] which counts every grid id. */
-data class OnlineStats(val onlineSolved: Int = 0, val designedCount: Int = 0, val bestStreak: Int = 0, val level: Int = 1, val communityCount: Int = 0)
+data class OnlineStats(val onlineSolved: Int = 0, val designedCount: Int = 0, val bestStreak: Int = 0, val level: Int = 1, val communityCount: Int = 0) {
+    fun toJson() = JSONObject().put("onlineSolved", onlineSolved).put("designedCount", designedCount).put("bestStreak", bestStreak)
+        .put("level", level).put("communityCount", communityCount)
+}
+
+/** The last progress saved on this device, so Home never shows zeros while the first request is in flight. */
+internal fun onlineStatsFromJson(text: String?): OnlineStats? = text?.let {
+    runCatching {
+        val json = JSONObject(it)
+        OnlineStats(json.optInt("onlineSolved"), json.optInt("designedCount"), json.optInt("bestStreak"), json.optInt("level", 1), json.optInt("communityCount"))
+    }.getOrNull()
+}
 
 /** The player-level badges' titles, from the first rank to the last. */
 private val LEVEL_TITLES = mapOf(10 to "Apprentice", 20 to "Adept", 30 to "Skilled", 50 to "Expert", 70 to "Veteran", 100 to "Professional")

@@ -272,7 +272,7 @@ class PlayDiscoveryFlowTest {
             await("Casual win offers Next") { model.top == Route.Win }
             runBlocking { repository.client.request("POST", "/test/outage", JSONObject().put("offline", true), account = null) }
             tap("Next level")
-            await("A lost connection is marked quietly and keeps the solved board") { model.online.offline && model.online.error == null && !model.online.busy }
+            await("A lost connection is marked quietly and brings the result bar back") { model.online.offline && model.online.error == null && !model.online.busy && model.top == Route.Win }
             assertEquals(Route.Win, model.top); assertTrue(model.solved)
             runBlocking { repository.client.request("POST", "/test/outage", JSONObject().put("offline", false), account = null) }
             tap("Next level")

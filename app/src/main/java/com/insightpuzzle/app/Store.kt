@@ -117,6 +117,11 @@ class Store(context: Context) {
           prefs.all.keys.filter { it.startsWith(scoped("attempt_")) }.forEach { remove(it) }
     }.apply()
 
+    /** The last online progress figures seen for this account, so Home opens with the right counts. */
+    var onlineStats: OnlineStats?
+        get() = onlineStatsFromJson(prefs.getString(scoped("online_stats"), null))
+        set(value) = prefs.edit().apply { if (value == null) remove(scoped("online_stats")) else putString(scoped("online_stats"), value.toJson().toString()) }.apply()
+
     /** Achievement id -> time earned (ms). */
     var earned: Map<String, Long>
         get() = prefs.getStringSet(scoped("earned"), emptySet())!!.mapNotNull { entry -> entry.split('=').takeIf { it.size == 2 }?.let { it[0] to (it[1].toLongOrNull() ?: 0L) } }.toMap()

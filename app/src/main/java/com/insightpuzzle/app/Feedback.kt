@@ -55,10 +55,13 @@ class Haptics(private val context: Context) {
         play(v, VibrationEffect.createOneShot(ms, if (v.hasAmplitudeControl()) amplitude else VibrationEffect.DEFAULT_AMPLITUDE))
     }
 
-    /** Three [TICK_MS] pulses 62 ms apart, as one waveform so the gaps cannot drift: they line up with the three notes of the restart cue (onsets near 0, 62 and 125 ms). */
+    /**
+     * Three [TICK_MS] pulses 62 ms apart, as one waveform so the gaps cannot drift: they line up with the three notes of the restart cue
+     * (onsets near 0, 62 and 125 ms). Each pulse is as quiet as the fine drag tick: three full-strength ticks together felt jarring.
+     */
     fun triple() {
         val v = vibrator()?.takeIf { it.hasVibrator() } ?: return
-        val a = if (v.hasAmplitudeControl()) TICK_AMPLITUDE else VibrationEffect.DEFAULT_AMPLITUDE
+        val a = if (v.hasAmplitudeControl()) TRIPLE_AMPLITUDE else VibrationEffect.DEFAULT_AMPLITUDE
         val gap = TRIPLE_STEP_MS - TICK_MS
         play(v, VibrationEffect.createWaveform(longArrayOf(0, TICK_MS, gap, TICK_MS, gap, TICK_MS), intArrayOf(0, a, 0, a, 0, a), -1))
     }
@@ -73,7 +76,13 @@ class Haptics(private val context: Context) {
     fun warm() { vibrator()?.let { it.hasVibrator(); it.hasAmplitudeControl() } }
 
     // TICK_AMPLITUDE 128 is about 50%: 80 (31%) felt right on the Xiaomi's simple motor but muted on the Samsung's. FINE ticks stay the quieter, shorter ones.
-    companion object { const val TICK_MS = 11L; const val FINE_TICK_MS = 7L; const val TICK_AMPLITUDE = 128; const val FINE_TICK_AMPLITUDE = 80; const val TRIPLE_STEP_MS = 62L }
+    companion object {
+        const val TICK_MS = 11L; const val FINE_TICK_MS = 7L
+        const val TICK_AMPLITUDE = 128; const val FINE_TICK_AMPLITUDE = 80
+        /** The three restart/clear pulses stay as quiet as the corner-drag tick, so together they feel subtle rather than jarring. */
+        const val TRIPLE_AMPLITUDE = FINE_TICK_AMPLITUDE
+        const val TRIPLE_STEP_MS = 62L
+    }
 }
 
 /** Touch feedback for UI code: the 11 ms haptic (if Haptics is on) plus [Cue]'s sound (if Sound is on). A null cue is haptic only. */

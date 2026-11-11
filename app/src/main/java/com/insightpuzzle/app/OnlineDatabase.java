@@ -36,7 +36,7 @@ public abstract class OnlineDatabase extends RoomDatabase {
     public interface Queries {
         @Insert(onConflict = OnConflictStrategy.IGNORE) void enqueue(Pending operation);
         @Query("SELECT * FROM pending WHERE account=:account AND state='pending' ORDER BY createdAt,id LIMIT 100") List<Pending> pending(String account);
-        @Query("SELECT * FROM pending WHERE account=:account ORDER BY CASE WHEN state='failed' THEN 0 ELSE 1 END,createdAt DESC LIMIT 100") List<Pending> outcomes(String account);
+        @Query("SELECT * FROM pending WHERE account=:account AND state='failed' ORDER BY createdAt DESC LIMIT 100") List<Pending> outcomes(String account);
         @Query("DELETE FROM pending WHERE account=:account AND id=:id") void acknowledge(String account, String id);
         @Query("UPDATE pending SET state='failed',error=:error WHERE account=:account AND id=:id") void fail(String account, String id, String error);
         @Insert(onConflict = OnConflictStrategy.REPLACE) void save(Record record);

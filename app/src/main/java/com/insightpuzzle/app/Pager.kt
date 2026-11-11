@@ -5,7 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -58,7 +57,7 @@ internal fun needsMore(loaded: Int, page: Int, pageSize: Int, hasMore: Boolean) 
 @Composable
 internal fun <T> Paged(
     items: List<T>, pageSize: Int, page: Int, onPage: (Int) -> Unit, modifier: Modifier = Modifier,
-    hasMore: Boolean = false, onMore: () -> Unit = {}, loading: Boolean = false, failed: Boolean = false, onRetry: () -> Unit = {}, content: @Composable (List<T>, Int) -> Unit,
+    hasMore: Boolean = false, onMore: () -> Unit = {}, failed: Boolean = false, onRetry: () -> Unit = {}, content: @Composable (List<T>, Int) -> Unit,
 ) {
     val count = loadedPages(items.size, pageSize, hasMore)
     val pager = rememberPagerState(initialPage = page.coerceIn(0, count - 1)) { count }
@@ -78,13 +77,12 @@ internal fun <T> Paged(
         HorizontalPager(pager, Modifier.fillMaxSize(), beyondViewportPageCount = PAGES_KEPT, key = { it }) { index ->
             Box(Modifier.fillMaxSize()) { content(pageItems(items, index, pageSize), index * pageSize) }
         }
-        // On the last loaded page with more on its way: a small spinner while it loads, the offline mark (tap to retry) if it could not.
-        if (hasMore && pager.currentPage == count - 1 && (loading || failed)) {
+        // The last loaded page could not fetch more: a small offline mark (tap to retry), never a loading spinner over the cards.
+        if (hasMore && pager.currentPage == count - 1 && failed) {
             val p = LocalPalette.current
             val edge = Modifier.align(Alignment.BottomCenter).padding(bottom = 2.dp).size(18.dp)
-            if (failed) Canvas(edge.clickable(role = Role.Button, onClickLabel = tr("Offline. Pull down to retry.")) { onRetry() }
+            Canvas(edge.clickable(role = Role.Button, onClickLabel = tr("Offline. Pull down to retry.")) { onRetry() }
                 .semantics { contentDescription = tr("Offline. Pull down to retry.") }) { offlineIcon(p.muted) }
-            else CircularProgressIndicator(edge, color = p.accent, strokeWidth = 2.dp)
         }
     }
 }
@@ -93,4 +91,4 @@ internal fun <T> Paged(
 @Composable
 internal fun PagedItems(state: DiscoveryListState, pageSize: Int, modifier: Modifier = Modifier, onRetry: () -> Unit = {}, content: @Composable (List<JSONObject>, Int) -> Unit) =
     Paged(state.items, pageSize, state.page, { state.page = it }, modifier, hasMore = state.nextPage != null,
-        onMore = { state.nextPage?.let { if (state.requestedPage != it) state.requestedPage = it } }, loading = state.loading, failed = state.failed, onRetry = onRetry, content = content)
+        onMore = { state.nextPage?.let { if (state.requestedPage != it) state.requestedPage = it } }, failed = state.failed, onRetry = onRetry, content = content)

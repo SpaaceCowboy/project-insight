@@ -3,6 +3,7 @@ package com.insightpuzzle.app
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -13,6 +14,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -94,6 +96,18 @@ fun TileIcon(type: Char, size: Dp, modifier: Modifier = Modifier, glow: Color? =
     Canvas(modifier.size(size)) { tile(type, Offset.Zero, this.size.width, glow) }
 }
 
+/** One flat target square, shared by [TargetMini] and the swipe's [MorphTarget]. */
+internal fun DrawScope.targetSquare(type: Char, origin: Offset, cell: Float, dark: Boolean, alpha: Float = 1f) {
+    if (alpha <= 0f) return
+    val radius = CornerRadius(cell * .25f)
+    if (dark) drawRoundRect(Art.LIGHT.getValue(type).copy(alpha = alpha), origin, Size(cell, cell), radius)
+    else {
+        val deep = Art.TILE.getValue(type).second
+        drawRoundRect(androidx.compose.ui.graphics.lerp(Art.LIGHT.getValue(type), deep, .35f).copy(alpha = alpha), origin, Size(cell, cell), radius)
+        drawRoundRect(deep.copy(alpha = .55f * alpha), origin + Offset(.5f, .5f), Size(cell - 1f, cell - 1f), radius, style = Stroke(1f))
+    }
+}
+
 /**
  * Mini target preview: flat colour squares, no arrows (only the main board shows symbols); holes stay empty.
  * On the light theme's cream cards the pale colours would vanish, so there each square is a deeper mid-tone with a fine darker edge.
@@ -107,13 +121,49 @@ fun TargetMini(board: Board, cell: Dp, gap: Dp, modifier: Modifier = Modifier, s
         board.forEachIndexed { r, row -> row.forEachIndexed { col, t ->
             if (t == '.') return@forEachIndexed
             val o = Offset(col * (c + g), r * (c + g))
-            if (dark) drawRoundRect(Art.LIGHT.getValue(t), o, Size(c, c), CornerRadius(c * .25f))
-            else {
-                val deep = Art.TILE.getValue(t).second
-                drawRoundRect(androidx.compose.ui.graphics.lerp(Art.LIGHT.getValue(t), deep, .35f), o, Size(c, c), CornerRadius(c * .25f))
-                drawRoundRect(deep.copy(alpha = .55f), o + Offset(.5f, .5f), Size(c - 1f, c - 1f), CornerRadius(c * .25f), style = Stroke(1f))
-            }
+            targetSquare(t, o, c, dark)
             if (symbols && c >= 9f) symbol(t, o, c, .8f, if (Art.colorblind) Art.ink(t) else if (t == 'W') WHITE_INK else Color(0xFF2B2D31))
         } }
+    }
+}
+
+/**
+ * The target boards between two puzzles: tiles that exist in both targets slide from their old cells to their new ones (the same nearest-colour
+ * moves as the restart), while a tile with no counterpart fades out and a new one fades in where it appears. The frame itself grows or shrinks
+ * with the target, so a 3x3 to 2x2 change never jumps. At 0 and 1 it is exactly the old and new [TargetMini].
+ */
+@Composable
+fun MorphTarget(from: Board, to: Board, progress: Float, cell: Dp, gap: Dp, modifier: Modifier = Modifier) {
+    fun frame(cols: Int, rows: Int): Pair<Dp, Dp> = if (cols <= 0 || rows <= 0) 0.dp to 0.dp
+        else (cell * cols + gap * (cols - 1)) to (cell * rows + gap * (rows - 1))
+    val oldCols = from.firstOrNull()?.length ?: 0; val oldRows = from.size
+    val newCols = to.firstOrNull()?.length ?: 0; val newRows = to.size
+    val (oldW, oldH) = frame(oldCols, oldRows)
+    val (newW, newH) = frame(newCols, newRows)
+    val width = androidx.compose.ui.unit.lerp(oldW, newW, progress.coerceIn(0f, 1f))
+    val height = androidx.compose.ui.unit.lerp(oldH, newH, progress.coerceIn(0f, 1f))
+    val dark = LocalPalette.current.dark
+    val moves = remember(from, to) { rewindMoves(from, to) }
+    val destinations = remember(moves) { moves.values.toSet() }
+    Canvas(modifier.size(width, height)) {
+        val c = cell.toPx(); val g = gap.toPx(); val pitch = c + g
+        val ow = oldW.toPx(); val oh = oldH.toPx(); val nw = newW.toPx(); val nh = newH.toPx()
+        val middle = Offset(size.width / 2, size.height / 2)
+        fun inFrame(r: Int, col: Int, w: Float, h: Float) = Offset(col * pitch + c / 2 - w / 2, r * pitch + c / 2 - h / 2)
+        for (r in from.indices) for (col in from[r].indices) {
+            val type = from[r][col]; if (type == '.') continue
+            val oldAt = inFrame(r, col, ow, oh)
+            val dest = moves[Pos(r, col)]
+            if (dest != null) {
+                val newAt = inFrame(dest.r, dest.c, nw, nh)
+                val at = middle + oldAt + (newAt - oldAt) * progress
+                targetSquare(type, at - Offset(c / 2, c / 2), c, dark)
+            } else targetSquare(type, middle + oldAt - Offset(c / 2, c / 2), c, dark, 1f - progress)
+        }
+        for (r in to.indices) for (col in to[r].indices) {
+            val type = to[r][col]; if (type == '.' || Pos(r, col) in destinations) continue
+            val at = middle + inFrame(r, col, nw, nh)
+            targetSquare(type, at - Offset(c / 2, c / 2), c, dark, progress)
+        }
     }
 }

@@ -59,6 +59,7 @@ import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -80,6 +81,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.ceil
 import kotlin.math.min
@@ -125,13 +127,21 @@ fun CreatorScreen(m: GameModel) {
     val p = LocalPalette.current
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
+    val hideSystemBars = LocalHideSystemBars.current
+    val view = LocalView.current
     var root by remember { mutableStateOf<LayoutCoordinates?>(null) }
     var shellBox by remember { mutableStateOf<LayoutCoordinates?>(null) }
     // The outline's rectangle as state, so the tips lamp follows it; the tile strip and the phase button are only measured for the tips' borders.
     var shellRect by remember { mutableStateOf<Rect?>(null) }
     var stripBox by remember { mutableStateOf<LayoutCoordinates?>(null) }
     var buttonBox by remember { mutableStateOf<LayoutCoordinates?>(null) }
-    DisposableEffect(Unit) { m.endGuide(); onDispose { m.endGuide() } }
+    DisposableEffect(Unit) {
+        m.endGuide()
+        onDispose {
+            m.endGuide()
+            if (android.os.Build.VERSION.SDK_INT >= 29) view.systemGestureExclusionRects = mutableListOf()
+        }
+    }
     val paletteBoxes = remember { mutableMapOf<Char, LayoutCoordinates>() }
     var drag by remember { mutableStateOf<Pair<Char, Offset>?>(null) }
     var dragFrom by remember { mutableStateOf<Pos?>(null) }
@@ -301,7 +311,9 @@ fun CreatorScreen(m: GameModel) {
         }
         awaitEachGesture {
             val down = awaitFirstDown()
+            hideSystemBars()
             if (resetting) return@awaitEachGesture
+            var lastHide = android.os.SystemClock.uptimeMillis()
             val g = grid
             val corner = g?.let { shellOrigin() + it.topLeft(Pos(it.rows - 1, it.cols - 1)) + Offset(it.cell, it.cell) }
             val grab: Grab = when {
@@ -339,6 +351,9 @@ fun CreatorScreen(m: GameModel) {
                     // Tiles outside the smaller grid are only hidden (the state remembers them), so dragging back out, now or later, brings them back.
                     if (rows != s.rows || cols != s.cols) { m.fineTick(); s.resize(rows, cols) }
                 } else {
+                    // Some devices reveal the handle whenever a finger passes near the bottom; put it away again during the drag.
+                    val now = android.os.SystemClock.uptimeMillis()
+                    if (now - lastHide >= 120) { lastHide = now; hideSystemBars() }
                     val type = when (grab) { is Grab.Palette -> grab.type; is Grab.Cell -> grab.type; else -> '.' }
                     if (!moved && type != '.' && (last - down.position).getDistance() >= slop && !(grab is Grab.Cell && s.solved)) {
                         moved = true; m.feedback(Cue.DRAG_START)
@@ -372,6 +387,8 @@ fun CreatorScreen(m: GameModel) {
                     outsideGrid(last) -> { s.remove(grab.pos); m.feedback(null) }
                 }
             }
+            hideSystemBars()
+            scope.launch { delay(250); hideSystemBars() }
         }
     }) {
         Column(Modifier.fillMaxSize().windowInsetsPadding(appInsets).padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -501,7 +518,6 @@ fun CreatorScreen(m: GameModel) {
                 Box(Modifier.fillMaxWidth().height(with(density) { g.origin.y.coerceAtLeast(0f).toDp() }).padding(horizontal = 56.dp), contentAlignment = Alignment.Center) {
                     // The tips (when showing) take this place; the note is back when they end.
                     if (m.guidePhase != 0 || s.phase == Phase.SHAPE) Unit
-                    else if (s.phase == Phase.CHECK && s.limitReached) Label(tr("Daily limit of {0} puzzles reached.", CREATE_DAILY_LIMIT), 12.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite }.wrapContentHeight(unbounded = true), color = p.accent, align = TextAlign.Center, translate = false)
                     else if (s.note.isNotEmpty()) Label(s.note, 12.sp, Modifier.semantics { liveRegion = LiveRegionMode.Polite }.wrapContentHeight(unbounded = true), color = p.muted, align = TextAlign.Center)
                 }
                 // TalkBack nodes for cells and the resize handle.
@@ -538,7 +554,15 @@ fun CreatorScreen(m: GameModel) {
             }
             }
         }
-        // A tile lifted from the strip or the grid follows the finger at the board's own tile size, above the shell so it is never clipped; it dims once letting go would remove it.
+        // Dragging a tile makes Android show its little navigation handle near the bottom on some devices. While a tile is in hand the whole view is
+    // excluded from system gestures and the handle is hidden again; both are released as soon as the tile lands.
+    LaunchedEffect(drag != null, view) {
+        if (android.os.Build.VERSION.SDK_INT >= 29) {
+            view.systemGestureExclusionRects = if (drag != null) mutableListOf(android.graphics.Rect(0, 0, view.width, view.height)) else mutableListOf()
+        }
+        if (drag != null) hideSystemBars()
+    }
+    // A tile lifted from the strip or the grid follows the finger at the board's own tile size, above the shell so it is never clipped; it dims once letting go would remove it.
         drag?.let { (type, at) ->
             val g = grid
             if (g != null) Canvas(Modifier.fillMaxSize().graphicsLayer { alpha = if (removing) .5f else 1f }) { val size = g.cell * 1.045f; tile(type, at - Offset(size / 2, size / 2), size) }

@@ -84,8 +84,11 @@ internal fun creatorGuideSteps(phase: Phase): List<String> = when (phase) {
     )
 }
 
-/** A fat rounded border round [rect], grown by [grow]. [wall] is the height of the key's side wall under [rect]: the border goes round it too, as thick below as above. */
-class GuideBox(val rect: Rect, val radius: Dp, val grow: Dp = 0.dp, val wall: Dp = 0.dp)
+/**
+ * A fat rounded border round [rect], grown by [grow] at the sides and bottom. [wall] is the height of the key's side wall under [rect]: the border
+ * goes round it too. [topGrow] is the space above the face; a key with a side wall can raise it so the visible space above matches the space below.
+ */
+class GuideBox(val rect: Rect, val radius: Dp, val grow: Dp = 0.dp, val wall: Dp = 0.dp, val topGrow: Dp = grow)
 
 /** One step of the tips: its sentence and the borders round what it explains. */
 class GuideFrame(val text: String, val boxes: List<GuideBox>)
@@ -137,7 +140,9 @@ fun GuideOverlay(step: Int, steps: List<Int>, frame: (Int) -> GuideFrame, textBa
                 }
             }
         }.semantics { onClick(label = tr("Continue")) { tap(); true } }) {
-        Canvas(Modifier.fillMaxSize().graphicsLayer { alpha = lit.value }) { for (b in frames(shown).boxes) border(b.rect, b.radius.toPx(), b.grow.toPx(), b.wall.toPx(), p.dark, p.ink) }
+        Canvas(Modifier.fillMaxSize().graphicsLayer { alpha = lit.value }) {
+            for (b in frames(shown).boxes) border(b.rect, b.radius.toPx(), b.grow.toPx(), b.topGrow.toPx(), b.wall.toPx(), p.dark, p.ink)
+        }
         GuideLine(textBand, Modifier.graphicsLayer { alpha = appear.value }.semantics { liveRegion = LiveRegionMode.Polite }) {
             val text = frames(step).text
             if (textBacked) GuideLabel(text, textBand, steps.minOf(textSize), p.ink, FontWeight.SemiBold, true, steps.map { frames(it).text })
@@ -261,10 +266,10 @@ fun CreatorGuide(m: GameModel, phase: Phase, grid: Rect, tiles: Rect?, corner: R
     val texts = creatorGuideSteps(phase)
     // The outline's border hugs its face, wall left out: the button is 12dp below, and the fat border (with its rim) must not reach it.
     val hold = GuideBox(grid, 24.dp)
-    // The button's border leaves a sliver of the page round the key on every side: 4dp above and beside it, and the same under the wall (2dp of wall, 4dp of border).
-    val next = button?.let { GuideBox(it, 14.dp, 4.dp, 2.dp) }
-    // The shelf of tiles: well inside the page's edges, so the border never touches the keys and outline beside and below it.
-    val shelf = strip?.let { GuideBox(Rect(it.left + 4 * density.density, it.top + 10 * density.density, it.right - 4 * density.density, it.bottom - 10 * density.density), 16.dp) }
+    // The button's border leaves the same visible sliver above it as under its wall (2dp of wall + 4dp of border), so the top line sits 2dp higher.
+    val next = button?.let { GuideBox(it, 14.dp, 4.dp, 2.dp, topGrow = 6.dp) }
+    // The shelf of tiles: the border runs to the strip's edges, leaving the 8dp the tiles' own row keeps inside it, so the end tiles never touch the border.
+    val shelf = strip?.let { GuideBox(Rect(it.left, it.top + 10 * density.density, it.right, it.bottom - 10 * density.density), 16.dp) }
     // A swipe back starts anywhere off the cells; when a band above or below them is too thin to frame, the whole outline stands for it.
     val swipeBoxes = if (swipe.isNotEmpty() && swipe.all { it.height > 12 * density.density }) swipe.map { GuideBox(it, 14.dp) }
         else listOf(GuideBox(Rect(grid.left + edge, grid.top + edge, grid.right - edge, grid.bottom - edge), 14.dp))
@@ -304,10 +309,10 @@ internal val MENU_WALL = 3.dp
 
 /**
  * A fat border round [rect] and the [wall] under it: white with a faint dark rim on the dark theme, plain [ink] (dark) on the light one, where white would vanish
- * and a rim would only muddy it.
+ * and a rim would only muddy it. [topGrow] can differ from [grow] to balance the space above a raised key against the wall below it.
  */
-private fun DrawScope.border(rect: Rect, radius: Float, grow: Float, wall: Float, dark: Boolean, ink: Color) {
-    val at = Offset(rect.left - grow, rect.top - grow); val size = Size(rect.width + grow * 2, rect.height + wall + grow * 2)
+private fun DrawScope.border(rect: Rect, radius: Float, grow: Float, topGrow: Float, wall: Float, dark: Boolean, ink: Color) {
+    val at = Offset(rect.left - grow, rect.top - topGrow); val size = Size(rect.width + grow * 2, rect.height + wall + grow + topGrow)
     if (dark) {
         drawRoundRect(Color.Black.copy(alpha = .22f), at, size, CornerRadius(radius), style = Stroke(11.dp.toPx()))
         drawRoundRect(Color.White, at, size, CornerRadius(radius), style = Stroke(7.dp.toPx()))

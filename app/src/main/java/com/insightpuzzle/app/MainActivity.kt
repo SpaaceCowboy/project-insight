@@ -57,8 +57,8 @@ class MainActivity : ComponentActivity() {
         androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(window.decorView) { view, insets ->
             val imeUp = insets.isVisible(WindowInsetsCompat.Type.ime())
             keyboardUp = imeUp
-            val gestureNavigation = insets.getInsets(WindowInsetsCompat.Type.systemGestures()).bottom > 0
-            if (!imeUp && gestureNavigation && insets.isVisible(WindowInsetsCompat.Type.navigationBars())) view.post { hideNavBar() }
+            // Any time Android restores the bars (a drag near the bottom, a dialog, a return from elsewhere) put the handle away again.
+            if (!imeUp && insets.isVisible(WindowInsetsCompat.Type.navigationBars())) view.post { hideNavBar() }
             androidx.core.view.ViewCompat.onApplyWindowInsets(view, insets)
         }
         setContent {
@@ -71,7 +71,8 @@ class MainActivity : ComponentActivity() {
             // While the keyboard is up the handle comes back so the keyboard sits above it, as it always did; the room is reserved either way, so nothing moves.
             @OptIn(ExperimentalLayoutApi::class) val keyboard = WindowInsets.isImeVisible
             LaunchedEffect(keyboard) { keyboardUp = keyboard; if (keyboard) showNavBar() else hideNavBar() }
-            CompositionLocalProvider(LocalPalette provides if (dark) DarkPalette else LightPalette, LocalReduceMotion provides (reduceMotion || model.store.motion == "on")) { App(model) }
+            CompositionLocalProvider(LocalPalette provides if (dark) DarkPalette else LightPalette, LocalReduceMotion provides (reduceMotion || model.store.motion == "on"),
+                LocalHideSystemBars provides { hideNavBar() }) { App(model) }
         }
     }
 
@@ -107,6 +108,11 @@ fun App(m: GameModel) {
     // The music plays everywhere but while a puzzle is played (Journey or online) and in the creator, which has its own bed.
     val quiet = m.top == Route.Game || m.top == Route.Win || m.top == Route.Create
     androidx.compose.runtime.SideEffect { m.audio.music(!quiet) }
+    // A screen that has just finished rising hides the handle again, in case Android restored it during the transition.
+    val hideSystemBars = LocalHideSystemBars.current
+    LaunchedEffect(m.stack.toList()) {
+        if (m.top == Route.Game || m.top == Route.Create) { kotlinx.coroutines.delay(400); hideSystemBars() }
+    }
     CompositionLocalProvider(LocalFeedback provides m::feedback) { Backdrop {
         // Every screen with a chevron rises from the bottom over the screen it was opened from and sinks back on Back (see Sheets.kt); only Home does not slide.
         // The Journey level screen rises over the game; choosing a level there sinks it again onto the game, which is already on the new level.

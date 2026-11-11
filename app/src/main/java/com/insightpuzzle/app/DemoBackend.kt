@@ -14,8 +14,6 @@ import java.time.temporal.TemporalAdjusters
 import java.time.DayOfWeek
 
 /** Explicit, device-only preview transport. Never selected as a fallback for a real service failure. */
-/** New puzzles one player may publish per UTC day (the server's default). */
-internal const val CREATE_DAILY_LIMIT = 10
 
 class DemoBackend(context: Context) {
     private val prefs = context.getSharedPreferences("online_demo_data", Context.MODE_PRIVATE)
@@ -287,10 +285,6 @@ class DemoBackend(context: Context) {
             }
             route == "/v1/grids" && method == "POST" -> {
                 val start = body.board("start"); val target = body.board("target"); checked(start, target, body.getJSONArray("path"))
-                // The server allows ten new puzzles a UTC day.
-                val dayStart = java.time.LocalDate.now(java.time.ZoneOffset.UTC).atStartOfDay(java.time.ZoneOffset.UTC).toInstant()
-                if (list("grids").count { it.getString("ownerId") == player && !it.isNull("publishedAt") && !Instant.parse(it.getString("publishedAt")).isBefore(dayStart) } >= CREATE_DAILY_LIMIT)
-                    failure("DAILY_LIMIT", "You have reached the daily limit of $CREATE_DAILY_LIMIT puzzles. Try again tomorrow.", 403)
                 val number = (list("grids").filter { it.getString("ownerId") == player && !it.isNull("publishedAt") }.maxOfOrNull { it.getInt("levelNumber") } ?: 0) + 1
                 val g = JSONObject().put("id", id()).put("ownerId", player).put("levelNumber", number)
                     .put("code", UUID.randomUUID().toString().replace("-", "").take(16).uppercase(Locale.ROOT))

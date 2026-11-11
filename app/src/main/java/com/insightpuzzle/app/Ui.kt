@@ -109,6 +109,9 @@ import kotlin.math.max
 /** True when the system "remove animations" setting is on; infinite decorative animations stop. */
 val LocalReduceMotion = staticCompositionLocalOf { false }
 
+/** Hides the system navigation gesture handle again. It is provided by MainActivity and used where a drag can make Android show it. */
+val LocalHideSystemBars = staticCompositionLocalOf<() -> Unit> { {} }
+
 // Bundled in res/font (OFL, licence in assets/licenses). The one family for every text in the app.
 internal val MonoFamily get() = Mono
 private val Mono = FontFamily(Font(R.font.jetbrains_mono_regular, FontWeight.Normal), Font(R.font.jetbrains_mono_semibold, FontWeight.SemiBold),

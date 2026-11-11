@@ -442,10 +442,12 @@ fun ProfileScreen(m: GameModel, requestedId: String?) {
                         ProfileButton("Following", number(data.optInt("followingCount")), Modifier.weight(1f).fillMaxHeight()) { m.push(Route.Players("following")) }
                         ProfileButton("Achievements", badgeCount, Modifier.weight(1f).fillMaxHeight()) { m.push(Route.Achievements) }
                         ProfileButton("Bookmarked", number(data.optInt("bookmarkCount")), Modifier.weight(1f).fillMaxHeight()) { m.push(Route.Bookmarks) }
-                    } else Column(Modifier.fillMaxWidth().fillRest().then(fade), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        MenuButton(if (data.optBoolean("following")) "Following" else "Follow", primary = !data.optBoolean("following"), cue = Cue.CHECK) { toggleFollow(data) }
+                    } else Row(Modifier.fillMaxWidth().fillRest().then(fade), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        // One row, as tall as your own three buttons: stacking Follow over Achievements made the page ~60dp taller
+                        // and pushed the last row of the player's puzzles under the page edge.
+                        MenuButton(if (data.optBoolean("following")) "Following" else "Follow", Modifier.weight(1f).fillMaxHeight(), primary = !data.optBoolean("following"), cue = Cue.CHECK) { toggleFollow(data) }
                         // Another player's achievements open read-only: which badges they have, without their progress.
-                        ProfileButton("Achievements", badgeCount, Modifier.fillMaxWidth().weight(1f)) { m.push(Route.PlayerAchievements(data.getString("username"), badges)) }
+                        ProfileButton("Achievements", badgeCount, Modifier.weight(1f).fillMaxHeight()) { m.push(Route.PlayerAchievements(data.getString("username"), badges)) }
                     }
                     // The player's own puzzles, in the same four-column cards as Levels and Worlds.
                     Box(fade) { PuzzleCardList(m, puzzles, null) { detail = it } }

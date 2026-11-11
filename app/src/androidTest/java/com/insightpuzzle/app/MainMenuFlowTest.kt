@@ -136,9 +136,12 @@ class MainMenuFlowTest {
         launch()
         main {
             model.start(0)
-            assertEquals(1, model.guidePhase)
-            assertTrue(Store(context).onboarded)
+            // The first-play tips wait half a second after the screen settles; they are not there during the entry.
+            assertEquals(0, model.guidePhase)
+            assertTrue(model.onboardPending)
         }
+        await("First-play guide after the pause") { model.guidePhase == 1 }
+        assertTrue(Store(context).onboarded)
         val steps = model.guideSteps()
         assertEquals(listOf(1, GUIDE_TARGET_STEP, 2, 3, 4), steps)
         for ((i, step) in steps.withIndex()) {
@@ -232,6 +235,8 @@ class MainMenuFlowTest {
         tap("Achievements")
         await("other player's achievements") { model.top is Route.PlayerAchievements }
         assertEquals(other.getString("username"), (model.top as Route.PlayerAchievements).name)
+        // Let the profile underneath finish sinking: while it is still composed its badge count ("1 / 34") is in the tree.
+        SystemClock.sleep(450)
         assertFalse("Another player's achievements show no progress counts", nodes().any { it.text?.toString()?.contains(" / ") == true })
         back(); assertEquals(Route.Profile(otherId), model.top)
         main {
@@ -391,6 +396,17 @@ class MainMenuFlowTest {
         }
         main { model.next() }
         assertEquals("The last campaign level must return to the level list", Route.Levels, model.top)
+    }
+
+    @Test fun nextOnResultBarLetsItSinkBeforeOpeningTheNextLevel() {
+        Store(context).apply { done = setOf(1); lastLevel = 0 }
+        launch(); tap("Journey")
+        main { model.start(0); model.move(Pos(0, 0), Pos(0, 1)) }
+        await("win popup") { has("Next level") && model.top == Route.Win }
+        tap("Next level")
+        assertEquals("The result bar sinks before the level changes", 0, model.level)
+        assertTrue("The result bar is gone while the old solved board is still shown", model.top == Route.Game)
+        await("the next level opens after the bar") { model.level == 1 && model.top == Route.Game }
     }
 
     @Test fun creatorResetAndBackKeepTheDraftAndPublishingProof() {

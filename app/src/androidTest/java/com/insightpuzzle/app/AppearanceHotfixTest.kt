@@ -24,6 +24,7 @@ import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
 class AppearanceHotfixTest {
@@ -86,6 +87,45 @@ class AppearanceHotfixTest {
         assertTrue("Selection ring must respect fading alpha", AndroidColor.alpha(bright.getPixel(21, 64)) > AndroidColor.alpha(fading.getPixel(21, 64)))
         assertEquals(0, AndroidColor.alpha(render('R').getPixel(21, 64)))
         assertEquals("Selection has no outer halo", 0, AndroidColor.alpha(bright.getPixel(18, 64)))
+    }
+
+    @Test fun anotherPlayersThirdPuzzleRowSitsClearOfThePageEdge() {
+        assumeTrue(BuildConfig.ONLINE_DEMO)
+        val context = instrumentation.targetContext
+        val repository = OnlineRepository.get(context)
+        runBlocking { repository.client.login("preview@insight.local", "Hotfix Preview") }
+        val store = Store(context)
+        store.selectAccount(repository.client.user!!.id)
+        store.importedInto = "hotfix-no-import"; store.onboarded = true; store.language = "en"; store.motion = "system"
+        // Give one preview creator enough puzzles for all three profile rows.
+        val prefs = context.getSharedPreferences("online_demo_data", android.content.Context.MODE_PRIVATE)
+        val original = prefs.getString("data", null)
+        val root = JSONObject(original!!)
+        val grids = root.getJSONArray("grids")
+        val creator = root.getJSONArray("users").objects().first { it.getString("id") != repository.client.user!!.id }
+        val template = grids.objects().first { it.getString("ownerId") == creator.getString("id") }
+        val have = grids.objects().count { it.getString("ownerId") == creator.getString("id") }
+        for (n in have + 1..13) {
+            grids.put(JSONObject(template.toString()).put("id", UUID.randomUUID().toString()).put("levelNumber", n))
+        }
+        assertTrue(prefs.edit().putString("data", root.toString()).commit())
+        val activity = instrumentation.startActivitySync(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)) as MainActivity
+        lateinit var model: GameModel
+        fun main(action: () -> Unit) = instrumentation.runOnMainSync(action)
+        try {
+            main { model = ViewModelProvider(activity)[GameModel::class.java]; model.push(Route.Profile(creator.getString("id"))) }
+            await("Third row of another player's puzzles") { has2("Puzzle 9") && has2("Puzzle 12") }
+            SystemClock.sleep(400)
+            capture("profile-other-three-rows")
+            val bottom = nodes().filter { it.contentDescription?.toString()?.let { d -> d.startsWith("Puzzle ") } == true }
+                .mapNotNull { n -> android.graphics.Rect().also { n.getBoundsInScreen(it) } }
+                .maxOfOrNull { it.bottom } ?: 0
+            val screen = android.graphics.Rect().also { activity.window.decorView.getGlobalVisibleRect(it) }
+            assertTrue("The last puzzle row must be above the window's bottom edge", bottom <= screen.bottom)
+        } finally {
+            instrumentation.runOnMainSync { activity.finish() }
+            prefs.edit().putString("data", original).commit()
+        }
     }
 
     @Test fun previewLayoutsAndSolveLifecycle() {

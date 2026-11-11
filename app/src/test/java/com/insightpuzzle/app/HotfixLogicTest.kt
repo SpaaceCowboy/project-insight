@@ -138,4 +138,33 @@ class HotfixLogicTest {
         val page = 328.dp
         assertEquals(page.value, (cardSide(page + ShadowRoom * 2) * 4 + CARD_GAP * 3).value, .001f)
     }
+
+    @Test fun targetMorphKeepsMatchingTilesAndLetsExtraOnesFade() {
+        // Every colour has a partner: all four target tiles move, none disappears.
+        val moves = rewindMoves(listOf("RB", "GP"), listOf("BR", "PG"))
+        assertEquals(4, moves.size); assertEquals(4, moves.values.toSet().size)
+        // Fewer tiles in the new target: one red stays, the other has nowhere to go and fades out.
+        val smaller = rewindMoves(listOf("RR"), listOf("R"))
+        assertEquals(1, smaller.size); assertTrue(Pos(0, 0) in smaller.values)
+        // More tiles in the new target: the one old tile moves, the new one fades in (it is not a destination).
+        val larger = rewindMoves(listOf("R"), listOf("RR"))
+        assertEquals(1, larger.size); assertEquals(1, larger.values.toSet().size)
+    }
+
+    @Test fun savedOnlineStatsSurviveTheHomeRoundTrip() {
+        val stats = OnlineStats(onlineSolved = 5, designedCount = 6, bestStreak = 7, level = 8, communityCount = 9)
+        assertEquals(stats, onlineStatsFromJson(stats.toJson().toString()))
+        assertNull(onlineStatsFromJson(null))
+        assertNull(onlineStatsFromJson("not json"))
+    }
+
+    @Test fun creatorButtonBorderKeepsTheSameSpaceAboveAndBelow() {
+        val box = GuideBox(androidx.compose.ui.geometry.Rect(0f, 10f, 100f, 50f), 14.dp, grow = 4.dp, wall = 2.dp, topGrow = 6.dp)
+        assertEquals(box.grow.value + box.wall.value, box.topGrow.value, .001f)
+        assertEquals(40f, box.rect.height, .001f)
+    }
+
+    @Test fun restartTripleIsAsQuietAsTheCornerDrag() {
+        assertEquals(Haptics.FINE_TICK_AMPLITUDE, Haptics.TRIPLE_AMPLITUDE)
+    }
 }

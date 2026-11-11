@@ -86,7 +86,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     var moves by mutableIntStateOf(0); private set
     var light by mutableStateOf(Art.LIGHT.getValue('B')); private set
     var winBadges by mutableStateOf(emptyList<Badge>()); private set
-    var onlineStats by mutableStateOf(OnlineStats()); private set
+    var onlineStats by mutableStateOf(store.activeAccount?.let { store.onlineStats } ?: OnlineStats()); private set
     /** The open community puzzle's like and bookmark state, toggled from the game screen. */
     var liked by mutableStateOf(false); private set
     var bookmarked by mutableStateOf(false); private set
@@ -106,6 +106,8 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     /** The gameplay-tips icon is on, and the step of the tips on show (0 = none, 1 grid, 2 restart, 3 swipe, 4 title key, 5 like and bookmark; the creator numbers its own steps per stage). */
     var guideOn by mutableStateOf(store.guide); private set
     var guidePhase by mutableIntStateOf(0); private set
+    /** Level one's first-play tips are due, but wait half a second for the game screen to settle before their borders and text appear. */
+    var onboardPending by mutableStateOf(false); private set
 
     val spec get() = community?.spec ?: levels[level]
     val solved get() = Rules.key(board) == Rules.key(spec.target)
@@ -146,11 +148,22 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     fun start(index: Int) {
         if (!canAccess(index)) return
         load(index); store.lastLevel = index
-        // The very first time level one opens on a new install, the guide plays by itself; afterwards it is the icon's.
-        guidePhase = if (index == 0 && guideOn && !store.onboarded && store.done.isEmpty()) 1 else 0
-        if (guidePhase == 1) store.onboarded = true
+        // The very first time level one opens on a new install, the guide plays by itself; afterwards it is the icon's. It is requested here,
+        // but GameScreen starts it half a second after the screen has settled, so the player sees the level before the tips arrive.
+        onboardPending = index == 0 && guideOn && !store.onboarded && store.done.isEmpty()
+        guidePhase = 0
         stack.clear(); stack += Route.Home; stack += Route.Game
     }
+
+    /** Called by GameScreen once the half-second pause is over; only then does the first-play guide count as shown. */
+    fun revealOnboardGuide() {
+        if (!onboardPending) return
+        onboardPending = false
+        guidePhase = 1
+        store.onboarded = true
+    }
+
+    fun cancelOnboardGuide() { onboardPending = false }
 
     /** Home's Journey reopens the level last played (solved or not, with its unfinished moves), never a community board. */
     fun startJourney() {
@@ -164,7 +177,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     fun startCommunity(grid: JSONObject, sessionId: String, casual: Boolean = false, source: DiscoveryListState? = null) {
         val account = online.user?.id ?: return
         if (community != null) failureProof("leave")
-        winJob?.cancel(); guidePhase = 0
+        winJob?.cancel(); guidePhase = 0; onboardPending = false
         community = CommunityAttempt(grid, sessionId, account, casual = casual, source = source)
         liked = grid.optBoolean("liked"); bookmarked = grid.optBoolean("bookmarked")
         board = spec.start; moves = 0; path = mutableListOf(); winBadges = emptyList(); light = Art.LIGHT.getValue('B')
@@ -203,10 +216,15 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun selectAccount(id: String?) {
-        if (store.activeAccount == id) return
+        if (store.activeAccount == id) {
+            // Startup already has the right account: still pick up the saved counts instead of leaving Home at zero.
+            onlineStats = id?.let { store.onlineStats } ?: OnlineStats()
+            return
+        }
         winJob?.cancel(); community = null
         store.selectAccount(id); done = store.done; communityDone = store.communityDone; earned = store.earned; winBadges = emptyList()
-        onlineStats = OnlineStats()
+        // The last figures saved for this account, so Home opens with real counts while the fresh request is in flight; zeros mean a new account.
+        onlineStats = id?.let { store.onlineStats } ?: OnlineStats()
         playDiscovery.clear()
         load(levels.indices.firstOrNull { (it + 1) !in done } ?: 0)
     }
@@ -224,7 +242,13 @@ class GameModel(app: Application) : AndroidViewModel(app) {
         communityDone = communityDone + (json.optJSONArray("communityDone")?.strings() ?: emptyList()); store.communityDone = communityDone
         earned = earned + json.getJSONArray("badges").strings().associateWith { earned[it] ?: System.currentTimeMillis() }; store.earned = earned
         onlineStats = OnlineStats(json.optInt("onlineSolved"), json.optInt("designedCount"), json.optInt("bestStreak"), json.optInt("level", 1), json.optInt("communityCount", json.optInt("onlineSolved")))
+        store.onlineStats = onlineStats
     }
+
+    private fun saveOnlineStats(value: OnlineStats) { onlineStats = value; store.onlineStats = value }
+    /** After a solve or a publish the counts move at once, before the next full progress refresh corrects them. */
+    private fun bumpOnlineStats(designed: Int = 0, solved: Int = 0) =
+        saveOnlineStats(onlineStats.copy(designedCount = onlineStats.designedCount + designed, communityCount = onlineStats.communityCount + solved))
 
     fun toggleLike() = toggleSocial("like", !liked) { liked = it }
     fun toggleBookmark() = toggleSocial("bookmark", !bookmarked) { bookmarked = it }
@@ -272,6 +296,11 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     fun openOnline(destination: Route) {
         if (online.user != null) push(destination) else push(Route.Auth(destination))
     }
+
+    /** Takes the result bar away without choosing Next or Restart (the bar sinks first, then the game can slide to the next puzzle). */
+    fun hideWin() { if (top == Route.Win) stack.removeAt(stack.lastIndex) }
+    /** Brings the result bar back when Next could not open another puzzle (a lost connection), so the player can try again. */
+    fun showWin() { if (top == Route.Game && Route.Win !in stack) stack += Route.Win }
 
     fun restart() {
         val current = community
@@ -388,7 +417,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
         }
         if (!dev && current != null) {
             // Optimistic until the next progress refresh; the server then applies the campaign-duplicate rule.
-            if (current.id !in communityDone && current.grid.optString("ownerId") != current.account) onlineStats = onlineStats.copy(communityCount = onlineStats.communityCount + 1)
+            if (current.id !in communityDone && current.grid.optString("ownerId") != current.account) bumpOnlineStats(solved = 1)
             communityDone = communityDone + current.id; store.communityDone = communityDone
         }
         if (current?.attempt != null) {
@@ -442,17 +471,17 @@ class GameModel(app: Application) : AndroidViewModel(app) {
             val identity = creator.creationId
             val proof = JSONObject().put("operationId", identity).put("start", org.json.JSONArray(creator.start!!))
                 .put("target", org.json.JSONArray(creator.target!!)).put("path", creator.proof.jsonMoves())
-            try { online.repository.client.request("POST", "/v1/grids", proof, account) }
-            // Ten puzzles a day: the creator shows it at the top of the last phase instead of a message elsewhere.
-            catch (error: OnlineException) { if (error.code == "DAILY_LIMIT") { if (creator.creationId == identity) creator.limitReached = true; return@task } else throw error }
+            online.repository.client.request("POST", "/v1/grids", proof, account)
             if (online.user?.id == account && creator.creationId == identity) {
+                // The new puzzle shows on Home at once; the next progress refresh confirms the figure.
+                bumpOnlineStats(designed = 1)
                 creator.created(); playDiscovery.refresh(); online.refreshProgressAsync()
             }
         }
     }
 
     fun mainMenu() {
-        guidePhase = 0
+        guidePhase = 0; onboardPending = false
         failureProof("leave")
         if (community != null) load(level) else winJob?.cancel()
         stack.clear(); stack += Route.Home
@@ -499,13 +528,13 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     fun tapGuide() { guidePhase = if (guidePhase == 0) 1 else 0 }
     fun endGuide() { guidePhase = 0 }
     /**
-     * The steps of the tips on this screen, in order: Journey has five (its target is explained right after the first); an online puzzle adds its creator and like/bookmark keys and drops the swipe where it
-     * doesn't work. The creator has its own steps for each stage ([creatorGuideSteps]).
+     * The steps of the tips on this screen, in order: Journey and an online puzzle both explain their target right after the grid; an online
+     * puzzle then adds its creator and like/bookmark keys and drops the swipe where it doesn't work. The creator has its own steps for each stage.
      */
     fun guideSteps(): List<Int> {
         if (top == Route.Create) return (1..creatorGuideSteps(creator.phase).size).toList()
         val c = community ?: return listOf(1, GUIDE_TARGET_STEP, 2, 3, 4)
-        return buildList { add(1); add(2); if (c.casual || c.source != null) add(3); add(4); add(5) }
+        return buildList { add(1); add(GUIDE_TARGET_STEP); add(2); if (c.casual || c.source != null) add(3); add(4); add(5) }
     }
     /** A tap anywhere moves the tips on to the next step, and after the last one they end. */
     fun advanceGuide() { guidePhase = guideSteps().let { it.getOrNull(it.indexOf(guidePhase) + 1) ?: 0 } }
