@@ -90,7 +90,7 @@ export function ActionDialog({ open, title, description, fields, confirm, danger
   };
   const set = (name: string, v: string) => setValues(s => ({ ...s, [name]: v }));
   return (
-    <dialog ref={ref} onClose={onClose} onClick={e => { if (e.target === ref.current) onClose(); }} aria-labelledby="dlg-title"
+    <dialog ref={ref} onClose={onClose} onCancel={e => { if (busy) e.preventDefault(); }} onClick={e => { if (e.target === ref.current && !busy) onClose(); }} aria-labelledby="dlg-title"
       className="sheet m-auto w-[min(28rem,calc(100vw-2rem))] rounded-2xl p-0 max-h-[calc(100dvh-2rem)]">
       <form onSubmit={submit} className="flex flex-col gap-3.5 p-5">
         <div>
@@ -108,7 +108,7 @@ export function ActionDialog({ open, title, description, fields, confirm, danger
         ))}
         {error != null && <ErrorNote error={error} />}
         <div className="flex justify-end gap-2 pt-1">
-          <Button type="button" onClick={onClose}>Cancel</Button>
+          <Button type="button" disabled={busy} onClick={onClose}>Cancel</Button>
           <Button type="submit" variant={danger ? 'danger' : 'primary'} disabled={busy} aria-busy={busy}>{busy ? 'Working…' : confirm}</Button>
         </div>
       </form>

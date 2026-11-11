@@ -24,3 +24,6 @@ graphify-out/
 
 admin/dist/
 admin/ui/dist/
+
+# create-admin output (a generated admin password)
+cp-admin*.json

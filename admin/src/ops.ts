@@ -33,7 +33,15 @@ export async function adminOperation<T>(db: Db, adminId: string, operationId: st
 
 const statusOf = (u: { suspended: boolean; deleted_at: Date | null }): Status => (u.deleted_at ? 'deleted' : u.suspended ? 'suspended' : 'active');
 
+/**
+ * Every player write holds pg_advisory_xact_lock(hashtextextended(<account id>,0)) (db.ts), and a solve also locks the level's owner. Taking the same lock first
+ * makes an admin action wait for in-flight player work instead of deadlocking with it or deleting a completion that was never retained. The key is the id as the
+ * database spells it (lowercase), not the route parameter.
+ */
 async function lockUser(c: Q, id: string) {
+  const found = (await c.query('SELECT id::text AS id FROM users WHERE id=$1', [id])).rows[0];
+  requireValue(found, 'NOT_FOUND', 'Player not found.', 404);
+  await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [found.id]);
   const user = (await c.query('SELECT * FROM users WHERE id=$1 FOR UPDATE', [id])).rows[0];
   requireValue(user, 'NOT_FOUND', 'Player not found.', 404);
   return user;
@@ -68,8 +76,8 @@ export async function userDetail(db: Db, id: string) {
       (SELECT count(*)::int FROM sessions WHERE user_id=$1 AND NOT revoked AND refresh_until>now()) AS sessions,
       (SELECT count(*)::int FROM campaign_progress WHERE user_id=$1) AS campaign,
       (SELECT count(*)::int FROM grids WHERE owner_id=$1 AND published_at IS NOT NULL) AS published,
-      ((SELECT count(DISTINCT gc.grid_id)::int FROM grid_completions gc JOIN grids g ON g.id=gc.grid_id WHERE gc.user_id=$1 AND g.owner_id<>$1)
-        + (SELECT count(*)::int FROM retained_completions WHERE user_id=$1)) AS community,
+      (SELECT count(*)::int FROM (SELECT g.content_hash FROM grid_completions gc JOIN grids g ON g.id=gc.grid_id WHERE gc.user_id=$1 AND g.owner_id<>$1
+        UNION SELECT content_hash FROM retained_completions WHERE user_id=$1) h) AS community, -- same distinct-puzzle rule as the app (it also drops puzzles a beaten campaign level already counts)
       (SELECT max(day)::text FROM activity_days WHERE user_id=$1) AS "lastActive",
       (SELECT count(*)::int FROM user_messages WHERE user_id=$1 AND read_at IS NULL) AS "unreadMessages"`, [id])).rows[0];
   const entitlements = (await db.query('SELECT product,status,source,external_ref,note,updated_at FROM entitlements WHERE user_id=$1', [id])).rows;
@@ -136,8 +144,9 @@ export async function signOutEverywhere(c: Q, admin: string, id: string, reason:
  * but other players keep credit for solving them: each solver's (content_hash) is copied to retained_completions first, and the solved
  * counts (online.ts, discovery.ts) read it. No ON DELETE CASCADE exists on the 20+ foreign keys to users, hence the explicit order.
  */
-export async function hardDelete(c: Q, admin: string, id: string, reason: string) {
-  await lockUser(c, id);
+export async function hardDelete(c: Q, admin: string, id: string, reason: string, confirmUsername: string) {
+  const u = await lockUser(c, id);
+  requireValue(u.username === confirmUsername.trim(), 'STEP_UP_FAILED', 'Type the exact username to confirm.', 403); // inside the operation, so a retried delete replays instead of 404
   const retained = await c.query(`INSERT INTO retained_completions(user_id,content_hash)
     SELECT DISTINCT gc.user_id,g.content_hash FROM grid_completions gc JOIN grids g ON g.id=gc.grid_id WHERE g.owner_id=$1 AND gc.user_id<>$1 ON CONFLICT DO NOTHING`, [id]);
   const levels = (await c.query('SELECT count(*)::int AS n FROM grids WHERE owner_id=$1', [id])).rows[0].n as number;
@@ -152,7 +161,8 @@ export async function hardDelete(c: Q, admin: string, id: string, reason: string
   await c.query('DELETE FROM follows WHERE follower_id=$1 OR followee_id=$1', [id]);
   await c.query('DELETE FROM email_outbox WHERE challenge_id IN (SELECT id FROM challenges WHERE user_id=$1)', [id]);
   await c.query('DELETE FROM challenges WHERE user_id=$1', [id]);
-  await c.query('UPDATE feedback SET user_id=NULL WHERE user_id=$1', [id]);
+  await c.query('DELETE FROM feedback WHERE user_id=$1', [id]); // free text the player wrote: it goes with them
+  await c.query("UPDATE admin_audit SET detail=detail - 'from' - 'to' WHERE subject_user_id=$1 AND action='user.rename'", [id]); // old and new usernames
   // The claim stays so the same puzzle cannot be re-published as an original; it just no longer names a person.
   await c.query('UPDATE content_claims SET creator_id=NULL WHERE creator_id=$1', [id]);
   await c.query('DELETE FROM users WHERE id=$1', [id]);
@@ -176,7 +186,10 @@ export async function changeEmail(c: Q, admin: string, id: string, email: string
   const next = email.trim().toLowerCase();
   const taken = await c.query('SELECT 1 FROM users WHERE email=$1 AND id<>$2', [next, id]);
   requireValue(!taken.rowCount, 'EMAIL_TAKEN', 'Another account already uses this email.', 409);
+  await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [`register:${next}`]); // the lock sign-up takes, so a racing registration cannot hit the unique index
   await c.query('UPDATE users SET email=$1 WHERE id=$2', [next, id]);
+  await c.query('UPDATE challenges SET consumed=true WHERE user_id=$1 AND NOT consumed', [id]); // a code queued for the old address stops working
+  await revokeSessions(c, id); // whoever was signed in under the old address is signed out
   await audit(c, admin, 'user.change_email', id, reason, { field: 'email' });
   return { ok: true };
 }
@@ -187,7 +200,7 @@ export async function setEntitlement(c: Q, admin: string, id: string, status: (t
   const u = await lockUser(c, id);
   requireValue(!u.deleted_at, 'DELETED', 'This account is deleted.', 409);
   await c.query(`INSERT INTO entitlements(user_id,product,status,source,note) VALUES($1,'worlds',$2,'manual',$3)
-    ON CONFLICT (user_id,product) DO UPDATE SET status=$2,source='manual',note=$3,updated_at=now()`, [id, status, note]);
+    ON CONFLICT (user_id,product) DO UPDATE SET status=$2,source='manual',external_ref=NULL,note=$3,updated_at=now()`, [id, status, note]);
   await c.query("INSERT INTO entitlement_events(user_id,product,status,source,admin_id,note) VALUES($1,'worlds',$2,'manual',$3,$4)", [id, status, admin, note]);
   await audit(c, admin, 'entitlement.set', id, note, { product: 'worlds', status });
   return { ok: true };
@@ -201,6 +214,7 @@ export async function sendRecovery(c: Q, admin: string, id: string, key: string,
   requireValue(mailEnabled, 'MAIL_UNAVAILABLE', 'Email delivery is disabled on this server.', 503);
   requireValue(!u.suspended && !u.deleted_at, 'ACCOUNT_BLOCKED', 'Suspended or deleted accounts cannot reset their password.', 409);
   const queued = await challenge(c as PoolClient, id, u.email, 'recover', key);
+  requireValue(queued, 'TOO_SOON', 'A code was sent less than a minute ago. Wait a moment and try again.', 429);
   await audit(c, admin, 'user.send_recovery', id, null, { queued });
   return { ok: true, queued };
 }

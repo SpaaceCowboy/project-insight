@@ -4,6 +4,9 @@ export class ApiError extends Error {
 }
 let csrf = '';
 export const setCsrf = (value: string) => { csrf = value; };
+let onUnauth: () => void = () => undefined;
+/** Called when a session that was valid has expired, so the app can return to the sign-in form. */
+export const setOnUnauth = (f: () => void) => { onUnauth = f; };
 export async function api<T = any>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
   const response = await fetch(path, {
     method, credentials: 'same-origin',
@@ -11,6 +14,7 @@ export async function api<T = any>(method: 'GET' | 'POST', path: string, body?: 
     body: body !== undefined ? JSON.stringify(body) : undefined,
   }).catch(() => { throw new ApiError(0, 'NETWORK', 'Could not reach the server. Check your connection and try again.'); });
   const data = await response.json().catch(() => ({}));
+  if (response.status === 401 && path !== '/api/login' && path !== '/api/me') onUnauth();
   if (!response.ok) throw new ApiError(response.status, data.code ?? 'ERROR', data.message ?? 'Request failed.', data.correlationId);
   return data as T;
 }
@@ -31,7 +35,7 @@ export interface AuditRow { id: number; action: string; subject_user_id: string 
 const ACTIONS: Record<string, string> = {
   'user.suspend': 'Suspended', 'user.unsuspend': 'Unsuspended', 'user.soft_delete': 'Deleted (restorable)', 'user.restore': 'Restored', 'user.hard_delete': 'Deleted permanently',
   'user.rename': 'Username changed', 'user.change_email': 'Email changed', 'user.revoke_sessions': 'Signed out everywhere', 'user.send_recovery': 'Reset code sent',
-  'user.send_email': 'Email sent', 'user.send_message': 'In-game message sent', 'entitlement.set': 'Worlds access changed',
-  'admin.login': 'Admin signed in', 'admin.login_failed': 'Failed admin sign-in', 'admin.create': 'Admin created', 'admin.password_reset': 'Admin password reset',
+  'user.send_email': 'Email sent', 'user.email_failed': 'Email could not be delivered', 'user.send_message': 'In-game message sent', 'entitlement.set': 'Worlds access changed',
+  'admin.login': 'Admin signed in', 'admin.stepup_failed': 'Failed password check', 'admin.login_failed': 'Failed admin sign-in', 'admin.create': 'Admin created', 'admin.password_reset': 'Admin password reset',
 };
 export const actionLabel = (a: string) => ACTIONS[a] ?? a;

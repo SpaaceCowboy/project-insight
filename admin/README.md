@@ -16,11 +16,11 @@ Search and filter players; edit username and email; **suspend / unsuspend**; **d
 There is no registration endpoint. On the server:
 
 ```sh
-docker compose exec admin node dist/admin/src/create-admin.js you@example.com          # prints the password once
-docker compose exec admin node dist/admin/src/create-admin.js you@example.com --reset  # new password, signs it out everywhere
+docker compose exec -T admin node dist/admin/src/create-admin.js you@example.com          # prints the password once
+docker compose exec -T admin node dist/admin/src/create-admin.js you@example.com --reset  # new password, signs it out everywhere
 ```
 
-Redirect the output to a chmod-600 file, never to logs. Locally: `cd admin && npm run admin:create -- you@example.com`.
+Create the file private first, then redirect into it (`-T` keeps the password out of terminal scrollback): `(umask 077; docker compose exec -T admin node dist/admin/src/create-admin.js you@example.com > cp-admin.json)`. Never send it to logs. `--reset` leaves a disabled admin disabled. Locally: `cd admin && npm run admin:create -- you@example.com`.
 
 ## Security notes
 

@@ -9,12 +9,13 @@ import type { Db } from '../../server/src/db.js';
 import { deliverMail } from '../../server/src/mail.js';
 import { MemoryRateLimitStore, RedisRateLimitStore, type RateLimitStore } from '../../server/src/rate-store.js';
 import { DomainError, requireValue } from '../../server/src/rules.js';
-import { authRoutes, requireAdmin } from './auth.js';
+import { authRoutes, requireAdmin, throttle } from './auth.js';
 import { deliverDirectMail } from './direct-mail.js';
 import * as ops from './ops.js';
 import { emailSchema, objectSchema, reasonSchema, uuidSchema } from './schema.js';
 
 const op = { operationId: uuidSchema };
+const passwordField = { type: 'string', minLength: 1, maxLength: 256 };
 const idParams = { type: 'object', properties: { id: uuidSchema }, required: ['id'] };
 
 export async function buildAdminApp(db: Db, config: Config, logging = true, suppliedStore?: RateLimitStore, mailTransport?: { sendMail(m: object): Promise<any> }) {
@@ -51,7 +52,9 @@ export async function buildAdminApp(db: Db, config: Config, logging = true, supp
   const mailEnabled = config.mailDeliveryMode !== 'disabled';
   const drain = async () => {
     if (!mailEnabled || config.environment === 'test') return;
-    try { while (await deliverMail(db, config, app.log)); while (await deliverDirectMail(db, config, app.log)); } catch { app.log.warn('mail delivery failed'); }
+    // Separate guards: one poisoned recovery-code row must not starve the admin emails behind it.
+    try { while (await deliverMail(db, config, app.log)); } catch { app.log.warn('recovery mail delivery failed'); }
+    try { while (await deliverDirectMail(db, config, app.log)); } catch { app.log.warn('direct mail delivery failed'); }
   };
   if (mailEnabled && config.environment !== 'test') { const timer = setInterval(() => void drain(), 60000); timer.unref(); app.addHook('onClose', async () => clearInterval(timer)); }
   const drainNow = async () => { if (mailTransport) { while (await deliverMail(db, config, app.log, mailTransport as never)); while (await deliverDirectMail(db, config, app.log, mailTransport)); } else void drain(); };
@@ -71,11 +74,22 @@ export async function buildAdminApp(db: Db, config: Config, logging = true, supp
     return ops.auditLog(db, { subject: q.subject, action: q.action, limit: 100, offset: (q.page ?? 0) * 100 });
   });
 
+  // Re-entering the admin password guards the actions that can take an account over (or destroy it). Throttled per admin; failures are audited.
+  const stepUp = async (adminId: string, password: string, subject: string, what: string) => {
+    await throttle(store, `admin:stepup:${adminId}`, { capacity: 10, windowMs: 15 * 60_000 });
+    const me = (await db.query('SELECT password_hash FROM admins WHERE id=$1', [adminId])).rows[0];
+    if (!(await argon2.verify(me.password_hash, password))) {
+      await ops.audit(db, adminId, 'admin.stepup_failed', subject, null, { action: what });
+      throw new DomainError(403, 'STEP_UP_FAILED', 'Your password is incorrect.');
+    }
+  };
+
   // ---- actions: one transaction, one audit row, one idempotency record each
   const act = <B extends { operationId: string }>(path: string, kind: string, properties: Record<string, unknown>,
-    run: (c: import('pg').PoolClient, admin: string, id: string, body: B) => Promise<unknown>, after?: () => Promise<void>) =>
-    app.post(`/api/users/:id/${path}`, { preHandler: need, schema: { params: idParams, body: objectSchema({ ...op, ...properties }) } }, async req => {
-      const id = (req.params as { id: string }).id; const body = req.body as B;
+    run: (c: import('pg').PoolClient, admin: string, id: string, body: B) => Promise<unknown>, after?: () => Promise<void>, withStepUp = false) =>
+    app.post(`/api/users/:id/${path}`, { preHandler: need, schema: { params: idParams, body: objectSchema({ ...op, ...properties, ...(withStepUp ? { password: passwordField } : {}) }) } }, async req => {
+      const id = (req.params as { id: string }).id; let body = req.body as B;
+      if (withStepUp) { const { password, ...rest } = body as B & { password: string }; await stepUp(req.admin!.id, password, id, kind); body = rest as unknown as B; } // the password never reaches the idempotency record
       const result = await ops.adminOperation(db, req.admin!.id, body.operationId, `${kind}:${id}`, body, c => run(c, req.admin!.id, id, body));
       if (after) await after();
       return result;
@@ -87,10 +101,10 @@ export async function buildAdminApp(db: Db, config: Config, logging = true, supp
   act<{ operationId: string; reason: string }>('restore', 'restore', reason, (c, a, id, b) => ops.restore(c, a, id, b.reason));
   act<{ operationId: string; reason: string }>('revoke-sessions', 'revoke-sessions', reason, (c, a, id, b) => ops.signOutEverywhere(c, a, id, b.reason));
   act<{ operationId: string; name: string; reason: string }>('rename', 'rename', { name: { type: 'string', minLength: 1, maxLength: 128 }, ...reason }, (c, a, id, b) => ops.rename(c, a, id, b.name, b.reason));
-  act<{ operationId: string; email: string; reason: string }>('email', 'email', { email: emailSchema, ...reason }, (c, a, id, b) => ops.changeEmail(c, a, id, b.email, b.reason));
+  act<{ operationId: string; email: string; reason: string }>('email', 'email', { email: emailSchema, ...reason }, (c, a, id, b) => ops.changeEmail(c, a, id, b.email, b.reason), undefined, true);
   act<{ operationId: string; status: (typeof ops.ENTITLEMENT_STATUSES)[number]; note: string }>('entitlement', 'entitlement',
     { status: { enum: [...ops.ENTITLEMENT_STATUSES] }, note: reasonSchema }, (c, a, id, b) => ops.setEntitlement(c, a, id, b.status, b.note));
-  act<{ operationId: string }>('send-recovery', 'send-recovery', {}, (c, a, id) => ops.sendRecovery(c, a, id, key, mailEnabled), drainNow);
+  act<{ operationId: string }>('send-recovery', 'send-recovery', {}, (c, a, id) => ops.sendRecovery(c, a, id, key, mailEnabled), drainNow, true);
   const text = { subject: { type: 'string', minLength: 1, maxLength: 150 }, body: { type: 'string', minLength: 1, maxLength: 5000 } };
   act<{ operationId: string; subject: string; body: string }>('send-email', 'send-email', text, (c, a, id, b) => ops.sendMail(c, a, id, b.subject, b.body, mailEnabled), drainNow);
   act<{ operationId: string; subject: string; body: string }>('send-message', 'send-message', text, (c, a, id, b) => ops.sendMessage(c, a, id, b.subject, b.body));
@@ -99,19 +113,19 @@ export async function buildAdminApp(db: Db, config: Config, logging = true, supp
   app.post('/api/users/:id/hard-delete', { preHandler: need, schema: { params: idParams, body: objectSchema({ ...op, ...reason,
     confirmUsername: { type: 'string', maxLength: 128 }, password: { type: 'string', minLength: 1, maxLength: 256 } }) } }, async req => {
     const id = (req.params as { id: string }).id; const b = req.body as { operationId: string; reason: string; confirmUsername: string; password: string };
-    const me = (await db.query('SELECT password_hash FROM admins WHERE id=$1', [req.admin!.id])).rows[0];
-    requireValue(await argon2.verify(me.password_hash, b.password), 'STEP_UP_FAILED', 'Your password is incorrect.', 403);
-    const target = (await db.query('SELECT username FROM users WHERE id=$1', [id])).rows[0];
-    requireValue(target, 'NOT_FOUND', 'Player not found.', 404);
-    requireValue(target.username === b.confirmUsername.trim(), 'STEP_UP_FAILED', 'Type the exact username to confirm.', 403);
-    return ops.adminOperation(db, req.admin!.id, b.operationId, `hard-delete:${id}`, { id, reason: b.reason, h: digest(b.confirmUsername, key) }, c => ops.hardDelete(c, req.admin!.id, id, b.reason));
+    await stepUp(req.admin!.id, b.password, id, 'hard-delete');
+    return ops.adminOperation(db, req.admin!.id, b.operationId, `hard-delete:${id}`, { id, reason: b.reason, h: digest(b.confirmUsername, key) }, c => ops.hardDelete(c, req.admin!.id, id, b.reason, b.confirmUsername));
   });
 
   // ---- the SPA (built by admin/ui); anything that is not /api or a file falls back to index.html
   const uiDir = process.env.ADMIN_UI_DIR ?? fileURLToPath(new URL('../ui/dist/', import.meta.url));
-  if (existsSync(uiDir)) await app.register(fastifyStatic, { root: uiDir, wildcard: false, index: ['index.html'], maxAge: '1h', immutable: false, cacheControl: true, dotfiles: 'deny' });
+  const uiPresent = existsSync(uiDir);
+  if (!uiPresent && config.environment === 'production') throw new Error(`The dashboard UI is missing: ${uiDir} (set ADMIN_UI_DIR or build admin/ui).`);
+  // index.html is never cached (a deploy replaces the hashed bundles it names); the hashed assets are cached for good.
+  if (uiPresent) await app.register(fastifyStatic, { root: uiDir, wildcard: false, index: ['index.html'], cacheControl: false, dotfiles: 'deny',
+    setHeaders: (res, path) => res.header('Cache-Control', path.endsWith('index.html') ? 'no-cache' : path.includes('/assets/') ? 'public, max-age=31536000, immutable' : 'public, max-age=3600') });
   app.setNotFoundHandler(async (req, reply) => {
-    if (req.method === 'GET' && !req.url.startsWith('/api/')) return reply.sendFile('index.html', { maxAge: 0 });
+    if (uiPresent && req.method === 'GET' && !req.url.startsWith('/api/')) return reply.sendFile('index.html');
     return reply.code(404).send({ code: 'NOT_FOUND', message: 'Endpoint unavailable.', correlationId: req.id });
   });
   return app as FastifyInstance;

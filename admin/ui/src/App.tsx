@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { api, setCsrf } from './api';
-import { Button, Loading } from './ui';
+import { api, setCsrf, setOnUnauth } from './api';
+import { Button, Loading, useToast } from './ui';
 import { Login } from './pages/Login';
 import { Users } from './pages/Users';
 import { UserDetail } from './pages/UserDetail';
@@ -17,6 +17,8 @@ type Me = { email: string; mail: boolean };
 export function App() {
   const [me, setMe] = useState<Me | null | undefined>(undefined);
   const [route0, route1] = useRoute();
+  const [toast, toastNode] = useToast();
+  useEffect(() => { setOnUnauth(() => setMe(null)); }, []); // an expired session sends you back to the sign-in form
   useEffect(() => { api<Me & { csrf: string }>('GET', '/api/me').then(r => { setCsrf(r.csrf); setMe(r); }, () => setMe(null)); }, []);
   if (me === undefined) return <Loading label="Loading" />;
   if (me === null) return <Login onDone={setMe} />;
@@ -33,8 +35,9 @@ export function App() {
         </div>
       </header>
       <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-6">
-        {route0 === 'audit' ? <Audit /> : route0 === 'users' && route1 ? <UserDetail id={route1} key={route1} mail={me.mail} /> : <Users />}
+        {route0 === 'audit' ? <Audit /> : route0 === 'users' && route1 ? <UserDetail id={route1} key={route1} mail={me.mail} toast={toast} /> : <Users />}
       </main>
+      {toastNode}
     </>
   );
 }

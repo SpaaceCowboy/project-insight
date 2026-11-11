@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { api, ago, when } from '../api';
-import { ActionDialog, ActionRow, Empty, ErrorNote, Loading, PageHeader, Section, StatusText, Tabs, useToast, type Field } from '../ui';
+import { ActionDialog, ActionRow, Empty, ErrorNote, Loading, PageHeader, Section, StatusText, Tabs, type Field } from '../ui';
 import { AuditList } from './Audit';
 
+const password: Field = { name: 'password', label: 'Your admin password', type: 'password', hint: 'Asked again because this action can change who owns the account.' };
 const reason: Field = { name: 'reason', label: 'Reason', type: 'textarea', min: 3, max: 500, hint: 'Saved in the audit log. The player never sees it.' };
 const ENTITLEMENTS = ['active', 'none', 'revoked', 'refunded'];
 type Tab = 'overview' | 'payments' | 'contact' | 'history';
@@ -10,9 +11,9 @@ const TABS: { id: Tab; label: string }[] = [{ id: 'overview', label: 'Overview' 
 
 interface Action { key: string; title: string; description?: ReactNode; fields: Field[]; confirm: string; danger?: boolean; path: string; done: string }
 
-export function UserDetail({ id, mail }: { id: string; mail: boolean }) {
+export function UserDetail({ id, mail, toast }: { id: string; mail: boolean; toast: (text: string) => void }) {
   const [u, setU] = useState<any>(null); const [error, setError] = useState<unknown>(null);
-  const [active, setActive] = useState<Action | null>(null); const [tab, setTab] = useState<Tab>('overview'); const [toast, toastNode] = useToast();
+  const [active, setActive] = useState<Action | null>(null); const [tab, setTab] = useState<Tab>('overview');
   const load = useCallback(() => { setError(null); return api('GET', `/api/users/${id}`).then(setU, e => { setU(null); setError(e); }); }, [id]);
   useEffect(() => { setU(null); load(); }, [load]);
   if (error != null) return <div className="flex flex-col gap-5"><PageHeader title="Player" back={{ href: '#/users', label: 'Back to players' }} /><ErrorNote error={error} retry={load} /></div>;
@@ -22,8 +23,8 @@ export function UserDetail({ id, mail }: { id: string; mail: boolean }) {
   const noMail = 'Email is switched off on this server';
   const actions: Record<string, Action> = {
     rename: { key: 'rename', title: 'Change username', fields: [{ name: 'name', label: 'New username', initial: u.username, min: 3, max: 20 }, reason], confirm: 'Change username', path: 'rename', done: 'Username changed.', description: 'Same rules as the app: 3 to 20 English letters, numbers, spaces, _ and -. No banned words, and it must be unique.' },
-    email: { key: 'email', title: 'Change email', fields: [{ name: 'email', label: 'New email', type: 'email', initial: u.email }, reason], confirm: 'Change email', path: 'email', done: 'Email changed.' },
-    recovery: { key: 'recovery', title: 'Send a password reset code', fields: [], confirm: 'Send code', path: 'send-recovery', done: 'Reset code sent.', description: <>An 8-digit code goes to <b>{u.email}</b>, valid for 15 minutes. The player enters it under “Forgot password” in the app. One code per minute.</> },
+    email: { key: 'email', title: 'Change email', fields: [{ name: 'email', label: 'New email', type: 'email', initial: u.email }, reason, password], confirm: 'Change email', path: 'email', done: 'Email changed.' },
+    recovery: { key: 'recovery', title: 'Send a password reset code', fields: [password], confirm: 'Send code', path: 'send-recovery', done: 'Reset code sent.', description: <>An 8-digit code goes to <b>{u.email}</b>, valid for 15 minutes. The player enters it under “Forgot password” in the app. One code per minute.</> },
     signout: { key: 'signout', title: 'Sign out everywhere', fields: [reason], confirm: 'Sign out', path: 'revoke-sessions', done: 'Signed out of every device.', description: 'Ends every session. The player can sign back in.' },
     suspend: { key: 'suspend', title: 'Suspend this player', fields: [reason], confirm: 'Suspend', danger: true, path: 'suspend', done: 'Player suspended.', description: 'Blocks sign-in, ends every session and hides the player and their levels. You can lift it any time.' },
     unsuspend: { key: 'unsuspend', title: 'Lift the suspension', fields: [reason], confirm: 'Unsuspend', path: 'unsuspend', done: 'Suspension lifted.' },
@@ -62,7 +63,7 @@ export function UserDetail({ id, mail }: { id: string; mail: boolean }) {
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
           <div className="flex flex-col gap-6">
             <Section title="Progress">{facts([['Level', s.level], ['XP', s.xp.toLocaleString()], ['Campaign solved', s.campaign], ['Community solved', s.community], ['Levels published', s.published]])}</Section>
-            <Section title="Account">{facts([['Joined', when(u.created_at)], ['Last active', s.lastActive ? when(s.lastActive) : '—'], ['Signs in with', u.google ? 'Google or password' : 'Password'], ['Active sessions', s.sessions], ['Unread messages', s.unreadMessages], ['Worlds access', ent?.status ?? 'none']])}</Section>
+            <Section title="Account">{facts([['Joined', when(u.created_at)], ['Last active', s.lastActive ? new Date(`${s.lastActive}T00:00:00`).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '—'], ['Signs in with', u.google ? 'Google or password' : 'Password'], ['Active sessions', s.sessions], ['Unread messages', s.unreadMessages], ['Worlds access', ent?.status ?? 'none']])}</Section>
           </div>
           <div className="flex flex-col gap-5">
             {deleted ? (
@@ -113,7 +114,6 @@ export function UserDetail({ id, mail }: { id: string; mail: boolean }) {
       </>}
 
       {active && <ActionDialog open title={active.title} description={active.description} fields={active.fields} confirm={active.confirm} danger={active.danger} onClose={() => setActive(null)} onSubmit={run} />}
-      {toastNode}
     </div>
   );
 }

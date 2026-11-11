@@ -1,4 +1,5 @@
 import { randomUUID, timingSafeEqual } from 'node:crypto';
+import { normalizeIP } from '@fastify/rate-limit';
 import argon2 from 'argon2';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { Config } from '../../server/src/config.js';
@@ -16,9 +17,11 @@ export const hashPassword = (password: string) => argon2.hash(password, password
 
 const SESSION_HOURS = 8;
 const IDLE_MINUTES = 30;
-// Per address and per email, so one attacker can neither guess one password forever nor lock out every admin from a single address.
+// Per address, per (email, address) and a loose ceiling per email. The email bucket is keyed with the address so a stranger who knows an admin's email can
+// only exhaust their own bucket, never the admin's; the ceiling still stops guessing spread over many addresses. IPv6 is counted per /64.
 const loginIp: RatePolicy = { capacity: 20, windowMs: 15 * 60_000 };
-const loginEmail: RatePolicy = { capacity: 8, windowMs: 15 * 60_000 };
+const loginEmailFromIp: RatePolicy = { capacity: 8, windowMs: 15 * 60_000 };
+const loginEmailCeiling: RatePolicy = { capacity: 120, windowMs: 60 * 60_000 };
 
 export interface AdminSession { id: string; email: string; sessionId: string; csrf: string }
 declare module 'fastify' {
@@ -35,7 +38,7 @@ function setSessionCookie(config: Config, value: string, maxAgeSeconds: number) 
   return `${cookieName(config)}=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAgeSeconds}${prod ? '; Secure' : ''}`;
 }
 
-async function throttle(store: RateLimitStore, key: string, policy: RatePolicy) {
+export async function throttle(store: RateLimitStore, key: string, policy: RatePolicy) {
   const decision = await store.consume(key, policy);
   if (!decision.allowed) throw Object.assign(new DomainError(429, 'RATE_LIMITED', 'Too many attempts. Try again later.'), { retryAfterSeconds: decision.retryAfterSeconds });
 }
@@ -71,12 +74,15 @@ export async function authRoutes(app: FastifyInstance, db: Db, config: Config, s
   app.post('/api/login', { schema: { body: objectSchema({ email: { type: 'string', maxLength: 254 }, password: { type: 'string', minLength: 1, maxLength: 256 } }) } }, async (req, reply) => {
     const b = req.body as { email: string; password: string };
     const email = b.email.trim().toLowerCase();
-    await throttle(store, `admin:login:ip:${req.ip}`, loginIp);
-    await throttle(store, `admin:login:email:${digest(email, key)}`, loginEmail);
+    const ip = digest(normalizeIP(req.ip, 64), key); const emailKey = digest(email, key);
+    await throttle(store, `admin:login:ip:${ip}`, loginIp);
+    await throttle(store, `admin:login:email:${emailKey}:${ip}`, loginEmailFromIp);
+    await throttle(store, `admin:login:email-all:${emailKey}`, loginEmailCeiling);
     const admin = (await db.query('SELECT * FROM admins WHERE email=$1', [email])).rows[0];
     const valid = await argon2.verify(admin?.password_hash ?? dummyHash, b.password);
     if (!admin || !valid || admin.disabled) {
-      if (admin) await audit(db, admin.id, 'admin.login_failed', null, null, {});
+      // Not awaited: an extra insert only for real admin emails would make their failures measurably slower than unknown ones.
+      if (admin) void audit(db, admin.id, 'admin.login_failed', null, null, {}).catch(() => req.log.warn('audit write failed'));
       throw new DomainError(401, 'LOGIN_FAILED', 'Email or password is incorrect.');
     }
     const sessionToken = token();

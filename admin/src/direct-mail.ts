@@ -2,6 +2,7 @@ import type { FastifyBaseLogger } from 'fastify';
 import type { Config } from '../../server/src/config.js';
 import { transaction, type Db } from '../../server/src/db.js';
 import { mailTransport } from '../../server/src/mail.js';
+import { audit } from './ops.js';
 
 /** Sends the oldest due admin email. False when nothing is due. Modelled on deliverMail: locked row, 3 attempts, body blanked once accepted. */
 export async function deliverDirectMail(db: Db, config: Config, log: FastifyBaseLogger, transport: { sendMail(m: object): Promise<any> } = mailTransport(config)) {
@@ -19,8 +20,10 @@ export async function deliverDirectMail(db: Db, config: Config, log: FastifyBase
       log.info({ correlationId: row.id, status: 'smtp_accepted', latencyMs: Date.now() - started }, 'direct mail outcome');
     } catch {
       const attempt = row.attempts + 1;
-      await c.query(`UPDATE direct_mail SET attempts=$1,status=$2,next_attempt=now()+($3::int * interval '1 second') WHERE id=$4`,
+      // A message that has given up keeps no text either.
+      await c.query(`UPDATE direct_mail SET attempts=$1,status=$2,body=CASE WHEN $2::text='failed' THEN '' ELSE body END,next_attempt=now()+($3::int * interval '1 second') WHERE id=$4`,
         [attempt, attempt >= 3 ? 'failed' : 'pending', attempt === 1 ? 60 : 300, row.id]);
+      if (attempt >= 3) await audit(c, row.created_by ?? null, 'user.email_failed', row.user_id, null, { mailId: row.id }); // otherwise nobody would ever learn it never arrived
       log.warn({ correlationId: row.id, status: attempt >= 3 ? 'failed' : 'retry_pending', latencyMs: Date.now() - started }, 'direct mail outcome');
     }
     return true;
