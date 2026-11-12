@@ -1,0 +1,4 @@
+{
+  "rewrites": [{ "source": "/p/:code", "destination": "/index.html" }],
+  "headers": [{ "source": "/.well-known/assetlinks.json", "headers": [{ "key": "Content-Type", "value": "application/json" }] }]
+}

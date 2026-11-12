@@ -1,0 +1,18 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.insightpuzzle.app",
+      "sha256_cert_fingerprints": ["30:08:52:96:64:EF:52:09:20:22:F4:A3:A0:FC:77:A4:3F:56:D1:8C:CA:A9:47:EC:DF:0B:E5:DA:AB:D2:8C:9A"]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.insightpuzzle.app.preview",
+      "sha256_cert_fingerprints": ["30:08:52:96:64:EF:52:09:20:22:F4:A3:A0:FC:77:A4:3F:56:D1:8C:CA:A9:47:EC:DF:0B:E5:DA:AB:D2:8C:9A"]
+    }
+  }
+]
