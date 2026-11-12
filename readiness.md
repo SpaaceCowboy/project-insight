@@ -2,14 +2,15 @@
 
 > Owner: solo dev. Scope: infrastructure, distribution, compliance, operations.
 > Out of scope: game design, core gameplay mechanics.
-> Last updated: 2026-11-11 · Repo: `github.com:SpaaceCowboy/project-insight` (branch `android`; v0.2.29 released)
+> Last updated: 2026-11-12 · Repo: `github.com:SpaaceCowboy/project-insight` (branch `android`; v0.2.30 released)
 
 ---
 
 ## Current state snapshot (updated 2026-11-09)
 
 **App**
-- `com.insightpuzzle.app`, v0.2.29 (versionCode 40), minSdk 26; Firebase release `6p2cm8f86j088` distributed to the existing 3-person tester group.
+- `com.insightpuzzle.app`, v0.2.30 (versionCode 41), minSdk 26; Firebase release `27252lt740jpo` distributed to the existing 3-person tester group.
+- Shared puzzle links (`https://www.midoripuzzle.com/p/<code>`) are verified App Links: `assetlinks.json` is served by the Vercel site from the `web` branch.
 - Signed with a **debug keystore** (`/root/.android/debug.keystore` on the VPS). Blocking for Play.
 - Google sign-in live; email recovery implemented but `MAIL_DELIVERY_MODE=disabled` (no SMTP).
 
