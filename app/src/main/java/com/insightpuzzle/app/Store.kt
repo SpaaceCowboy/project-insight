@@ -7,6 +7,10 @@ import org.json.JSONObject
 
 /** Saved progress and settings. SharedPreferences is enough: a few small values, written on each solve or setting change. */
 class Store(context: Context) {
+    companion object {
+        /** Which Journey the saved level numbers refer to; sent with the guest import so the server ignores saves from older editions. Must match server campaign.ts. */
+        const val JOURNEY_EDITION = 2
+    }
     private val prefs: SharedPreferences = context.getSharedPreferences(if (BuildConfig.ONLINE_DEMO) "insight_demo" else "insight", Context.MODE_PRIVATE)
     var activeAccount: String? = prefs.getString("activeAccount", null); private set
     private fun scoped(key: String, account: String? = activeAccount) = account?.let { "account_${it}_$key" } ?: key
@@ -100,6 +104,8 @@ class Store(context: Context) {
     var ambience by float("ambience", .8f)
     var background by string("background", "forest")
     var colorblind by bool("colorblind", false)
+    /** The plush tile style (Options → About), off until it has been tried. */
+    var plushTiles by bool("plushTiles", false)
     /** The launcher icon picked in Options ("alt", "default", or "" for none picked). It is applied when the app goes to the background, because switching the launcher entry the running task was started from makes Android close that task. */
     var iconWanted by string("iconWanted", "")
     /** The language the player picked in Options; until then the phone's language if the app has it, else English. */
@@ -110,6 +116,32 @@ class Store(context: Context) {
     var guide by bool("guide", true)
     /** The first-play guide has been shown once on this device. */
     var onboarded by bool("onboarded", false)
+    /** The tips that play by themselves the first time each screen opens on this device: Worlds, an online puzzle (its like and bookmark steps only), the creator's first stage. */
+    var worldsGuided by bool("worldsGuided", false)
+    var onlineGuided by bool("onlineGuided", false)
+    var creatorGuided by bool("creatorGuided", false)
+
+    /**
+     * v0.2.30 replaced the whole Journey (206 levels became the 100 puzzles of the account "Levels"), so a level number from before means another puzzle.
+     * Once per device, every save on it (the guest's and each account's) loses its solved levels, unfinished attempts, last open level, Journey achievements
+     * and queued Journey proofs; the server cleared its copy in migration 013. Everything else (settings, community play, other achievements) is kept.
+     */
+    private fun startJourneyEdition() {
+        if (prefs.getInt("journeyEdition", 1) >= JOURNEY_EDITION) return
+        val editor = prefs.edit()
+        val scope = "^(account_[^_]+_)?"
+        val progress = Regex(scope + "(done|lastLevel|attempt_\\d+)$")
+        val earned = Regex(scope + "earned$")
+        val proof = Regex(scope + "proof_.+$")
+        for ((key, value) in prefs.all) when {
+            progress.matches(key) -> editor.remove(key)
+            earned.matches(key) && value is Set<*> -> editor.putStringSet(key, value.filterIsInstance<String>().filterNot { journeyBadge(it.substringBefore('=')) }.toSet())
+            proof.matches(key) && value is String && runCatching { JSONObject(value).optString("kind") == "campaign" }.getOrDefault(false) -> editor.remove(key)
+        }
+        check(editor.putInt("journeyEdition", JOURNEY_EDITION).commit())
+    }
+    private fun journeyBadge(id: String) = id == "first" || id == "complete" || id.startsWith("levels-")
+    init { startJourneyEdition() }
 
     /** Clears solved levels and unfinished attempts. Badges and settings are kept. */
     fun resetProgress() = prefs.edit().apply {

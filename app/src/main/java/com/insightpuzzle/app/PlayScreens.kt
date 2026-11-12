@@ -38,6 +38,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.layout.layout
+import kotlinx.coroutines.flow.first
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.foundation.lazy.items
 import kotlin.math.roundToInt
 import androidx.compose.ui.unit.dp
@@ -63,6 +66,8 @@ class DiscoveryListState(defaultSort: String) {
     /** A pull-to-refresh is waiting for its load to finish. */
     var pulling by mutableStateOf(false)
     var failed by mutableStateOf(false)
+    /** The next load replaces the whole list instead of only its first server page (a puzzle was just published: it may sort onto any page). */
+    var replaceAll = false
     var loadedKey: String? = null
     var loadedPage = -1
     var loadedRevision = -1
@@ -73,6 +78,8 @@ class DiscoveryListState(defaultSort: String) {
     val settled get() = failed || loadedPage >= 0
     fun refresh() { requestedPage = 0; revision++ }
     fun pull() { pulling = true; refresh() }
+    /** A quiet full reload: the list is fetched again from its first page, without the pull spinner or a jump to page 0. */
+    fun reload() { replaceAll = true; refresh() }
 }
 class PlayDiscoveryState {
     var tab by mutableStateOf("puzzles")
@@ -143,9 +150,12 @@ internal fun LoadDiscovery(m: GameModel, state: DiscoveryListState, key: String,
             val response = m.online.repository.fetch(url, account)
             val fresh = response.getJSONArray("items").objects()
             // A quiet refresh of a list that is already shown replaces its first server page and keeps every page after it, so the list neither shrinks under the reader nor jumps.
-            val keepRest = requested == 0 && changed && state.loadedKey == key && !state.pulling && state.items.size > fresh.size
+            val keepRest = requested == 0 && changed && state.loadedKey == key && !state.pulling && !state.replaceAll && state.items.size > fresh.size
             state.items = (if (keepRest) fresh + state.items.drop(fresh.size) else if (requested == 0) fresh else state.items + fresh).distinctBy { it.getString("id") }
-            if (!keepRest) state.nextPage = if (response.isNull("nextPage")) null else response.getInt("nextPage")
+            // Always the server's answer, kept rows or not: the pages after the first are fetched again as the reader nears them, and anything new on them
+            // (a puzzle just published sorts last by number) is added. Keeping the old "no more pages" hid such a puzzle until the app was restarted.
+            state.nextPage = if (response.isNull("nextPage")) null else response.getInt("nextPage")
+            if (requested == 0) state.replaceAll = false
             state.loadedKey = key; state.loadedPage = requested; state.loadedRevision = state.revision
             m.online.offline = false
         } catch (error: Exception) {
@@ -228,12 +238,11 @@ fun WorldsScreen(m: GameModel) {
     val reveal = remember(density) { SearchReveal(with(density) { 64.dp.toPx() }) }
     var searching by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    val focus = LocalFocusManager.current
-    val keyboard = LocalSoftwareKeyboardController.current
     reveal.pinned = searching || state.query.isNotEmpty()
+    val dismissKeyboard = rememberDismissKeyboard()
     /** Closes the search bar: the text goes, the keyboard goes, the bar slides back up. */
     fun closeSearch() {
-        focus.clearFocus(); keyboard?.hide()
+        dismissKeyboard()
         if (state.query.isNotEmpty()) { state.query = ""; state.requestedPage = 0 }
         reveal.pinned = false
         scope.launch { androidx.compose.animation.core.animate(reveal.height, 0f) { v, _ -> reveal.height = v } }
@@ -255,11 +264,24 @@ fun WorldsScreen(m: GameModel) {
                 close = ::closeSearch) { state.query = it; state.requestedPage = 0 }
         }
     }
+    // Where the Worlds tips' borders and plate go (layout positions, read only while the tips show).
+    val spots = remember { mutableStateMapOf<String, LayoutCoordinates>() }
+    fun spot(name: String) = Modifier.onGloballyPositioned { spots[name] = it }
+    // The first time Worlds opens on this device its tips play by themselves, once it has settled and half a second has passed.
+    val sheet = LocalSheet.current
+    val cover = LocalCover.current
+    LaunchedEffect(Unit) {
+        if (!m.worldsGuideDue) return@LaunchedEffect
+        snapshotFlow { m.top == Route.Online && (sheet?.progress?.value ?: 1f) >= 1f && cover() <= .02f }.first { it }
+        delay(500)
+        if (m.top == Route.Online) m.revealWorldsGuide()
+    }
+    androidx.compose.runtime.DisposableEffect(Unit) { onDispose { m.endWorldsGuide() } }
     Page("Worlds", 560.dp, ime = false) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
             Box(Modifier.fillMaxWidth().height(48.dp)) {
                 HomeIconButton("Options", Modifier.align(Alignment.CenterStart).semantics { traversalIndex = -4f }, { m.push(Route.Options) }, optionsIcon, Cue.STOP)
-                BackChevron(m, Modifier.align(Alignment.Center).semantics { traversalIndex = -3f })
+                BackChevron(m, Modifier.align(Alignment.Center).then(spot("chevron")).semantics { traversalIndex = -3f })
                 Row(Modifier.align(Alignment.CenterEnd), verticalAlignment = Alignment.CenterVertically) {
                     // No connection: the same crossed-out signal as Profile, left of the Profile icon; pulling the list down retries.
                     val muted = LocalPalette.current.muted
@@ -269,14 +291,16 @@ fun WorldsScreen(m: GameModel) {
             }
             Spacer(Modifier.height(8.dp))
             Box(Modifier.fillMaxWidth().height(48.dp)) {
-                SplitPill(puzzles, { discovery.tab = if (it) "puzzles" else "creators" }, Modifier.align(Alignment.Center))
-                HomeIconButton(if (puzzles) "Sort puzzles and filter creation dates" else "Sort creators", Modifier.align(Alignment.CenterEnd), { sorting = true }, sortIcon, Cue.PRESS)
+                // The tips' key sits under Options as Sort sits under Profile, in the same colours as every key here and never lit.
+                HomeIconButton("Gameplay tips", Modifier.align(Alignment.CenterStart).then(spot("lamp")), { m.tapWorldsGuide() }, lampIcon, Cue.TOGGLE_ON)
+                SplitPill(puzzles, { discovery.tab = if (it) "puzzles" else "creators" }, Modifier.align(Alignment.Center).then(spot("split")))
+                HomeIconButton(if (puzzles) "Sort puzzles and filter creation dates" else "Sort creators", Modifier.align(Alignment.CenterEnd).then(spot("sort")), { sorting = true }, sortIcon, Cue.PRESS)
             }
         }
         Spacer(Modifier.height(8.dp))
         OnlineMessages(m, errors = false)
-        Box(Modifier.weight(1f).fillMaxWidth()) {
-            if (puzzles) PuzzleGrid(m, state, Modifier.fillMaxSize(), header = search, scroll = reveal.connection, minTop = if (reveal.open) 8.dp else 0.dp) { detail = it }
+        Box(Modifier.weight(1f).fillMaxWidth().then(spot("body"))) {
+            if (puzzles) CompositionLocalProvider(LocalFirstCard provides { spots["card"] = it }) { PuzzleGrid(m, state, Modifier.fillMaxSize(), header = search, scroll = reveal.connection, minTop = if (reveal.open) 8.dp else 0.dp) { detail = it } }
             else Refreshable(state.pulling, { m.online.clearMessages(); state.pull() }, Modifier.fillMaxSize()) { Column(Modifier.fillMaxSize()) {
                 search()
                 PlayerList(m, state, Modifier.weight(1f).fillMaxWidth().nestedScroll(reveal.connection))
@@ -285,12 +309,21 @@ fun WorldsScreen(m: GameModel) {
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             // Never dimmed while a puzzle is opening; online.task ignores a second start while busy.
-            MenuButton("Random", Modifier.weight(1f), height = 56.dp, raised = true) { m.startRandom() }
-            MenuButton("Create", Modifier.weight(1f), height = 56.dp, raised = true) { m.push(Route.Create) }
+            MenuButton("Random", Modifier.weight(1f).then(spot("random")), height = 56.dp, raised = true) { m.startRandom() }
+            MenuButton("Create", Modifier.weight(1f).then(spot("create")), height = 56.dp, raised = true) { m.push(Route.Create) }
         }
     }
     if (sorting) DiscoverySort(state, puzzles) { sorting = false }
     detail?.let { anchor -> PuzzleDetails(m, anchor) { detail = null } }
+    if (m.worldsGuidePhase != 0) {
+        var layer by remember { mutableStateOf<LayoutCoordinates?>(null) }
+        Box(Modifier.fillMaxSize().onGloballyPositioned { layer = it }) {
+            val base = layer?.takeIf { it.isAttached }
+            fun rect(name: String) = spots[name]?.takeIf { it.isAttached && base != null }?.let { base!!.localBoundingBoxOf(it) }
+            val chevron = rect("chevron")
+            if (chevron != null) WorldsGuide(m, puzzles, rect("body"), rect("split"), rect("sort"), rect("create"), rect("random"), rect("card"), chevron, rect("lamp"))
+        }
+    }
 }
 
 /** One row per player: the name (20 characters at most) on the left; level, puzzles designed and puzzles solved stacked on the right. The row keeps its height. */

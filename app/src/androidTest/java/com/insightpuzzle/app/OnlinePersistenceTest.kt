@@ -161,10 +161,10 @@ class OnlinePersistenceTest {
         val sampleGrid = grids.getJSONObject(0)
         assertFalse(sampleGrid.getBoolean("completed"))
         val play = request("POST", "/v1/grids/${sampleGrid.getString("id")}/sessions", op())
-        // The first preview grid reuses campaign level 1, whose only solution is one horizontal swap.
+        // The first preview grid reuses a small Journey board; its shortest route is the completion proof.
         val spec = sampleGrid.board("start"); val target = sampleGrid.board("target")
-        val move = spec.indices.flatMap { r -> spec[r].indices.map { c -> Pos(r,c) } }.flatMap { p -> Rules.legalMoves(spec,p).map { p to it } }.first { (a,b) -> Rules.swap(spec,a,b) == target }
-        val width = spec[0].length; val proof = JSONArray().put(JSONArray(listOf(move.first.r*width+move.first.c,move.second.r*width+move.second.c)))
+        val width = spec[0].length; val proof = JSONArray()
+        for ((from, to) in shortestRoute(spec, target)) proof.put(JSONArray(listOf(from.r*width+from.c, to.r*width+to.c)))
         val body = op().put("kind", "community").put("sessionId", play.getString("sessionId")).put("path", proof)
         val first = request("POST", "/v1/completions", body)
         assertEquals("100000", first.getString("awardedMilli")); assertEquals(first.toString(), request("POST", "/v1/completions", body).toString())
@@ -192,5 +192,20 @@ class OnlinePersistenceTest {
         assertEquals(24, request("GET", "/v1/grids?owner=$account&sort=number&page=0").getJSONArray("items").length())
         val last = request("GET", "/v1/grids?owner=$account&sort=number&page=1").getJSONArray("items")
         assertEquals(1, last.length()); assertEquals(25, last.getJSONObject(0).getInt("levelNumber"))
+    }
+
+    /** The shortest list of moves from [start] to [target] (breadth-first; the preview boards are small). */
+    private fun shortestRoute(start: Board, target: Board): List<Pair<Pos, Pos>> {
+        val previous = HashMap<Board, Pair<Board, Pair<Pos, Pos>>?>().apply { put(start, null) }
+        val queue = ArrayDeque(listOf(start))
+        while (queue.isNotEmpty()) {
+            val board = queue.removeFirst()
+            if (board == target) return generateSequence(board) { previous[it]?.first }.mapNotNull { previous[it]?.second }.toList().reversed()
+            for (r in board.indices) for (c in board[r].indices) for (to in Rules.legalMoves(board, Pos(r, c))) {
+                val next = Rules.swap(board, Pos(r, c), to)
+                if (next !in previous) { previous[next] = board to (Pos(r, c) to to); queue.addLast(next) }
+            }
+        }
+        error("No route")
     }
 }

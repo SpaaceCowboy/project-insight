@@ -40,6 +40,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -108,14 +109,17 @@ internal const val HOLD_MS = 450
 /** How long a touch inside the outline stays still before the outline starts to glow for a restart. */
 internal const val GLOW_DELAY_MS = 120L
 
+/** The like key's heart in a 24-unit box of [u] pixels per unit; also drawn beside a puzzle's like count. */
+internal fun heartPath(u: Float) = androidx.compose.ui.graphics.Path().apply {
+    moveTo(12 * u, 20 * u)
+    cubicTo(3 * u, 14 * u, 2.5f * u, 8 * u, 6 * u, 5.5f * u); cubicTo(8.5f * u, 3.8f * u, 11 * u, 5 * u, 12 * u, 7.5f * u)
+    cubicTo(13 * u, 5 * u, 15.5f * u, 3.8f * u, 18 * u, 5.5f * u); cubicTo(21.5f * u, 8 * u, 21 * u, 14 * u, 12 * u, 20 * u); close()
+}
+
 /** Like: pressing swells the heart a little, like a beat. */
 private fun heartIcon(filled: Boolean) = AnimatedIcon(stays = false) { c, t ->
     val u = size.width / 24f
-    val heart = androidx.compose.ui.graphics.Path().apply {
-        moveTo(12 * u, 20 * u)
-        cubicTo(3 * u, 14 * u, 2.5f * u, 8 * u, 6 * u, 5.5f * u); cubicTo(8.5f * u, 3.8f * u, 11 * u, 5 * u, 12 * u, 7.5f * u)
-        cubicTo(13 * u, 5 * u, 15.5f * u, 3.8f * u, 18 * u, 5.5f * u); cubicTo(21.5f * u, 8 * u, 21 * u, 14 * u, 12 * u, 20 * u); close()
-    }
+    val heart = heartPath(u)
     scale(1f + .18f * t, Offset(12 * u, 12 * u)) {
         if (filled) drawPath(heart, c) else drawPath(heart, c, style = Stroke(1.7f * u, join = androidx.compose.ui.graphics.StrokeJoin.Round))
     }
@@ -168,6 +172,8 @@ internal fun solveSwell(bloom: Float, diagonal: Int, maxDiagonal: Int = 8): Floa
 /** How long a level or puzzle takes to slide out while the next one slides in, and how far its last/first sliver fades at the page margin. */
 private const val LEVEL_SLIDE_MS = 340
 private const val LEVEL_SLIDE_FADE = .08f
+/** The space between the leaving and the arriving platform: the platform's own margin from the screen edge. */
+private val PLATFORM_GAP = 16.dp
 /** After Next, the result bar sinks for this long before the board starts its slide. */
 private const val WIN_EXIT_MS = 350L
 
@@ -221,11 +227,13 @@ fun GameScreen(m: GameModel) {
         lift.animateTo(0f, tween(BOARD_SETTLE_MS, easing = FastOutSlowInEasing))
     }
     // The first-play tips wait for the screen to settle, then another half second, so Journey 1 is seen before its borders and text arrive.
-    LaunchedEffect(m.onboardPending, m.top) {
-        if (!m.onboardPending) return@LaunchedEffect
+    // The first online puzzle's like and bookmark tips wait the same way.
+    LaunchedEffect(m.onboardPending, m.onlineGuidePending, m.top) {
+        if (!m.onboardPending && !m.onlineGuidePending) return@LaunchedEffect
         androidx.compose.runtime.snapshotFlow { m.top == Route.Game && (sheet?.progress?.value ?: 1f) >= 1f && cover() <= .02f }.first { it }
         delay(500)
         if (m.onboardPending && m.top == Route.Game && m.level == 0 && m.community == null && m.guideOn && !exiting) m.revealOnboardGuide()
+        else if (m.onlineGuidePending && m.top == Route.Game && m.community != null && !m.solved && m.guideOn && !exiting) m.revealOnlineGuide()
         else m.cancelOnboardGuide()
     }
     // The model has changed to the puzzle the player swiped or pressed Next for: freeze the old board and slide it away while the new one arrives.
@@ -245,6 +253,11 @@ fun GameScreen(m: GameModel) {
         if (!m.online.busy) pendingSwap?.let { if (it.from.identity == view.identity) pendingSwap = null }
     }
     LaunchedEffect(m.top) { if (m.top != Route.Game) pendingSwap = null }
+    // The slide shown now. It starts in the very composition in which the model first shows the new puzzle, never a frame later from the effect
+    // above: that one late frame drew the new board and target on the old platform for an instant (the flicker at the start of a slide).
+    val starting = pendingSwap?.takeIf { it.from.identity != view.identity && !reduceMotion }
+    val shownSwap = activeSwap ?: starting?.let { LevelSwap(it.from, it.direction) }
+    val slide = if (activeSwap != null) swapSlide.value else 0f
     // Where things are, for telling the hold zone and the swipe zones apart.
     var root by remember { mutableStateOf<LayoutCoordinates?>(null) }
     var shellBox by remember { mutableStateOf<LayoutCoordinates?>(null) }
@@ -380,40 +393,43 @@ fun GameScreen(m: GameModel) {
                 Box(Modifier.onGloballyPositioned { targetBox = it }.semantics {
                     contentDescription = tr("Target arrangement") + ": " + spec.target.mapIndexed { i, row -> tr("row {0}", i + 1) + ": " + row.map { Art.name(it) ?: tr("gap") }.joinToString(", ") }.joinToString("; ")
                 }) {
-                    val swap = activeSwap
-                    if (swap != null) MorphTarget(Rules.crop(swap.from.spec.target), target, swapSlide.value, targetCell, 2.6.dp)
+                    val swap = shownSwap
+                    if (swap != null) MorphTarget(Rules.crop(swap.from.spec.target), target, slide, targetCell, 2.6.dp)
                     else TargetMini(target, targetCell, 2.6.dp)
                 }
                 Spacer(Modifier.height(12.dp))
                 // The outline keeps the shared board height and sits at the bottom, so it is shorter from the top.
                 BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
                     val p = LocalPalette.current
-                    val moving = activeSwap != null
-                    // The lamp is etched into the outline under the tiles, so a tile dragged over it covers it; it sinks with the platform.
-                    val lampInk = lerp(p.paper2, p.ink, .5f).copy(alpha = if (solved) .45f else 1f)
-                    val lit = m.guidePhase != 0
-                    val lamp: (DrawScope.() -> Unit)? = if (m.guideOn && !exiting && !moving) {
-                        { lampArt(lampInk, lit, Offset(size.width - LAMP_INSET.toPx() - LAMP_ART.toPx(), LAMP_TOP.toPx()), LAMP_ART.toPx(), if (p.dark) Color.White else p.ink.copy(alpha = if (solved) .45f else 1f)) }
+                    // The lamp is etched into the outline under the tiles, so a tile dragged over it covers it; it sinks with the platform. It keeps its colour
+                    // when the puzzle is solved (the lamp only stops answering), and it is drawn on both platforms of a slide, so it travels with each one.
+                    val lampInk = lerp(p.paper2, p.ink, .5f)
+                    fun lamp(lit: Boolean): (DrawScope.() -> Unit)? = if (m.guideOn && !exiting) {
+                        { lampArt(lampInk, lit, Offset(size.width - LAMP_INSET.toPx() - LAMP_ART.toPx(), LAMP_TOP.toPx()), LAMP_ART.toPx(), if (p.dark) Color.White else p.ink) }
                     } else null
                     val boardHeight = boardShellHeight(maxHeight)
-                    val swap = activeSwap
-                    if (swap == null) {
-                        Board(Modifier.graphicsLayer { translationY = -lift.value * BOARD_LIFT.toPx() }.fillMaxWidth().height(boardHeight).onGloballyPositioned { shellBox = it; refresh() }, view.board, Pair(view.level, community?.id), spec.target, solved, { m.board },
-                            holdGlow = glow.value, rewindTo = if (rewinding) spec.start else null, rewindProgress = rewind.value, onGrid = { gridRect = it }, beneath = lamp) { a, b -> m.move(a, b) }
-                    } else {
-                        // The old platform and the next one travel together: the same width apart, so their edges meet cleanly at the middle of the slide.
-                        val travel = constraints.maxWidth.toFloat()
-                        val t = swapSlide.value
+                    val swap = shownSwap
+                    // The old platform and the next one travel together, one platform width plus the side margin apart: the space between them is the
+                    // same space as between a platform and the screen edge, so their sides never meet.
+                    val travel = constraints.maxWidth.toFloat() + with(LocalDensity.current) { PLATFORM_GAP.toPx() }
+                    val t = slide
+                    // Each platform is keyed by its puzzle, so the board being left is the very one that was resting (nothing is composed again when a
+                    // slide starts or ends, which flashed its tiles), and the arriving one stays the resting board afterwards.
+                    if (swap != null) key(swap.from.identity) {
+                        val from = swap.from
                         val oldAlpha = ((1f - t) / LEVEL_SLIDE_FADE).coerceIn(0f, 1f)
-                        val newAlpha = (t / LEVEL_SLIDE_FADE).coerceIn(0f, 1f)
                         Board(Modifier.clearAndSetSemantics { }.graphicsLayer {
                                 translationY = -lift.value * BOARD_LIFT.toPx(); translationX = -swap.direction * travel * t; alpha = oldAlpha
-                            }.fillMaxWidth().height(boardHeight), swap.from.board, swap.from.identity + "-out", swap.from.spec.target, false, { swap.from.board },
-                            interactive = false) { _, _ -> }
+                            }.fillMaxWidth().height(boardHeight), from.board, Pair(from.level, from.community?.id), from.spec.target, from.solved, { from.board },
+                            beneath = lamp(false), interactive = false) { _, _ -> }
+                    }
+                    key(view.identity) {
+                        val newAlpha = if (swap == null) 1f else (t / LEVEL_SLIDE_FADE).coerceIn(0f, 1f)
                         Board(Modifier.graphicsLayer {
-                                translationY = -lift.value * BOARD_LIFT.toPx(); translationX = swap.direction * travel * (1f - t); alpha = newAlpha
+                                translationY = -lift.value * BOARD_LIFT.toPx(); translationX = if (swap == null) 0f else swap.direction * travel * (1f - t); alpha = newAlpha
                             }.fillMaxWidth().height(boardHeight).onGloballyPositioned { shellBox = it; refresh() }, view.board, Pair(view.level, community?.id), spec.target, solved, { m.board },
-                            holdGlow = 0f, onGrid = { gridRect = it }, beneath = lamp) { a, b -> m.move(a, b) }
+                            holdGlow = if (swap == null) glow.value else 0f, rewindTo = if (rewinding && swap == null) spec.start else null, rewindProgress = rewind.value,
+                            onGrid = { gridRect = it }, beneath = lamp(m.guidePhase != 0 && swap == null)) { a, b -> m.move(a, b) }
                     }
                 }
             }
@@ -437,8 +453,8 @@ fun GameScreen(m: GameModel) {
             val dp = LocalDensity.current.density
             val sink = glow.value * BOARD_TRAVEL * BOARD_WALL.value * dp - lift.value * BOARD_LIFT.value * dp
             val lampAt = Rect(shell.right - 52 * dp, shell.top + 4 * dp + sink, shell.right - 4 * dp, shell.top + 52 * dp + sink)
-            if (m.guideOn && !exiting && activeSwap == null) GuideButton(Modifier.offset { guideLampOffset(shell).let { IntOffset(it.x, it.y + sink.roundToInt()) } }, enabled = !solved) { m.tapGuide() }
-            if (m.guidePhase != 0 && !solved && !exiting && activeSwap == null) {
+            if (m.guideOn && !exiting && shownSwap == null) GuideButton(Modifier.offset { guideLampOffset(shell).let { IntOffset(it.x, it.y + sink.roundToInt()) } }, enabled = !solved) { m.tapGuide() }
+            if (m.guidePhase != 0 && !solved && !exiting && shownSwap == null) {
                 val size = root?.size
                 val own = community?.grid?.optString("ownerId") == m.online.user?.id
                 val like = if (!own) Rect(16 * dp, 72 * dp, 64 * dp, 120 * dp) else null

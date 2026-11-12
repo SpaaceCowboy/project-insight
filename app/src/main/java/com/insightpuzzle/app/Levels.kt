@@ -5,7 +5,7 @@ import org.json.JSONArray
 data class Level(val name: String, val start: Board, val target: Board, val world: Int, val par: Int)
 
 object Levels {
-    /** Parses assets/levels.json, generated from the web game by tools/export-assets.mjs. */
+    /** Parses assets/levels.json, generated from the online account "Levels" by tools/import-journey.mjs. */
     fun parse(json: String): List<Level> {
         val array = JSONArray(json)
         return List(array.length()) { i ->

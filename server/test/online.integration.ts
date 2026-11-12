@@ -61,22 +61,28 @@ function custom(n = 0) {
 
 async function create(account: any, n=1, operationId=op()) { return call('POST','/v1/grids',{operationId,...custom(n)},account); }
 async function complete(account: any, levelId: number, operationId=op()) { return call('POST','/v1/completions',{operationId,kind:'campaign',levelId,path:routes[levelId-1]},account); }
-test('older APK imports retain current progress without retired IDs or XP', async () => {
+test('imports from older APKs are accepted but change nothing; current imports keep only the 100-level Journey', async () => {
   const account = await makeAccount();
-  const request = { operationId: op(), done: Array.from({length:206},(_,i)=>i+1), badges: ['first','first-clean','world-1','world-11','pristine','complete'] };
-  const accepted = await call('POST','/v1/progress/import',request,account);
-  assert.deepEqual(await call('POST','/v1/progress/import',request,account),accepted);
-  const progress = await call('GET','/v1/progress',undefined,account);
-  assert.equal(progress.done.length,206); assert.equal(progress.xpMilli,'0');
-  assert.deepEqual(progress.badges.sort(),['first','levels-30','levels-60','levels-90','levels-120','levels-150','levels-180','complete'].sort());
-  assert.equal((await call('GET',`/v1/profiles/${account.user.id}`,undefined,account)).campaignCount,206);
-  await call('POST','/v1/progress/import',{operationId:op(),done:[207],badges:[]},account,400);
-  await call('POST','/v1/progress/import',{operationId:op(),done:[],badges:['unknown']},account,400);
+  // An older APK numbers the 206-level Journey: accepted (so its outbox drains) and ignored.
+  const legacy = { operationId: op(), done: Array.from({length:206},(_,i)=>i+1), badges: ['first','first-clean','world-1','world-11','pristine','levels-180','complete'] };
+  const accepted = await call('POST','/v1/progress/import',legacy,account);
+  assert.deepEqual(await call('POST','/v1/progress/import',legacy,account),accepted);
+  let progress = await call('GET','/v1/progress',undefined,account);
+  assert.equal(progress.done.length,0); assert.deepEqual(progress.badges,[]); assert.equal(progress.xpMilli,'0');
+  const current = { operationId: op(), journey: 2, done: Array.from({length:100},(_,i)=>i+1), badges: ['first','world-1','levels-120','complete'] };
+  await call('POST','/v1/progress/import',current,account);
+  progress = await call('GET','/v1/progress',undefined,account);
+  assert.equal(progress.done.length,100); assert.equal(progress.xpMilli,'0');
+  assert.deepEqual(progress.badges.sort(),['first','levels-30','levels-60','levels-90','complete'].sort());
+  assert.equal((await call('GET',`/v1/profiles/${account.user.id}`,undefined,account)).campaignCount,100);
+  await call('POST','/v1/progress/import',{operationId:op(),journey:2,done:[207],badges:[]},account,400);
+  await call('POST','/v1/progress/import',{operationId:op(),journey:2,done:[],badges:['unknown']},account,400);
+  await call('POST','/v1/progress/import',{operationId:op(),journey:3,done:[],badges:[]},account,400);
 });
 
 test('campaign imports grant no XP, completion retries deduplicate, replay caps serialize', async () => {
   const a = await makeAccount();
-  await call('POST', '/v1/progress/import', { operationId: op(), done: [1], badges: ['first'] }, a);
+  await call('POST', '/v1/progress/import', { operationId: op(), journey: 2, done: [1], badges: ['first'] }, a);
   assert.equal((await call('GET', '/v1/progress', undefined, a)).xpMilli, '0');
   const id = op(); const first = await complete(a, 1, id); assert.equal(first.awardedMilli, '100000');
   assert.deepEqual(await complete(a, 1, id), first);

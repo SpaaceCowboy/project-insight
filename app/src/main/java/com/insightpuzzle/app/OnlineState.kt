@@ -156,7 +156,7 @@ class OnlineState(private val model: GameModel, app: Application, private val sc
             if (imported == null) {
                 // Only current levels and badges: the server rejects retired ones.
                 val badgeIds = model.achievements.catalog.map { it.id }.toSet()
-                imported = OnlineRepository.operation().put("done", JSONArray(model.store.guestProgress().filter { it in 1..model.levels.size }.sorted()))
+                imported = OnlineRepository.operation().put("journey", Store.JOURNEY_EDITION).put("done", JSONArray(model.store.guestProgress().filter { it in 1..model.levels.size }.sorted()))
                     .put("badges", JSONArray(model.store.guestBadges().filter { it in badgeIds }))
                 // Enqueue before marking; repeating an import after a killed process cannot award XP.
                 repository.enqueue(account, "/v1/progress/import", imported)

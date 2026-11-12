@@ -70,7 +70,14 @@ fun DrawScope.tile(type: Char, origin: Offset, size: Float, glow: Color? = null,
     val sheen = if (Art.colorblind) listOf(Color.White.copy(alpha = .08f), Color.Transparent, Color(0x14000000)) else listOf(Color.White.copy(alpha = .28f), Color.Transparent, Color(0x29000000))
     drawRoundRect(Brush.linearGradient(sheen, origin, origin + Offset(size, size)), origin, Size(size, size), radius)
     if (highlight > 0f) drawRoundRect(Color.White.copy(alpha = highlight), origin, Size(size, size), radius)
-    drawRoundRect(Color(0x73FFFFFF), origin, Size(size, size), radius, style = Stroke(1.5f))
+    val rim = plushRim(light)
+    if (Art.plush) {
+        // A soft light rim just inside the face's edge, the tile's own colour washed towards white: brighter at the top left where the light falls, a touch
+        // deeper at the bottom right, so the tile reads as a plump cushion.
+        val w = size * PLUSH_RIM
+        drawRoundRect(Brush.linearGradient(listOf(rim, androidx.compose.ui.graphics.lerp(rim, light, .45f)), origin, origin + Offset(size, size)),
+            origin + Offset(w / 2, w / 2), Size(size - w, size - w), CornerRadius(size * .23f - w / 2), style = Stroke(w))
+    } else drawRoundRect(Color(0x73FFFFFF), origin, Size(size, size), radius, style = Stroke(1.5f))
     // The selection ring alone: no halo around it.
     if (glow != null) drawRoundRect(glow, origin - Offset(2.5f, 2.5f), Size(size + 5f, size + 5f), CornerRadius(size * .23f + 2.5f), style = Stroke(3.5f))
     if (ring != null) drawRoundRect(ring, origin - Offset(2f, 2f), Size(size + 4f, size + 4f), CornerRadius(size * .23f + 2f), style = Stroke(4f))
@@ -80,12 +87,27 @@ fun DrawScope.tile(type: Char, origin: Offset, size: Float, glow: Color? = null,
     val weight = if (type == 'W') 1f else ETCH_WEIGHT
     if (ink == Color.White) {
         symbol(type, origin - Offset(0f, size * .012f), size, .44f, Color.Black.copy(alpha = .2f), weight)
-        symbol(type, origin, size, .44f, Color.White.copy(alpha = .9f), weight)
+        symbol(type, origin, size, .44f, plushInk(type, rim).copy(alpha = .9f), weight)
     } else {
         symbol(type, origin + Offset(0f, size * .012f), size, .44f, Color.White.copy(alpha = .7f), weight)
         symbol(type, origin, size, .44f, ink.copy(alpha = .92f), weight)
     }
 }
+
+/** The plush style's rim colour for a tile whose face starts at [light]: that colour washed most of the way to white. */
+internal fun plushRim(light: Color): Color = androidx.compose.ui.graphics.lerp(light, Color.White, .5f)
+/** How wide the plush rim is, as a share of the tile. */
+internal const val PLUSH_RIM = .06f
+
+/**
+ * The white of the arrows. In the plush style (standard palette only; the colour-blind palette keeps pure white for legibility) it leans a hair towards the rim
+ * and a hair darker, as if the etched mark caught a little less light: still white, only a softer one. The white tile's dark mark never changes.
+ */
+internal fun plushInk(type: Char, rim: Color): Color =
+    if (!Art.plush || Art.colorblind || type == 'W') Color.White
+    else androidx.compose.ui.graphics.lerp(androidx.compose.ui.graphics.lerp(Color.White, rim, PLUSH_INK_TINT), Color.Black, PLUSH_INK_SHADE)
+internal const val PLUSH_INK_TINT = .08f
+internal const val PLUSH_INK_SHADE = .03f
 
 /** Arrows on coloured tiles are a little finer than the original strokes. */
 private const val ETCH_WEIGHT = .78f
@@ -129,7 +151,8 @@ fun TargetMini(board: Board, cell: Dp, gap: Dp, modifier: Modifier = Modifier, s
 
 /**
  * The target boards between two puzzles: tiles that exist in both targets slide from their old cells to their new ones (the same nearest-colour
- * moves as the restart), while a tile with no counterpart fades out and a new one fades in where it appears. The frame itself grows or shrinks
+ * moves as the restart). A tile with no counterpart simply disappears, and a new one simply appears in its place, halfway through: no fade and no
+ * travel from elsewhere, only the tiles that change place move. The frame itself grows or shrinks
  * with the target, so a 3x3 to 2x2 change never jumps. At 0 and 1 it is exactly the old and new [TargetMini].
  */
 @Composable
@@ -158,12 +181,15 @@ fun MorphTarget(from: Board, to: Board, progress: Float, cell: Dp, gap: Dp, modi
                 val newAt = inFrame(dest.r, dest.c, nw, nh)
                 val at = middle + oldAt + (newAt - oldAt) * progress
                 targetSquare(type, at - Offset(c / 2, c / 2), c, dark)
-            } else targetSquare(type, middle + oldAt - Offset(c / 2, c / 2), c, dark, 1f - progress)
+            } else if (progress < MORPH_SWITCH) targetSquare(type, middle + oldAt - Offset(c / 2, c / 2), c, dark)
         }
         for (r in to.indices) for (col in to[r].indices) {
-            val type = to[r][col]; if (type == '.' || Pos(r, col) in destinations) continue
+            val type = to[r][col]; if (type == '.' || Pos(r, col) in destinations || progress < MORPH_SWITCH) continue
             val at = middle + inFrame(r, col, nw, nh)
-            targetSquare(type, at - Offset(c / 2, c / 2), c, dark, progress)
+            targetSquare(type, at - Offset(c / 2, c / 2), c, dark)
         }
     }
 }
+
+/** How far through a target morph the tiles without a counterpart swap: the old ones vanish and the new ones appear at once. */
+internal const val MORPH_SWITCH = .5f

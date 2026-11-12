@@ -82,6 +82,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.math.ceil
 import kotlin.math.min
@@ -141,6 +142,15 @@ fun CreatorScreen(m: GameModel) {
             m.endGuide()
             if (android.os.Build.VERSION.SDK_INT >= 29) view.systemGestureExclusionRects = mutableListOf()
         }
+    }
+    // The first time the creator opens on this device, its first stage's tips play by themselves once the screen has settled and half a second has passed.
+    val sheet = LocalSheet.current
+    val cover = LocalCover.current
+    LaunchedEffect(Unit) {
+        if (!m.creatorGuideDue) return@LaunchedEffect
+        androidx.compose.runtime.snapshotFlow { m.top == Route.Create && (sheet?.progress?.value ?: 1f) >= 1f && cover() <= .02f }.first { it }
+        kotlinx.coroutines.delay(500)
+        if (m.guidePhase == 0) m.revealCreatorGuide()
     }
     val paletteBoxes = remember { mutableMapOf<Char, LayoutCoordinates>() }
     var drag by remember { mutableStateOf<Pair<Char, Offset>?>(null) }

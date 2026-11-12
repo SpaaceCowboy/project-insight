@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.exclude
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsIgnoringVisibility
 import androidx.compose.foundation.layout.displayCutout
@@ -279,7 +280,7 @@ fun sideFor(face: Color): Color {
 @Composable
 fun MenuButton(text: String, modifier: Modifier = Modifier, height: Dp = 48.dp, primary: Boolean = false, enabled: Boolean = true, fontSize: TextUnit = 14.sp, description: String? = null, subtitle: String? = null, cue: Cue? = Cue.PRESS,
                weight: FontWeight = FontWeight.SemiBold, raised: Boolean = true, depth: Dp = 3.dp, shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(14.dp),
-               textColor: Color? = null, shrink: Boolean = true, shadowFades: Boolean = false, footer: (@Composable BoxScope.() -> Unit)? = null, onClick: (() -> Unit)?) {
+               textColor: Color? = null, shrink: Boolean = true, shadowFades: Boolean = false, inset: Dp = 10.dp, footer: (@Composable BoxScope.() -> Unit)? = null, onClick: (() -> Unit)?) {
     val p = LocalPalette.current
     val feedback = LocalFeedback.current
     val soon = onClick == null
@@ -292,7 +293,7 @@ fun MenuButton(text: String, modifier: Modifier = Modifier, height: Dp = 48.dp, 
             .then(if (onClick != null && enabled) Modifier.then(if (raised) Modifier.pressOnTouch(source) else Modifier).clickable(source, if (raised) null else androidx.compose.foundation.LocalIndication.current, role = Role.Button) { feedback(cue); onClick() }
                 else Modifier.semantics { role = Role.Button; disabled(); if (soon) stateDescription = tr("Coming soon") })
             .then(if (description != null) Modifier.semantics { contentDescription = tr(description) } else Modifier)
-            .padding(10.dp),
+            .padding(horizontal = 10.dp, vertical = inset),
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -377,16 +378,39 @@ val restartIcon: DrawScope.(Color) -> Unit = {
 internal val appInsets: WindowInsets
     @Composable get() = WindowInsets.safeDrawing.exclude(WindowInsets.navigationBars).union(WindowInsets.navigationBarsIgnoringVisibility)
 
+/**
+ * Lets go of focus, and of the keyboard only when it is really up. Hiding a keyboard that is not there still goes through the window's insets
+ * controller, and on some phones that restores the hidden gesture handle: every page swipe and every closing screen used to do it.
+ */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+fun rememberDismissKeyboard(): () -> Unit {
+    val focus = androidx.compose.ui.platform.LocalFocusManager.current
+    val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+    val ime = androidx.compose.runtime.rememberUpdatedState(WindowInsets.isImeVisible)
+    return androidx.compose.runtime.remember(focus, keyboard) { { focus.clearFocus(); if (ime.value) keyboard?.hide() } }
+}
+
 /** A dialog or sheet is its own window with its own bars, so it hides the gesture handle too (the main window does the same in [MainActivity]). */
 @Composable
 fun HideNavBarInDialog() {
     val view = androidx.compose.ui.platform.LocalView.current
-    androidx.compose.runtime.SideEffect {
-        val window = (view.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window ?: return@SideEffect
-        androidx.core.view.WindowCompat.getInsetsController(window, view).apply {
-            systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            hide(androidx.core.view.WindowInsetsCompat.Type.navigationBars())
+    // The dialog's window is found by walking up from this view (the sheet's own window may sit a few parents up); failing that, the window the
+    // view is attached to. It is hidden before the first frame, and again whenever that window regains focus or the bars come back.
+    androidx.compose.runtime.DisposableEffect(view) {
+        fun hide() {
+            var parent: android.view.ViewParent? = view.parent
+            while (parent != null && parent !is androidx.compose.ui.window.DialogWindowProvider) parent = parent.parent
+            val window = (parent as? androidx.compose.ui.window.DialogWindowProvider)?.window
+            val controller = if (window != null) androidx.core.view.WindowCompat.getInsetsController(window, view)
+                else @Suppress("DEPRECATION") androidx.core.view.ViewCompat.getWindowInsetsController(view) ?: return
+            controller.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller.hide(androidx.core.view.WindowInsetsCompat.Type.navigationBars())
         }
+        hide()
+        val focus = android.view.ViewTreeObserver.OnWindowFocusChangeListener { if (it) hide() }
+        view.viewTreeObserver.addOnWindowFocusChangeListener(focus)
+        onDispose { if (view.viewTreeObserver.isAlive) view.viewTreeObserver.removeOnWindowFocusChangeListener(focus) }
     }
 }
 

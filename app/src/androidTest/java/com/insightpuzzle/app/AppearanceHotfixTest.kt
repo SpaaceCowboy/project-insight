@@ -96,7 +96,7 @@ class AppearanceHotfixTest {
         runBlocking { repository.client.login("preview@insight.local", "Hotfix Preview") }
         val store = Store(context)
         store.selectAccount(repository.client.user!!.id)
-        store.importedInto = "hotfix-no-import"; store.onboarded = true; store.language = "en"; store.motion = "system"
+        store.importedInto = "hotfix-no-import"; store.onboarded = true; store.worldsGuided = true; store.onlineGuided = true; store.creatorGuided = true; store.language = "en"; store.motion = "system"
         // Give one preview creator enough puzzles for all three profile rows.
         val prefs = context.getSharedPreferences("online_demo_data", android.content.Context.MODE_PRIVATE)
         val original = prefs.getString("data", null)
@@ -136,7 +136,7 @@ class AppearanceHotfixTest {
         runBlocking { repository.client.login("preview@insight.local", "Hotfix Preview") }
         val store = Store(context)
         store.selectAccount(repository.client.user!!.id)
-        store.importedInto = "hotfix-no-import"; store.onboarded = true; store.language = "en"
+        store.importedInto = "hotfix-no-import"; store.onboarded = true; store.worldsGuided = true; store.onlineGuided = true; store.creatorGuided = true; store.language = "en"
         val badges = mapOf("first" to 789L, "first-clean" to 123L, "world-1" to 456L)
         store.earned = badges; store.done = setOf(1); store.background = "aurora"; store.motion = "system"; store.dev = false
         val activity = instrumentation.startActivitySync(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)) as MainActivity
@@ -177,24 +177,24 @@ class AppearanceHotfixTest {
             capture("creator-target-preview")
             main { model.start(0) }
             await("Campaign must open") { model.top == Route.Game }; capture("campaign-target")
-            main { model.move(Pos(0, 0), Pos(0, 1)) }
+            main { model.move(Pos(0, 0), Pos(1, 0)) }
             SystemClock.sleep(400); capture("solve-wave")
             await("Result must appear") { model.top == Route.Win && has2("Next level") }
             SystemClock.sleep(1600)
             assertTrue(has2("Restart level")); capture("solved-normal")
             main { model.restart() }; await("Restart must remove result") { model.top == Route.Game }
             assertFalse(model.solved)
-            main { model.move(Pos(0, 0), Pos(0, 1)) }
+            main { model.move(Pos(0, 0), Pos(1, 0)) }
             await("Replay solve must show result") { model.top == Route.Win }
             main { model.next() }; await("Next puzzle must open") { model.level == 1 && model.top == Route.Game }
             val grid = JSONObject().put("id", "hotfix-grid").put("ownerId", "hotfix-owner").put("username", "Hotfix Maker").put("levelNumber", 1)
                 .put("start", JSONArray(model.levels[0].start)).put("target", JSONArray(model.levels[0].target))
             // This synthetic grid checks rendering; valid online sessions are exercised by PlayDiscoveryFlowTest.
-            main { model.toggleDev(); model.startCommunity(grid, "hotfix-session"); model.move(Pos(0, 0), Pos(0, 1)) }
+            main { model.toggleDev(); model.startCommunity(grid, "hotfix-session"); model.move(Pos(0, 0), Pos(1, 0)) }
             await("Online result must appear") { model.top == Route.Win }
             SystemClock.sleep(1600); capture("online-solved-normal")
             main { model.restart() }; assertFalse(model.solved)
-            main { store.motion = "on"; model.changeTheme("light"); model.move(Pos(0, 0), Pos(0, 1)) }
+            main { store.motion = "on"; model.changeTheme("light"); model.move(Pos(0, 0), Pos(1, 0)) }
             await("Reduced motion must retain the result") { model.top == Route.Win }
             SystemClock.sleep(1300); capture("online-reduced-motion")
             main { model.mainMenu() }

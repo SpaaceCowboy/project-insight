@@ -377,7 +377,7 @@ fun ProfileScreen(m: GameModel, requestedId: String?) {
     fun loaded(state: DiscoveryListState) = state.items.isNotEmpty() || (!state.loading && state.settled)
     val ready = profile != null && loaded(puzzles)
     fun pull() {
-        pulling = true; m.online.clearMessages(); puzzles.refresh()
+        pulling = true; m.online.clearMessages(); puzzles.reload()
         scope.launch { if (own) m.online.refreshProgress(); revision++ }
     }
     fun toggleFollow(current: JSONObject) {
@@ -442,12 +442,13 @@ fun ProfileScreen(m: GameModel, requestedId: String?) {
                         ProfileButton("Following", number(data.optInt("followingCount")), Modifier.weight(1f).fillMaxHeight()) { m.push(Route.Players("following")) }
                         ProfileButton("Achievements", badgeCount, Modifier.weight(1f).fillMaxHeight()) { m.push(Route.Achievements) }
                         ProfileButton("Bookmarked", number(data.optInt("bookmarkCount")), Modifier.weight(1f).fillMaxHeight()) { m.push(Route.Bookmarks) }
-                    } else Row(Modifier.fillMaxWidth().fillRest().then(fade), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        // One row, as tall as your own three buttons: stacking Follow over Achievements made the page ~60dp taller
-                        // and pushed the last row of the player's puzzles under the page edge.
-                        MenuButton(if (data.optBoolean("following")) "Following" else "Follow", Modifier.weight(1f).fillMaxHeight(), primary = !data.optBoolean("following"), cue = Cue.CHECK) { toggleFollow(data) }
+                    } else Column(Modifier.fillMaxWidth().fillRest().then(fade), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        // Follow over Achievements, two long flat keys that together take exactly the height your own three buttons have (the same
+                        // fillRest space), so the page is no taller than before. Each key has a small minimum so the pair never asks for more.
+                        MenuButton(if (data.optBoolean("following")) "Following" else "Follow", Modifier.weight(1f).fillMaxWidth(), height = 0.dp, inset = 4.dp,
+                            primary = !data.optBoolean("following"), cue = Cue.CHECK) { toggleFollow(data) }
                         // Another player's achievements open read-only: which badges they have, without their progress.
-                        ProfileButton("Achievements", badgeCount, Modifier.weight(1f).fillMaxHeight()) { m.push(Route.PlayerAchievements(data.getString("username"), badges)) }
+                        ProfileButton("Achievements", badgeCount, Modifier.weight(1f).fillMaxWidth(), inline = true) { m.push(Route.PlayerAchievements(data.getString("username"), badges)) }
                     }
                     // The player's own puzzles, in the same four-column cards as Levels and Worlds.
                     Box(fade) { PuzzleCardList(m, puzzles, null) { detail = it } }
@@ -462,16 +463,28 @@ fun ProfileScreen(m: GameModel, requestedId: String?) {
     detail?.let { anchor -> PuzzleDetails(m, anchor) { detail = null } }
 }
 
-/** One of the profile's three side-by-side buttons: a name over its count. Without [onClick] it only shows the count. */
+/**
+ * One of the profile's three side-by-side buttons: a name over its count. Without [onClick] it only shows the count.
+ * [inline] puts the name and count on one line in a flat key (another player's Achievements, stacked under Follow).
+ */
 @Composable
-private fun ProfileButton(label: String, value: String, modifier: Modifier = Modifier, onClick: (() -> Unit)?) {
+private fun ProfileButton(label: String, value: String, modifier: Modifier = Modifier, inline: Boolean = false, onClick: (() -> Unit)?) {
     val p = LocalPalette.current
     val feedback = LocalFeedback.current
     val shape = RoundedCornerShape(14.dp)
     val source = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     // Without an action it rests on its pedestal and ignores touches.
-    Column(modifier.heightIn(min = 64.dp).plush(shape, if (onClick != null) pressProgress(source) else 0f, p.paper2)
+    val key = Modifier.plush(shape, if (onClick != null) pressProgress(source) else 0f, p.paper2)
         .then(if (onClick != null) Modifier.pressOnTouch(source).clickable(source, null, role = Role.Button) { feedback(Cue.FORWARD); onClick() } else Modifier)
+    if (inline) {
+        Row(modifier.then(key).padding(horizontal = 10.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.CenterVertically) {
+            Label(label, 14.sp, weight = FontWeight.SemiBold, lines = 1)
+            Label(value, 14.sp, color = p.muted, lines = 1, translate = false)
+        }
+        return
+    }
+    Column(modifier.heightIn(min = 64.dp).then(key)
         .padding(horizontal = 6.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         Label(value, 16.sp, weight = FontWeight.SemiBold, lines = 1)
         Label(label, 11.sp, color = p.muted, align = TextAlign.Center, lines = 1)

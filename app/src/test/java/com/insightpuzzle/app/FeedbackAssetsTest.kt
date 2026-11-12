@@ -24,6 +24,12 @@ class FeedbackAssetsTest {
         for (cue in Cue.entries) { assertTrue(cue.name, cue.gain <= 1f); if (cue != Cue.DROP && cue != Cue.SUCCESS) assertEquals(cue.name, 1f, cue.gain, 0f) }
     }
 
+    @Test fun solvedPuzzleCueIsZenDoubleClick() {
+        assertEquals("zen_double_click", Cue.SUCCESS.file)
+        assertFalse(File(raw, "zen_streak.mp3").exists())
+        assertFalse(File(raw29, "zen_streak.ogg").exists())
+    }
+
     @Test fun solvedPuzzleCueIsNotTheOldZenSuccess() {
         assertFalse(File(raw, "zen_success.mp3").exists())
         assertFalse(File(raw29, "zen_success.ogg").exists())

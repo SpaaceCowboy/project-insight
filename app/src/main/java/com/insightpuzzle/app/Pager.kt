@@ -66,9 +66,8 @@ internal fun <T> Paged(
     val change by rememberUpdatedState(onPage)
     val more by rememberUpdatedState(onMore)
     // A swipe to another page lets go of a search field's focus and keyboard, so nothing on the new page is left typing.
-    val focus = androidx.compose.ui.platform.LocalFocusManager.current
-    val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
-    LaunchedEffect(pager) { snapshotFlow { pager.settledPage }.collect { if (it != current) { feedback(null); change(it); focus.clearFocus(); keyboard?.hide() } } }
+    val dismissKeyboard = rememberDismissKeyboard()
+    LaunchedEffect(pager) { snapshotFlow { pager.settledPage }.collect { if (it != current) { feedback(null); change(it); dismissKeyboard() } } }
     // The kept page only moves the pager when it was changed from outside (a new search or sort starts at page 0). It never fights a swipe in progress, and a longer
     // list (more pages arriving) is no reason to move: that used to snap a fast swipe back to the page it had left.
     LaunchedEffect(page) { if (page in 0 until count && pager.currentPage != page && !pager.isScrollInProgress) pager.scrollToPage(page) }

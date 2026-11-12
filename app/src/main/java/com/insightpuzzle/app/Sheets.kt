@@ -123,9 +123,8 @@ fun Screens(m: GameModel) {
 private fun Layer(route: Route, handle: SheetHandle, exiting: Boolean, covered: Boolean, reduce: Boolean, onGone: () -> Unit, cover: () -> Float, dim: () -> Float, content: @Composable () -> Unit) {
     SideEffect { handle.live = !exiting }
     // A screen that is leaving lets go of the keyboard at once: otherwise the screen it reveals is laid out against the open keyboard and grows back when it closes.
-    val focus = androidx.compose.ui.platform.LocalFocusManager.current
-    val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
-    LaunchedEffect(exiting) { if (exiting) { focus.clearFocus(); keyboard?.hide() } }
+    val dismissKeyboard = rememberDismissKeyboard()
+    LaunchedEffect(exiting) { if (exiting) dismissKeyboard() }
     LaunchedEffect(exiting, reduce) {
         val spec = if (reduce) snap<Float>() else SheetMotion
         if (exiting) { handle.progress.animateTo(0f, spec); onGone() }

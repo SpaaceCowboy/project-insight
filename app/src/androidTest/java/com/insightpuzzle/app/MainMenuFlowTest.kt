@@ -49,7 +49,7 @@ class MainMenuFlowTest {
         runBlocking { OnlineRepository.get(context).client.logout() }
         Store(context).apply {
             selectAccount(null); resetProgress(); earned = emptyMap(); dev = false
-            motion = "on"; sound = false; importedInto = "problem15-no-import"; onboarded = true; language = "en"
+            motion = "on"; sound = false; importedInto = "problem15-no-import"; onboarded = true; worldsGuided = true; onlineGuided = true; creatorGuided = true; language = "en"
         }
     }
 
@@ -182,16 +182,17 @@ class MainMenuFlowTest {
     }
 
     @Test fun journeyRestoresSavedMovesAndReopensTheLastPlayedLevel() {
-        Store(context).apply { done = setOf(1); lastLevel = 1 }
-        launch(); tap("Journey"); assertEquals(1, model.level)
-        main { model.move(Pos(0, 1), Pos(1, 1)) }
+        // Journey 5 (index 4) is solved in two moves, so one move leaves an unfinished attempt and the second solves it.
+        Store(context).apply { done = setOf(1, 2, 3, 4); lastLevel = 4 }
+        launch(); tap("Journey"); assertEquals(4, model.level)
+        main { model.move(Pos(1, 1), Pos(0, 0)) }
         assertEquals(1, model.moves); assertFalse(model.solved)
         val board = model.board
         main { model.mainMenu() }
         close(); launch(); tap("Journey")
-        assertEquals(1, model.level); assertEquals(board, model.board); assertEquals(1, model.moves)
-        main { model.move(Pos(0, 1), Pos(0, 0)); assertTrue(model.solved); model.mainMenu() }
-        tap("Journey"); assertEquals(1, model.level)
+        assertEquals(4, model.level); assertEquals(board, model.board); assertEquals(1, model.moves)
+        main { model.move(Pos(2, 0), Pos(3, 1)); assertTrue(model.solved); model.mainMenu() }
+        tap("Journey"); assertEquals(4, model.level)
         main { model.resetProgress(); model.mainMenu() }
         tap("Journey"); assertEquals(0, model.level); assertEquals(0, model.moves)
     }
@@ -240,8 +241,8 @@ class MainMenuFlowTest {
         assertFalse("Another player's achievements show no progress counts", nodes().any { it.text?.toString()?.contains(" / ") == true })
         back(); assertEquals(Route.Profile(otherId), model.top)
         main {
-            model.resetProgress(); progress(setOf(1)); model.store.lastLevel = 1; model.mainMenu(); model.startJourney()
-            model.move(Pos(0, 1), Pos(1, 1))
+            model.resetProgress(); progress(setOf(1, 2, 3)); model.store.lastLevel = 3; model.mainMenu(); model.startJourney()
+            model.move(Pos(0, 0), Pos(0, 1))
         }
         val campaignBoard = model.board
         main {
@@ -249,7 +250,7 @@ class MainMenuFlowTest {
             val grid = JSONObject().put("id", "problem15-community").put("ownerId", "problem15-owner").put("username", "QA Creator").put("levelNumber", 1)
                 .put("name", "Resume test").put("start", JSONArray(spec.start)).put("target", JSONArray(spec.target))
             model.startCommunity(grid, "problem15-session")
-            assertNotNull(model.community); assertEquals(1, model.store.lastLevel)
+            assertNotNull(model.community); assertEquals(3, model.store.lastLevel)
             model.mainMenu()
             assertEquals(campaignBoard, model.board); assertEquals(1, model.moves)
             model.startCommunity(grid, "problem15-session-back")
@@ -258,7 +259,7 @@ class MainMenuFlowTest {
             model.mainMenu()
         }
         tap("Journey")
-        assertNull(model.community); assertEquals(1, model.level); assertEquals(campaignBoard, model.board); assertEquals(1, model.moves)
+        assertNull(model.community); assertEquals(3, model.level); assertEquals(campaignBoard, model.board); assertEquals(1, model.moves)
     }
 
     @Test fun optionsPracticeAndPalettePreserveCampaignProgress() {
@@ -323,9 +324,10 @@ class MainMenuFlowTest {
     }
 
     @Test fun gameplayGesturesRestartAccessAndWinNavigation() {
-        Store(context).apply { done = setOf(1); lastLevel = 1 }
+        // Journey 4 (index 3: BRB over RBR): Journey 3 before it is open, Journey 5 after it is locked.
+        Store(context).apply { done = setOf(1, 2, 3); lastLevel = 3 }
         launch(); tap("Journey")
-        main { model.move(Pos(0, 1), Pos(1, 1)) }
+        main { model.move(Pos(0, 0), Pos(0, 1)) }
         assertEquals(1, model.moves)
         fun tileBounds(row: Int, column: Int) = Rect().also { rect ->
             await("game tile $row,$column") { nodes().any { it.contentDescription?.toString()?.contains(", row $row, column $column,") == true } }
@@ -348,19 +350,19 @@ class MainMenuFlowTest {
         val tile = tileBounds(1, 1)
         val target = Rect().also { bounds -> nodes().first { it.contentDescription?.toString()?.startsWith("Target arrangement:") == true }.getBoundsInScreen(bounds) }
         swipeAcross(tile.exactCenterY(), true)
-        assertEquals("Swiping inside the outline must not change levels", 1, model.level)
+        assertEquals("Swiping inside the outline must not change levels", 3, model.level)
         assertEquals(1, model.moves)
         touch(20f * activity!!.resources.displayMetrics.density, target.exactCenterY(), 900)
         assertEquals("Holding outside the outline must not restart", 1, model.moves)
         swipeAcross(target.exactCenterY(), false)
-        assertEquals("Swiping over the target must not change levels", 1, model.level)
+        assertEquals("Swiping over the target must not change levels", 3, model.level)
         val swipeY = tile.top - 8f * activity!!.resources.displayMetrics.density
         swipeAcross(swipeY, true)
-        assertEquals("A locked Journey level refuses a swipe", 1, model.level)
+        assertEquals("A locked Journey level refuses a swipe", 3, model.level)
         swipeAcross(swipeY, false)
-        await("Outline gutter swipe opens the previous Journey level") { model.level == 0 }
+        await("Outline gutter swipe opens the previous Journey level") { model.level == 2 }
         swipeAcross(swipeY, true)
-        await("Outline gutter swipe restores the next Journey attempt") { model.level == 1 && model.moves == 1 }
+        await("Outline gutter swipe restores the next Journey attempt") { model.level == 3 && model.moves == 1 }
         // Read the tile again: node bounds are a snapshot from before the level swipes below, and a hold must land on the tile as it is now.
         val held = tileBounds(1, 1)
         touch(held.exactCenterX(), held.exactCenterY(), 600)
@@ -380,28 +382,30 @@ class MainMenuFlowTest {
         val action = restart.actionList.first { it.label?.toString() == "Restart level" }
         assertTrue(restart.performAction(action.id))
         await("accessible restart") { model.moves == 0 }
-        main { model.start(0); model.move(Pos(0, 0), Pos(0, 1)) }
+        main { model.start(0); model.move(Pos(0, 0), Pos(1, 0)) }
         await("win popup") { has("Next level") && has("Restart level") }
         assertTrue("Solved board remains visible with the result bars", nodes().any { it.contentDescription?.toString()?.contains(", row 1, column 1,") == true })
         val replay = Rect().also { control("Restart level").getBoundsInScreen(it) }
         assertTrue(replay.height() >= (48 * activity!!.resources.displayMetrics.density).toInt())
         tap("Restart level"); assertFalse(model.solved)
-        main { progress((1..model.levels.size).toSet()); model.start(model.levels.lastIndex); model.stack += Route.Win }
-        tileBounds(5, 4)
+        // The result bars must clear the largest Journey board (most rows, then most columns), wherever it sits in the Journey.
+        val largest = model.levels.indices.maxBy { model.levels[it].start.size * 100 + model.levels[it].start[0].length }
+        main { progress((1..model.levels.size).toSet()); model.start(largest); model.stack += Route.Win }
+        tileBounds(model.levels[largest].start.size, model.levels[largest].start[0].length)
         await("result bars on the largest board") { has("Next level") && has("Restart level") }
         val bars = Rect().also { control("Restart level").getBoundsInScreen(it) }
         for (node in nodes().filter { it.contentDescription?.toString()?.contains(", row ") == true }) {
             val bounds = Rect().also { node.getBoundsInScreen(it) }
             assertTrue("Result bars must not cover a board tile", bounds.bottom <= bars.top)
         }
-        main { model.next() }
+        main { model.start(model.levels.lastIndex); model.stack += Route.Win; model.next() }
         assertEquals("The last campaign level must return to the level list", Route.Levels, model.top)
     }
 
     @Test fun nextOnResultBarLetsItSinkBeforeOpeningTheNextLevel() {
         Store(context).apply { done = setOf(1); lastLevel = 0 }
         launch(); tap("Journey")
-        main { model.start(0); model.move(Pos(0, 0), Pos(0, 1)) }
+        main { model.start(0); model.move(Pos(0, 0), Pos(1, 0)) }
         await("win popup") { has("Next level") && model.top == Route.Win }
         tap("Next level")
         assertEquals("The result bar sinks before the level changes", 0, model.level)
@@ -470,7 +474,7 @@ class MainMenuFlowTest {
     }
 
     @Test fun journeyPagesSwipeAndReopenAtTheCurrentLevel() {
-        Store(context).apply { done = (1..200).toSet(); lastLevel = 0 }
+        Store(context).apply { done = (1..99).toSet(); lastLevel = 0 }
         launch(); tap("Journey"); tap("Journey 1")
         // A Journey page holds as many four-column rows as fit (up to eight), so read where the first page ends
         // instead of assuming the old 32 levels per page.

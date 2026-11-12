@@ -20,9 +20,9 @@ The rules are the tiles themselves: each colour moves in its own fixed direction
 
 ## Operating Context
 
-- Native Android port (Kotlin + Jetpack Compose) of the web game in `../project-insight`, which it never modifies. Level data and sounds are imported from it with `tools/export-assets.mjs`.
-- Campaign: 200 levels. Solving a level unlocks the next.
-- Achievements: eight text-only campaign milestones (first level, every 30 levels, all 200). Badges have no cosmetic rewards; tile finishes are removed in v0.2.2.
+- Native Android port (Kotlin + Jetpack Compose) of the web game in `../project-insight`, which it never modifies. The Journey's levels are the 100 puzzles of the online account `Levels` (since v0.2.30), imported with `tools/import-journey.mjs`.
+- Campaign: 100 levels. Solving a level unlocks the next.
+- Achievements: five text-only campaign milestones (first level, every 30 levels, all 100). Badges have no cosmetic rewards; tile finishes are removed in v0.2.2.
 - A level creator (Create) for building start and target arrangements.
 - Sound is part of the experience: each tile colour plays a pitched note from one pentatonic scale, with ambience, effects and an optional spoken celebration, each with its own setting.
 
@@ -51,7 +51,7 @@ The rules are the tiles themselves: each colour moves in its own fixed direction
 
 ## Evidence on Hand
 
-- 200 levels with verified optimal solutions, replayed by `./gradlew testDebugUnitTest`.
+- 100 levels with verified solutions (98 proven shortest, 2 found by beam search on full 5x5 boards), replayed by `./gradlew testDebugUnitTest`.
 - Difficulty audit of Game 2 against published puzzle-difficulty research, in `../project-insight/level-design.md`.
 - A five-person playtest protocol in `../project-insight/playtest.md`. **No human playtest has been run yet.** Do not claim player feedback, ratings, reviews or download numbers.
 

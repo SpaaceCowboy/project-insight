@@ -90,7 +90,7 @@ class OnlineAuthFlowTest {
         val context = instrumentation.targetContext
         val repository = OnlineRepository.get(context)
         runBlocking { repository.client.logout() }
-        val store = Store(context); val oldMotion = store.motion; store.motion = "on"; store.onboarded = true; store.language = "en"
+        val store = Store(context); val oldMotion = store.motion; store.motion = "on"; store.onboarded = true; store.worldsGuided = true; store.onlineGuided = true; store.creatorGuided = true; store.language = "en"
         val activity = instrumentation.startActivitySync(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
         try {
             val id = UUID.randomUUID().toString().take(12)
@@ -129,7 +129,7 @@ class OnlineAuthFlowTest {
         val context = instrumentation.targetContext
         val repository = OnlineRepository.get(context)
         runBlocking { repository.client.logout() }
-        val store = Store(context); val oldMotion = store.motion; store.motion = "on"; store.onboarded = true; store.language = "en"
+        val store = Store(context); val oldMotion = store.motion; store.motion = "on"; store.onboarded = true; store.worldsGuided = true; store.onlineGuided = true; store.creatorGuided = true; store.language = "en"
         val activity = instrumentation.startActivitySync(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
         try {
             val email = "qa-player@example.test"
@@ -160,7 +160,7 @@ class OnlineAuthFlowTest {
         store.selectAccount(null); store.importedInto = null
         store.done = setOf(1, 2, 3); store.earned = mapOf("first" to System.currentTimeMillis())
         store.saveAttempt(1, "0,1"); store.lastLevel = 1
-        store.motion = "on"; store.onboarded = true; store.language = "en"
+        store.motion = "on"; store.onboarded = true; store.worldsGuided = true; store.onlineGuided = true; store.creatorGuided = true; store.language = "en"
         val activity = instrumentation.startActivitySync(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
         try {
             val id = UUID.randomUUID().toString().take(12)

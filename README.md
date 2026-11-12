@@ -1,6 +1,6 @@
 # Midori for Android
 
-A native Android version (Kotlin + Jetpack Compose) of the INSIGHT puzzle game. It is a separate project from the web level studio in `../project-insight`, which it never modifies; it only reads that project's level data and sounds through `tools/export-assets.mjs`.
+A native Android version (Kotlin + Jetpack Compose) of the INSIGHT puzzle game. It is a separate project from the web level studio in `../project-insight`, which it never modifies; since v0.2.30 the 100 Journey levels are the puzzles of the online account `Levels`, imported with `tools/import-journey.mjs` (see "When the Journey's levels change").
 
 ## What is ported
 
@@ -186,16 +186,16 @@ Run on the emulator:
 ~/Android/Sdk/platform-tools/adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-## Adding levels
+## When the Journey's levels change
 
-Design them in the web studio (`../project-insight`, `npm run dev`) and press **Add to game**: it appends to the campaign (next level number, World 11 onward) and runs the export below. Then run the unit tests and rebuild. Levels are append-only because progress is saved by level number.
-
-## When the web levels or sounds change
+Journey level N is puzzle N of the online account `Levels` (published puzzles, in its own numbering). To refresh it, export the account's puzzles with a read-only query (the one at the top of `tools/import-journey.mjs`) into a JSON file such as `tools/journey-levels.json`, then:
 
 ```sh
-node tools/export-assets.mjs        # reads ../project-insight (or pass its path)
+node --max-old-space-size=8192 tools/import-journey.mjs tools/journey-levels.json <website>/web/src/game   # writes levels.json and the test routes
 ./gradlew testDebugUnitTest
 ```
+
+The server reads the same `levels.json`, so app and server ship together. Appending levels keeps progress; changing or reordering existing ones means progress no longer matches, which needs a server migration like `server/migrations/013_journey_100.sql` and a bump of `JOURNEY_EDITION` (app `Store.kt`, server `campaign.ts`). The old web-studio export (`tools/export-assets.mjs`) is retired.
 
 ## Before publishing
 

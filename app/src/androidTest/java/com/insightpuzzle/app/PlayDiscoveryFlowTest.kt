@@ -116,7 +116,7 @@ class PlayDiscoveryFlowTest {
         val repository = OnlineRepository.get(context)
         val testId = java.util.UUID.randomUUID().toString().take(8)
         runBlocking { repository.client.register("discovery-$testId@example.test", "fixture-password", "Discovery $testId") }
-        val store = Store(context); store.motion = "on"; store.onboarded = true; store.language = "en"
+        val store = Store(context); store.motion = "on"; store.onboarded = true; store.worldsGuided = true; store.onlineGuided = true; store.creatorGuided = true; store.language = "en"
         val fixture = runBlocking { repository.client.request("GET","/test/discovery",account=null) }
         val failuresBefore = runBlocking { repository.client.request("GET","/test/discovery-stats",account=null) }.getInt("failures")
         val beatenBefore = runBlocking { repository.client.request("GET", "/v1/grids?query=QA%20Maker") }.getJSONArray("items").getJSONObject(0).getInt("beatenCount")
@@ -205,7 +205,7 @@ class PlayDiscoveryFlowTest {
             repository.client.register(email, "fixture-password-long", "Casual " + java.util.UUID.randomUUID().toString().take(8))
             repository.client.logout()
         }
-        val store = Store(context); store.dev = false; store.motion = "on"; store.onboarded = true; store.language = "en"
+        val store = Store(context); store.dev = false; store.motion = "on"; store.onboarded = true; store.worldsGuided = true; store.onlineGuided = true; store.creatorGuided = true; store.language = "en"
         val fixture = runBlocking { repository.client.request("GET", "/test/discovery", account = null) }
         var activity = instrumentation.startActivitySync(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)) as MainActivity
         lateinit var model: GameModel
@@ -319,7 +319,7 @@ class PlayDiscoveryFlowTest {
         val repository = OnlineRepository.get(context)
         val id = java.util.UUID.randomUUID().toString().take(8)
         runBlocking { repository.client.register("social-$id@example.test", "fixture-password-long", "Social $id") }
-        Store(context).apply { dev = false; motion = "on"; onboarded = true; language = "en" }
+        Store(context).apply { dev = false; motion = "on"; onboarded = true; worldsGuided = true; onlineGuided = true; creatorGuided = true; language = "en" }
         val activity = instrumentation.startActivitySync(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)) as MainActivity
         lateinit var model: GameModel
         fun main(action: () -> Unit) { instrumentation.runOnMainSync(action); instrumentation.waitForIdleSync() }

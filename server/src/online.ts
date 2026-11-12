@@ -2,7 +2,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { PoolClient } from 'pg';
 import { authentication, objectSchema, operationSchema, uuidSchema } from './auth.js';
-import { badgeIds, campaign, earnedBadges } from './campaign.js';
+import { JOURNEY_EDITION, badgeIds, campaign, earnedBadges } from './campaign.js';
 import type { Config } from './config.js';
 import { digest } from './crypto.js';
 import { operation, type Db } from './db.js';
@@ -12,7 +12,8 @@ import { creators, recordAttempt, searchPattern } from './discovery.js';
 import { acceptedDay, currentRun, levelBadges, longestRun, socialBadges } from './badges.js';
 
 // Older APKs and saved import commands still contain the retired campaign and badge IDs.
-const importBadgeIds = [...new Set([...badgeIds, 'flow', 'halfway', 'first-clean', 'steady', 'unbroken', 'flawless', 'clean-sweep', 'pristine', ...Array.from({ length: 11 }, (_, i) => `world-${i + 1}`)])];
+// Older APKs may still send the 206-level milestones (levels-120 … levels-180); they are accepted and ignored rather than failing the whole import.
+const importBadgeIds = [...new Set([...badgeIds, 'levels-120', 'levels-150', 'levels-180', 'flow', 'halfway', 'first-clean', 'steady', 'unbroken', 'flawless', 'clean-sweep', 'pristine', ...Array.from({ length: 11 }, (_, i) => `world-${i + 1}`)])];
 
 const pathSchema = { type: 'array', minItems: 1, maxItems: 10000, items: { type: 'array', minItems: 2, maxItems: 2, items: { type: 'integer', minimum: 0, maximum: 24 } } };
 const boardSchema = { type: 'array', minItems: 1, maxItems: 5, items: { type: 'string', minLength: 1, maxLength: 5, pattern: '^[RBGYWP.]+$' } };
@@ -110,8 +111,11 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
   });
   app.post('/v1/progress/import', { preHandler: ready, schema: { body: objectSchema({ operationId: operationSchema,
     done: { type: 'array', maxItems: Math.max(campaign.length, 206), uniqueItems: true, items: { type: 'integer', minimum: 1, maximum: Math.max(campaign.length, 206) } },
-    badges: { type: 'array', maxItems: importBadgeIds.length, uniqueItems: true, items: { type: 'string', enum: importBadgeIds } } }) } }, req => write(req, 'import', async c => {
+    badges: { type: 'array', maxItems: importBadgeIds.length, uniqueItems: true, items: { type: 'string', enum: importBadgeIds } },
+    // 2 = the 100-level Journey (v0.2.30). An import without it comes from an older APK whose level numbers mean other puzzles: accepted, but it changes nothing.
+    journey: { type: 'integer', minimum: 1, maximum: 2 } }, ['operationId', 'done', 'badges']) } }, req => write(req, 'import', async c => {
     const b = req.body as any;
+    if (b.journey !== JOURNEY_EDITION) return { accepted: true, awardedMilli: '0' };
     for (const id of b.done.filter((id: number) => id <= campaign.length)) await c.query('INSERT INTO campaign_progress(user_id,level_id) VALUES($1,$2) ON CONFLICT DO NOTHING', [user(req), id]);
     for (const id of [...new Set([...b.badges.filter((id: string) => badgeIds.includes(id)), ...earnedBadges(b.done)])]) await c.query('INSERT INTO imported_badges(user_id,badge_id) VALUES($1,$2) ON CONFLICT DO NOTHING', [user(req), id]);
     return { accepted: true, awardedMilli: '0' };

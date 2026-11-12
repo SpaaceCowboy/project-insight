@@ -274,6 +274,8 @@ fun DrawScope.lampArt(c: Color, lit: Boolean, at: Offset, side: Float, fill: Col
     for ((a, b) in listOf(pt(8.46f, 13.2f) to pt(9.5f, 16f), pt(9.5f, 16f) to pt(14.5f, 16f), pt(14.5f, 16f) to pt(15.54f, 13.2f), pt(10f, 19f) to pt(14f, 19f)))
         drawLine(c, a, b, line, StrokeCap.Round)
 }
+/** The gameplay-tips lamp as a key's icon (Worlds): never lit, no animation. */
+val lampIcon: DrawScope.(Color) -> Unit = { c -> lampArt(c, false, Offset.Zero, size.width) }
 /** Back: a chevron pointing down; pressing dips it. */
 val chevronIcon = AnimatedIcon(stays = false) { c, t ->
     val y = 2f * t
@@ -355,7 +357,7 @@ fun OptionsScreen(m: GameModel) {
                         }
                         ToggleRow("Colourblind mode", m.colorblind) { m.toggleColorblind() }
                         ToggleRow("Gameplay tips", m.guideOn) { m.toggleGuide() }
-                        // The app's icon with its background and mark colours swapped; the launcher may take a few seconds to show it.
+                        // The app's icon in the dark theme's colours (its key grey and white ink); the launcher may take a few seconds to show it.
                         // The switch itself waits until the app is left (MainActivity.onStop): doing it now would close the game.
                         var altIcon by remember { mutableStateOf(m.store.iconWanted.let { if (it.isEmpty()) AppIcon.isAlternative(context) else it == "alt" }) }
                         ToggleRow("Alternative icon", altIcon) { altIcon = !altIcon; m.store.iconWanted = if (altIcon) "alt" else "default" }
@@ -369,6 +371,8 @@ fun OptionsScreen(m: GameModel) {
                         val info = remember { context.packageManager.getPackageInfo(context.packageName, 0) }
                         InfoRow("Version", "${info.versionName} (${androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(info)})", pressable = true)
                         InfoRow("Licences", "", icon = documentIcon, onClick = { m.push(Route.Licences) })
+                        // The new tile style, to compare with the current one before choosing.
+                        ToggleRow("Plush tiles", m.plushTiles) { m.togglePlushTiles() }
                         if (AppLinks.PRIVACY_URL.isNotEmpty()) InfoRow("Privacy policy", "Open", onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(AppLinks.PRIVACY_URL))) })
                         if (AppLinks.CONTACT_EMAIL.isNotEmpty()) InfoRow("Contact", AppLinks.CONTACT_EMAIL, onClick = { context.startActivity(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:${AppLinks.CONTACT_EMAIL}"))) })
 
@@ -577,11 +581,16 @@ fun WinPopup(m: GameModel, interactive: Boolean = true, onRestart: () -> Unit = 
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             // The restart itself plays its cue and haptic once (runRestart), so the button adds none of its own.
-            WinButton("Restart level", Modifier.weight(1f), true, onRestart, cue = null) { restartIcon(ink) }
-            WinButton("Next level", Modifier.weight(1f), nextEnabled, onNext, Cue.PRESS) { polyline(ink, 4f, 12f, 20f, 12f); polyline(ink, 14f, 6f, 20f, 12f); polyline(ink, 14f, 18f, 20f, 12f) }
+            // The two icons are in the guide lamp's quieter colour, so the bar stays subtle under the solved board.
+            val iconInk = androidx.compose.ui.graphics.lerp(p.paper2, p.ink, .5f)
+            WinButton("Restart level", Modifier.weight(1f), true, onRestart, cue = null) { restartIcon(iconInk) }
+            WinButton("Next level", Modifier.weight(1f), nextEnabled, onNext, Cue.PRESS) { polyline(iconInk, 4f, 12f, 20f, 12f); polyline(iconInk, 14f, 6f, 20f, 12f); polyline(iconInk, 14f, 18f, 20f, 12f) }
         }
     }
 }
+
+/** The result bar's icons: a little smaller than they were (28dp). */
+internal val WIN_ICON = 24.dp
 
 @Composable
 private fun WinButton(label: String, modifier: Modifier, enabled: Boolean, onClick: () -> Unit, cue: Cue? = Cue.PRESS, icon: DrawScope.() -> Unit) {
@@ -592,6 +601,6 @@ private fun WinButton(label: String, modifier: Modifier, enabled: Boolean, onCli
     Box(modifier.height(64.dp).alpha(if (enabled) 1f else .4f).plush(shape, pressProgress(source), p.paper2)
         .then(if (enabled) Modifier.pressOnTouch(source).clickable(source, null, role = Role.Button, onClickLabel = tr(label)) { feedback(cue); onClick() } else Modifier.semantics { disabled() })
         .semantics { contentDescription = tr(label) }, contentAlignment = Alignment.Center) {
-        Canvas(Modifier.size(28.dp)) { icon() }
+        Canvas(Modifier.size(WIN_ICON)) { icon() }
     }
 }

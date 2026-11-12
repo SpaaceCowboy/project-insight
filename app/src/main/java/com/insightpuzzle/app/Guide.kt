@@ -54,13 +54,56 @@ internal fun guideText(step: Int, online: Boolean, own: Boolean = false): String
     2 -> "Hold the board anywhere but on a tile to restart."
     3 -> if (online) "Swipe to move between puzzles." else "Swipe to switch between unlocked levels."
     4 -> if (online) "Tap here to see who made this puzzle." else "Tap here to see your Journey levels."
-    6 -> "Your goal is to make the board match this target."
-    // Your own puzzle has no like key, so only the bookmark is explained.
-    else -> if (own) "Bookmark a puzzle to save it." else "Like a puzzle so others can see it. Bookmark it to save it."
+    GUIDE_LIKE_STEP -> "Like a puzzle so others can see it."
+    GUIDE_TARGET_STEP -> "Your goal is to make the board match this target."
+    // The bookmark has its own step after the like (your own puzzle has no like key, so it is its only one).
+    else -> "Bookmark a puzzle to save it."
 })
 
 /** Journey's extra step: the target to reach (step 6, shown right after the first step). */
 internal const val GUIDE_TARGET_STEP = 6
+/** An online puzzle's like key, then its bookmark key: two steps, the last two of its tips (and the only two the first time). */
+internal const val GUIDE_LIKE_STEP = 5
+internal const val GUIDE_BOOKMARK_STEP = 7
+/** How many steps the Worlds tips have. */
+internal const val WORLDS_GUIDE_STEPS = 6
+
+/** What each step of the Worlds tips says; [puzzles] is the side open now (the first step frames whichever list is showing). */
+internal fun worldsGuideText(step: Int, puzzles: Boolean): String = tr(when (step) {
+    1 -> if (puzzles) "Puzzles made by other players. Swipe for more." else "Players who make puzzles. Tap one to see them."
+    2 -> "Switch between puzzles and players."
+    3 -> "Sort the list: most played, newest and more."
+    4 -> "Tap to create your own puzzle."
+    5 -> "Tap to play a random puzzle."
+    else -> "Hold a puzzle to see its likes or share it."
+})
+
+/**
+ * The tips on Worlds. Every rectangle is in this overlay's coordinates: [body] the puzzles or players list, [split] the puzzles-players capsule, [sort], [create],
+ * [random] and [lampKey] the keys, [firstCard] the first puzzle card and [chevron] the Back chevron. There is no free strip for the text, so it comes on a plate over the
+ * chevron (the chevron hidden behind it) and there is no "Tap to continue": any tap moves on, a tap on the lamp key ends the tips, nothing underneath can be pressed.
+ */
+@Composable
+fun WorldsGuide(m: GameModel, puzzles: Boolean, body: Rect?, split: Rect?, sort: Rect?, create: Rect?, random: Rect?, firstCard: Rect?, chevron: Rect, lampKey: Rect?) {
+    val density = LocalDensity.current
+    val gap = with(density) { 8.dp.toPx() }
+    // The plate spans the top row between Options and the Profile key (Options is right above the lamp key), centred on the chevron.
+    val left = (lampKey?.right ?: (chevron.left - with(density) { 56.dp.toPx() })) + gap
+    val rise = with(density) { 2.dp.toPx() }
+    val textBand = Rect(left, chevron.top - rise, 2 * chevron.center.x - left, chevron.bottom + rise)
+    fun boxes(s: Int): List<GuideBox> = when (s) {
+        // A few dp out from the cards or rows, so the border never touches them.
+        1 -> listOfNotNull(body?.let { GuideBox(it, 18.dp, grow = 9.dp) })
+        2 -> listOfNotNull(split?.let { GuideBox(it, 26.dp, 3.dp, MENU_WALL) })
+        3 -> listOfNotNull(sort?.let { GuideBox(it, 16.dp, 3.dp, ICON_WALL) })
+        4 -> listOfNotNull(create?.let { GuideBox(it, 16.dp, 3.dp, MENU_WALL) })
+        5 -> listOfNotNull(random?.let { GuideBox(it, 16.dp, 3.dp, MENU_WALL) })
+        else -> listOfNotNull(firstCard?.let { GuideBox(it, 14.dp, 3.dp, ICON_WALL) })
+    }
+    androidx.activity.compose.BackHandler { m.endWorldsGuide() }
+    GuideOverlay(m.worldsGuidePhase, (1..WORLDS_GUIDE_STEPS).toList(), { s -> GuideFrame(worldsGuideText(s, puzzles), boxes(s)) }, textBand, null, lampKey,
+        onLamp = { m.endWorldsGuide() }, textBacked = true) { m.advanceWorldsGuide() }
+}
 
 /** The creator's tips, step by step for each of its three stages. Building the board has no swipe step: there is no stage before it. */
 internal fun creatorGuideSteps(phase: Phase): List<String> = when (phase) {
@@ -106,7 +149,7 @@ private const val BORDER_IN_MS = 200
  * every text shrinks until all of it fits (nothing is cut off).
  */
 @Composable
-fun GuideOverlay(step: Int, steps: List<Int>, frame: (Int) -> GuideFrame, textBand: Rect, hintBand: Rect, lamp: Rect?, onLamp: () -> Unit, textBacked: Boolean = false, hintBacked: Boolean = false,
+fun GuideOverlay(step: Int, steps: List<Int>, frame: (Int) -> GuideFrame, textBand: Rect, hintBand: Rect?, lamp: Rect?, onLamp: () -> Unit, textBacked: Boolean = false, hintBacked: Boolean = false,
                  textSize: (Int) -> Float = { 14f }, deadZone: (Int) -> Rect? = { null }, onTap: () -> Unit) {
     val reduce = LocalReduceMotion.current
     val p = LocalPalette.current
@@ -148,7 +191,7 @@ fun GuideOverlay(step: Int, steps: List<Int>, frame: (Int) -> GuideFrame, textBa
             if (textBacked) GuideLabel(text, textBand, steps.minOf(textSize), p.ink, FontWeight.SemiBold, true, steps.map { frames(it).text })
             else GuideLabel(text, textBand, textSize(step), p.ink, FontWeight.SemiBold, false)
         }
-        GuideLine(hintBand, Modifier.graphicsLayer { alpha = appear.value }) {
+        if (hintBand != null) GuideLine(hintBand, Modifier.graphicsLayer { alpha = appear.value }) {
             GuideLabel(tr("Tap to continue"), hintBand, 12f, p.muted, FontWeight.Medium, hintBacked)
         }
     }
@@ -246,11 +289,11 @@ fun GameGuide(m: GameModel, shell: Rect, grid: Rect, title: Rect?, like: Rect?, 
         3 -> if (bandTop.height > edge * 2 && bandBottom.height > edge * 2) listOf(bandTop, bandBottom).map { GuideBox(it, 14.dp) }
             else listOf(GuideBox(Rect(shell.left + edge, shell.top + edge, shell.right - edge, shell.bottom - edge), 14.dp))
         4 -> listOfNotNull(title?.let { GuideBox(it, 12.dp, 3.dp, TITLE_WALL) })
-        else -> listOfNotNull(like, bookmark).map { GuideBox(it, 16.dp, 3.dp, ICON_WALL) }
+        GUIDE_LIKE_STEP -> listOfNotNull(like).map { GuideBox(it, 16.dp, 3.dp, ICON_WALL) }
+        else -> listOfNotNull(bookmark).map { GuideBox(it, 16.dp, 3.dp, ICON_WALL) }
     }
-    // The like-and-bookmark sentence is the longest, so it starts smaller.
     GuideOverlay(step, m.guideSteps(), { s -> GuideFrame(guideText(s, online, own), boxes(s)) }, textBand, hintBand, lamp, onLamp = { m.endGuide() }, textBacked = textBacked, hintBacked = hintBacked,
-        textSize = { if (it == 5 && !own) 12f else 14f }, deadZone = { if (it == 1) grid else null }) { m.advanceGuide() }
+        deadZone = { if (it == 1) grid else null }) { m.advanceGuide() }
 }
 
 /**

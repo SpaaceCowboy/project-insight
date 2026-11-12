@@ -57,7 +57,7 @@ class CreatorPublishingFlowTest {
         val context = instrumentation.targetContext
         val repository = OnlineRepository.get(context)
         val user = runBlocking { repository.client.register("maker-${UUID.randomUUID()}@example.test", "fixture-password-long", "Maker ${UUID.randomUUID().toString().take(8)}") }
-        val store = Store(context); store.motion = "on"; store.dev = false; store.onboarded = true; store.language = "en"
+        val store = Store(context); store.motion = "on"; store.dev = false; store.onboarded = true; store.worldsGuided = true; store.onlineGuided = true; store.creatorGuided = true; store.language = "en"
         val start = listOf("RBY", "GPW"); val target = listOf("GBY", "RPW")
         store.creatorDraft = JSONObject().put("phase", "CHECK").put("board", org.json.JSONArray(start)).put("start", org.json.JSONArray(start))
             .put("target", org.json.JSONArray(target)).put("construction", org.json.JSONArray().put(org.json.JSONArray(listOf(0, 3))))

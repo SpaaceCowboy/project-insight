@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import type { Puzzle } from './rules.js';
 export interface CampaignLevel extends Puzzle { par: number }
+/** Which Journey a client's level numbers refer to: 2 = the 100 puzzles of v0.2.30. Imports from other editions are ignored (online.ts). */
+export const JOURNEY_EDITION = 2;
 export const campaign = JSON.parse(readFileSync(new URL('../../app/src/main/assets/levels.json', import.meta.url), 'utf8')) as CampaignLevel[];
 // One badge for the first level, one every 30 levels, and one for the whole campaign. Must match app Achievements.kt.
 const milestones = Array.from({ length: Math.ceil(campaign.length / 30) - 1 }, (_, i) => (i + 1) * 30);

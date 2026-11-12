@@ -16,7 +16,25 @@
             android:exported="true"
             android:screenOrientation="portrait"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode|density"
-            android:windowSoftInputMode="adjustResize" />
+            android:windowSoftInputMode="adjustResize"
+            android:launchMode="singleTask">
+            <!-- A shared puzzle link (Share.kt) opens the puzzle in the game; verified through https://www.midoripuzzle.com/.well-known/assetlinks.json. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="www.midoripuzzle.com" android:pathPrefix="/p/" />
+                <data android:scheme="https" android:host="midoripuzzle.com" android:pathPrefix="/p/" />
+            </intent-filter>
+        </activity>
+        <!-- Hands the share picture (and nothing else in the cache) to the app it is shared with. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.share"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/share_paths" />
+        </provider>
         <!-- The launcher icon: one of these two entries is on (Options → Alternative icon). MainActivity itself is never disabled. -->
         <activity-alias
             android:name=".LauncherDefault"

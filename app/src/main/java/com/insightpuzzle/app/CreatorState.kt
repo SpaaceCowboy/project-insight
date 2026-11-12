@@ -137,6 +137,8 @@ class CreatorState(saved: String? = null, private val persist: (String) -> Unit 
         if (phase != Phase.BUILD) { phase = Phase.BUILD; board = start!!; stash = merged(EMPTY_STASH, board); previousTarget = target; start = null; target = null; picked = null; note = ""; checkPath.clear(); constructionPath.clear(); save(); return }
         val tiles = board.sumOf { row -> row.count { it != '.' } }
         if (tiles < 2) { note = tr("Place at least two tiles first."); return }
+        // Tiles of one kind can swap, but every arrangement of them looks the same: no target could ever differ from the start.
+        if (board.flatMap { row -> row.filter { it != '.' }.toList() }.toSet().size < 2) { note = tr("Use at least two different kinds of tiles."); return }
         val canMove = board.indices.any { r -> board[r].indices.any { c -> Rules.legalMoves(board, Pos(r, c)).isNotEmpty() } }
         if (!canMove) { note = tr("None of these tiles can move. Add tiles they can swap with."); return }
         // Empty outer rows and columns are dropped, so the puzzle is only as big as the tiles it uses.

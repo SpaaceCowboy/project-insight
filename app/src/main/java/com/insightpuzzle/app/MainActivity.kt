@@ -39,7 +39,6 @@ import kotlinx.coroutines.flow.drop
 class MainActivity : ComponentActivity() {
     private val model: GameModel by viewModels()
     private var reduceMotion by mutableStateOf(false)
-    private var keyboardUp = false
 
     // "Remove animations" can change while the app is in the background, so it is read on every resume.
     private fun readReduceMotion() = Settings.Global.getFloat(contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
@@ -47,6 +46,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         reduceMotion = readReduceMotion()
+        // A shared puzzle link that started the app; a new one while it runs arrives in onNewIntent. Not again after a rotation or process restore.
+        if (savedInstanceState == null) openLink(intent)
         // The first frame is the splash screen, which is dark grey in either theme, so the system bars start dark too (they follow the theme once it is gone).
         enableEdgeToEdge(SystemBarStyle.dark(Color.TRANSPARENT), SystemBarStyle.dark(Color.TRANSPARENT))
         // The splash screen is dark grey whatever the theme, so the window starts that colour and the system bars stay dark until the splash is gone.
@@ -56,9 +57,10 @@ class MainActivity : ComponentActivity() {
         // keyboard is up. Only with gesture navigation: with three buttons a swipe up stays the one way to reach them.
         androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(window.decorView) { view, insets ->
             val imeUp = insets.isVisible(WindowInsetsCompat.Type.ime())
-            keyboardUp = imeUp
-            // Any time Android restores the bars (a drag near the bottom, a dialog, a return from elsewhere) put the handle away again.
-            if (!imeUp && insets.isVisible(WindowInsetsCompat.Type.navigationBars())) view.post { hideNavBar() }
+            // Any time Android restores the bars (a drag near the bottom, a dialog, focus moving, a return from elsewhere) put the handle away again,
+            // at once and once more after the frame in case a late restore lands behind it. The swipe-up reveal is transient and never reported
+            // as visible here, so the player's own swipe from the bottom edge still shows the handle for its moment.
+            if (!imeUp && insets.isVisible(WindowInsetsCompat.Type.navigationBars())) { hideNavBar(); view.post { hideNavBar() } }
             androidx.core.view.ViewCompat.onApplyWindowInsets(view, insets)
         }
         setContent {
@@ -70,9 +72,10 @@ class MainActivity : ComponentActivity() {
             }
             // While the keyboard is up the handle comes back so the keyboard sits above it, as it always did; the room is reserved either way, so nothing moves.
             @OptIn(ExperimentalLayoutApi::class) val keyboard = WindowInsets.isImeVisible
-            LaunchedEffect(keyboard) { keyboardUp = keyboard; if (keyboard) showNavBar() else hideNavBar() }
+            LaunchedEffect(keyboard) { if (keyboard && imeShowing()) showNavBar() else hideNavBar() }
             CompositionLocalProvider(LocalPalette provides if (dark) DarkPalette else LightPalette, LocalReduceMotion provides (reduceMotion || model.store.motion == "on"),
-                LocalHideSystemBars provides { hideNavBar() }) { App(model) }
+                LocalHideSystemBars provides { hideNavBar() },
+                androidx.compose.ui.platform.LocalHapticFeedback provides SilentHaptics) { App(model) }
         }
     }
 
@@ -82,15 +85,25 @@ class MainActivity : ComponentActivity() {
      * a return from another app, so it is hidden again whenever the window regains focus.
      */
     private fun hideNavBar() {
-        if (keyboardUp) return
+        // Asked of the window right now, never remembered: a remembered "keyboard is up" that missed the keyboard closing (focus cleared by a page
+        // swipe or a screen closing) left the handle showing until the next keyboard.
+        if (imeShowing()) return
         val controller = WindowCompat.getInsetsController(window, window.decorView)
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         controller.hide(WindowInsetsCompat.Type.navigationBars())
     }
 
+    private fun imeShowing() = androidx.core.view.ViewCompat.getRootWindowInsets(window.decorView)?.isVisible(WindowInsetsCompat.Type.ime()) == true
+
     private fun showNavBar() = WindowCompat.getInsetsController(window, window.decorView).show(WindowInsetsCompat.Type.navigationBars())
 
     override fun onWindowFocusChanged(hasFocus: Boolean) { super.onWindowFocusChanged(hasFocus); if (hasFocus) hideNavBar() }
+    override fun onResume() { super.onResume(); hideNavBar() }
+    override fun onNewIntent(intent: android.content.Intent) { super.onNewIntent(intent); setIntent(intent); openLink(intent) }
+    private fun openLink(intent: android.content.Intent?) {
+        if (intent?.action != android.content.Intent.ACTION_VIEW) return
+        ShareLinks.code(intent.data)?.let { model.openLink(it) }
+    }
     override fun onStart() { super.onStart(); reduceMotion = readReduceMotion(); model.audio.onForeground(true) }
     override fun onStop() {
         model.audio.onForeground(false)
@@ -120,6 +133,10 @@ fun App(m: GameModel) {
         val gate = remember { TouchGate() }
         // A screen opening or closing locks touches until it has settled, so fast taps can't open two screens.
         LaunchedEffect(m) { snapshotFlow { m.stack.toList() }.drop(1).collect { gate.lockFor(TOUCH_LOCK_MS) } }
+        // A shared puzzle link waits for the splash screen, then for an account (signing in comes first when there is none), and then opens the puzzle.
+        LaunchedEffect(m.pendingLink, m.splashDone, m.online.user) {
+            if (m.pendingLink != null && m.splashDone) m.openPendingLink()
+        }
         // A lost connection is retried by itself, with growing waits, until the server answers; pulling down still retries at once.
         LaunchedEffect(m.online.offline, m.online.user) { if (m.online.offline) m.online.reconnect() }
         Box(Modifier.fillMaxSize().singleTouch(gate)) {

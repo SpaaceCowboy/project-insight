@@ -503,14 +503,14 @@ Options has Options / Rulebook / About tabs. Options combines play, sound, theme
 ## Polish hotfixes (Problem 21)
 - **Options:** no section headings and no explanation lines. Haptics, Sound, Ambience, Effects, Theme and Colourblind mode are plain rows; Developer mode (debug only) sits in About without a heading. "Pause ambience over other audio" and "Silence when headphones unplug" are removed: ambience plays whenever Sound is on, and unplugging headphones does not silence it.
 - **Home:** the header (Options, INSIGHT, Profile) stays on top; Journey fills the top half and Worlds the bottom half of the remaining space.
-- **Levels:** no on-screen title. The campaign is a flat list; it follows the web campaign (206 levels at this revision, plus studio levels).
+- **Levels:** no on-screen title. The campaign is a flat list of 100 levels: the puzzles of the online account `Levels`, in its numbering (since v0.2.30).
 - **Win:** no modal. Two equal white rectangles slide up at the bottom: restart (left) and next (right), icons only. A newly earned achievement shows as a small white pill with its name above them; it opens Achievements.
 - **Community game:** the creator is plain muted text above the target, "username N" (N = that creator's puzzle number); tapping it opens the profile.
 - **Worlds cards:** numbered 1, 2, 3… by position in the current sort, not by the creator's puzzle number. Long-press details show only By username, Code, Copy code, Share code and Close.
 - **Players:** one compact row each: username, then "Lv N", "N made", "N solved".
 - **Sort sheet:** no title, no "Created" heading and no UTC note; a divider separates Most played / Newest from the date filters. The puzzle search reads "Search creator or code".
 - **Loading:** no "Loading…" or "Working…" text anywhere; screens and lists appear when their data arrives, and empty states show only after a load finishes.
-- **Achievements:** text-only rows (no marks): First Level, 30, 60, 90, 120, 150 and 180 Levels, and All 206 Levels. Retired badge ids stay in saves but are not shown or counted.
+- **Achievements:** text-only rows (no marks): First Level, 30, 60 and 90 Levels, and All 100 Levels. Retired badge ids stay in saves but are not shown or counted.
 
 ## Haptics and sound (Problem 22)
 - **Haptic:** every touch gives one 10 ms one-shot vibration (`VibrationEffect.createOneShot(10, 80)` where the actuator has amplitude control, the default amplitude elsewhere; never a platform-chosen effect), the same on simple and high-definition actuators, and only while Haptics is on. Compose's generic haptic types are no longer used.

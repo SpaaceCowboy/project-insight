@@ -26,6 +26,28 @@ test('campaign retirement preserves current progress, accounts and XP',async()=>
   } finally { await db?.end(); await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`); await admin.end(); }
 });
 
+test('the 100-level Journey clears Journey progress and badges only',async()=>{
+  const schema='migration_'+randomUUID().replaceAll('-','');
+  const admin=database(process.env.TEST_DATABASE_URL!);
+  const url=new URL(process.env.TEST_DATABASE_URL!); url.searchParams.set('options',`-c search_path=${schema}`);
+  let db: ReturnType<typeof database>|undefined;
+  try {
+    await admin.query(`CREATE SCHEMA ${schema}`); db=database(url.toString());
+    const root=new URL('../migrations/',import.meta.url);
+    for(const name of readdirSync(root).filter(n=>n.endsWith('.sql') && n<'013').sort()) await db.query(readFileSync(new URL(name,root),'utf8'));
+    const id=randomUUID();
+    await db.query('INSERT INTO users(id,email,password_hash,username,verified) VALUES($1,$2,$3,$4,true)',[id,id+'@example.test','unused','Journey player']);
+    await db.query('INSERT INTO campaign_progress(user_id,level_id) SELECT $1,unnest(ARRAY[1,30,100,206])',[id]);
+    await db.query("INSERT INTO imported_badges(user_id,badge_id) SELECT $1,unnest(ARRAY['first','levels-30','levels-180','complete','world-1','online-1'])",[id]);
+    await db.query("INSERT INTO xp_ledger(user_id,reason,source,amount) VALUES($1,'first','preserved',100000)",[id]);
+    await db.query(readFileSync(new URL('013_journey_100.sql',root),'utf8'));
+    assert.equal((await db.query('SELECT count(*)::int AS n FROM campaign_progress')).rows[0].n,0);
+    assert.deepEqual((await db.query('SELECT badge_id FROM imported_badges ORDER BY badge_id')).rows.map(r=>r.badge_id),['online-1','world-1']);
+    assert.equal((await db.query('SELECT amount::text FROM xp_ledger')).rows[0].amount,'100000');
+    assert.equal((await db.query('SELECT id FROM users')).rows[0].id,id);
+  } finally { await db?.end(); await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`); await admin.end(); }
+});
+
 test('flattening old worlds preserves puzzles, restrictions, codes, drafts and histories',async()=>{
   const schema='migration_'+randomUUID().replaceAll('-','');
   const admin=database(process.env.TEST_DATABASE_URL!);

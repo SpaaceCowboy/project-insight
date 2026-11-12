@@ -36,7 +36,8 @@ class DemoBackend(context: Context) {
             val author = id(); val world = id()
             users.put(JSONObject().put("id", author).put("username", name).put("verified", true).put("done", JSONArray((1..(10 + index * 15)).toList())).put("badges", JSONArray(listOf("first"))).put("sampleXp", 850000 + index * 500000))
             worlds.put(JSONObject().put("id", world).put("ownerId", author).put("name", if (index == 0) "Silver Tide" else "Warm Grove").put("icon", if (index == 0) "B" else "G").put("hidden", false).put("moderated", false).put("samplePopularity", 24 - index * 7))
-            listOf(0, 3, 8).forEachIndexed { n, level ->
+            // Sample puzzles borrowed from the Journey; not its two-tile first levels, where the only move already solves the board.
+            listOf(3, 8, 15).forEachIndexed { n, level ->
                 val spec = levels[level + index]
                 grids.put(JSONObject().put("id", id()).put("ownerId", author).put("worldId", world).put("name", "${first[n + index]} ${second[n + index]}").put("levelNumber", n + 1)
                     .put("code", UUID.randomUUID().toString().replace("-", "").take(16).uppercase()).put("start", JSONArray(spec.start)).put("target", JSONArray(spec.target))

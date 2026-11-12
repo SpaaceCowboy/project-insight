@@ -11,12 +11,12 @@ test('TypeScript rules replay every Kotlin campaign fixture', () => {
   assert.ok(campaign.length > 0); assert.equal(routes.length, campaign.length);
   campaign.forEach((p, i) => assert.deepEqual(replay(p, routes[i]!), p.target, `campaign ${i + 1}`));
 });
-test('206-level campaign awards only current milestones and ignores retired solves', () => {
-  assert.equal(campaign.length, 206);
-  assert.deepEqual(badgeIds, ['first','levels-30','levels-60','levels-90','levels-120','levels-150','levels-180','complete']);
-  assert.deepEqual(earnedBadges([207,999]), []);
-  assert.deepEqual(earnedBadges(Array.from({length:30},(_,i)=>i+1).concat([1,207,999])), ['first','levels-30']);
-  assert.deepEqual(earnedBadges(Array.from({length:206},(_,i)=>i+1)), badgeIds);
+test('100-level Journey awards only current milestones and ignores solves beyond it', () => {
+  assert.equal(campaign.length, 100);
+  assert.deepEqual(badgeIds, ['first','levels-30','levels-60','levels-90','complete']);
+  assert.deepEqual(earnedBadges([101,206,999]), []);
+  assert.deepEqual(earnedBadges(Array.from({length:30},(_,i)=>i+1).concat([1,101,999])), ['first','levels-30']);
+  assert.deepEqual(earnedBadges(Array.from({length:100},(_,i)=>i+1)), badgeIds);
 });
 
 test('reject malformed grids, illegal moves, moved holes, and trailing moves', () => {

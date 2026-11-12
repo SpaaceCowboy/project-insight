@@ -33,6 +33,8 @@ else listOf(Color(0xFFFEFEFE), Color(0xFFFDFCFA), Color(0xFFFBF8F5), Color(0xFFF
 object Art {
     /** Colourblind-friendly palette on (Options). Compose state, so tiles redraw the moment it flips. */
     var colorblind by mutableStateOf(false)
+    /** The "plush" tile style (Options → About, to compare while it is tried out): a light rim round every tile and a softer white for the arrows. */
+    var plush by mutableStateOf(false)
 
     /** Tile body gradients (light, deep). */
     val TILE: Map<Char, Pair<Color, Color>> get() = if (colorblind) CB_TILE else STD_TILE

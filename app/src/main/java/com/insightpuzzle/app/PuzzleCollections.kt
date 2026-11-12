@@ -23,6 +23,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -79,6 +80,8 @@ internal fun CollectionCard(
             .plush(shape, pressProgress(source), face, rest = 4.dp, side = wall, sideLight = if (current) 1f else 0f, sideLightColor = CURRENT_WALL)
             .then(if (enabled) Modifier.pressOnTouch(source) else Modifier)
             .combinedClickable(interactionSource = source, indication = null, role = Role.Button, enabled = enabled, onLongClickLabel = onLongClick?.let { tr("Details") },
+                // The game's own long-press tick only: the system's would play on top at the system's strength.
+                hapticFeedbackEnabled = false,
                 onLongClick = onLongClick?.let { long -> { feedback(Cue.LONG_PRESS); long() } }, onClick = { feedback(Cue.SELECT); onClick() })
             .semantics { contentDescription = description }
             .padding(horizontal = CARD_PADDING),
@@ -97,10 +100,14 @@ internal fun puzzleCell(width: Dp): Dp = miniCell(5, 5, miniArea(cardSide(width)
 /** The puzzle whose code menu is open, and where its card is on screen, so the menu can open beside it. [above]: the card is in its page's bottom row. */
 internal class DetailAnchor(val grid: JSONObject, val bounds: Rect?, val column: Int, val above: Boolean)
 
+/** Told where the very first puzzle card of a list is (Worlds' tips frame it); null where nobody asks. */
+internal val LocalFirstCard = staticCompositionLocalOf<((LayoutCoordinates) -> Unit)?> { null }
+
 /** Up to four community puzzle cards, numbered by list position from [startIndex]; tap plays, long-press (or a hidden puzzle) asks [onDetail]. */
 @Composable
 internal fun PuzzleRow(m: GameModel, row: List<JSONObject>, cell: Dp, startIndex: Int, source: DiscoveryListState?, bottomRow: Boolean = false, onDetail: (DetailAnchor) -> Unit) {
     val places = remember { arrayOfNulls<LayoutCoordinates>(CARD_COLUMNS) }
+    val firstCard = LocalFirstCard.current
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         repeat(4) { column ->
             val grid = row.getOrNull(column)
@@ -114,7 +121,7 @@ internal fun PuzzleRow(m: GameModel, row: List<JSONObject>, cell: Dp, startIndex
                 CollectionCard(
                     formatted(rank), target, cell,
                     tr("Puzzle {0}", rank) + if (unavailable) ", " + tr("hidden") else if (solved) ", " + tr("solved") else "",
-                    Modifier.weight(1f).onGloballyPositioned { places[column] = it }, solved = solved, dimmed = unavailable, enabled = !m.online.busy,
+                    Modifier.weight(1f).onGloballyPositioned { places[column] = it; if (startIndex == 0 && column == 0) firstCard?.invoke(it) }, solved = solved, dimmed = unavailable, enabled = !m.online.busy,
                     onLongClick = { detail() }, onClick = { if (unavailable) detail() else playPuzzle(m, grid, source) },
                 )
             }
@@ -221,6 +228,13 @@ internal fun PuzzleDetails(m: GameModel, anchor: DetailAnchor, dismiss: () -> Un
     val density = LocalDensity.current
     androidx.activity.compose.BackHandler { feedback(Cue.BACK); dismiss() }
     var layer by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    // The like count from the list shows at once; a fresh one is fetched every time the menu opens, so it is up to date.
+    var likes by remember(grid) { mutableStateOf(grid.optInt("likeCount")) }
+    LaunchedEffect(grid) {
+        val account = m.online.user?.id ?: return@LaunchedEffect
+        try { likes = m.online.repository.fetch("/v1/grids/code/${grid.getString("code")}", account).getJSONObject("grid").optInt("likeCount", likes) }
+        catch (error: Exception) { if (error is kotlinx.coroutines.CancellationException) throw error }
+    }
     Box(Modifier.fillMaxSize().onGloballyPositioned { layer = it }) {
         // Everything outside the card closes it; hidden from TalkBack (Back closes it too).
         Box(Modifier.fillMaxSize().clickable(interactionSource = null, indication = null) { feedback(null); dismiss() }.clearAndSetSemantics { })
@@ -237,12 +251,23 @@ internal fun PuzzleDetails(m: GameModel, anchor: DetailAnchor, dismiss: () -> Un
                 .plush(RoundedCornerShape(12.dp), 0f, p.paper2, rest = 8.dp, depth = 6.dp)
                 .pointerInput(Unit) { detectTapGestures { } }.semantics { paneTitle = tr("Puzzle details") }.padding(start = 12.dp, end = 4.dp),
                 verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.weight(1f).fillMaxHeight().clickable(role = Role.Button, onClickLabel = tr("Open profile")) { feedback(Cue.CHECK); dismiss(); m.push(Route.Profile(grid.getString("ownerId"))) },
-                    contentAlignment = Alignment.CenterStart) {
-                    Label(grid.getString("username"), 14.sp, weight = androidx.compose.ui.text.font.FontWeight.SemiBold, lines = 1, translate = false)
+                // Two lines that sit level with the two keys: "name N" (the creator's own number for it) beside Share, the like count beside Copy.
+                Column(Modifier.weight(1f).fillMaxHeight().clickable(role = Role.Button, onClickLabel = tr("Open profile")) { feedback(Cue.CHECK); dismiss(); m.push(Route.Profile(grid.getString("ownerId"))) }) {
+                    Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+                        Label("${grid.getString("username")} ${grid.optInt("levelNumber")}", 14.sp, weight = androidx.compose.ui.text.font.FontWeight.SemiBold, lines = 1, translate = false)
+                    }
+                    Row(Modifier.weight(1f).fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = tr("{0} likes", formatted(likes)) }, verticalAlignment = Alignment.CenterVertically) {
+                        Label("${formatted(likes)} ", 14.sp, color = p.muted, lines = 1, translate = false)
+                        // The like key's heart outline, as tall as the digits.
+                        val side = with(density) { 14.sp.toDp() } * .82f
+                        androidx.compose.foundation.Canvas(Modifier.size(side)) {
+                            val u = size.width / 18f
+                            translate(-3 * u, -3.5f * u) { drawPath(heartPath(u), p.muted, style = androidx.compose.ui.graphics.drawscope.Stroke(1.9f * u, join = androidx.compose.ui.graphics.StrokeJoin.Round)) }
+                        }
+                    }
                 }
                 Column(Modifier.fillMaxHeight()) {
-                    SmallIconButton("Share code", shareIcon, Modifier.weight(1f)) { feedback(Cue.CHECK); context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, tr("Play puzzle {0} by {1} in Midori: {2}", grid.getInt("levelNumber"), grid.getString("username"), grid.getString("code"))), tr("Share puzzle"))) }
+                    SmallIconButton("Share code", shareIcon, Modifier.weight(1f)) { feedback(Cue.CHECK); sharePuzzle(context, grid, p.dark) }
                     SmallIconButton("Copy code", copyIcon, Modifier.weight(1f)) { feedback(Cue.CHECK); (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("Midori puzzle code", grid.getString("code"))) }
                 }
             }

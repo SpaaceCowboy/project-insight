@@ -102,12 +102,19 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     /** Rulebook sandbox: kept for the session so it resumes where the player left it. */
     var rulebookBoard by mutableStateOf(listOf("RBG", "PWY", "BGR"))
     var colorblind by mutableStateOf(store.colorblind.also { Art.colorblind = it }); private set
+    var plushTiles by mutableStateOf(store.plushTiles.also { Art.plush = it }); private set
     var language by mutableStateOf(store.language.also { L10n.language = it }); private set
-    /** The gameplay-tips icon is on, and the step of the tips on show (0 = none, 1 grid, 2 restart, 3 swipe, 4 title key, 5 like and bookmark; the creator numbers its own steps per stage). */
+    /** The gameplay-tips icon is on, and the step of the tips on show (0 = none, 1 grid, 2 restart, 3 swipe, 4 title key, 5 like, 6 target, 7 bookmark; the creator numbers its own steps per stage). */
     var guideOn by mutableStateOf(store.guide); private set
     var guidePhase by mutableIntStateOf(0); private set
     /** Level one's first-play tips are due, but wait half a second for the game screen to settle before their borders and text appear. */
     var onboardPending by mutableStateOf(false); private set
+    /** The first online puzzle's tips are due (like and bookmark only); they wait for the screen to settle like level one's. */
+    var onlineGuidePending by mutableStateOf(false); private set
+    /** While set, the tips play only these steps (the first online puzzle's automatic like/bookmark tips); null is the screen's full set. */
+    var guideOnly by mutableStateOf<List<Int>?>(null); private set
+    /** The step of the Worlds tips on show (0 none, 1..[WORLDS_GUIDE_STEPS]); separate from [guidePhase] because the game can sit under Worlds. */
+    var worldsGuidePhase by mutableIntStateOf(0); private set
 
     val spec get() = community?.spec ?: levels[level]
     val solved get() = Rules.key(board) == Rules.key(spec.target)
@@ -163,7 +170,42 @@ class GameModel(app: Application) : AndroidViewModel(app) {
         store.onboarded = true
     }
 
-    fun cancelOnboardGuide() { onboardPending = false }
+    fun cancelOnboardGuide() { onboardPending = false; onlineGuidePending = false }
+
+    /** The first online puzzle on this device: after the pause, only its like and bookmark steps (the rest was seen in Journey). The lamp later plays them all. */
+    fun revealOnlineGuide() {
+        if (!onlineGuidePending) return
+        onlineGuidePending = false
+        val c = community ?: return
+        val steps = if (c.grid.optString("ownerId") == online.user?.id) listOf(GUIDE_BOOKMARK_STEP) else listOf(GUIDE_LIKE_STEP, GUIDE_BOOKMARK_STEP)
+        guideOnly = steps; guidePhase = steps.first()
+        store.onlineGuided = true
+    }
+
+    /** The creator's first stage tips play by themselves the first time the creator opens; its later stages never do. */
+    val creatorGuideDue get() = guideOn && !store.creatorGuided && creator.phase == Phase.BUILD
+    fun revealCreatorGuide() {
+        if (!creatorGuideDue || top != Route.Create) return
+        guideOnly = null; guidePhase = 1
+        store.creatorGuided = true
+    }
+
+    /** Worlds' tips play by themselves the first time Worlds opens on this device. */
+    val worldsGuideDue get() = guideOn && !store.worldsGuided
+    fun revealWorldsGuide() {
+        if (!worldsGuideDue) return
+        store.worldsGuided = true
+        startWorldsGuide()
+    }
+    /** The Worlds lamp key: starts the tips from the first step, or ends them. */
+    fun tapWorldsGuide() { if (worldsGuidePhase == 0) startWorldsGuide() else endWorldsGuide() }
+    private fun startWorldsGuide() { worldsGuidePhase = 1 }
+    fun endWorldsGuide() { worldsGuidePhase = 0 }
+    /** A tap moves the Worlds tips on; after the last step they end. The last step is about a puzzle card, so it shows the puzzles side first. */
+    fun advanceWorldsGuide() {
+        worldsGuidePhase = if (worldsGuidePhase >= WORLDS_GUIDE_STEPS) 0 else worldsGuidePhase + 1
+        if (worldsGuidePhase == WORLDS_GUIDE_STEPS) { playDiscovery.tab = "puzzles"; playDiscovery.puzzles.page = 0 }
+    }
 
     /** Home's Journey reopens the level last played (solved or not, with its unfinished moves), never a community board. */
     fun startJourney() {
@@ -177,7 +219,9 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     fun startCommunity(grid: JSONObject, sessionId: String, casual: Boolean = false, source: DiscoveryListState? = null) {
         val account = online.user?.id ?: return
         if (community != null) failureProof("leave")
-        winJob?.cancel(); guidePhase = 0; onboardPending = false
+        winJob?.cancel(); guidePhase = 0; guideOnly = null; onboardPending = false
+        // The first online puzzle on this device plays its like and bookmark tips by themselves, once the screen has settled.
+        onlineGuidePending = guideOn && !store.onlineGuided
         community = CommunityAttempt(grid, sessionId, account, casual = casual, source = source)
         liked = grid.optBoolean("liked"); bookmarked = grid.optBoolean("bookmarked")
         board = spec.start; moves = 0; path = mutableListOf(); winBadges = emptyList(); light = Art.LIGHT.getValue('B')
@@ -290,6 +334,28 @@ class GameModel(app: Application) : AndroidViewModel(app) {
             launch(kotlinx.coroutines.Dispatchers.Default) { try { UsernameFilter.get(app) } catch (error: Exception) { if (error is kotlinx.coroutines.CancellationException) throw error } }
             launch(kotlinx.coroutines.Dispatchers.IO) { try { OnlineDatabase.get(app).openHelper.writableDatabase } catch (error: Exception) { if (error is kotlinx.coroutines.CancellationException) throw error } }
             launch(kotlinx.coroutines.Dispatchers.Default) { vibration.warm() }
+        }
+    }
+
+    /** The code of a shared puzzle link (https://midoripuzzle.com/p/<code>) still to open. */
+    var pendingLink by mutableStateOf<String?>(null); private set
+    fun openLink(code: String) { pendingLink = code }
+
+    /**
+     * Opens the shared puzzle: with no account, sign-in first (the link stays pending and opens once signed in); then the puzzle by its code, with Worlds under
+     * it so Back leads somewhere sensible. A code that no longer exists shows the usual message.
+     */
+    fun openPendingLink() {
+        val code = pendingLink ?: return
+        if (online.user == null) { if (stack.none { it is Route.Auth }) push(Route.Auth(Route.Online)); return }
+        pendingLink = null
+        online.task {
+            val account = online.user?.id ?: return@task
+            val grid = online.repository.fetch("/v1/grids/code/$code", account).getJSONObject("grid")
+            val response = online.repository.command("play:${grid.getString("id")}", "POST", "/v1/grids/${grid.getString("id")}/sessions")
+            if (online.user?.id != account) return@task
+            if (stack.none { it == Route.Online }) { stack.clear(); stack += Route.Home; stack += Route.Online }
+            startCommunity(response.getJSONObject("grid"), response.getString("sessionId"))
         }
     }
 
@@ -475,7 +541,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
             if (online.user?.id == account && creator.creationId == identity) {
                 // The new puzzle shows on Home at once; the next progress refresh confirms the figure.
                 bumpOnlineStats(designed = 1)
-                creator.created(); playDiscovery.refresh(); online.refreshProgressAsync()
+                creator.created(); playDiscovery.refresh(); playDiscovery.collection(account).reload(); online.refreshProgressAsync()
             }
         }
     }
@@ -523,22 +589,25 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     }
     fun toggleDev() { dev = !dev; store.dev = dev }
     fun changeLanguage(code: String) { if (!L10n.supported(code)) return; language = code; store.language = code; L10n.language = code }
-    fun toggleGuide() { guideOn = !guideOn; store.guide = guideOn; if (!guideOn) guidePhase = 0 }
-    /** The guide icon: plays the guide from its first step, or sends it away if it is showing. */
-    fun tapGuide() { guidePhase = if (guidePhase == 0) 1 else 0 }
-    fun endGuide() { guidePhase = 0 }
+    fun toggleGuide() { guideOn = !guideOn; store.guide = guideOn; if (!guideOn) { guidePhase = 0; guideOnly = null; worldsGuidePhase = 0 } }
+    /** The guide icon: plays the guide from its first step (always the full set), or sends it away if it is showing. */
+    fun tapGuide() { guideOnly = null; guidePhase = if (guidePhase == 0) 1 else 0 }
+    fun endGuide() { guidePhase = 0; guideOnly = null }
     /**
      * The steps of the tips on this screen, in order: Journey and an online puzzle both explain their target right after the grid; an online
      * puzzle then adds its creator and like/bookmark keys and drops the swipe where it doesn't work. The creator has its own steps for each stage.
      */
     fun guideSteps(): List<Int> {
         if (top == Route.Create) return (1..creatorGuideSteps(creator.phase).size).toList()
+        guideOnly?.let { return it }
         val c = community ?: return listOf(1, GUIDE_TARGET_STEP, 2, 3, 4)
-        return buildList { add(1); add(GUIDE_TARGET_STEP); add(2); if (c.casual || c.source != null) add(3); add(4); add(5) }
+        val own = c.grid.optString("ownerId") == online.user?.id
+        return buildList { add(1); add(GUIDE_TARGET_STEP); add(2); if (c.casual || c.source != null) add(3); add(4); if (!own) add(GUIDE_LIKE_STEP); add(GUIDE_BOOKMARK_STEP) }
     }
     /** A tap anywhere moves the tips on to the next step, and after the last one they end. */
-    fun advanceGuide() { guidePhase = guideSteps().let { it.getOrNull(it.indexOf(guidePhase) + 1) ?: 0 } }
+    fun advanceGuide() { guidePhase = guideSteps().let { it.getOrNull(it.indexOf(guidePhase) + 1) ?: 0 }; if (guidePhase == 0) guideOnly = null }
     fun toggleColorblind() { colorblind = !colorblind; store.colorblind = colorblind; Art.colorblind = colorblind }
+    fun togglePlushTiles() { plushTiles = !plushTiles; store.plushTiles = plushTiles; Art.plush = plushTiles }
     fun changeEffects(value: Float) { effects = value; store.effects = value; audio.effects = value }
     fun changeAmbience(value: Float) { ambience = value; store.ambience = value; audio.ambience = value }
     override fun onCleared() { audio.release() }

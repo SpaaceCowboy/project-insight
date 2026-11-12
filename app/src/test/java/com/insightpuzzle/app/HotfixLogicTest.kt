@@ -167,4 +167,10 @@ class HotfixLogicTest {
     @Test fun restartTripleIsAsQuietAsTheCornerDrag() {
         assertEquals(Haptics.FINE_TICK_AMPLITUDE, Haptics.TRIPLE_AMPLITUDE)
     }
+
+    @Test fun restartTripleIsThreeShortPulsesOverHalfASecond() {
+        assertEquals(5L, Haptics.TRIPLE_TICK_MS)
+        assertEquals(200L, Haptics.TRIPLE_STEP_MS)
+        assertTrue(2 * Haptics.TRIPLE_STEP_MS + Haptics.TRIPLE_TICK_MS <= 500)
+    }
 }
