@@ -2,17 +2,15 @@ import {useEffect, useRef, useState} from 'react';
 import {flushSync} from 'react-dom';
 import {clampDrag, dropTarget, rewindMoves, SLIDE_MS, REWIND_MS, SLIDE_EASING} from './boardMotion.js';
 import {PuzzleRules as Rules} from './rules.js';
-import {PuzzleSolver} from './solver.js';
 
-const IDLE = {selected: null, drag: null, moving: null, rejected: null, arrived: [], hint: null, bloom: null, resetting: false};
+const IDLE = {selected: null, drag: null, moving: null, rejected: null, arrived: [], bloom: null, resetting: false};
 const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 export const same = (a, b) => !!a && !!b && a[0] === b[0] && a[1] === b[1];
 
 /** One board's play state: tap or drag a tile along its rule to swap it. Timings follow the app. */
-export function useBoard(level, options = {}) {
-  const optionsNow = useRef(options); optionsNow.current = options;
+export function useBoard(level) {
   const levelNow = useRef(level); levelNow.current = level;
-  const [board, setBoard] = useState(() => Rules.parse(options.initialBoard || level.start));
+  const [board, setBoard] = useState(() => Rules.parse(level.start));
   const [moves, setMoves] = useState(0);
   const [ui, setUI] = useState(IDLE);
   const live = useRef(board), uiNow = useRef(ui);
@@ -95,21 +93,19 @@ export function useBoard(level, options = {}) {
     clearAnimations(); busy.current = false;
     return true;
   }
-  function replaceBoard(next) {
-    stopAll();
-    const parsed = Rules.parse(next);
-    live.current = parsed; setBoard(parsed); setMoves(0); setUI(IDLE);
-  }
+  /** GameScreen.kt canRewind: there is something to undo and nothing in flight. */
+  const canRestart = () => !busy.current && !drag.current && !solvedNow.current && Rules.key(live.current) !== level.start.join('|');
+  const deselect = () => { if (uiNow.current.selected) change({selected: null}); };
   function reject(position) {
     change({rejected: position});
     later(() => change({rejected: null}), 240);
   }
   async function move(a, b, offset = [0, 0]) {
-    if (busy.current || !Rules.isLegal(live.current, a, b) || optionsNow.current.beforeMove?.() === false) return;
+    if (busy.current || !Rules.isLegal(live.current, a, b)) return;
     const previous = live.current, next = Rules.swapCells(previous, a, b);
     const [dx, dy] = delta(a, b);
     busy.current = true;
-    flushSync(() => change({selected: null, drag: null, hint: null, moving: [a, b], arrived: [], rejected: null}));
+    flushSync(() => change({selected: null, drag: null, moving: [a, b], arrived: [], rejected: null}));
     const finished = await animateTiles([
       [tileAt(a), offset, [dx, dy]],
       [tileAt(b), [0, 0], [-dx, -dy]],
@@ -126,7 +122,6 @@ export function useBoard(level, options = {}) {
       change({moving: null, arrived, bloom: {at: b, style: inkStyle, type: previous[a[0]][a[1]], id: Date.now()}});
     });
     clearAnimations(); busy.current = false;
-    optionsNow.current.onCommittedMove?.({from: a, at: b, board: next});
     if (arrived.length) later(() => change({arrived: []}), 420);
   }
   function choose(position) {
@@ -134,13 +129,13 @@ export function useBoard(level, options = {}) {
     const current = live.current, selected = uiNow.current.selected;
     if (selected && Rules.isLegal(current, selected, position)) { move(selected, position); return; }
     if (selected && !same(selected, position)) {
-      if (Rules.legalMoves(current, ...position).length) change({selected: position, hint: null});
+      if (Rules.legalMoves(current, ...position).length) change({selected: position});
       else reject(selected);
       return;
     }
     // A tile with nowhere to go does not lift, as in the app.
     if (!Rules.legalMoves(current, ...position).length) { change({selected: null}); reject(position); return; }
-    change({selected: same(selected, position) ? null : position, hint: null});
+    change({selected: same(selected, position) ? null : position});
   }
 
   function pointerDown(event, position) {
@@ -168,7 +163,7 @@ export function useBoard(level, options = {}) {
     item.offset = clampDrag([(item.x - item.startX) / item.scale, (item.y - item.startY) / item.scale], item.bounds);
     item.hover = dropTarget(item.home, item.offset, item.targets, item.size);
     item.node.style.transform = `translate(${item.offset[0]}px,${item.offset[1]}px) scale(1.045)`;
-    if (started || previous !== item.hover) change({selected: null, hint: null, drag: {from: item.from, legal: item.legal, hover: item.hover}});
+    if (started || previous !== item.hover) change({selected: null, drag: {from: item.from, legal: item.legal, hover: item.hover}});
   }
   function endDrag() {
     const item = drag.current; drag.current = null;
@@ -197,18 +192,5 @@ export function useBoard(level, options = {}) {
   }
   function pointerCancel() { endDrag(); }
 
-  /** Rings the next step of a shortest solution from where the board stands now. */
-  function hint() {
-    if (busy.current || solvedNow.current || !level.target) return;
-    try {
-      const current = live.current.map(row => row.join(''));
-      const {path} = PuzzleSolver.solve({name: level.name, start: current, target: level.target}, {maxStates: 200000});
-      if (!path.length) return;
-      const width = current[0].length, cell = index => [Math.floor(index / width), index % width];
-      change({selected: null, hint: path[0].map(cell)});
-      later(() => change({hint: null}), 1600);
-    } catch { /* no hint is better than a wrong one */ }
-  }
-
-  return {replaceBoard, isBusy: () => busy.current || !!drag.current, board, moves, ui, solved, boardRef, platformRef, tileRef, pointerDown, pointerMove, pointerUp, pointerCancel, choose, restart, hint};
+  return {isBusy: () => busy.current || !!drag.current, canRestart, deselect, board, moves, ui, solved, boardRef, platformRef, tileRef, pointerDown, pointerMove, pointerUp, pointerCancel, choose, restart};
 }

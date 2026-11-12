@@ -1,6 +1,6 @@
 import {useEffect, useRef} from 'react';
 import {PuzzleRules as Rules} from './rules.js';
-import {ICONS} from './tileArt.js';
+import {ICONS, strokeWidth} from './tileArt.js';
 
 const COLORS = {R: ['#E09A91', '#AE546B'], B: ['#93D2DB', '#3B88A6'], G: ['#A6D7AD', '#4B896B'], Y: ['#F0D38B', '#B88A43'], P: ['#C9B8E1', '#8464A9'], W: ['#F3F4DF', '#C3CFBC']};
 const BAG = 'RRRBBBGGGYYYPPW';
@@ -17,10 +17,7 @@ function sprite(type, dpr) {
   g.fillStyle = fill; g.beginPath(); g.roundRect(0, 0, SIZE, SIZE, SIZE * .23); g.fill();
   g.translate(SIZE * .28, SIZE * .28); g.scale(SIZE * .44 / 48, SIZE * .44 / 48);
   g.strokeStyle = type === 'W' ? '#45474C' : '#fff'; g.lineCap = 'round'; g.lineJoin = 'round';
-  if (type === 'W') {
-    g.lineWidth = 4; g.beginPath(); g.arc(24, 24, 10, 0, Math.PI * 2); g.stroke();
-    g.lineWidth = 3.6; g.stroke(new Path2D('M24 6v8M24 34v8M6 24h8M34 24h8'));
-  } else { g.lineWidth = type === 'P' ? 3.4 : 4.2; g.stroke(new Path2D(ICONS[type])); }
+  g.lineWidth = strokeWidth(type); g.stroke(new Path2D(ICONS[type]));
   return canvas;
 }
 
@@ -47,7 +44,7 @@ export default function HeroField() {
       grid = Array.from({length: rows}, () => Array.from({length: cols}, () => Math.random() < .2 ? '.' : BAG[Math.floor(Math.random() * BAG.length)]));
       heat = new Float32Array(rows * cols); quiet = new Float32Array(rows * cols).fill(1); swaps = [];
       // Tiles sitting under the copy and the playable board stay dim so they never fight the content.
-      for (const node of host.querySelectorAll('.hero-copy,.hero-more,.stage')) {
+      for (const node of host.querySelectorAll('.hero-copy,.hero-cta,.stage')) {
         const box = node.getBoundingClientRect(), pad = 14;
         for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
           const x = rect.left + originX + c * STEP, y = rect.top + r * STEP;

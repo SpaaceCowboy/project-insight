@@ -20,7 +20,6 @@ export default function Footer({onUnlock}) {
     <footer className="site-footer">
       <div className="wrap">
         <a className="brand" href="#play" aria-label="Midori, back to top"><Mark /><span className="wordmark">MIDORI</span></a>
-        <span>A little order. A little wonder.</span>
         <nav aria-label="Legal and contact">
           <a href="/privacy/">Privacy</a>
           <a href="/terms/">Terms</a>

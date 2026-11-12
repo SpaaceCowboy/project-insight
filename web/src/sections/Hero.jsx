@@ -1,92 +1,160 @@
-import {useEffect, useMemo, useState} from 'react';
-import {Board, TargetMini} from '../game/Board.jsx';
+import {useEffect, useRef, useState} from 'react';
+import {Board, MorphTarget, StillBoard, TargetMini} from '../game/Board.jsx';
+import Guide from '../game/Guide.jsx';
 import HeroField from '../game/HeroField.jsx';
 import {useBoard} from '../game/useBoard.js';
+import {GLOW_DELAY_MS, HOLD_MS, LEVEL_SLIDE_MS} from '../game/boardMotion.js';
 import {LEVELS, SANDBOX} from '../game/levels.js';
-import {TILES, TILE_ORDER} from '../game/tileArt.js';
 import {LEVEL_COUNT} from '../config.js';
-import {Icon, PlayButton} from '../ui.jsx';
+import {Icon, PlayButton, reducedMotion} from '../ui.jsx';
 
-/** Small tile-coloured squares thrown from the board when a level is solved. */
-function Burst() {
-  const pieces = useMemo(() => Array.from({length: 30}, (_, i) => {
-    const angle = Math.random() * Math.PI * 2, reach = 110 + Math.random() * 150;
-    return {
-      cls: TILES[TILE_ORDER[i % 6]].cls,
-      style: {'--x': Math.cos(angle) * reach + 'px', '--y': Math.sin(angle) * reach - 40 + 'px', '--r': Math.random() * 540 - 270 + 'deg', '--d': 300 + Math.random() * 160 + 'ms', '--s': 7 + Math.random() * 8 + 'px'},
-    };
-  }), []);
-  return <span className="burst" aria-hidden="true">{pieces.map((piece, i) => <i key={i} className={piece.cls} style={piece.style} />)}</span>;
+// GameScreen.kt: a swipe is 80dp of mostly sideways travel, a hold ends after the touch slop, the grid owns one gap around its cells.
+const SWIPE = 80, SLOP = 8, GAP = 5;
+
+/** Screens.kt lampArt: an open bulb on its base, filled while the tips are showing. */
+function Lamp({lit, dim}) {
+  return <svg className={'lamp-art' + (lit ? ' lit' : '') + (dim ? ' dim' : '')} viewBox="0 0 24 24" aria-hidden="true">
+    <path className="bulb" d="M8.46 13.2A5.5 5.5 0 1 1 15.54 13.2L14.5 16h-5Z" />
+    <path d="M9.5 16 8.46 13.2A5.5 5.5 0 1 1 15.54 13.2L14.5 16h-5M10 19h4" />
+  </svg>;
 }
 
-function Stage({level, last, picker, onNext, onSolved}) {
+function Stage({level, last, picker, leaving, entering, shared, target, onNext, onSolved, onSwipe}) {
   const game = useBoard(level);
+  shared.current = game.board;
   const [won, setWon] = useState(false);
+  const [holding, setHolding] = useState(false);
+  const [guide, setGuide] = useState(null);
+  // How this platform arrived: sliding in after a swipe, or settling into place. Fixed at mount so the animation never restarts.
+  const [arrival] = useState(entering);
+  const press = useRef(null), lamp = useRef(null);
+  // GameModel.guideSteps: the target comes right after the board. The Rulebook has no target to explain.
+  const steps = level.target ? ['board', 'target', 'hold', 'swipe'] : ['board', 'hold', 'swipe'];
+
   // The win bar waits for the solve bloom, as in the app.
   useEffect(() => {
     if (!game.solved) { setWon(false); return; }
     onSolved(level.id);
-    const wait = matchMedia('(prefers-reduced-motion: reduce)').matches ? 100 : 850;
-    const id = setTimeout(() => setWon(true), wait);
+    const id = setTimeout(() => setWon(true), reducedMotion() ? 100 : 850);
     return () => clearTimeout(id);
   }, [game.solved]);
 
-  const sandbox = !level.target;
-  let note;
-  if (won) note = <>
-    <span>{last ? `Beautifully solved. ${LEVEL_COUNT - LEVELS.length} more are waiting in the game.` : 'Beautifully solved.'}</span>
-    {!last && <button type="button" className="key primary" onClick={onNext}>Next<Icon name="next" /></button>}
-  </>;
-  else if (sandbox) note = <span>The Rulebook board: all six tiles, no target. Move them freely.</span>;
-  else if (game.moves === 0) note = <span>Tap a tile, then where it should go, or drag it there. Make the board match the target.</span>;
-  else note = <span>{game.moves} {game.moves === 1 ? 'move' : 'moves'}. No limit, no timer.</span>;
+  function endPress() {
+    const item = press.current; press.current = null;
+    if (!item) return;
+    clearTimeout(item.glow); clearTimeout(item.hold);
+    window.removeEventListener('pointermove', item.move);
+    window.removeEventListener('pointerup', item.end);
+    window.removeEventListener('pointercancel', item.end);
+  }
+  useEffect(() => endPress, []);
+
+  /**
+   * GameScreen.kt: hold the platform anywhere but on a tile and it sinks, lights its wall and sends the tiles back to
+   * the start; swipe from anywhere but the grid to move between boards. The glow waits, so a swipe never lights it.
+   */
+  function platformDown(event) {
+    if (event.button !== 0 || press.current || event.target.closest('.tile, .lamp')) return;
+    game.deselect();
+    const box = game.boardRef.current.getBoundingClientRect(), x = event.clientX, y = event.clientY, id = event.pointerId;
+    const onGrid = x >= box.left - GAP && x <= box.right + GAP && y >= box.top - GAP && y <= box.bottom + GAP;
+    const swipeable = !onGrid && !entering && !game.solved && !game.isBusy();
+    let still = game.canRestart();
+    if (!still && !swipeable) return;
+    const item = {
+      move(next) {
+        if (next.pointerId !== id) return;
+        const dx = next.clientX - x, dy = next.clientY - y;
+        if (swipeable && Math.abs(dx) > SWIPE && Math.abs(dx) > 2 * Math.abs(dy)) { endPress(); setHolding(false); onSwipe(dx < 0 ? 1 : -1); return; }
+        if (still && Math.hypot(dx, dy) > SLOP) { still = false; clearTimeout(item.glow); clearTimeout(item.hold); setHolding(false); }
+        if (!still && !swipeable) endPress();
+      },
+      end(next) { if (next.pointerId === id) { endPress(); setHolding(false); } },
+    };
+    if (still) {
+      if (!reducedMotion()) item.glow = setTimeout(() => setHolding(true), GLOW_DELAY_MS);
+      item.hold = setTimeout(() => { endPress(); game.restart({immediate: true}); setHolding(false); }, HOLD_MS);
+    }
+    press.current = item;
+    window.addEventListener('pointermove', item.move);
+    window.addEventListener('pointerup', item.end);
+    window.addEventListener('pointercancel', item.end);
+  }
+
+  function closeGuide() { setGuide(null); lamp.current?.focus({preventScroll: true}); }
+  function advanceGuide() {
+    const next = steps[steps.indexOf(guide) + 1];
+    if (next) setGuide(next); else closeGuide();
+  }
 
   return <>
-    <div className="stage-top">
-      <p className="stage-title"><span className="label">{sandbox ? 'Free play' : `Journey · level ${level.id}`}</span>{level.name}</p>
-      {level.target && <div className="stage-target"><span className="label">Target</span><TargetMini board={level.target} /></div>}
+    <div className="stage-rail">
+      {leaving}
+      <div className={'slot ' + (arrival ? 'entering' : 'settle')} style={arrival ? {'--dir': arrival} : undefined}>
+        <div ref={game.platformRef} className={'platform' + (holding || game.ui.resetting ? ' held' : '')}
+          onPointerDown={platformDown} onContextMenu={event => event.preventDefault()}>
+          {/* The lamp is etched into the platform under the tiles, so a tile dragged over it covers it; its key sits on top. */}
+          {!entering && <Lamp lit={!!guide} dim={game.solved} />}
+          <Board game={game} label={`${level.name} board`} />
+          {!entering && <button ref={lamp} type="button" className="lamp" onClick={() => setGuide(steps[0])} disabled={game.solved} aria-label="Gameplay tips" />}
+        </div>
+      </div>
     </div>
-    <div ref={game.platformRef} className={'platform' + (game.ui.resetting ? ' resetting' : game.solved ? ' solved' : '')}>
-      <Board game={game} label={`${level.name} board`} />
-      {game.solved && !game.ui.resetting && <Burst />}
-    </div>
-    <div className="stage-controls">
-      <button type="button" className="key icon" onClick={game.restart} disabled={!!game.ui.moving} aria-label="Restart this board"><Icon name="restart" /></button>
-      {!sandbox && <button type="button" className="key icon" onClick={game.hint} disabled={game.solved || !!game.ui.moving} aria-label="Show a hint"><Icon name="lamp" /></button>}
-      {picker}
-    </div>
-    <p className={'stage-note' + (won ? ' win' : '')} role="status">{note}</p>
+    {picker}
+    <p className={'stage-note' + (won ? ' win' : '')} role="status">{won && <>
+      <span>{last ? `Beautifully solved. ${LEVEL_COUNT - LEVELS.length} more are waiting in the game.` : 'Beautifully solved.'}</span>
+      {!last && <button type="button" className="key primary" onClick={onNext}>Next<Icon name="next" /></button>}
+    </>}</p>
+    {guide && <Guide step={guide} platform={game.platformRef} board={game.boardRef} target={target} onAdvance={advanceGuide} onEnd={closeGuide} />}
   </>;
 }
 
 export default function Hero({index, setIndex, onUnlock}) {
   const [done, setDone] = useState(() => new Set());
+  // The board being left while the next one slides in (GameScreen.kt LevelSwap).
+  const [swap, setSwap] = useState(null);
+  const shared = useRef(null), target = useRef(null);
   const all = [...LEVELS, SANDBOX], level = all[index];
+
+  function go(next) {
+    if (next < 0 || next >= all.length || next === index || swap) return;
+    if (!reducedMotion()) setSwap({level, board: shared.current.map(row => row.join('')), direction: next > index ? 1 : -1});
+    setIndex(next);
+  }
+  useEffect(() => {
+    if (!swap) return;
+    const id = setTimeout(() => setSwap(null), LEVEL_SLIDE_MS);
+    return () => clearTimeout(id);
+  }, [swap]);
+
   const picker = <div className="dots" role="group" aria-label="Choose a board">
     {all.map((item, i) => <button key={item.id} type="button" className={'key dot' + (done.has(item.id) ? ' done' : '')}
-      aria-current={i === index} aria-label={item.target ? `Level ${item.id}, ${item.name}${done.has(item.id) ? ', solved' : ''}` : 'Rulebook free play'}
-      onClick={() => setIndex(i)}>{item.target ? i + 1 : <Icon name="play" />}</button>)}
+      aria-current={i === index} aria-label={item.target ? `Level ${i + 1}, ${item.name}${done.has(item.id) ? ', solved' : ''}` : 'Rulebook free play'}
+      onClick={() => go(i)}>{item.target ? i + 1 : <Icon name="play" />}</button>)}
   </div>;
-  return <>
-    <section className="hero" id="play">
-      <HeroField />
-      <div className="wrap">
-        <div className="hero-copy">
-          <h1><span className="line"><span>A little order.</span></span><span className="line"><span>A little wonder.</span></span></h1>
-          <p className="hero-lede">Midori is a calm tile-swapping puzzle for Android. Every tile moves by its own rule; swap them until the board matches the target. Try it right here.</p>
-        </div>
-        <div className="hero-more">
-          <div className="hero-cta">
-            <PlayButton />
-            <button type="button" className="key" onClick={onUnlock}>Unlock Worlds</button>
-          </div>
-        </div>
-        <div className="stage">
-          <Stage key={level.id} level={level} last={index >= LEVELS.length - 1} picker={picker}
-            onNext={() => setIndex(Math.min(index + 1, LEVELS.length - 1))}
-            onSolved={id => setDone(previous => previous.has(id) ? previous : new Set(previous).add(id))} />
-        </div>
+  const leaving = swap && <div className="slot leaving" style={{'--dir': swap.direction}} aria-hidden="true">
+    <div className="platform"><StillBoard board={swap.board} /></div>
+  </div>;
+
+  return <section className="hero" id="play">
+    <HeroField />
+    <div className="wrap">
+      <div className="hero-copy">
+        <h1><span>A calm tile-swapping puzzle</span></h1>
+        <p className="hero-lede">Midori is a relaxing puzzle based on tile-swapping. Every tile moves by its own rule; swap them until the board matches the target. Try it right here.</p>
       </div>
-    </section>
-  </>;
+      <div className="stage">
+        <div ref={target} className="stage-target">
+          {swap ? <MorphTarget from={swap.level.target || []} to={level.target || []} /> : level.target && <TargetMini board={level.target} />}
+        </div>
+        <Stage key={level.id} level={level} last={index >= LEVELS.length - 1} picker={picker} leaving={leaving} entering={swap?.direction}
+          shared={shared} target={target} onNext={() => go(index + 1)} onSwipe={direction => go(index + direction)}
+          onSolved={id => setDone(previous => previous.has(id) ? previous : new Set(previous).add(id))} />
+      </div>
+      <div className="hero-cta">
+        <PlayButton />
+        <button type="button" className="key" onClick={onUnlock}>Unlock Worlds</button>
+      </div>
+    </div>
+  </section>;
 }

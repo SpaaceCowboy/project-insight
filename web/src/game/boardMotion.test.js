@@ -26,6 +26,11 @@ describe('Android board motion', () => {
     expect(rewindMoves(['BRB', 'RBR'], ['RBR', 'BRB']))
       .toContainEqual([[0, 0], [0, 1]]);
   });
+  it('pairs what two different targets share and leaves the rest out', () => {
+    expect(rewindMoves(['RB', 'RB'], ['RRBR', 'BWBW'], true)).toEqual([[[0, 0], [0, 0]], [[0, 1], [0, 2]], [[1, 0], [0, 1]], [[1, 1], [1, 0]]]);
+    expect(rewindMoves(['RG.', 'RYB', 'BG.'], [], true)).toEqual([]);
+    expect(() => rewindMoves(['RB'], ['RR'])).toThrow();
+  });
   it('accepts only a tile centre within 0.6 cells of a legal destination', () => {
     const home = {x: 44, y: 44};
     const targets = [{x: 140, y: 44, position: [0, 1]}];

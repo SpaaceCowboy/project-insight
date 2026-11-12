@@ -7,6 +7,7 @@ function currentTheme() {
 
 export default function Header({onUnlock}) {
   const [theme, setTheme] = useState(currentTheme);
+  const [turned, setTurned] = useState(false);
   function toggle() {
     const next = currentTheme() === 'dark' ? 'light' : 'dark';
     document.documentElement.dataset.theme = next;
@@ -15,12 +16,12 @@ export default function Header({onUnlock}) {
   }
   return <header className="site-header">
     <div className="wrap">
-      <a className="brand" href="#play" aria-label="Midori, back to top"><Mark /><span className="wordmark">MIDORI</span></a>
+      <button type="button" className={'brand' + (turned ? ' turned' : '')} onClick={() => setTurned(!turned)} aria-label="Midori: turn the mark" aria-pressed={turned}><Mark /><span className="wordmark">MIDORI</span></button>
       <nav className="site-nav" aria-label="Sections">
         <a href="#play">Play</a>
         <a href="#tiles">Tiles</a>
         <a href="#modes">Journey &amp; Worlds</a>
-        <a href="#create">Create</a>
+        <a href="#worlds">Inside Worlds</a>
         <a href="#faq">Questions</a>
       </nav>
       <div className="header-actions">

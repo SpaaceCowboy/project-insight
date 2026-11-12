@@ -7,7 +7,7 @@ import {Heading, Live, Mark} from '../ui.jsx';
 export default function Screens() {
   return <section id="screens">
     <div className="wrap">
-      <Heading sub="Midori keeps out of the way: two keys on the home screen, a grid of levels, and a place for what players make. These are sketches of the app, not screenshots.">Quiet screens, big keys.</Heading>
+      <Heading sub="Midori keeps out of the way: two keys on the home screen, a grid of puzzles, and a place for what players create.">Quiet screens, big keys.</Heading>
       <Live className="phones">
         <figure className="phone">
           <div className="phone-body">

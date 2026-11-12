@@ -15,4 +15,5 @@ export const CHECKOUT_PROVIDER = 'stub';
 /** Contact address used by the footer and the "tell me when it opens" link. Empty hides both. */
 export const SUPPORT_EMAIL = 'Insight.correspondence@gmail.com';
 
-export const LEVEL_COUNT = 206;
+/** Levels in Journey. */
+export const LEVEL_COUNT = 100;

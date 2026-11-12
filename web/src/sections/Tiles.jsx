@@ -48,12 +48,12 @@ export default function Tiles({onSandbox}) {
         <div className="picks" role="group" aria-label="Choose a tile">
           {TILE_ORDER.map(key => <button key={key} type="button" className="pick" aria-pressed={key === type}
             onClick={() => { setType(key); setAuto(false); }}>
-            <TileFace type={key} /><span>{TILES[key].title}</span>
+            <span className="plate"><TileFace type={key} /></span><span className="pick-name">{TILES[key].name}</span>
           </button>)}
         </div>
         <div className="showcase-stage"><Demo type={type} running={inView} /></div>
         <div className="showcase-copy" aria-live="polite">
-          <h3 key={type}>{tile.title}</h3>
+          <h3 key={type}>{tile.name}</h3>
           <p key={type + 'rule'} className="rule">{tile.rule}</p>
           <button type="button" className="key" onClick={onSandbox}>Try all six on the board</button>
         </div>
