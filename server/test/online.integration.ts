@@ -168,7 +168,7 @@ test('five wrong recovery codes exhaust the challenge', async () => {
 });
 
 test('a Google-created account can set a password by email recovery', async () => {
-  const sub = `google-${op()}`; const email = `${op()}@example.test`; const name = `Google ${op().slice(0, 8)}`;
+  const sub = `google-${op()}`; const email = `${op()}@example.test`; const name = `Google_${op().slice(0, 8)}`;
   await call('POST', '/v1/auth/google', { idToken: googleToken(sub, email, name), name });
   await call('POST', '/v1/auth/recover/request', { email });
   const code = await recoverCode(email);
@@ -217,12 +217,12 @@ test('email verification is not required, login is throttled, and OpenAPI is ava
 
 test('open registration, unique English nicknames, concurrent claims and idempotent profile rename', async () => {
   const email = `${op()}@example.test`;
-  await call('POST', '/v1/auth/register', { email, password: 'long-test-password', name: '  My\u3000Nickname  ' });
+  await call('POST', '/v1/auth/register', { email, password: 'long-test-password', name: '  Ｍｙ_Nickname  ' });
   const registered = await call('POST', '/v1/auth/login', { email, password: 'long-test-password' });
-  assert.equal(registered.user.username, 'My Nickname');
-  const conflict = await call('POST', '/v1/auth/register', { email: `${op()}@example.test`, password: 'long-test-password', name: 'ｍｙ nickname' }, undefined, 409);
+  assert.equal(registered.user.username, 'My_Nickname');
+  const conflict = await call('POST', '/v1/auth/register', { email: `${op()}@example.test`, password: 'long-test-password', name: 'ｍｙ_nickname' }, undefined, 409);
   assert.equal(conflict.code, 'NAME_TAKEN');
-  const name = `Race ${Date.now()}`;
+  const name = `Race_${Date.now()}`;
   const race = await Promise.all([name, name.toUpperCase()].map((name, n) => app.inject({ method: 'POST', url: '/v1/auth/register', remoteAddress: `192.0.2.${20+n}`, payload: { email: `${op()}@example.test`, password: 'long-test-password', name } })));
   assert.deepEqual(race.map(r => r.statusCode).sort(), [200,409]);
   const a = await makeAccount(); const b = await makeAccount();
@@ -235,7 +235,7 @@ test('open registration, unique English nicknames, concurrent claims and idempot
   await call('PATCH', '/v1/account/name', { operationId: op(), name: 'bad\u202ename' }, a, 400);
   await call('POST', '/v1/auth/register', { email: `${op()}@example.test`, password: 'long-test-password', name: 'Another_player' });
   // Case, spacing-compatibility and the new rules: a rename or registration that breaks them is refused with its own code and explanation.
-  for (const [name, code] of [['MY NICKNAME', 'NAME_TAKEN'], ['f u c k', 'NAME_PROFANITY'], ['ab', 'NAME_LENGTH'], ['Émile', 'NAME_CHARACTERS'], ['Admin', 'NAME_RESERVED']] as const) {
+  for (const [name, code] of [['MY_NICKNAME', 'NAME_TAKEN'], ['My\u3000Nickname', 'NAME_CHARACTERS'], ['f_u_c_k', 'NAME_PROFANITY'], ['ab', 'NAME_LENGTH'], ['Émile', 'NAME_CHARACTERS'], ['Admin', 'NAME_RESERVED']] as const) {
     const refused = await call('POST', '/v1/auth/register', { email: `${op()}@example.test`, password: 'long-test-password', name }, undefined, code === 'NAME_TAKEN' ? 409 : 400);
     assert.equal(refused.code, code, name);
     assert.ok(refused.message.length > 10);

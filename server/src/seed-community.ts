@@ -213,7 +213,7 @@ async function verifyCreator(app: FastifyInstance, c: Creator, token: string) {
   assert(creators.items.some((u: any) => u.id === c.userId && u.gridCount === 8));
   const found = new Set<string>(); let page: number | null = 0;
   while (page !== null) {
-    const list = await request(app, 'GET', `/v1/grids?query=Seed%20Creator&sort=newest&page=${page}`, undefined, token);
+    const list = await request(app, 'GET', `/v1/grids?query=Seed_Creator&sort=newest&page=${page}`, undefined, token);
     for (const p of list.items) { assert(!found.has(p.id), 'Pagination repeated a grid'); found.add(p.id); }
     page = list.nextPage;
   }

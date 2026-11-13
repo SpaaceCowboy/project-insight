@@ -51,7 +51,7 @@ test('seed dry-run, collision checks, lost responses, repeat execution and publi
       // Check both identity collision cases before permitting any batch account writes.
       for (const field of ['name', 'email'] as const) {
         const c = m.creators[9]!;
-        const outsider = await call('/v1/auth/register', { name: field === 'name' ? c.name : 'Unrelated account',
+        const outsider = await call('/v1/auth/register', { name: field === 'name' ? c.name : 'Unrelated_account',
           email: field === 'email' ? c.email : 'outsider@example.test', password: 'different-test-password' });
         await assert.rejects(applySeed(db, config, file, m), /Identity collision/);
         assert.equal((await db.query('SELECT count(*)::int AS n FROM users')).rows[0].n, 1);
