@@ -33,7 +33,7 @@ section { padding:64px 0; scroll-margin-top:72px; }
   .site-header .wrap { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); }
   .site-header .brand { justify-self:start; }
   .site-nav { display:flex; margin-left:0; }
-  .header-actions { justify-self:end; margin-left:0; }
+  .header-actions { grid-column:3; justify-self:end; margin-left:0; }
 }
 @media (max-width:420px) { .header-actions .unlock span { display:none; } .header-actions .unlock::after { content:'Worlds'; } }
 
@@ -56,13 +56,14 @@ section { padding:64px 0; scroll-margin-top:72px; }
 .stage-target { display:grid; place-items:end center; min-height:54px; margin-bottom:12px; }
 /* The rail clips the platforms sideways while one slides out and the next slides in; the gutter leaves room for their shadows. */
 .stage-rail { position:relative; margin-inline:calc(var(--gutter) * -1); padding-inline:var(--gutter); overflow-x:clip; }
-/* GameScreen.kt: a platform settles 8px into place when it appears, and two platforms travel one width together on a swipe, fading only at the margin. */
+/* GameScreen.kt: a platform settles 8px into place when it appears, and two platforms travel together on a swipe, one width plus a 16px gap
+   apart (the platform's own margin), fading only at the margin. */
 .slot.settle { animation:settle 300ms cubic-bezier(.4,0,.2,1) both; }
 .slot.entering { animation:slot-in 340ms cubic-bezier(.4,0,.2,1) both; }
 .slot.leaving { position:absolute; inset:0 var(--gutter) auto; pointer-events:none; animation:slot-out 340ms cubic-bezier(.4,0,.2,1) both; }
 @keyframes settle { from { transform:translateY(-8px); } }
-@keyframes slot-in { 0% { opacity:0; transform:translateX(calc(var(--dir) * 100%)); } 8% { opacity:1; } }
-@keyframes slot-out { 92% { opacity:1; } 100% { opacity:0; transform:translateX(calc(var(--dir) * -100%)); } }
+@keyframes slot-in { 0% { opacity:0; transform:translateX(calc(var(--dir) * (100% + 16px))); } 8% { opacity:1; } }
+@keyframes slot-out { 92% { opacity:1; } 100% { opacity:0; transform:translateX(calc(var(--dir) * (-100% - 16px))); } }
 /* The platform is a raised key like the app's board: held, it sinks half way onto its 10px wall while the wall lights up (--glow 0..1). */
 @property --glow { syntax:'<number>'; inherits:false; initial-value:0; }
 .platform { position:relative; container-type:size; display:grid; place-items:center; width:100%; height:420px; border-radius:24px;
@@ -74,16 +75,12 @@ section { padding:64px 0; scroll-margin-top:72px; }
 .lamp-art { position:absolute; top:18px; right:18px; width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; color:color-mix(in srgb,var(--ink) 50%,var(--paper2)); pointer-events:none; }
 .lamp-art .bulb { stroke:none; }
 .lamp-art.lit .bulb { fill:var(--guide); }
-.lamp-art.dim { opacity:.45; }
 .lamp { position:absolute; top:4px; right:4px; z-index:6; width:48px; height:48px; padding:0; border:0; border-radius:14px; background:none; cursor:pointer; -webkit-tap-highlight-color:transparent; }
 .lamp:disabled { cursor:default; }
 .dots { display:flex; justify-content:center; gap:8px; margin-top:28px; }
 .dot { width:34px; min-height:34px; padding:0; border-radius:10px; --depth:2px; font-size:12px; letter-spacing:0; }
-.dot svg { width:13px; height:13px; }
 .dot.done { --face:color-mix(in srgb,var(--paper2) 86%,var(--accent)); }
 .dot[aria-current="true"] { --face:var(--accent); --wall:var(--accent-side); color:var(--accent-ink); }
-.stage-note { min-height:48px; margin-top:14px; display:flex; align-items:center; justify-content:center; gap:16px; font-size:13.5px; color:var(--muted); }
-.stage-note.win { color:var(--ink); font-weight:600; animation:fade-up .32s var(--out); }
 
 /* The tips (Guide.kt): fat borders round what a step explains, white with a faint dark rim on dark, ink on light. */
 .guide { position:absolute; inset:0; z-index:8; cursor:pointer; outline:none; -webkit-tap-highlight-color:transparent; }
@@ -140,11 +137,14 @@ span.tile { cursor:default; width:var(--cell); height:var(--cell); flex:none; }
 .mini { --m:16px; display:inline-grid; grid-template-columns:repeat(var(--cols),var(--m)); grid-auto-rows:var(--m); gap:calc(var(--m) * .1625); }
 .mini-cell { border-radius:25%; background:color-mix(in srgb,var(--deep) var(--mini-mix),var(--flat)); box-shadow:inset 0 0 0 .5px color-mix(in srgb,var(--deep) var(--mini-edge),transparent); }
 .mini-cell.hole { background:none; box-shadow:none; }
-/* Between two boards the target morphs: shared squares slide, the rest fade, the frame resizes. */
+/* Between two boards the target morphs: shared squares slide, the frame resizes, and a square with no counterpart vanishes
+   (or appears) half way through, with no fade (TileArt.kt MORPH_SWITCH). */
 .mini.morph { position:relative; display:block; width:var(--w1); height:var(--h1); animation:morph-frame var(--ms) cubic-bezier(.4,0,.2,1) both; }
-.mini.morph .mini-cell { position:absolute; left:50%; top:50%; width:16px; height:16px; margin:-8px 0 0 -8px; transform:translate(var(--x1),var(--y1)); opacity:var(--o1); animation:morph-cell var(--ms) cubic-bezier(.4,0,.2,1) both; }
+.mini.morph .mini-cell { position:absolute; left:50%; top:50%; width:16px; height:16px; margin:-8px 0 0 -8px; transform:translate(var(--x1),var(--y1)); opacity:var(--o1);
+  animation:morph-cell var(--ms) cubic-bezier(.4,0,.2,1) both,morph-switch var(--ms) step-end both; }
 @keyframes morph-frame { from { width:var(--w0); height:var(--h0); } }
-@keyframes morph-cell { from { transform:translate(var(--x0),var(--y0)); opacity:var(--o0); } }
+@keyframes morph-cell { from { transform:translate(var(--x0),var(--y0)); } }
+@keyframes morph-switch { from { opacity:var(--o0); } 50%,to { opacity:var(--o1); } }
 
 @keyframes slide { to { transform:translateX(-50%); } }
 
@@ -189,7 +189,8 @@ span.tile { cursor:default; width:var(--cell); height:var(--cell); flex:none; }
 .panel { position:relative; display:flex; flex-direction:column; padding:30px 26px 28px; border-radius:28px; overflow:hidden; background:linear-gradient(to bottom,var(--sheen),transparent 50%),var(--paper2); box-shadow:0 8px 0 var(--side),0 22px 28px var(--key-shadow); transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)); transition:transform .6s var(--out); }
 .panel::after { content:''; position:absolute; inset:0; pointer-events:none; opacity:0; background:radial-gradient(420px circle at var(--mx,50%) var(--my,0%),color-mix(in srgb,currentColor 9%,transparent),transparent 70%); transition:opacity .4s; }
 @media (hover:hover) { .panel:hover::after { opacity:1; } }
-.panel.worlds { background:linear-gradient(to bottom,var(--sheen),transparent 50%),var(--accent); color:var(--accent-ink); box-shadow:0 8px 0 var(--accent-side),0 22px 28px var(--key-shadow); --mini-mix:0%; --mini-edge:0%; }
+/* The card is dark on the light theme and light on the dark one, so its target squares are drawn as the game draws them on that surface. */
+.panel.worlds { background:linear-gradient(to bottom,var(--sheen),transparent 50%),var(--accent); color:var(--accent-ink); box-shadow:0 8px 0 var(--accent-side),0 22px 28px var(--key-shadow); --mini-mix:var(--accent-mini-mix); --mini-edge:var(--accent-mini-edge); }
 .panel.worlds .panel-sub,.panel.worlds .price-note { color:inherit; opacity:.76; }
 .panel-head { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
 .panel h3 { font:700 clamp(34px,6.4vw,58px)/1 var(--mono); letter-spacing:.04em; text-transform:uppercase; }
@@ -201,13 +202,13 @@ span.tile { cursor:default; width:var(--cell); height:var(--cell); flex:none; }
 .trail.live i { animation:trail .5s var(--out) both; animation-delay:calc(var(--i) * 12ms); }
 @keyframes trail { to { opacity:1; transform:none; } }
 @media (prefers-reduced-motion:reduce) { .trail i { opacity:1; transform:none; } }
-.drifts { display:grid; gap:8px; margin:24px -26px 0; min-height:74px; overflow:hidden; mask-image:linear-gradient(to right,transparent,#000 12%,#000 88%,transparent); }
+.drifts { display:grid; gap:8px; margin:24px -26px 0; min-height:120px; overflow:hidden; mask-image:linear-gradient(to right,transparent,#000 12%,#000 88%,transparent); }
 .drift { display:flex; width:max-content; animation:slide 30s linear infinite paused; }
 .drift.reverse { animation-direction:reverse; animation-duration:38s; }
 .drifts.live .drift { animation-play-state:running; }
 .drift > span { display:flex; flex:none; }
-.drift b { display:grid; place-items:center; width:50px; height:33px; margin-right:8px; border-radius:10px; background:color-mix(in srgb,currentColor 10%,transparent); }
-.drift .mini { --m:8px; gap:2px; }
+.drift b { display:grid; place-items:center; width:56px; height:56px; margin-right:8px; border-radius:12px; background:color-mix(in srgb,currentColor 10%,transparent); }
+.drift .mini { --m:9px; gap:2px; }
 @media (prefers-reduced-motion:reduce) { .panel { transform:none; } }
 .panel ul { margin:22px 0 28px; display:grid; gap:10px; font-size:14px; }
 .panel li { display:grid; grid-template-columns:18px 1fr; gap:10px; align-items:start; }
@@ -308,20 +309,15 @@ span.tile { cursor:default; width:var(--cell); height:var(--cell); flex:none; }
 /* Questions */
 .faq { max-width:780px; }
 .faq details { border-bottom:1px solid var(--line); }
-.faq summary { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:20px 0; cursor:pointer; font-weight:600; font-size:clamp(15px,1.7vw,17px); list-style:none; transition:padding .3s var(--out); }
+.faq summary { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:20px 0; cursor:pointer; font-weight:600; font-size:clamp(15px,1.7vw,17px); list-style:none; }
 .faq summary::-webkit-details-marker { display:none; }
 .faq summary::after { content:''; flex:none; width:12px; height:12px; border-right:2px solid var(--muted); border-bottom:2px solid var(--muted); transform:rotate(45deg) translate(-3px,-3px); transition:transform .35s var(--out); }
-.faq summary:hover { padding-left:8px; }
 .faq details[open] summary::after { transform:rotate(225deg) translate(-3px,-3px); }
 .faq p { padding:0 0 22px; color:var(--muted); font-size:14.5px; max-width:64ch; }
-.faq details[open] p { animation:fade-up .4s var(--out); }
+.faq details[open] p { animation:field-in .4s ease-out; }
 
 /* Final call and footer */
 .final { text-align:center; overflow:hidden; }
-.wave { display:flex; justify-content:center; gap:clamp(8px,2vw,16px); margin-bottom:40px; --cell:clamp(44px,11vw,84px); }
-.wave > span { animation:bob 2.8s ease-in-out infinite paused; animation-delay:calc(var(--i) * -.32s); }
-.wave.live > span { animation-play-state:running; }
-@keyframes bob { 0%,100% { transform:translateY(0) rotate(0); } 50% { transform:translateY(-16px) rotate(4deg); } }
 .final h2 { max-width:18em; margin:0 auto 30px; font:700 clamp(28px,5.4vw,56px)/1.1 var(--mono); letter-spacing:-.035em; text-wrap:balance; }
 .final .hero-cta { justify-content:center; }
 .site-footer { border-top:1px solid var(--line); padding:28px 0 40px; font-size:13px; color:var(--muted); }
@@ -355,7 +351,9 @@ span.tile { cursor:default; width:var(--cell); height:var(--cell); flex:none; }
 .sheet-fine { margin-top:14px; font-size:12px; text-align:center; }
 
 /* Legal pages */
-.legal { max-width:720px; padding:48px 16px 80px; margin:0 auto; }
+/* The page fills the screen so a short policy still has the footer at the bottom. */
+body:has(> .legal) { display:flex; flex-direction:column; }
+.legal { flex:1 0 auto; width:100%; max-width:720px; padding:48px 16px 80px; margin:0 auto; }
 .legal h1 { font:700 30px/1.2 var(--mono); margin:18px 0; }
 .legal h2 { font:600 17px/1.3 var(--mono); margin:28px 0 8px; }
 .legal p { color:var(--muted); margin-bottom:12px; }

@@ -5,7 +5,8 @@ function currentTheme() {
   return document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 }
 
-export default function Header({onUnlock}) {
+/** `sections` is off on the legal pages: no section links, and the mark leads home. */
+export default function Header({onUnlock, sections = true}) {
   const [theme, setTheme] = useState(currentTheme);
   const [turned, setTurned] = useState(false);
   function toggle() {
@@ -16,14 +17,16 @@ export default function Header({onUnlock}) {
   }
   return <header className="site-header">
     <div className="wrap">
-      <button type="button" className={'brand' + (turned ? ' turned' : '')} onClick={() => setTurned(!turned)} aria-label="Midori: turn the mark" aria-pressed={turned}><Mark /><span className="wordmark">MIDORI</span></button>
-      <nav className="site-nav" aria-label="Sections">
+      {sections
+        ? <button type="button" className={'brand' + (turned ? ' turned' : '')} onClick={() => setTurned(!turned)} aria-label="Midori: turn the mark" aria-pressed={turned}><Mark /><span className="wordmark">MIDORI</span></button>
+        : <a className="brand" href="/" aria-label="Midori home"><Mark /><span className="wordmark">MIDORI</span></a>}
+      {sections && <nav className="site-nav" aria-label="Sections">
         <a href="#play">Play</a>
         <a href="#tiles">Tiles</a>
         <a href="#modes">Journey &amp; Worlds</a>
         <a href="#worlds">Inside Worlds</a>
         <a href="#faq">Questions</a>
-      </nav>
+      </nav>}
       <div className="header-actions">
         <button type="button" className="key icon" onClick={toggle} aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}>
           <Icon name={theme === 'dark' ? 'sun' : 'moon'} />

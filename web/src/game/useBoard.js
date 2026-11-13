@@ -140,7 +140,8 @@ export function useBoard(level) {
 
   function pointerDown(event, position) {
     if (event.button !== 0 || busy.current || drag.current || solvedNow.current) return;
-    event.preventDefault(); event.currentTarget.focus({preventScroll: true});
+    // Without focusVisible: false, a page that has not yet focused anything by mouse paints the keyboard ring round the tile.
+    event.preventDefault(); event.currentTarget.focus({preventScroll: true, focusVisible: false});
     const legal = Rules.legalMoves(live.current, ...position);
     // Freeze the same platform/cell geometry used by Android for this gesture.
     const cell = event.currentTarget.parentElement.getBoundingClientRect();

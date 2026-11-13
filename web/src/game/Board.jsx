@@ -35,7 +35,7 @@ const frame = board => board.length ? [board[0].length * PITCH - MINI_GAP, board
 
 /**
  * TileArt.kt MorphTarget: the target between two boards. Squares both targets have slide from their old cell to
- * their new one, a square with no counterpart fades out, a new one fades in, and the frame resizes with them.
+ * their new one, a square with no counterpart vanishes and a new one appears half way through, and the frame resizes with them.
  */
 export function MorphTarget({from, to}) {
   const [oldW, oldH] = frame(from), [newW, newH] = frame(to);

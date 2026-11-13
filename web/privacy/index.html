@@ -6,17 +6,18 @@
   <title>Privacy — Midori</title>
   <meta name="robots" content="noindex">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="/src/styles/tokens.css">
-  <link rel="stylesheet" href="/src/styles/site.css">
-  <script>try{var t=localStorage.getItem('midori-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>
+  <!-- First visit: dark on desktop, the phone's own theme on touch devices. After that, whatever the visitor last chose with the toggle. -->
+  <script>try{var t=localStorage.getItem('midori-theme')}catch(e){}if(t!=='light'&&t!=='dark'&&!matchMedia('(pointer:coarse)').matches)t='dark';if(t==='light'||t==='dark')document.documentElement.dataset.theme=t</script>
 </head>
 <body>
+  <div id="top"></div>
   <main class="legal">
-    <a class="key" href="/">Back to Midori</a>
     <h1>Privacy</h1>
     <p class="notice">Placeholder. The privacy policy has not been written yet; this page must be replaced before the site or the Play listing goes live.</p>
     <h2>What belongs here</h2>
     <p>What Midori stores for guests (nothing leaves the device), what an account stores (email, username, progress, published puzzles), how payments are handled and by whom, how long data is kept, and how to ask for it to be deleted.</p>
   </main>
+  <div id="bottom"></div>
+  <script type="module" src="/src/legal.jsx"></script>
 </body>
 </html>

@@ -30,7 +30,7 @@ function Demo({type, running}) {
   </div>;
 }
 
-export default function Tiles({onSandbox}) {
+export default function Tiles({onTryAll}) {
   const [type, setType] = useState('R');
   const [auto, setAuto] = useState(true);
   const [ref, inView] = useInView({threshold: .3});
@@ -43,7 +43,7 @@ export default function Tiles({onSandbox}) {
   const tile = TILES[type];
   return <section id="tiles">
     <div className="wrap">
-      <Heading sub="A tile's symbol is its rule. Learn to read them and every board becomes a small map of what can go where.">Meet the six.</Heading>
+      <Heading sub="A tile's symbol is its rule. Learn to read them and every board becomes a small map of what can go where.">Meet the tiles.</Heading>
       <div ref={ref} className="showcase">
         <div className="picks" role="group" aria-label="Choose a tile">
           {TILE_ORDER.map(key => <button key={key} type="button" className="pick" aria-pressed={key === type}
@@ -55,7 +55,7 @@ export default function Tiles({onSandbox}) {
         <div className="showcase-copy" aria-live="polite">
           <h3 key={type}>{tile.name}</h3>
           <p key={type + 'rule'} className="rule">{tile.rule}</p>
-          <button type="button" className="key" onClick={onSandbox}>Try all six on the board</button>
+          <button type="button" className="key" onClick={onTryAll}>Try all six on the board</button>
         </div>
       </div>
     </div>

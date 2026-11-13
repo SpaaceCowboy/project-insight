@@ -21,6 +21,7 @@
   --out:cubic-bezier(.16,1,.3,1);
   --field-alpha:.3;
   --guide:#3B342D; --guide-rim:transparent; --mini-mix:35%; --mini-edge:55%;
+  --accent-mini-mix:0%; --accent-mini-edge:0%;
 }
 /* Dark is written twice on purpose: once for the system setting, once for the toggle. */
 @media (prefers-color-scheme:dark) {
@@ -36,6 +37,7 @@
     --sheen:rgba(255,255,255,.035);
     --arrive:#F5FFEA; --field-alpha:.16;
     --guide:#FFFFFF; --guide-rim:rgb(0 0 0 / .22); --mini-mix:0%; --mini-edge:0%;
+    --accent-mini-mix:35%; --accent-mini-edge:55%;
   }
 }
 :root[data-theme="dark"] {
@@ -49,7 +51,8 @@
   --key-shadow:rgba(0,0,0,.42);
   --sheen:rgba(255,255,255,.035);
   --arrive:#F5FFEA; --field-alpha:.16;
-    --guide:#FFFFFF; --guide-rim:rgb(0 0 0 / .22); --mini-mix:0%; --mini-edge:0%;
+  --guide:#FFFFFF; --guide-rim:rgb(0 0 0 / .22); --mini-mix:0%; --mini-edge:0%;
+  --accent-mini-mix:35%; --accent-mini-edge:55%;
 }
 
 .red { --light:#E09A91; --deep:#AE546B; --flat:#E69A99; }

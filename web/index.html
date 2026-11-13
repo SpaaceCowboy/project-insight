@@ -12,7 +12,8 @@
   <meta name="theme-color" content="#FAF6F1" media="(prefers-color-scheme: light)">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preload" href="/fonts/jetbrains_mono_regular.ttf" as="font" type="font/ttf" crossorigin>
-  <script>try{var t=localStorage.getItem('midori-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>
+  <!-- First visit: dark on desktop, the phone's own theme on touch devices. After that, whatever the visitor last chose with the toggle. -->
+  <script>try{var t=localStorage.getItem('midori-theme')}catch(e){}if(t!=='light'&&t!=='dark'&&!matchMedia('(pointer:coarse)').matches)t='dark';if(t==='light'||t==='dark')document.documentElement.dataset.theme=t</script>
 </head>
 <body>
   <div id="root"></div>
