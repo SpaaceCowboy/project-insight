@@ -56,7 +56,8 @@ class TranslationsTest {
         L10n.language = "es"
         assertEquals("Volumen de Efectos", tr("{0} volume", tr("Effects")))
         L10n.language = "it"
-        assertEquals("Gioca al puzzle 4 di Ada su Midori: ABC", tr("Play puzzle {0} by {1} in Midori: {2}", 4, "Ada", "ABC"))
+        assertEquals("Gioca al puzzle 4 di Ada su Midori.", tr("Play puzzle {0} by {1} in Midori.", 4, "Ada"))
+        assertEquals("Gioca qui", tr("Play here"))
     }
 
     @Test fun languagesAreFiveAndNamedInThemselves() {
