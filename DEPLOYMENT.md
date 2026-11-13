@@ -1,14 +1,14 @@
-# Before deploying v0.2.31 — migration 014 deletes accounts
+# Android v0.2.31 — no-space usernames and Problem 43 hotfixes (13 November 2026)
 
-Migration 014 permanently hard-deletes every account whose username contains whitespace, and the `Levels` account, then adds `users_username_no_space`. This includes the community seed accounts if they still carry the old `Seed Creator NN` names. Take the usual backup first, then run this read-only count on production and get a go-ahead on the numbers before the server restarts into the migration:
+Published [v0.2.31 APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.31), version code **42**, and distributed it to the Firebase `testers` group as release `2lbig60mus720`, project `portfolio-51f12`. The public download matched the signed candidate. Package `com.insightpuzzle.app`, signing certificate and Google Web client are retained.
 
-```sql
-SELECT count(*) AS accounts,
-       (SELECT count(*) FROM grids g WHERE g.owner_id IN (SELECT id FROM users WHERE username ~ '\s' OR lower(username) = 'levels')) AS puzzles,
-       count(*) FILTER (WHERE username LIKE 'Seed Creator%') AS seed_creators,
-       count(*) FILTER (WHERE lower(username) = 'levels') AS levels_account
-FROM users WHERE username ~ '\s' OR lower(username) = 'levels';
-```
+**Migration 014 deleted accounts (approved after a read-only count).** It hard-deleted every account with whitespace in its username plus `Levels`, the same way the admin hard delete does, and added `users_username_no_space`. On production that was `Levels` (100 puzzles) and `Seed Creator 01`–`10` (8 published puzzles each): users 22 → 11, grids 333 → 153, XP rows 491 → 392, 11 `user.hard_delete` audit rows (no admin, reason "Problem 43 …"). The 4 other players who had solved those puzzles keep the credit (41 `retained_completions` rows). No real player's name had a space. The Journey is unaffected: it is `levels.json`, and `tools/journey-levels.json` is now its source. Re-running the seed script would create `Seed_Creator_NN` accounts.
+
+Backend deployment replaced `server/dist/{username,nickname,operator,seed-community}.js`, added migration 014 (applied by the service's `ExecStartPre`), and gave the admin service the same username rule (`admin/dist/server/src/{username,nickname}.js`). The admin UI's rename help text still mentions spaces until the UI is rebuilt; the rule itself is enforced. The encrypted backup `/opt/insight-online/backups/insight-20261113T113725Z.dump.age` ran first; the previous modules are in `/opt/insight-rollback-before-052/`. One 502 during the restart, then health, migration, constraint and the 401 gates passed; insight-admin is active. The other live modules differ from a fresh build only in CRLF line endings and were left alone.
+
+Validation on the VPS: 38 server unit tests, 31 server and 11 admin database integration tests (throwaway database `insight_release_052_test`, dropped afterwards), including migration 014 and the no-space rule; 79 Android unit tests in both build variants. Device suites were not run. Haptics and the navigation handle still need a physical phone; debug builds log `InsightNavBar` for the edge-swipe check.
+
+Build source: `/opt/insight-release-052-android` (commit `0246401`); artifacts: `/root/insight-052-apks`; source archive `/root/insight-052-source-archive.tar.gz`, SHA-256 `4488fac540608eb147f6715a17695eb667890798e20b04dcc5632a9719fb8480`. Online APK SHA-256: `fb11ac62c021a6ec931a74ecd252e21d28cb5c7cdef3eba22b2c512d7c9fbeda`. Certificate SHA-256: `3008529664ef52092022f4a3a0fc77a43f56d18ccaa947ecdf0be5daabd28c9a`. Prior public APK: `/root/insight-apk-rollbacks/INSIGHT-online-v0.2.30-before-052.apk`.
 
 # Android v0.2.30 — 100-level Journey, share links and hotfixes (12 November 2026)
 
