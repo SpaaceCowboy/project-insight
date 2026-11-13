@@ -28,6 +28,18 @@ import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
 class AppearanceHotfixTest {
+    @Test
+    fun sharedLinksOpenOverHttpAndHttpsOnBothHosts() {
+        val code = "0123456789ABCDEF"
+        // Chat apps turn the shared "www.midoripuzzle.com/p/…" into an http:// link, so that must open the puzzle too.
+        for (link in listOf("https://www.midoripuzzle.com/p/$code", "http://www.midoripuzzle.com/p/$code", "https://midoripuzzle.com/p/${code.lowercase()}", "http://midoripuzzle.com/p/$code"))
+            assertEquals(link, code, ShareLinks.code(android.net.Uri.parse(link)))
+        for (link in listOf("ftp://www.midoripuzzle.com/p/$code", "https://evil.example/p/$code", "https://www.midoripuzzle.com/q/$code", "https://www.midoripuzzle.com/p/XYZ", "https://www.midoripuzzle.com/p/$code/more"))
+            assertNull(link, ShareLinks.code(android.net.Uri.parse(link)))
+        assertEquals("https://www.midoripuzzle.com/p/$code", ShareLinks.puzzle(code.lowercase()))
+        assertEquals("www.midoripuzzle.com/p/$code", ShareLinks.short(code))
+    }
+
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private fun nodes(): List<AccessibilityNodeInfo> {
         fun collect(n: AccessibilityNodeInfo): List<AccessibilityNodeInfo> = if (!n.refresh()) emptyList() else listOf(n) + (0 until n.childCount).flatMap { n.getChild(it)?.let(::collect) ?: emptyList() }

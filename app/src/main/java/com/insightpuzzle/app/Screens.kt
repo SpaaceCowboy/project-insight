@@ -350,7 +350,7 @@ fun OptionsScreen(m: GameModel) {
                         ToggleRow("Sound", m.sound) { m.toggleSound() }
                         // The two sliders and Light/Dark sit close together as one group, so there is room below for the icon button without scrolling.
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            VolumeSlider("Ambience", m.ambience) { m.changeAmbience(it) }
+                            VolumeSlider("Background", m.ambience) { m.changeAmbience(it) }
                             VolumeSlider("Effects", m.effects) { m.changeEffects(it) }
                             // No headings: Light/Dark and the languages sit as close to their neighbours as Haptics and Sound do.
                             Tabs(listOf("light" to "Light", "dark" to "Dark"), m.theme, Cue.CHECK, bottom = 0.dp) { m.changeTheme(it) }
@@ -371,8 +371,6 @@ fun OptionsScreen(m: GameModel) {
                         val info = remember { context.packageManager.getPackageInfo(context.packageName, 0) }
                         InfoRow("Version", "${info.versionName} (${androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(info)})", pressable = true)
                         InfoRow("Licences", "", icon = documentIcon, onClick = { m.push(Route.Licences) })
-                        // The new tile style, to compare with the current one before choosing.
-                        ToggleRow("Plush tiles", m.plushTiles) { m.togglePlushTiles() }
                         if (AppLinks.PRIVACY_URL.isNotEmpty()) InfoRow("Privacy policy", "Open", onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(AppLinks.PRIVACY_URL))) })
                         if (AppLinks.CONTACT_EMAIL.isNotEmpty()) InfoRow("Contact", AppLinks.CONTACT_EMAIL, onClick = { context.startActivity(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:${AppLinks.CONTACT_EMAIL}"))) })
 

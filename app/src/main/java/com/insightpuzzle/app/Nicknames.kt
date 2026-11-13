@@ -12,7 +12,7 @@ object Nicknames {
     fun normalize(value: String): String = Normalizer.normalize(value, Normalizer.Form.NFKC).replace(Regex("[\\s\\p{Z}\\uFEFF]+"), " ").trim()
     /** The reason for [problem] in the chosen language (the English wording is the server's, so a server refusal reads the same). */
     fun message(problem: NameProblem) = tr(when (problem) {
-        NameProblem.CHARACTERS -> "Use only English letters, numbers, spaces, _ and -."
+        NameProblem.CHARACTERS -> "Use only English letters, numbers, _ and -. No spaces."
         NameProblem.LENGTH -> "Choose a username of 3–20 characters."
         NameProblem.HATE -> "Usernames can't contain hateful or discriminatory language."
         NameProblem.VIOLENCE -> "Usernames can't contain violent or threatening language."

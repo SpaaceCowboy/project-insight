@@ -70,14 +70,7 @@ fun DrawScope.tile(type: Char, origin: Offset, size: Float, glow: Color? = null,
     val sheen = if (Art.colorblind) listOf(Color.White.copy(alpha = .08f), Color.Transparent, Color(0x14000000)) else listOf(Color.White.copy(alpha = .28f), Color.Transparent, Color(0x29000000))
     drawRoundRect(Brush.linearGradient(sheen, origin, origin + Offset(size, size)), origin, Size(size, size), radius)
     if (highlight > 0f) drawRoundRect(Color.White.copy(alpha = highlight), origin, Size(size, size), radius)
-    val rim = plushRim(light)
-    if (Art.plush) {
-        // A soft light rim just inside the face's edge, the tile's own colour washed towards white: brighter at the top left where the light falls, a touch
-        // deeper at the bottom right, so the tile reads as a plump cushion.
-        val w = size * PLUSH_RIM
-        drawRoundRect(Brush.linearGradient(listOf(rim, androidx.compose.ui.graphics.lerp(rim, light, .45f)), origin, origin + Offset(size, size)),
-            origin + Offset(w / 2, w / 2), Size(size - w, size - w), CornerRadius(size * .23f - w / 2), style = Stroke(w))
-    } else drawRoundRect(Color(0x73FFFFFF), origin, Size(size, size), radius, style = Stroke(1.5f))
+    drawRoundRect(Color(0x73FFFFFF), origin, Size(size, size), radius, style = Stroke(1.5f))
     // The selection ring alone: no halo around it.
     if (glow != null) drawRoundRect(glow, origin - Offset(2.5f, 2.5f), Size(size + 5f, size + 5f), CornerRadius(size * .23f + 2.5f), style = Stroke(3.5f))
     if (ring != null) drawRoundRect(ring, origin - Offset(2f, 2f), Size(size + 4f, size + 4f), CornerRadius(size * .23f + 2f), style = Stroke(4f))
@@ -87,27 +80,12 @@ fun DrawScope.tile(type: Char, origin: Offset, size: Float, glow: Color? = null,
     val weight = if (type == 'W') 1f else ETCH_WEIGHT
     if (ink == Color.White) {
         symbol(type, origin - Offset(0f, size * .012f), size, .44f, Color.Black.copy(alpha = .2f), weight)
-        symbol(type, origin, size, .44f, plushInk(type, rim).copy(alpha = .9f), weight)
+        symbol(type, origin, size, .44f, Color.White.copy(alpha = .9f), weight)
     } else {
         symbol(type, origin + Offset(0f, size * .012f), size, .44f, Color.White.copy(alpha = .7f), weight)
         symbol(type, origin, size, .44f, ink.copy(alpha = .92f), weight)
     }
 }
-
-/** The plush style's rim colour for a tile whose face starts at [light]: that colour washed most of the way to white. */
-internal fun plushRim(light: Color): Color = androidx.compose.ui.graphics.lerp(light, Color.White, .5f)
-/** How wide the plush rim is, as a share of the tile. */
-internal const val PLUSH_RIM = .06f
-
-/**
- * The white of the arrows. In the plush style (standard palette only; the colour-blind palette keeps pure white for legibility) it leans a hair towards the rim
- * and a hair darker, as if the etched mark caught a little less light: still white, only a softer one. The white tile's dark mark never changes.
- */
-internal fun plushInk(type: Char, rim: Color): Color =
-    if (!Art.plush || Art.colorblind || type == 'W') Color.White
-    else androidx.compose.ui.graphics.lerp(androidx.compose.ui.graphics.lerp(Color.White, rim, PLUSH_INK_TINT), Color.Black, PLUSH_INK_SHADE)
-internal const val PLUSH_INK_TINT = .08f
-internal const val PLUSH_INK_SHADE = .03f
 
 /** Arrows on coloured tiles are a little finer than the original strokes. */
 private const val ETCH_WEIGHT = .78f

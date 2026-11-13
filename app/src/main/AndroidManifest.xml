@@ -23,8 +23,12 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="www.midoripuzzle.com" android:pathPrefix="/p/" />
-                <data android:scheme="https" android:host="midoripuzzle.com" android:pathPrefix="/p/" />
+                <!-- http too: chat apps turn the shared "www.midoripuzzle.com/p/…" (no scheme) into an http:// link. -->
+                <data android:scheme="https" />
+                <data android:scheme="http" />
+                <data android:host="www.midoripuzzle.com" />
+                <data android:host="midoripuzzle.com" />
+                <data android:pathPrefix="/p/" />
             </intent-filter>
         </activity>
         <!-- Hands the share picture (and nothing else in the cache) to the app it is shared with. -->

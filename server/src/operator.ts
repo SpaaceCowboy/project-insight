@@ -16,7 +16,8 @@ try {
     requireValue(config.mailDeliveryMode === 'test-inbox', 'TEST_ONLY', 'Verified test accounts require MAIL_DELIVERY_MODE=test-inbox.');
     const email = subject ?? `tester-${randomBytes(4).toString('hex')}@insight.invalid`;
     const password = randomBytes(18).toString('base64url'); const userId = randomUUID();
-    const username = `${(process.argv[4] ?? 'Quiet Cove')} #${String(randomInt(10000)).padStart(4,'0')}`;
+    // No spaces (users_username_no_space), and only the characters a player could choose.
+    const username = `${(process.argv[4] ?? 'Quiet_Cove').replace(/[^A-Za-z0-9_-]+/gu, '_')}_${String(randomInt(10000)).padStart(4,'0')}`;
     const hash = await argon2.hash(password, { type: argon2.argon2id, memoryCost: 19456, timeCost: 2, parallelism: 1 });
     await transaction(db, async c => {
       await c.query('INSERT INTO users(id,email,password_hash,username,verified) VALUES($1,$2,$3,$4,true)', [userId,email.toLowerCase(),hash,username]);

@@ -12,7 +12,7 @@ enum class NameProblem(val code: String) {
 }
 
 /**
- * Usernames: English letters, numbers, spaces, _ and -, 3–20 characters, and nothing hateful, violent, profane or reserved. The word lists and the algorithm mirror
+ * Usernames: English letters, numbers, _ and - (no spaces), 3–20 characters, and nothing hateful, violent, profane or reserved. The word lists and the algorithm mirror
  * server/src/username.ts (the server is the authority; this gives the player the reason before sending). Both read the same cases in
  * app/src/test/resources/username-cases.json.
  */
@@ -30,7 +30,7 @@ class UsernameFilter(private val words: JSONObject) {
     /** Normalises a typed username and says why it cannot be used, or null when it is fine. */
     fun problem(value: String): NameProblem? {
         val name = Nicknames.normalize(value)
-        if (!Regex("^[A-Za-z0-9 _-]*$").matches(name) || !Regex("[A-Za-z0-9]").containsMatchIn(name)) return NameProblem.CHARACTERS
+        if (!Regex("^[A-Za-z0-9_-]*$").matches(name) || !Regex("[A-Za-z0-9]").containsMatchIn(name)) return NameProblem.CHARACTERS
         if (name.length < Nicknames.MIN_LENGTH || name.length > Nicknames.MAX_LENGTH) return NameProblem.LENGTH
         return banned(name)
     }
@@ -41,7 +41,7 @@ class UsernameFilter(private val words: JSONObject) {
         for ((problem, list) in checks) if (reads.any { matches(list, it) }) return problem
         val glued = reads.minOf { combination(it) }
         if (glued != Int.MAX_VALUE) return checks[glued].first
-        // Reserved names are judged as a whole ("Insight Fan" is fine, "Insight" and "Admin_1" are not).
+        // Reserved names are judged as a whole ("Insight_Fan" is fine, "Insight" and "Admin_1" are not).
         if (reads.any { r -> val all = r.joinToString(""); reserved.exact.any { it.containsMatchIn(all) } || reserved.roots.any { it.containsMatchIn(all) } }) return NameProblem.RESERVED
         return null
     }

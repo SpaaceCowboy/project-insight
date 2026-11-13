@@ -47,7 +47,7 @@ async function p(method: any, path: string, body?: any, who?: any, status = 200)
 }
 async function makePlayer() {
   const email = `${randomUUID()}@example.test`;
-  const s = await p('POST', '/v1/auth/register', { email, password: 'long-test-password', name: `Player ${op().slice(0, 12)}` });
+  const s = await p('POST', '/v1/auth/register', { email, password: 'long-test-password', name: `Player_${op().slice(0, 12)}` });
   return { ...s, email, id: s.user.id as string, name: s.user.username as string };
 }
 const login = (email: string, status = 200) => p('POST', '/v1/auth/login', { email, password: 'long-test-password' }, undefined, status);
@@ -197,9 +197,9 @@ test('email edits, renames and entitlements are validated, unique and audited', 
   const u = await makePlayer(); const other = await makePlayer();
   await a('POST', `/api/users/${u.id}/rename`, { operationId: op(), name: other.name, reason: 'support request' }, 409);
   await a('POST', `/api/users/${u.id}/rename`, { operationId: op(), name: 'x', reason: 'support request' }, 400);
-  const renamed = await a('POST', `/api/users/${u.id}/rename`, { operationId: op(), name: 'Calm Harbor', reason: 'support request' });
-  assert.equal(renamed.username, 'Calm Harbor');
-  await a('POST', `/api/users/${u.id}/rename`, { operationId: op(), name: 'Quiet Cove', reason: '   ' }, 400); // a blank reason is not a reason
+  const renamed = await a('POST', `/api/users/${u.id}/rename`, { operationId: op(), name: 'Calm_Harbor', reason: 'support request' });
+  assert.equal(renamed.username, 'Calm_Harbor');
+  await a('POST', `/api/users/${u.id}/rename`, { operationId: op(), name: 'Quiet_Cove', reason: '   ' }, 400); // a blank reason is not a reason
   await a('POST', `/api/users/${u.id}/email`, { operationId: op(), email: `New.${u.email}`, reason: 'typo fixed', password: 'wrong wrong wrong' }, 403);
   await a('POST', `/api/users/${u.id}/email`, { operationId: op(), email: other.email.toUpperCase(), reason: 'typo', password: PASSWORD }, 409);
   const session = await login(u.email);
@@ -213,7 +213,7 @@ test('email edits, renames and entitlements are validated, unique and audited', 
   assert.equal((await db.query('SELECT count(*)::int AS n FROM entitlement_events WHERE user_id=$1', [u.id])).rows[0].n, 2);
   const emailAudit = (await audits(u.id)).find(r => r.action === 'user.change_email')!;
   assert.deepEqual(emailAudit.detail, { field: 'email' }); // never the address itself
-  assert.equal((await a('GET', `/api/users?q=${encodeURIComponent('Calm Harbor')}`)).total, 1);
+  assert.equal((await a('GET', `/api/users?q=${encodeURIComponent('Calm_Harbor')}`)).total, 1);
   assert.equal((await a('GET', `/api/users?q=${u.id}`)).users[0].worlds, 'revoked');
 });
 

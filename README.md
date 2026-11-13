@@ -1,6 +1,6 @@
 # Midori for Android
 
-A native Android version (Kotlin + Jetpack Compose) of the INSIGHT puzzle game. It is a separate project from the web level studio in `../project-insight`, which it never modifies; since v0.2.30 the 100 Journey levels are the puzzles of the online account `Levels`, imported with `tools/import-journey.mjs` (see "When the Journey's levels change").
+A native Android version (Kotlin + Jetpack Compose) of the INSIGHT puzzle game. It is a separate project from the web level studio in `../project-insight`, which it never modifies; since v0.2.30 the 100 Journey levels are the puzzles of the former online account `Levels`, imported with `tools/import-journey.mjs` (see "When the Journey's levels change"). The account itself was deleted in v0.2.31; its export, `tools/journey-levels.json`, is now the source.
 
 ## What is ported
 
@@ -28,6 +28,10 @@ The TypeScript/PostgreSQL service and deployment instructions are in [server/REA
 - **INSIGHT-online.apk** at the repository root is a signed debug build configured for the deployed private-test backend. The campaign still works without connectivity; real accounts and community discovery require it. This is an installable test build, not a Play release.
 
 Rebuild the local preview with `./gradlew assembleDebug -PinsightOnlineDemo=true`. Build a backend-connected APK with `./gradlew assembleDebug -PinsightApiUrl=https://YOUR_API` and a Web Google OAuth client with `-PinsightGoogleClientId=...`. Release builds reject cleartext service addresses. Preview data, saves, and credentials are kept separate from real service data.
+
+## Android v0.2.31 - Problem 43 hotfixes
+
+Version 0.2.31 (code 42). **Usernames can no longer contain spaces** (English letters, numbers, `_` and `-`); a space is refused with the reason, Google sign-up suggests `Jane_Doe`, and a database CHECK keeps spaces out. **Server migration 014 is destructive:** it hard-deletes every account whose username has a space, and the retired `Levels` account, exactly as the admin hard delete does (other players keep credit for solving their puzzles). Run the dry-run count in DEPLOYMENT.md before deploying. Haptics are a plain 11 ms one-shot at about 50% again (v0.2.30's system "tick" effect fell back to a late, full-strength buzz on phones without it); list rows and the creator's corner drag tick at 7 ms; hold-to-restart and the creator's clear are three separate 4 ms pulses 0.1 s apart. The long-press popup's heart is a small outline after the like count again. Shares read "Play here: www.midoripuzzle.com/p/<code>" (a "Play here" link in apps that take HTML), and http links open the app too; a puzzle opened from a link plays as Random, so swiping moves on. Random prefetches its next puzzle, so a swipe opens it at once. Options' Ambience slider is now Background; the plush tile style and its toggle are gone.
 
 ## Android v0.2.30 - 100-level Journey, share links and hotfixes
 
@@ -192,7 +196,7 @@ Run on the emulator:
 
 ## When the Journey's levels change
 
-Journey level N is puzzle N of the online account `Levels` (published puzzles, in its own numbering). To refresh it, export the account's puzzles with a read-only query (the one at the top of `tools/import-journey.mjs`) into a JSON file such as `tools/journey-levels.json`, then:
+Journey level N is puzzle N of the former online account `Levels` (published puzzles, in its own numbering). That account was deleted in v0.2.31, so its committed export `tools/journey-levels.json` is the source now: edit it (or export new puzzles in the same shape with the read-only query at the top of `tools/import-journey.mjs`, pointed at another account), then:
 
 ```sh
 node --max-old-space-size=8192 tools/import-journey.mjs tools/journey-levels.json <website>/web/src/game   # writes levels.json and the test routes

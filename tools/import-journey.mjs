@@ -1,4 +1,5 @@
-// Replaces the Journey with puzzles exported from an online account (v0.2.30: the 100 puzzles of the account "Levels", in its own numbering).
+// Replaces the Journey with puzzles exported from an online account (v0.2.30: the 100 puzzles of the account "Levels", in its own numbering; that account was
+// deleted in v0.2.31 and tools/journey-levels.json, its export, is the source now).
 // Each puzzle is solved for its optimal route with the website's solver, which becomes its par and the route the unit tests replay. A board too large to
 // search exhaustively (a full 5x5 has far too many arrangements) gets the shortest route a beam search finds instead: still a verified solution, its
 // length is then an upper bound rather than the true par (par is not shown in the game; only the tests use it).

@@ -20,7 +20,7 @@ class OnlinePersistenceTest {
         fun request(method: String, path: String, body: JSONObject = JSONObject()) = demo.request(method,path,body,"demo")
         val creators = request("GET","/v1/creators?sort=level").getJSONArray("items")
         assertEquals(2,creators.length())
-        assertEquals("Warm Fern",creators.getJSONObject(0).getString("username"))
+        assertEquals("Warm_Fern",creators.getJSONObject(0).getString("username"))
         assertEquals(1,request("GET","/v1/creators?query=Silver&sort=designed").getJSONArray("items").length())
         val grids = request("GET","/v1/grids?query=Silver&sort=number").getJSONArray("items")
         assertEquals(3,grids.length())
@@ -141,7 +141,7 @@ class OnlinePersistenceTest {
             for (account in listOf("a", "b")) db.queries().enqueue(OnlineDatabase.Pending().apply {
                 id = "same-id"; this.account = account; endpoint = "/v1/completions"; payload = "{}"; createdAt = 1
             })
-            db.queries().save(OnlineDatabase.Record().apply { account = "a"; key = "profile"; value = "{\"name\":\"Quiet Cove\"}" })
+            db.queries().save(OnlineDatabase.Record().apply { account = "a"; key = "profile"; value = "{\"name\":\"Quiet_Cove\"}" })
             db.close(); db = open()
             assertEquals(1, db.queries().pending("a").size); assertEquals(1, db.queries().pending("b").size)
             assertNull(db.queries().read("b", "profile")); assertNotNull(db.queries().read("a", "profile"))
@@ -155,7 +155,7 @@ class OnlinePersistenceTest {
         val context = isolatedContext(); var demo = DemoBackend(context)
         fun request(method: String, path: String, body: JSONObject = JSONObject()) = demo.request(method, path, body, "demo")
         fun op() = OnlineRepository.operation()
-        val account = request("POST", "/v1/auth/login", JSONObject().put("password", "Quiet Cove")).getJSONObject("user").getString("id")
+        val account = request("POST", "/v1/auth/login", JSONObject().put("password", "Quiet_Cove")).getJSONObject("user").getString("id")
         val grids = request("GET", "/v1/grids?query=Silver&sort=number").getJSONArray("items")
         assertEquals(3, grids.length())
         val sampleGrid = grids.getJSONObject(0)
@@ -193,7 +193,8 @@ class OnlinePersistenceTest {
         val last = request("GET", "/v1/grids?owner=$account&sort=number&page=1").getJSONArray("items")
         assertEquals(1, last.length()); assertEquals(25, last.getJSONObject(0).getInt("levelNumber"))
     }
-
+
+
     /** The shortest list of moves from [start] to [target] (breadth-first; the preview boards are small). */
     private fun shortestRoute(start: Board, target: Board): List<Pair<Pos, Pos>> {
         val previous = HashMap<Board, Pair<Board, Pair<Pos, Pos>>?>().apply { put(start, null) }

@@ -23,11 +23,13 @@ import java.io.File
 object ShareLinks {
     const val HOST = "midoripuzzle.com"
     // The site answers on www (the bare domain redirects there, and Android will not verify an app link through a redirect), so links name www.
-    fun puzzle(code: String) = "https://www.$HOST/p/${code.uppercase()}"
+    fun puzzle(code: String) = "https://" + short(code)
+    /** The link as a chat message shows it: no scheme, so it reads short; chat apps still make it tappable (as http://, which the app also opens). */
+    fun short(code: String) = "www.$HOST/p/${code.uppercase()}"
 
-    /** The puzzle code in a shared link (https://midoripuzzle.com/p/<16 hex>), or null for anything else. */
+    /** The puzzle code in a shared link (http(s)://(www.)midoripuzzle.com/p/<16 hex>), or null for anything else. */
     fun code(uri: Uri?): String? {
-        if (uri == null || uri.scheme != "https" || (uri.host != HOST && uri.host != "www.$HOST")) return null
+        if (uri == null || (uri.scheme != "https" && uri.scheme != "http") || (uri.host != HOST && uri.host != "www.$HOST")) return null
         val segments = uri.pathSegments
         if (segments.size != 2 || segments[0] != "p") return null
         return segments[1].takeIf { CODE.matches(it) }?.uppercase()
@@ -36,14 +38,18 @@ object ShareLinks {
 }
 
 /**
- * Shares a community puzzle: a clean picture of its target under the MIDORI wordmark, on the page colour of the theme in use, with the link below it as the
- * message. Tapping the link opens the puzzle in the game when it is installed, and the website otherwise. If the picture cannot be made the link goes alone.
+ * Shares a community puzzle: a clean picture of its target under the MIDORI wordmark, on the page colour of the theme in use, with a "Play here" link as the
+ * message. Apps that read HTML (mail) show "Play here" as the link itself; chat apps only take plain text, so there it is "Play here: www.midoripuzzle.com/p/…".
+ * Tapping the link opens the puzzle in the game when it is installed, and the website otherwise. If the picture cannot be made the text goes alone.
  */
 fun sharePuzzle(context: Context, grid: JSONObject, dark: Boolean) {
     val code = grid.getString("code")
-    val text = tr("Play puzzle {0} by {1} in Midori: {2}", grid.optInt("levelNumber"), grid.getString("username"), ShareLinks.puzzle(code))
+    val line = tr("Play puzzle {0} by {1} in Midori.", grid.optInt("levelNumber"), grid.getString("username"))
+    val here = tr("Play here")
+    val text = "$line $here: ${ShareLinks.short(code)}"
+    val html = "${android.text.TextUtils.htmlEncode(line)} <a href=\"${ShareLinks.puzzle(code)}\">${android.text.TextUtils.htmlEncode(here)}</a>"
     val image = try { shareImage(context, Rules.crop(grid.board("target")), dark, code) } catch (error: Exception) { Log.w("InsightShare", "image_failed ${error.javaClass.simpleName}"); null }
-    val send = Intent(Intent.ACTION_SEND).putExtra(Intent.EXTRA_TEXT, text)
+    val send = Intent(Intent.ACTION_SEND).putExtra(Intent.EXTRA_TEXT, text).putExtra(Intent.EXTRA_HTML_TEXT, html)
     if (image != null) {
         send.setType("image/png").putExtra(Intent.EXTRA_STREAM, image).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         send.clipData = ClipData.newRawUri("", image)

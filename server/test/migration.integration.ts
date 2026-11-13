@@ -78,3 +78,41 @@ test('flattening old worlds preserves puzzles, restrictions, codes, drafts and h
     assert.equal((await db.query("SELECT to_regclass('worlds') AS table_name")).rows[0].table_name,null);
   } finally { await db?.end(); await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`); await admin.end(); }
 });
+
+test('no-space usernames hard-delete spaced accounts and Levels, keep solvers\' credit, and forbid spaces', async () => {
+  const schema = 'migration_' + randomUUID().replaceAll('-', '');
+  const admin = database(process.env.TEST_DATABASE_URL!);
+  const url = new URL(process.env.TEST_DATABASE_URL!); url.searchParams.set('options', `-c search_path=${schema}`);
+  let db: ReturnType<typeof database> | undefined;
+  try {
+    await admin.query(`CREATE SCHEMA ${schema}`); db = database(url.toString());
+    const root = new URL('../migrations/', import.meta.url);
+    for (const name of readdirSync(root).filter(n => n.endsWith('.sql') && n < '014').sort()) await db.query(readFileSync(new URL(name, root), 'utf8'));
+    const spaced = randomUUID(), levels = randomUUID(), keeper = randomUUID();
+    for (const [id, name] of [[spaced, 'Wash It'], [levels, 'Levels'], [keeper, 'Keeper_1']])
+      await db.query('INSERT INTO users(id,email,password_hash,username,verified) VALUES($1,$2,$3,$4,true)', [id, id + '@example.test', 'unused', name]);
+    const g1 = randomUUID(), g2 = randomUUID(), g3 = randomUUID();
+    for (const [id, owner, code, n] of [[g1, spaced, 'AAAAAAAAAAAAAAAA', 1], [g2, levels, 'BBBBBBBBBBBBBBBB', 1], [g3, keeper, 'CCCCCCCCCCCCCCCC', 1]])
+      await db.query(`INSERT INTO grids(id,owner_id,code,start_board,target_board,content_hash,published_at,level_number) VALUES($1::uuid,$2,$3,'["RW"]','["WR"]',$1::text,now(),$4)`, [id, owner, code, n]);
+    // The keeper solved and liked the deleted puzzles and follows a deleted player; the deleted player played, liked and solved the keeper's puzzle.
+    await db.query('INSERT INTO grid_completions(user_id,grid_id) VALUES($1,$2),($1,$3),($4,$5)', [keeper, g1, g2, spaced, g3]);
+    await db.query('INSERT INTO grid_likes(user_id,grid_id) VALUES($1,$2),($3,$4)', [keeper, g1, spaced, g3]);
+    await db.query('INSERT INTO follows(follower_id,followee_id) VALUES($1,$2)', [keeper, spaced]);
+    const s1 = randomUUID(), s2 = randomUUID();
+    await db.query('INSERT INTO play_sessions(id,user_id,grid_id) VALUES($1,$2,$3),($4,$5,$6)', [s1, keeper, g1, s2, spaced, g3]);
+    await db.query("INSERT INTO play_attempt_outcomes(user_id,attempt_id,session_id,grid_id,outcome,reason) VALUES($1,$2,$3,$4,'failed','leave'),($5,$6,$7,$8,'solved',NULL)",
+      [keeper, randomUUID(), s1, g1, spaced, randomUUID(), s2, g3]);
+    await db.query("INSERT INTO xp_ledger(user_id,reason,source,amount) VALUES($1,'first','preserved',100000),($2,'first','preserved',5)", [keeper, spaced]);
+    await db.query(readFileSync(new URL('014_no_space_usernames.sql', root), 'utf8'));
+    assert.deepEqual((await db.query('SELECT id FROM users')).rows.map(r => r.id), [keeper]);
+    assert.deepEqual((await db.query('SELECT id FROM grids')).rows.map(r => r.id), [g3]);
+    assert.deepEqual((await db.query('SELECT content_hash FROM retained_completions WHERE user_id=$1 ORDER BY content_hash', [keeper])).rows.map(r => r.content_hash), [g1, g2].sort());
+    for (const table of ['grid_likes', 'grid_completions', 'follows', 'play_sessions', 'play_attempt_outcomes'])
+      assert.equal((await db.query(`SELECT count(*)::int AS n FROM ${table}`)).rows[0].n, 0, table);
+    assert.equal((await db.query('SELECT amount::text FROM xp_ledger')).rows[0].amount, '100000');
+    const audit = (await db.query("SELECT subject_user_id, detail FROM admin_audit WHERE action='user.hard_delete' ORDER BY reason")).rows;
+    assert.deepEqual(audit.map(a => a.subject_user_id).sort(), [spaced, levels].sort());
+    assert.ok(audit.every(a => a.detail.levelsDeleted === 1));
+    await assert.rejects(db.query("UPDATE users SET username='Keeper 1' WHERE id=$1", [keeper]), (e: any) => e.code === '23514');
+  } finally { await db?.end(); await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`); await admin.end(); }
+});

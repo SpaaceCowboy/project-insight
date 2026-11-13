@@ -39,7 +39,7 @@ async function call(method: any, path: string, body?: any, account?: any, status
 const op = () => randomUUID();
 async function makeAccount() {
   const email = `${randomUUID()}@example.test`;
-  const a = await call('POST', '/v1/auth/register', { email, password: 'long-test-password', name: `Player ${op().slice(0, 12)}` });
+  const a = await call('POST', '/v1/auth/register', { email, password: 'long-test-password', name: `Player_${op().slice(0, 12)}` });
   assert.equal(a.user.verified, true);
   return { ...a, email };
 }
@@ -107,7 +107,7 @@ test('password-only registration, refresh recovery, and revocation', async () =>
   await call('POST', '/v1/auth/refresh', { refreshToken: rotated.refreshToken, operationId: op() }, undefined, 401);
   assert.equal((await db.query('SELECT count(*)::int AS n FROM challenges')).rows[0].n, 0);
   assert.equal((await db.query('SELECT count(*)::int AS n FROM email_outbox')).rows[0].n, 0);
-  const duplicate = await call('POST', '/v1/auth/register', { email: a.email.toUpperCase(), password: 'different-password', name: 'Duplicate email' }, undefined, 409);
+  const duplicate = await call('POST', '/v1/auth/register', { email: a.email.toUpperCase(), password: 'different-password', name: 'Duplicate_email' }, undefined, 409);
   assert.equal(duplicate.code, 'EMAIL_TAKEN');
   const wrong = await call('POST', '/v1/auth/login', { email: a.email, password: 'incorrect password' }, undefined, 401);
   assert.equal(wrong.message, 'Email or password is incorrect.');
@@ -119,11 +119,11 @@ test('Google creates an account only after a username is chosen, links a verifie
   const before = (await db.query('SELECT count(*)::int AS n FROM users')).rows[0].n;
   const pending = await call('POST', '/v1/auth/google', { idToken: googleToken(sub, email, 'Grace Hopper') });
   assert.equal(pending.needsName, true);
-  assert.equal(pending.suggestedName, 'Grace Hopper');
+  assert.equal(pending.suggestedName, 'Grace_Hopper');
   assert.equal((await db.query('SELECT count(*)::int AS n FROM users')).rows[0].n, before);
-  const created = await call('POST', '/v1/auth/google', { idToken: googleToken(sub, email, 'Grace Hopper'), name: 'Grace Hopper' });
+  const created = await call('POST', '/v1/auth/google', { idToken: googleToken(sub, email, 'Grace Hopper'), name: 'Grace_Hopper' });
   assert.ok(created.accessToken);
-  assert.equal(created.user.username, 'Grace Hopper');
+  assert.equal(created.user.username, 'Grace_Hopper');
   assert.equal((await db.query('SELECT google_sub FROM users WHERE id=$1', [created.user.id])).rows[0].google_sub, sub);
   // A Google-only account has no usable password until it is reset by email.
   await call('POST', '/v1/auth/login', { email, password: 'does not matter' }, undefined, 401);
@@ -226,14 +226,14 @@ test('open registration, unique English nicknames, concurrent claims and idempot
   const race = await Promise.all([name, name.toUpperCase()].map((name, n) => app.inject({ method: 'POST', url: '/v1/auth/register', remoteAddress: `192.0.2.${20+n}`, payload: { email: `${op()}@example.test`, password: 'long-test-password', name } })));
   assert.deepEqual(race.map(r => r.statusCode).sort(), [200,409]);
   const a = await makeAccount(); const b = await makeAccount();
-  const change = { operationId: op(), name: `Puzzle Player ${Date.now() % 1000}` };
+  const change = { operationId: op(), name: `Puzzle_Player_${Date.now() % 1000}` };
   await call('PATCH', '/v1/account/name', change, a);
   await call('PATCH', '/v1/account/name', change, a);
   assert.equal((await call('GET', '/v1/account', undefined, a)).user.username, change.name);
   assert.equal((await call('GET', `/v1/profiles/${a.user.id}`, undefined, b)).username, change.name);
   await call('PATCH', '/v1/account/name', { ...change, operationId: op() }, b, 409);
   await call('PATCH', '/v1/account/name', { operationId: op(), name: 'bad\u202ename' }, a, 400);
-  await call('POST', '/v1/auth/register', { email: `${op()}@example.test`, password: 'long-test-password', name: 'Another player' });
+  await call('POST', '/v1/auth/register', { email: `${op()}@example.test`, password: 'long-test-password', name: 'Another_player' });
   // Case, spacing-compatibility and the new rules: a rename or registration that breaks them is refused with its own code and explanation.
   for (const [name, code] of [['MY NICKNAME', 'NAME_TAKEN'], ['f u c k', 'NAME_PROFANITY'], ['ab', 'NAME_LENGTH'], ['Émile', 'NAME_CHARACTERS'], ['Admin', 'NAME_RESERVED']] as const) {
     const refused = await call('POST', '/v1/auth/register', { email: `${op()}@example.test`, password: 'long-test-password', name }, undefined, code === 'NAME_TAKEN' ? 409 : 400);

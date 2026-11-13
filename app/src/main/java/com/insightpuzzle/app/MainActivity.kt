@@ -57,6 +57,7 @@ class MainActivity : ComponentActivity() {
         // keyboard is up. Only with gesture navigation: with three buttons a swipe up stays the one way to reach them.
         androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(window.decorView) { view, insets ->
             val imeUp = insets.isVisible(WindowInsetsCompat.Type.ime())
+            navLog("insets nav=${insets.isVisible(WindowInsetsCompat.Type.navigationBars())} status=${insets.isVisible(WindowInsetsCompat.Type.statusBars())} ime=$imeUp")
             // Any time Android restores the bars (a drag near the bottom, a dialog, focus moving, a return from elsewhere) put the handle away again,
             // at once and once more after the frame in case a late restore lands behind it. The swipe-up reveal is transient and never reported
             // as visible here, so the player's own swipe from the bottom edge still shows the handle for its moment.
@@ -95,9 +96,16 @@ class MainActivity : ComponentActivity() {
 
     private fun imeShowing() = androidx.core.view.ViewCompat.getRootWindowInsets(window.decorView)?.isVisible(WindowInsetsCompat.Type.ime()) == true
 
-    private fun showNavBar() = WindowCompat.getInsetsController(window, window.decorView).show(WindowInsetsCompat.Type.navigationBars())
+    private fun showNavBar() { navLog("showNavBar (keyboard)"); WindowCompat.getInsetsController(window, window.decorView).show(WindowInsetsCompat.Type.navigationBars()) }
 
-    override fun onWindowFocusChanged(hasFocus: Boolean) { super.onWindowFocusChanged(hasFocus); if (hasFocus) hideNavBar() }
+    override fun onWindowFocusChanged(hasFocus: Boolean) { super.onWindowFocusChanged(hasFocus); navLog("focus=$hasFocus"); if (hasFocus) hideNavBar() }
+
+    /**
+     * Debug builds only (Problem 43, item 8): which of our own calls run while the gesture handle shows up after an edge swipe. Our code only ever shows the
+     * bar for the keyboard; if the log shows nothing but "insets nav=false" during the swipe, the reveal is Android's own transient one.
+     * Read with: adb logcat -s InsightNavBar
+     */
+    private fun navLog(message: String) { if (BuildConfig.DEBUG) android.util.Log.d("InsightNavBar", message) }
     override fun onResume() { super.onResume(); hideNavBar() }
     override fun onNewIntent(intent: android.content.Intent) { super.onNewIntent(intent); setIntent(intent); openLink(intent) }
     private fun openLink(intent: android.content.Intent?) {

@@ -102,7 +102,6 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     /** Rulebook sandbox: kept for the session so it resumes where the player left it. */
     var rulebookBoard by mutableStateOf(listOf("RBG", "PWY", "BGR"))
     var colorblind by mutableStateOf(store.colorblind.also { Art.colorblind = it }); private set
-    var plushTiles by mutableStateOf(store.plushTiles.also { Art.plush = it }); private set
     var language by mutableStateOf(store.language.also { L10n.language = it }); private set
     /** The gameplay-tips icon is on, and the step of the tips on show (0 = none, 1 grid, 2 restart, 3 swipe, 4 title key, 5 like, 6 target, 7 bookmark; the creator numbers its own steps per stage). */
     var guideOn by mutableStateOf(store.guide); private set
@@ -123,6 +122,11 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     /** Undoing every move back to the start leaves nothing to restart. */
     val changed get() = Rules.key(board) != Rules.key(spec.start)
 
+    /** The next Random puzzle, asked for while the current one is played, so a swipe at the trail's end opens it at once (declared before init, which calls load()). */
+    private class Prefetched(val grid: JSONObject, val sessionId: String, val account: String)
+    private var nextRandom: Prefetched? = null
+    private var prefetchJob: Job? = null
+
     init {
         val unfinished = levels.indices.firstOrNull { (it + 1) !in done } ?: 0
         val last = store.lastLevel.takeIf { it in levels.indices && store.attempt(it) != null && canAccess(it) }
@@ -133,7 +137,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
 
     /** Opens a level, resuming its unfinished attempt if one was saved. */
     private fun load(index: Int, restart: Boolean = false) {
-        community = null
+        community = null; dropPrefetch()
         winJob?.cancel()
         level = index; board = levels[index].start; moves = 0; path = mutableListOf(); light = Art.LIGHT.getValue('B')
         if (restart) { store.saveAttempt(index, null); return }
@@ -218,6 +222,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
 
     fun startCommunity(grid: JSONObject, sessionId: String, casual: Boolean = false, source: DiscoveryListState? = null) {
         val account = online.user?.id ?: return
+        if (!casual) dropPrefetch()
         if (community != null) failureProof("leave")
         winJob?.cancel(); guidePhase = 0; guideOnly = null; onboardPending = false
         // The first online puzzle on this device plays its like and bookmark tips by themselves, once the screen has settled.
@@ -355,7 +360,11 @@ class GameModel(app: Application) : AndroidViewModel(app) {
             val response = online.repository.command("play:${grid.getString("id")}", "POST", "/v1/grids/${grid.getString("id")}/sessions")
             if (online.user?.id != account) return@task
             if (stack.none { it == Route.Online }) { stack.clear(); stack += Route.Home; stack += Route.Online }
-            startCommunity(response.getJSONObject("grid"), response.getString("sessionId"))
+            // The linked puzzle starts a Random trail, so a swipe goes on to random puzzles (and back to this one) instead of nowhere.
+            randomTrail.reset(); dropPrefetch()
+            startCommunity(response.getJSONObject("grid"), response.getString("sessionId"), casual = true)
+            randomTrail.add(response.getJSONObject("grid"))
+            prefetchRandom()
         }
     }
 
@@ -418,24 +427,84 @@ class GameModel(app: Application) : AndroidViewModel(app) {
         } else {
             startCommunity(response.getJSONObject("grid"), response.getString("sessionId"), casual = true)
             randomTrail.add(response.getJSONObject("grid"))
+            prefetchRandom()
         }
     }
 
     val randomTrail = RandomTrail<JSONObject>()
     /** The Random button: a fresh trail, starting with a new random puzzle. */
-    fun startRandom() { randomTrail.reset(); nextCasual() }
+    fun startRandom() { randomTrail.reset(); dropPrefetch(); nextCasual() }
+
+
+    /**
+     * Asks for the next random puzzle in the background when the trail is at its end. Outside [OnlineState.task], so it never holds [OnlineState.busy]
+     * (which would block the swipe and every button). A failure is silent: the swipe then takes the usual way ([nextCasual]).
+     * The session it opens lasts 7 days on the server, so one that is never used just expires.
+     */
+    private fun prefetchRandom() {
+        val account = online.user?.id ?: return
+        if (nextRandom != null || prefetchJob?.isActive == true || community?.casual != true || randomTrail.index != randomTrail.items.lastIndex) return
+        prefetchJob = viewModelScope.launch {
+            try {
+                val response = online.repository.command("casual-prefetch", "POST", "/v1/casual/sessions")
+                if (response.isNull("grid") || online.user?.id != account || community?.casual != true) return@launch
+                val grid = response.getJSONObject("grid")
+                // The server may pick the puzzle being played (it only leaves out solved ones); then the swipe asks again the usual way.
+                if (grid.getString("id") == community?.id) return@launch
+                nextRandom = Prefetched(grid, response.getString("sessionId"), account)
+            } catch (error: Exception) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                android.util.Log.i("InsightRandom", "prefetch_failed ${error.javaClass.simpleName}")
+            }
+        }
+    }
+
+    /** Forgets the prefetched puzzle: Random restarted, another account, or the game left Random. */
+    private fun dropPrefetch() { prefetchJob?.cancel(); prefetchJob = null; nextRandom = null }
+
+    /**
+     * Opens the prefetched puzzle at once. What [nextCasual] waits for before asking (sending the finished puzzle's proof, the sync, and the check that its
+     * completion was not refused) runs afterwards in the background: a proof is kept on the device until it is sent, so nothing is lost by not waiting.
+     */
+    private fun takePrefetched(next: Prefetched) {
+        val previous = community?.sessionId
+        nextRandom = null; prefetchJob = null
+        startCommunity(next.grid, next.sessionId, casual = true)
+        randomTrail.add(next.grid)
+        viewModelScope.launch {
+            try {
+                online.flushProofs()
+                if (online.repository.sync()) {
+                    val rejected = online.repository.outcomes(next.account).firstOrNull {
+                        it.state == "failed" && it.endpoint == "/v1/completions" && JSONObject(it.payload).optString("sessionId") == previous
+                    }
+                    if (rejected != null && online.user?.id == next.account) online.quiet(OnlineException(409, "COMPLETION_REJECTED", rejected.error))
+                }
+            } catch (error: Exception) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                online.quiet(error)
+            }
+            prefetchRandom()
+        }
+    }
 
     /** Swipe through the list a puzzle came from, or Journey's levels ([step] 1 = next, -1 = previous). False when there is nothing that way or it is locked. */
     fun swipe(step: Int): Boolean {
         val current = community ?: return journeyStep(level, step, levels.size, ::canAccess)?.let { start(it); true } ?: false
         if (current.casual) {
             val known = randomTrail.at(step)
-            if (known == null) { if (step > 0) nextCasual(); return step > 0 }
+            if (known == null) {
+                if (step < 0) return false
+                val ready = nextRandom
+                if (ready != null && ready.account == online.user?.id) takePrefetched(ready) else nextCasual()
+                return true
+            }
             // An earlier (or already seen) random puzzle opens as a normal session but stays part of Random.
             online.task {
                 val response = online.repository.command("play:${known.getString("id")}", "POST", "/v1/grids/${known.getString("id")}/sessions")
                 startCommunity(response.getJSONObject("grid"), response.getString("sessionId"), casual = true)
                 randomTrail.index += step
+                prefetchRandom()
             }
             return true
         }
@@ -578,8 +647,14 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     fun feedback(cue: Cue?) { if (haptics) vibration.tick(); cue?.let(audio::play) }
     /** The short, silent tick for each step of a continuous drag (a row or column added or removed while resizing the creator's grid). */
     fun fineTick() { if (haptics) vibration.tick(Haptics.FINE_TICK_MS, Haptics.FINE_TICK_AMPLITUDE) }
-    /** Hold-to-restart and the creator's clear: three haptic pulses lined up with the three notes of [Cue.REORDER]. */
-    fun feedbackTriple() { if (haptics) vibration.triple(); audio.play(Cue.REORDER) }
+    /**
+     * Hold-to-restart and the creator's clear: three separate [Haptics.TRIPLE_TICK_MS] one-shots [Haptics.TRIPLE_STEP_MS] apart (0, 100, 200 ms), each over
+     * before the next starts. Not one waveform: some drivers merged its short pulses into a single buzz at the end.
+     */
+    fun feedbackTriple() {
+        if (haptics) viewModelScope.launch { repeat(3) { if (it > 0) delay(Haptics.TRIPLE_STEP_MS); vibration.tick(Haptics.TRIPLE_TICK_MS) } }
+        audio.play(Cue.REORDER)
+    }
 
     /** Back to level 1 with nothing solved. Badges stay. */
     fun resetProgress() {
@@ -607,7 +682,6 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     /** A tap anywhere moves the tips on to the next step, and after the last one they end. */
     fun advanceGuide() { guidePhase = guideSteps().let { it.getOrNull(it.indexOf(guidePhase) + 1) ?: 0 }; if (guidePhase == 0) guideOnly = null }
     fun toggleColorblind() { colorblind = !colorblind; store.colorblind = colorblind; Art.colorblind = colorblind }
-    fun togglePlushTiles() { plushTiles = !plushTiles; store.plushTiles = plushTiles; Art.plush = plushTiles }
     fun changeEffects(value: Float) { effects = value; store.effects = value; audio.effects = value }
     fun changeAmbience(value: Float) { ambience = value; store.ambience = value; audio.ambience = value }
     override fun onCleared() { audio.release() }

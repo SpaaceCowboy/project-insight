@@ -104,8 +104,6 @@ class Store(context: Context) {
     var ambience by float("ambience", .8f)
     var background by string("background", "forest")
     var colorblind by bool("colorblind", false)
-    /** The plush tile style (Options → About), off until it has been tried. */
-    var plushTiles by bool("plushTiles", false)
     /** The launcher icon picked in Options ("alt", "default", or "" for none picked). It is applied when the app goes to the background, because switching the launcher entry the running task was started from makes Android close that task. */
     var iconWanted by string("iconWanted", "")
     /** The language the player picked in Options; until then the phone's language if the app has it, else English. */

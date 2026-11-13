@@ -1,3 +1,15 @@
+# Before deploying v0.2.31 — migration 014 deletes accounts
+
+Migration 014 permanently hard-deletes every account whose username contains whitespace, and the `Levels` account, then adds `users_username_no_space`. This includes the community seed accounts if they still carry the old `Seed Creator NN` names. Take the usual backup first, then run this read-only count on production and get a go-ahead on the numbers before the server restarts into the migration:
+
+```sql
+SELECT count(*) AS accounts,
+       (SELECT count(*) FROM grids g WHERE g.owner_id IN (SELECT id FROM users WHERE username ~ '\s' OR lower(username) = 'levels')) AS puzzles,
+       count(*) FILTER (WHERE username LIKE 'Seed Creator%') AS seed_creators,
+       count(*) FILTER (WHERE lower(username) = 'levels') AS levels_account
+FROM users WHERE username ~ '\s' OR lower(username) = 'levels';
+```
+
 # Android v0.2.30 — 100-level Journey, share links and hotfixes (12 November 2026)
 
 Published [v0.2.30 APK](https://13.140.89.146/INSIGHT-online.apk?v=0.2.30), version code **41**, and distributed it to the Firebase `testers` group as release `27252lt740jpo`, project `portfolio-51f12`. The public download matched the signed candidate. Package `com.insightpuzzle.app`, signing certificate and Google Web client are retained; the embedded production HTTPS URL was verified.

@@ -4,7 +4,7 @@ import { requireValue } from './rules.js';
 import { NAME_MAX, NAME_MESSAGES, usernameProblem } from './username.js';
 
 /**
- * A username for registration or rename: English letters, numbers, spaces, _ and -, 3–20 characters, no profanity, hate speech, violence or reserved names
+ * A username for registration or rename: English letters, numbers, _ and - (no spaces), 3–20 characters, no profanity, hate speech, violence or reserved names
  * (see username.ts). The chosen spelling is kept; compatibility characters and spacing are normalised. Existing accounts are not re-checked.
  */
 export function nickname(value: string): string {
@@ -22,11 +22,12 @@ export async function claimNickname(c: PoolClient, name: string, owner: string |
 
 /**
  * A valid starting username for a new Google account. The app shows it in a editable username step, so a collision can be fixed there.
- * A display name in another script, or one that breaks a rule, falls back to a numbered "Player" name.
+ * Spaces and other characters a username cannot have become _ ("Jane Doe" → "Jane_Doe"). A display name in another script, or one that breaks a
+ * rule, falls back to a numbered "Player_" name.
  */
 export function suggestedName(value: string | undefined): string {
   const cleaned = (value ?? '').normalize('NFD').replace(/\p{M}+/gu, '').normalize('NFKC')
-    .replace(/[^A-Za-z0-9 _-]+/gu, ' ').replace(/\s+/gu, ' ').trim().slice(0, NAME_MAX).trim();
+    .replace(/[^A-Za-z0-9_-]+/gu, '_').replace(/_+/gu, '_').replace(/^_+|_+$/gu, '').slice(0, NAME_MAX).replace(/_+$/u, '');
   if (cleaned.length >= 3 && !usernameProblem(cleaned).problem) return cleaned;
-  return `Player ${randomInt(100, 1000)}`;
+  return `Player_${randomInt(100, 1000)}`;
 }

@@ -50,31 +50,9 @@ class Haptics(private val context: Context) {
     /** [ms] is the tick's length: [TICK_MS] for a touch, [FINE_TICK_MS] for each step of a continuous drag or list scroll; [amplitude] is 1..255 where the actuator honours it. */
     fun tick(ms: Long = TICK_MS, amplitude: Int = TICK_AMPLITUDE) {
         val v = vibrator()?.takeIf { it.hasVibrator() } ?: return
-        play(v, effect(v, ms, amplitude))
-    }
-
-    /**
-     * Three [TRIPLE_TICK_MS] pulses [TRIPLE_STEP_MS] apart (0, 200 and 400 ms), as one waveform so the gaps cannot drift: spread over the half
-     * second of the restart cue, very short so the three never add up to one strong buzz.
-     */
-    fun triple() {
-        val v = vibrator()?.takeIf { it.hasVibrator() } ?: return
-        val gap = TRIPLE_STEP_MS - TRIPLE_TICK_MS
-        val timings = longArrayOf(0, TRIPLE_TICK_MS, gap, TRIPLE_TICK_MS, gap, TRIPLE_TICK_MS)
-        play(v, if (v.hasAmplitudeControl()) VibrationEffect.createWaveform(timings, intArrayOf(0, TRIPLE_AMPLITUDE, 0, TRIPLE_AMPLITUDE, 0, TRIPLE_AMPLITUDE), -1)
-            // Without amplitude control any pulse is full strength, so only its 5 ms length keeps it light; never DEFAULT_AMPLITUDE, never a longer effect.
-            else VibrationEffect.createWaveform(timings, -1))
-    }
-
-    /**
-     * The effect for one tick. With amplitude control it is always the same explicit one-shot. Without it (simple motors, and the odd moment a
-     * lookup lands on a vibrator that reports none) a one-shot can only be full strength, which felt like a jarring maximum buzz: there the
-     * system's own light tick is used instead (Android 10+), or the shortest one-shot before that. DEFAULT_AMPLITUDE is never used.
-     */
-    private fun effect(v: Vibrator, ms: Long, amplitude: Int): VibrationEffect = when {
-        v.hasAmplitudeControl() -> VibrationEffect.createOneShot(ms, amplitude.coerceIn(1, 255))
-        Build.VERSION.SDK_INT >= 29 -> VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK)
-        else -> VibrationEffect.createOneShot(FINE_TICK_MS, 255)
+        // Always the same explicit one-shot, never a predefined effect: a phone whose driver lacks EFFECT_TICK plays Android's fallback for it,
+        // about 125 ms of nothing and then ~30 ms at full strength, which made every touch feel late and maxed out (v0.2.30).
+        play(v, VibrationEffect.createOneShot(ms, if (v.hasAmplitudeControl()) amplitude.coerceIn(1, 255) else VibrationEffect.DEFAULT_AMPLITUDE))
     }
 
     private fun play(v: Vibrator, effect: VibrationEffect) {
@@ -90,10 +68,9 @@ class Haptics(private val context: Context) {
     companion object {
         const val TICK_MS = 11L; const val FINE_TICK_MS = 7L
         const val TICK_AMPLITUDE = 128; const val FINE_TICK_AMPLITUDE = 80
-        /** The three restart/clear pulses: 5 ms each, as quiet as the corner-drag tick, 200 ms apart. */
-        const val TRIPLE_TICK_MS = 5L
-        const val TRIPLE_AMPLITUDE = FINE_TICK_AMPLITUDE
-        const val TRIPLE_STEP_MS = 200L
+        /** The three restart/clear pulses: 4 ms each (short, so three in a row never add up to a strong buzz), 100 ms apart. */
+        const val TRIPLE_TICK_MS = 4L
+        const val TRIPLE_STEP_MS = 100L
     }
 }
 

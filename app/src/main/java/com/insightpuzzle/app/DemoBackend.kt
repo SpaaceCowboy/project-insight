@@ -30,9 +30,9 @@ class DemoBackend(context: Context) {
         return names.normalize(name)
     }
     private fun initial(): JSONObject {
-        val users = JSONArray().put(JSONObject().put("id", player).put("username", "Quiet Cove").put("verified", true).put("done", JSONArray()).put("badges", JSONArray()).put("sampleXp", 0))
+        val users = JSONArray().put(JSONObject().put("id", player).put("username", "Quiet_Cove").put("verified", true).put("done", JSONArray()).put("badges", JSONArray()).put("sampleXp", 0))
         val worlds = JSONArray(); val grids = JSONArray()
-        listOf("Silver Grove", "Warm Fern").forEachIndexed { index, name ->
+        listOf("Silver_Grove", "Warm_Fern").forEachIndexed { index, name ->
             val author = id(); val world = id()
             users.put(JSONObject().put("id", author).put("username", name).put("verified", true).put("done", JSONArray((1..(10 + index * 15)).toList())).put("badges", JSONArray(listOf("first"))).put("sampleXp", 850000 + index * 500000))
             worlds.put(JSONObject().put("id", world).put("ownerId", author).put("name", if (index == 0) "Silver Tide" else "Warm Grove").put("icon", if (index == 0) "B" else "G").put("hidden", false).put("moderated", false).put("samplePopularity", 24 - index * 7))
@@ -202,7 +202,7 @@ class DemoBackend(context: Context) {
         val result: JSONObject = when {
             route == "/v1/capabilities" -> JSONObject().put("emailDelivery", "local-preview")
             route == "/v1/auth/login" -> {
-                rename(body.optString("password", "Quiet Cove"))
+                rename(body.optString("password", "Quiet_Cove"))
                 JSONObject().put("accessToken", "D".repeat(43)).put("refreshToken", "R".repeat(43)).put("user", publicUser(player))
             }
             route == "/v1/auth/refresh" -> JSONObject().put("accessToken", "D".repeat(43)).put("refreshToken", "R".repeat(43)).put("user", publicUser(player))

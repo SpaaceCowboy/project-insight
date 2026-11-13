@@ -173,12 +173,12 @@ fun AuthScreen(m: GameModel, destination: Route?) {
     val context = LocalContext.current
     val usernames = UsernameFilter.get(context)
     if (BuildConfig.ONLINE_DEMO) {
-        var previewName by rememberSaveable { mutableStateOf("Quiet Cove") }
+        var previewName by rememberSaveable { mutableStateOf("Quiet_Cove") }
         OnlinePage(m, "Your Worlds preview") {
             Label("Explore a world of your own", 24.sp)
             Label("These players and puzzles are examples. Publishing, play, and XP are saved only on this device. Real accounts use the separate service build.", 14.sp, color = LocalPalette.current.muted)
             OnlineField("Username", previewName, enabled = !o.busy) { previewName = Nicknames.clip(it) }
-            Label("${Nicknames.MIN_LENGTH}–${Nicknames.MAX_LENGTH} characters: English letters, numbers, spaces, _ and -", 12.sp, color = LocalPalette.current.muted)
+            Label("${Nicknames.MIN_LENGTH}–${Nicknames.MAX_LENGTH} characters: English letters, numbers, _ and -. No spaces.", 12.sp, color = LocalPalette.current.muted)
             MenuButton("Enter local preview", primary = true, enabled = !o.busy) { o.login("preview@insight.local", previewName, destination) }
         }
         return

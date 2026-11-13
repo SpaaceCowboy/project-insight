@@ -278,8 +278,8 @@ class MainMenuFlowTest {
         tap("Back")
         assertFalse(has("Reset level progress")); assertFalse(has("Obsidian"))
         tap("Options")
-        await("Options volume controls after the page transition") { nodes().any { it.contentDescription?.toString() == "Ambience volume" && it.isVisibleToUser } }
-        val volume = nodes().first { it.contentDescription?.toString() == "Ambience volume" }
+        await("Options volume controls after the page transition") { nodes().any { it.contentDescription?.toString() == "Background volume" && it.isVisibleToUser } }
+        val volume = nodes().first { it.contentDescription?.toString() == "Background volume" }
         assertTrue(volume.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_SET_PROGRESS.id,
             android.os.Bundle().apply { putFloat(AccessibilityNodeInfo.ACTION_ARGUMENT_PROGRESS_VALUE, 7f) }))
         await("Volume stop persists") { model.ambience == .7f && Store(context).ambience == .7f }
@@ -501,7 +501,7 @@ class MainMenuFlowTest {
     @Test fun sheetsDragBackAndRepeatedRoutesRespectTheTopScreen() {
         Store(context).motion = "system"
         launch(); tap("Options")
-        await("Options sheet settles") { has("Ambience volume") && !has("Journey") }
+        await("Options sheet settles") { has("Background volume") && !has("Journey") }
         fun drag(fraction: Float) {
             val bounds = Rect().also { control("Back").getBoundsInScreen(it) }
             val screen = Rect().also { instrumentation.uiAutomation.rootInActiveWindow!!.getBoundsInScreen(it) }
@@ -516,14 +516,14 @@ class MainMenuFlowTest {
             }
         }
         drag(.15f)
-        await("A short sheet pull springs back") { model.top == Route.Options && has("Ambience volume") }
+        await("A short sheet pull springs back") { model.top == Route.Options && has("Background volume") }
         SystemClock.sleep(500)
         drag(.65f)
-        await("A long sheet pull returns Home") { model.top == Route.Home && has("Journey") && !has("Ambience volume") }
+        await("A long sheet pull returns Home") { model.top == Route.Home && has("Journey") && !has("Background volume") }
         tap("Options"); tap("About"); tap("Report a bug")
         await("Feedback sheet opens") { has("Send") }
         main { model.push(Route.Options) }
-        await("A repeated Options route is the visible top screen") { has("Ambience volume") && !has("Send") }
+        await("A repeated Options route is the visible top screen") { has("Background volume") && !has("Send") }
         tap("Back")
         await("Back reveals the feedback screen below") { model.top == Route.Feedback("bug") && has("Send") }
     }

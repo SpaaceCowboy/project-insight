@@ -242,12 +242,13 @@ internal fun PuzzleDetails(m: GameModel, anchor: DetailAnchor, dismiss: () -> Un
         val area = layer?.takeIf { it.isAttached }?.boundsInRoot()
         if (bounds != null && area != null) {
             val gapX = with(density) { 8.dp.toPx() }; val gapY = with(density) { 10.dp.toPx() }
-            val size = Size(bounds.width * 3 + gapX * 2, bounds.height)
-            val spot = detailPlacement(bounds, anchor.column, anchor.above, size, gapX, gapY)
+            // Not called "size": inside the heart's Canvas below that name would shadow DrawScope.size and draw a popup-sized heart.
+            val menuSize = Size(bounds.width * 3 + gapX * 2, bounds.height)
+            val spot = detailPlacement(bounds, anchor.column, anchor.above, menuSize, gapX, gapY)
             // Kept inside the screen layer, whatever the page scrolled to.
-            val x = spot.x.coerceIn(area.left, (area.right - size.width).coerceAtLeast(area.left)) - area.left
-            val y = spot.y.coerceIn(area.top, (area.bottom - size.height).coerceAtLeast(area.top)) - area.top
-            Row(Modifier.offset { IntOffset(x.roundToInt(), y.roundToInt()) }.size(with(density) { size.width.toDp() }, with(density) { size.height.toDp() })
+            val x = spot.x.coerceIn(area.left, (area.right - menuSize.width).coerceAtLeast(area.left)) - area.left
+            val y = spot.y.coerceIn(area.top, (area.bottom - menuSize.height).coerceAtLeast(area.top)) - area.top
+            Row(Modifier.offset { IntOffset(x.roundToInt(), y.roundToInt()) }.size(with(density) { menuSize.width.toDp() }, with(density) { menuSize.height.toDp() })
                 .plush(RoundedCornerShape(12.dp), 0f, p.paper2, rest = 8.dp, depth = 6.dp)
                 .pointerInput(Unit) { detectTapGestures { } }.semantics { paneTitle = tr("Puzzle details") }.padding(start = 12.dp, end = 4.dp),
                 verticalAlignment = Alignment.CenterVertically) {

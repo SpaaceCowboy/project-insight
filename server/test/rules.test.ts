@@ -41,8 +41,9 @@ test('all level thresholds, fractional XP, and the level-100 cap', () => {
   assert.equal(progression(10n ** 20n).level, 100);
   assert.equal(progression(10n ** 20n).nextLevelMilli, null);
 });
-test('nicknames allow English letters, numbers, spaces, _ and -, normalise spacing, and are 3-20 characters', () => {
-  assert.equal(nickname('  Ｍｙ　Name '), 'My Name');
+test('nicknames allow English letters, numbers, _ and - (no spaces), normalise compatibility characters, and are 3-20 characters', () => {
+  assert.equal(nickname('  Ｍｙ_Name '), 'My_Name');
+  assert.throws(() => nickname('  Ｍｙ　Name '), (e: any) => e.code === 'NAME_CHARACTERS');
   assert.equal(nickname('quiet_river-7'), 'quiet_river-7');
   for (const name of ['', '   ', 'ab', 'x'.repeat(21), '‌‍', 'bad‮name', 'a\u0000b', 'پازل باز', '🧩🧩🧩', 'Émile']) assert.throws(() => nickname(name), undefined, name);
 });

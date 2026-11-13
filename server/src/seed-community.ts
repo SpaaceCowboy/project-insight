@@ -76,7 +76,7 @@ export function validateManifest(m: SeedManifest) {
   const hashes = new Set(campaign.map(contentHash)), operations = new Set<string>(), passwords = new Set<string>();
   m.creators.forEach((c, i) => {
     const number = String(i + 1).padStart(2, '0');
-    assert.equal(c.name, `Seed Creator ${number}`); assert.equal(c.email, `seed-creator-${number}@insight.example.test`);
+    assert.equal(c.name, `Seed_Creator_${number}`); assert.equal(c.email, `seed-creator-${number}@insight.example.test`);
     assert(/^[A-Za-z0-9_-]{32}$/.test(c.password), 'Invalid credential format'); assert(!passwords.has(c.password), 'Repeated password'); passwords.add(c.password);
     if (c.userId) assert.match(c.userId, uuid);
     assert.equal(c.puzzles.length, 8);
@@ -128,7 +128,7 @@ export async function prepareSeed(db: Db, file: string): Promise<SeedManifest> {
     const puzzles = generatePuzzles(new Set(hashes));
     manifest = { version: 1, batchId: randomUUID(), target, createdAt: new Date().toISOString(), creators: Array.from({ length: 10 }, (_, i) => {
       const number = String(i + 1).padStart(2, '0');
-      return { name: `Seed Creator ${number}`, email: `seed-creator-${number}@insight.example.test`, password: randomBytes(24).toString('base64url'), puzzles: puzzles.slice(i * 8, i * 8 + 8) };
+      return { name: `Seed_Creator_${number}`, email: `seed-creator-${number}@insight.example.test`, password: randomBytes(24).toString('base64url'), puzzles: puzzles.slice(i * 8, i * 8 + 8) };
     }) };
     validateManifest(manifest); await saveManifest(file, manifest);
   }

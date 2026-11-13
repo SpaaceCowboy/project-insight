@@ -618,3 +618,11 @@ Screen sheets layer over the screen beneath, hide covered controls from accessib
 - **Other profiles:** Follow and Achievements are one row, the same height as your own profile's three keys, so twelve puzzles (three rows) fit without the last row slipping under the page edge.
 - **Publishing:** no daily cap by default; `CREATE_DAILY_LIMIT` remains an optional operator cap and `DEVELOPER_USER_IDS` remains exempt. The Android preview no longer enforces ten a day.
 - **Pending outbox:** `outcomes` returns failed submissions only, so a queued operation waiting out a 429 is not mistaken for a failure (fixes `RateLimitFlowTest`).
+
+## Problem 43 hotfixes (v0.2.31)
+- **Usernames:** English letters, numbers, _ and - only; a space is refused (NAME_CHARACTERS, "No spaces."), never quietly replaced. Google sign-up suggests `Jane_Doe` / `Player_123`. A database CHECK (`users_username_no_space`) backs the rule. Migration 014 hard-deleted every account with a space and the retired `Levels` account.
+- **Haptics:** every touch is a plain 11 ms one-shot at amplitude 128 (about 50%; full strength on motors without amplitude control), never a predefined effect: v0.2.30's `EFFECT_TICK` fell back on some phones to a late, full-strength buzz. List rows and the creator's corner drag tick at 7 ms (amplitude 80). Hold-to-restart and the creator's clear are three separate 4 ms one-shots 100 ms apart, each finished before the next.
+- **Puzzle details popup:** a small heart outline, as tall as the digits, sits right of the like count.
+- **Share:** "Play puzzle N by name in Midori. Play here: www.midoripuzzle.com/p/<code>" as text, with a "Play here" link in the HTML version for apps that read it. http and https links on both hosts open the app. A linked puzzle opens as Random, so a swipe moves on to random puzzles and back to it.
+- **Random:** the next random puzzle is fetched while the current one is played; a swipe at the trail's end opens it at once, and sending the finished puzzle's proof and the sync happen after.
+- **Options:** the music slider is "Background". The plush tile style and its About toggle are removed; tiles keep their thin light border.

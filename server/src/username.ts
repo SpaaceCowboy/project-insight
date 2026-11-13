@@ -7,7 +7,7 @@ export type NameProblem = 'NAME_CHARACTERS' | 'NAME_LENGTH' | 'NAME_HATE' | 'NAM
 
 /** Player-facing reasons, in English; the app translates them by code. */
 export const NAME_MESSAGES: Record<NameProblem, string> = {
-  NAME_CHARACTERS: 'Use only English letters, numbers, spaces, _ and -.',
+  NAME_CHARACTERS: 'Use only English letters, numbers, _ and -. No spaces.',
   NAME_LENGTH: `Choose a username of ${NAME_MIN}–${NAME_MAX} characters.`,
   NAME_HATE: "Usernames can't contain hateful or discriminatory language.",
   NAME_VIOLENCE: "Usernames can't contain violent or threatening language.",
@@ -108,15 +108,18 @@ export function bannedReason(name: string): NameProblem | null {
   for (const [problem, list] of CHECKS) if (reads.some(r => matches(list, r))) return problem;
   const glued = Math.min(...reads.map(r => { const rank = combination(r); return rank < 0 ? Infinity : rank; }));
   if (glued !== Infinity) return CHECKS[glued]![0];
-  // Reserved names are judged as a whole ("Insight Fan" is fine, "Insight" and "Admin_1" are not).
+  // Reserved names are judged as a whole ("Insight_Fan" is fine, "Insight" and "Admin_1" are not).
   if (reads.some(r => { const all = r.join(''); return RESERVED.exact.some(x => x.test(all)) || RESERVED.roots.some(x => x.test(all)); })) return 'NAME_RESERVED';
   return null;
 }
 
-/** Normalises a typed username (compatibility characters, spacing) and says why it cannot be used, if it cannot. Mirrors the app's UsernameFilter. */
+/**
+ * Normalises a typed username (compatibility characters, spacing) and says why it cannot be used, if it cannot. Mirrors the app's UsernameFilter.
+ * Spaces are refused (v0.2.31), never quietly replaced, so the player sees why; the word checks below still split on _ and -.
+ */
 export function usernameProblem(value: string): { name: string; problem: NameProblem | null } {
   const name = value.normalize('NFKC').trim().replace(/\s+/gu, ' ');
-  if (!/^[A-Za-z0-9 _-]*$/u.test(name) || !/[A-Za-z0-9]/u.test(name)) return { name, problem: 'NAME_CHARACTERS' };
+  if (!/^[A-Za-z0-9_-]*$/u.test(name) || !/[A-Za-z0-9]/u.test(name)) return { name, problem: 'NAME_CHARACTERS' };
   if (name.length < NAME_MIN || name.length > NAME_MAX) return { name, problem: 'NAME_LENGTH' };
   return { name, problem: bannedReason(name) };
 }
