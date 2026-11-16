@@ -82,7 +82,8 @@ export function Board({game, label}) {
   // for gestures outside the board. Child capture changes must not cancel it.
   return <div ref={game.boardRef} role="group" aria-label={label} className={'board' + (solved && !ui.resetting ? ' solved' : '')}
     aria-busy={!!ui.moving} style={gridStyle(board)} onPointerUp={game.pointerUp}
-    onLostPointerCapture={event => { if (event.target === event.currentTarget) game.pointerCancel(); }}
+    onPointerCancel={game.pointerCancel}
+    onLostPointerCapture={event => { if (event.target === event.currentTarget) game.pointerCancel(event); }}
     onKeyDown={event => { delete event.currentTarget.dataset.input; }}>
     {ui.bloom && <span key={ui.bloom.id} className={'board-ink ' + TILES[ui.bloom.type].cls} style={ui.bloom.style} aria-hidden="true" />}
     {board.flatMap((row, r) => row.map((type, c) => {
@@ -98,7 +99,7 @@ export function Board({game, label}) {
       const moving = ui.moving?.some(position => same(position, at));
       return <div key={key} style={{'--order': r + c}} className={'cell' + (front ? ' front' : moving ? ' in-motion' : '')}>
         <button type="button" ref={game.tileRef(r, c)} className={`tile ${TILES[type].cls} ${states}`}
-          onPointerDown={event => game.pointerDown(event, at)} onClick={event => { if (event.detail === 0) game.choose(at); }}
+          onPointerDown={event => game.pointerDown(event, at)} onClick={event => game.activate(event, at)}
           aria-label={describe(type, r, c)} aria-pressed={same(ui.selected, at)}>
           <TileSymbol type={type} />
         </button>

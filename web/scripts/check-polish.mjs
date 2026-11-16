@@ -1,7 +1,7 @@
 // Requires a running dev/preview server and Chrome; no npm browser dependency.
 // Override POLISH_URL or CHROME_BIN to test another local build/browser.
 import {spawn} from 'node:child_process';
-import {mkdtemp,rm,writeFile} from 'node:fs/promises';
+import {mkdtemp,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import assert from 'node:assert/strict';
@@ -20,7 +20,7 @@ const {sessionId}=await send('Target.attachToTarget',{targetId,flatten:true});
 const cdp=(method,params={})=>send(method,params,sessionId);
 await cdp('Runtime.enable');await cdp('Page.enable');await cdp('Page.bringToFront');
 const js=async expression=>{const r=await cdp('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw new Error(r.exceptionDetails.exception?.description||r.exceptionDetails.text);return r.result.value;};
-const wait=async expression=>{for(let i=0;i<200;i++){if(await js(expression))return;await new Promise(r=>setTimeout(r,30));}throw new Error('Timed out: '+expression+' '+JSON.stringify({errors,body:await js('document.documentElement.outerHTML.slice(0,2200)'),url:await js('location.href')}));};
+const wait=async expression=>{for(let i=0;i<200;i++){if(await js(expression))return;await new Promise(r=>setTimeout(r,30));}throw new Error('Timed out: '+expression+' '+JSON.stringify({errors,board:await js('document.querySelector(".stage")?.outerHTML.slice(0,3000)'),events:await js('window.pointerLog'),scroll:await js('scrollY'),url:await js('location.href')}));};
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const mouse = (type, x, y) => cdp('Input.dispatchMouseEvent', {type, x, y, button: 'left', buttons: type === 'mouseReleased' ? 0 : 1, clickCount: 1});
 const point = selector => js(`(() => { const r=document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect(); return {x:r.x+r.width/2,y:r.y+r.height/2}; })()`);
@@ -39,13 +39,24 @@ for (const mode of [
   {name:'desktop',width:1280,height:900,touch:false,motion:'no-preference'},
   {name:'mobile',width:390,height:844,touch:true,motion:'no-preference'},
   {name:'reduced motion',width:390,height:844,touch:true,motion:'reduce'},
-]) {
+].filter(mode => !process.env.POLISH_MODE || mode.name === process.env.POLISH_MODE)) {
   await cdp('Emulation.setDeviceMetricsOverride',{width:mode.width,height:mode.height,deviceScaleFactor:1,mobile:mode.touch});
   await cdp('Emulation.setTouchEmulationEnabled',{enabled:mode.touch});
   await cdp('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:mode.motion}]});
-  await cdp('Page.navigate',{url});
-  await wait(`!!document.querySelector('.board .tile')`);
-  await js(`document.querySelector('.platform').scrollIntoView({block:'center',behavior:'instant'})`);
+  for (const delay of [0,10000]) {
+    await cdp('Page.navigate',{url});
+    await wait(`!!document.querySelector('.board .tile')`);
+    await pause(delay);
+    assert.equal(await js('scrollY'),0,'fresh board must work without scrolling');
+    await js(`window.pointerLog=[]; for(const type of ['pointerdown','pointerup','pointercancel','lostpointercapture','click']) document.addEventListener(type,e=>{if(e.target.closest?.('.stage')) window.pointerLog.push({type,x:e.clientX,y:e.clientY,target:e.target.className,detail:e.detail});},true); window.tileClicks=[]; document.addEventListener('click',e=>window.tileClicks.push(e.target.matches('.board .tile')), {capture:true});`);
+    await tap(first,mode.touch);
+    await wait(`document.querySelector('.board .tile').getAttribute('aria-pressed')==='true'`);
+    assert.equal(await js('window.tileClicks.at(-1)'),true,'tap click must reach its button, not the capture owner');
+    await tap(first,mode.touch);
+    await wait(`document.querySelector('.board .tile').getAttribute('aria-pressed')==='false'`);
+  }
+  // A native click must also work when pointerup did not reach React/window.
+  await js(`document.addEventListener('pointerup',e=>e.stopImmediatePropagation(),{capture:true,once:true})`);
   await tap(first,mode.touch);
   await wait(`document.querySelector('.board .tile').getAttribute('aria-pressed')==='true'`);
   // Pointer play must retain the border fix.
@@ -53,11 +64,53 @@ for (const mode of [
   await tap('.board .cell:nth-child(2) .tile',mode.touch);
   await wait(`document.querySelector('.board .tile').classList.contains('red') && document.querySelector('.board').getAttribute('aria-busy')==='false'`);
   // Navigation away and back must preserve the same immediate tap behavior.
-  await js(`document.querySelector('.dots button:nth-child(2)').click()`); await pause(400);
+  const swipe = await js(`(() => { const r=document.querySelector('.platform').getBoundingClientRect(); return {x:r.x+r.width/2+60,y:r.y+60}; })()`);
+  if (mode.touch) {
+    await cdp('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...swipe,id:0}]});
+    await cdp('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:swipe.x-120,y:swipe.y,id:0}]});
+    await cdp('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  } else {
+    await mouse('mousePressed',swipe.x,swipe.y);
+    await mouse('mouseMoved',swipe.x-120,swipe.y);
+    await mouse('mouseReleased',swipe.x-120,swipe.y);
+  }
+  await wait(`document.querySelector('.dots button:nth-child(2)').getAttribute('aria-current')==='true'`);
+  await pause(400);
   await js(`document.querySelector('.dots button').click()`); await pause(400);
   await tap(first,mode.touch);
   await wait(`document.querySelector('.board .tile').getAttribute('aria-pressed')==='true'`);
   await tap(first,mode.touch);
+  // Cancellation and off-board release must leave the board usable and unchanged.
+  const original = await js(`[...document.querySelectorAll('.board .tile')].map(n=>n.getAttribute('aria-label')).join('|')`);
+  const home = await point(first);
+  if (mode.touch) {
+    await cdp('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...home,id:0}]});
+    await cdp('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:home.x+15,y:home.y+15,id:0}]});
+    await pause(50);
+    await cdp('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});
+  } else {
+    await mouse('mousePressed',home.x,home.y);
+    await mouse('mouseMoved',home.x+15,home.y+15);
+    await pause(50);
+    await js(`const board=document.querySelector('.board'); board.releasePointerCapture(1);`);
+    await mouse('mouseReleased',home.x+15,home.y+15);
+  }
+  await wait(`!document.querySelector('.board .dragging')`);
+  await tap(first,mode.touch);
+  await wait(`document.querySelector('.board .tile').getAttribute('aria-pressed')==='true'`);
+  await tap(first,mode.touch);
+  if (mode.touch) {
+    await cdp('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...home,id:0}]});
+    await cdp('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:2,y:2,id:0}]});
+    await cdp('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  } else {
+    await mouse('mousePressed',home.x,home.y);
+    await mouse('mouseMoved',2,2);
+    await mouse('mouseReleased',2,2);
+  }
+  await pause(300);
+  assert.equal(await js(`[...document.querySelectorAll('.board .tile')].map(n=>n.getAttribute('aria-label')).join('|')`),original);
+  assert.equal(await js(`!!document.querySelector('.board .selected, .board .dragging')`),false);
   // Drag remains usable after tap selection.
   const a=await point(first), b=await point('.board .cell:nth-child(2) .tile');
   if (mode.touch) {
@@ -68,6 +121,7 @@ for (const mode of [
     await mouse('mousePressed',a.x,a.y); await mouse('mouseMoved',b.x,b.y); await mouse('mouseReleased',b.x,b.y);
   }
   await wait(`document.querySelector('.board .tile').classList.contains('red') && document.querySelector('.board').getAttribute('aria-busy')==='false'`);
+  assert.equal(await js(`!!document.querySelector('.board .selected')`),false,'drag must not activate a tile a second time');
   // Keyboard selection remains independent of pointer selection.
   await js(`document.querySelector('.dots button:nth-child(2)').click()`); await pause(400);
   await js(`document.querySelector('.dots button').click()`); await pause(400);

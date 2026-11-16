@@ -18,6 +18,7 @@ export function useBoard(level) {
   const boardRef = useRef(null), platformRef = useRef(null), tiles = useRef(new Map()), drag = useRef(null), frame = useRef(null);
   const generation = useRef(0);
   const busy = useRef(false), timers = useRef(new Set()), animations = useRef([]);
+  const suppressClick = useRef(false);
   const solved = !!level.target && Rules.key(board) === level.target.join('|');
   const solvedNow = useRef(solved); solvedNow.current = solved;
 
@@ -139,7 +140,10 @@ export function useBoard(level) {
   }
 
   function pointerDown(event, position) {
+    // A rejected press must not become a delayed activation once a move ends.
+    suppressClick.current = true;
     if (event.button !== 0 || busy.current || drag.current || solvedNow.current) return;
+    suppressClick.current = false;
     // Chrome ignores focusVisible: false, and a page that has not yet focused anything by mouse paints the keyboard ring
     // round the tile, so the board also says it is being played by pointer (site.css); Board.jsx clears that on a key press.
     boardRef.current.dataset.input = 'pointer';
@@ -156,13 +160,17 @@ export function useBoard(level) {
       [room.top / scale + 4 - top, room.bottom / scale - 4 - lifted - top]];
     const targets = legal.map(position => ({position, ...centre(tileAt(position).parentElement.getBoundingClientRect())}));
     drag.current = {from: position, node: event.currentTarget, startX: event.clientX, startY: event.clientY, x: event.clientX, y: event.clientY, pointerId: event.pointerId, moved: false, hover: null, legal, targets, home, size, scale, bounds, offset: [0, 0]};
-    // Capture keeps the drag alive outside the board; without it the gesture still works inside.
-    try { boardRef.current?.setPointerCapture?.(event.pointerId); } catch { /* pointer already gone */ }
+    // Leave taps on their button so the browser dispatches a normal click.
+    // Capture is only needed once the pointer actually starts dragging.
   }
   function updateDrag(item) {
     if (!item.moved && Math.hypot(item.x - item.startX, item.y - item.startY) < 8) return;
     const started = !item.moved, previous = item.hover;
     item.moved = true;
+    suppressClick.current = true;
+    if (started) {
+      try { boardRef.current?.setPointerCapture?.(item.pointerId); } catch { /* window listeners retain the gesture */ }
+    }
     item.offset = clampDrag([(item.x - item.startX) / item.scale, (item.y - item.startY) / item.scale], item.bounds);
     item.hover = dropTarget(item.home, item.offset, item.targets, item.size);
     item.node.style.transform = `translate(${item.offset[0]}px,${item.offset[1]}px) scale(1.045)`;
@@ -186,14 +194,36 @@ export function useBoard(level) {
   }
   function pointerUp(event) {
     if (!drag.current || drag.current.pointerId !== event.pointerId) return;
-    event.preventDefault();
     drag.current.x = event.clientX; drag.current.y = event.clientY; updateDrag(drag.current);
     const item = endDrag();
-    if (!item.moved) choose(item.from);
-    else if (item.hover) move(item.from, item.hover, item.offset);
+    if (!item.moved) {
+      // Some touch browsers omit click after a swipe replaces the board.
+      // Activate on release as a fallback and consume any following click.
+      suppressClick.current = true;
+      choose(item.from);
+      return;
+    }
+    event.preventDefault();
+    if (item.hover) move(item.from, item.hover, item.offset);
     else reject(item.from);
   }
-  function pointerCancel() { endDrag(); }
+  function pointerCancel(event) {
+    if (event && drag.current?.pointerId !== event.pointerId) return;
+    suppressClick.current = true;
+    endDrag();
+  }
+  function activate(event, position) {
+    // Keyboard/assistive activation has no pointer gesture to suppress.
+    if (event.detail !== 0) {
+      if (suppressClick.current) return;
+      // A click can also arrive without our release handler receiving pointerup.
+      if (drag.current) {
+        if (drag.current.moved || !same(drag.current.from, position)) return;
+        endDrag();
+      }
+    }
+    choose(position);
+  }
 
-  return {isBusy: () => busy.current || !!drag.current, canRestart, deselect, board, moves, ui, solved, boardRef, platformRef, tileRef, pointerDown, pointerMove, pointerUp, pointerCancel, choose, restart};
+  return {isBusy: () => busy.current || !!drag.current, canRestart, deselect, board, moves, ui, solved, boardRef, platformRef, tileRef, pointerDown, pointerMove, pointerUp, pointerCancel, activate, choose, restart};
 }
