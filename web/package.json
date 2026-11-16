@@ -7,7 +7,8 @@
     "dev": "vite --host 127.0.0.1 --port 5180 --strictPort",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1 --port 5181 --strictPort",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:browser": "node scripts/check-polish.mjs"
   },
   "dependencies": {
     "react": "^19.3.1",

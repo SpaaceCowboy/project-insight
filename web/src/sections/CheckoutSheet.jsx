@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {checkout} from '../checkout/provider.js';
 import {SUPPORT_EMAIL, WORLDS_PRICE} from '../config.js';
 import {WORLDS_INCLUDES} from './Modes.jsx';
@@ -11,6 +11,25 @@ export default function CheckoutSheet({shown, onClose}) {
   const [email, setEmail] = useState('');
   const [phase, setPhase] = useState('offer'); // offer | paying | paid | failed
   const [message, setMessage] = useState('');
+
+  useLayoutEffect(() => {
+    if (!shown) return;
+    // A modal makes the page inert, but does not stop mobile browsers scrolling
+    // or rubber-banding it underneath the sheet.
+    const root = document.documentElement, body = document.body;
+    const x = window.scrollX, y = window.scrollY;
+    const remember = (node, values) => {
+      const previous = Object.keys(values).map(key => [key, node.style[key]]);
+      Object.assign(node.style, values);
+      return () => previous.forEach(([key, value]) => { node.style[key] = value; });
+    };
+    const restoreRoot = remember(root, {overflow: 'hidden', overscrollBehavior: 'none', scrollbarGutter: 'stable'});
+    const restoreBody = remember(body, {position: 'fixed', top: `-${y}px`, left: `-${x}px`, width: '100%'});
+    return () => {
+      restoreBody(); restoreRoot();
+      window.scrollTo({left: x, top: y, behavior: 'instant'});
+    };
+  }, [shown]);
 
   useEffect(() => {
     const node = dialog.current;

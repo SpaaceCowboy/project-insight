@@ -78,8 +78,11 @@ export function StillBoard({board}) {
 
 export function Board({game, label}) {
   const {board, ui, solved} = game;
+  // Handle releases from the first render; the window listener is the fallback
+  // for gestures outside the board. Child capture changes must not cancel it.
   return <div ref={game.boardRef} role="group" aria-label={label} className={'board' + (solved && !ui.resetting ? ' solved' : '')}
-    aria-busy={!!ui.moving} style={gridStyle(board)} onLostPointerCapture={game.pointerCancel}
+    aria-busy={!!ui.moving} style={gridStyle(board)} onPointerUp={game.pointerUp}
+    onLostPointerCapture={event => { if (event.target === event.currentTarget) game.pointerCancel(); }}
     onKeyDown={event => { delete event.currentTarget.dataset.input; }}>
     {ui.bloom && <span key={ui.bloom.id} className={'board-ink ' + TILES[ui.bloom.type].cls} style={ui.bloom.style} aria-hidden="true" />}
     {board.flatMap((row, r) => row.map((type, c) => {

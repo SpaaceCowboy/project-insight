@@ -151,6 +151,7 @@ span.tile { cursor:default; width:var(--cell); height:var(--cell); flex:none; }
 
 /* Introduction: one statement, then a rule */
 .statement { max-width:22em; font:700 clamp(24px,4.4vw,48px)/1.28 var(--mono); letter-spacing:-.03em; text-wrap:pretty; }
+@media (min-width:720px) { .statement-ending { display:block; } }
 .rule { margin-top:56px; border:0; border-top:2px solid var(--ink); }
 
 /* The six tiles: pick one and watch it walk its rule */
@@ -228,9 +229,9 @@ span.tile { cursor:default; width:var(--cell); height:var(--cell); flex:none; }
 .how strong { color:var(--ink); font-weight:600; }
 
 /* Screens */
-.phones { display:flex; gap:36px; overflow-x:auto; padding:16px 8px 28px; scroll-snap-type:x mandatory; scrollbar-width:none; }
+.phones { display:flex; gap:24px; overflow-x:auto; padding:16px 8px 28px; scroll-snap-type:x mandatory; scrollbar-width:none; }
 @media (min-width:1080px) { .phones { justify-content:center; overflow:visible; } }
-.phone { flex:none; width:min(300px,76vw); scroll-snap-align:center; }
+.phone { flex:none; width:min(300px,76vw); margin-inline:0; scroll-snap-align:center; }
 /* The phones stand still: drifting a capture a couple of pixels a second makes it step from pixel to pixel. */
 .phone:nth-child(2) { margin-top:28px; }
 /* A capture of the game in a rounded frame: a 1080 by 2340 phone screen without its status bar. */
@@ -239,10 +240,8 @@ span.tile { cursor:default; width:var(--cell); height:var(--cell); flex:none; }
 .shot .dark { display:var(--shot-dark); }
 
 /* Inside Worlds: four captures. They scroll sideways until all four fit. */
-.phones.four { gap:24px; }
-.phones.four .phone { margin-inline:0; }
 @media (min-width:820px) and (max-width:1139px) { .phones.four { justify-content:flex-start; overflow-x:auto; } }
-@media (min-width:1140px) { .phones.four .phone { width:244px; } }
+@media (min-width:1140px) { .phones .phone { width:244px; } }
 .phone:nth-child(4) { margin-top:28px; }
 
 /* Questions */
@@ -265,7 +264,7 @@ span.tile { cursor:default; width:var(--cell); height:var(--cell); flex:none; }
 .site-footer a { text-underline-offset:4px; }
 
 /* Checkout sheet */
-.sheet { width:min(480px,100%); max-width:100%; max-height:92dvh; margin:auto auto 0; padding:26px 22px 28px; border:1px solid var(--line); border-bottom:0; border-radius:28px 28px 0 0; background:var(--paper2); color:var(--ink); overflow:auto; }
+.sheet { width:min(480px,100%); max-width:100%; max-height:92dvh; margin:auto auto 0; padding:26px 22px calc(28px + env(safe-area-inset-bottom)); border:1px solid var(--line); border-bottom:0; border-radius:28px 28px 0 0; background:var(--paper2); color:var(--ink); overflow:auto; overscroll-behavior:none; }
 @media (min-width:640px) { .sheet { margin:auto; border-bottom:1px solid var(--line); border-radius:28px; } }
 .sheet[open] { animation:sheet .42s var(--out); }
 .sheet::backdrop { background:var(--scrim); animation:field-in .3s ease-out; }

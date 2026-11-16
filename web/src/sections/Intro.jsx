@@ -5,7 +5,7 @@ export default function Intro() {
   return <section id="about">
     <div className="wrap">
       <h2 ref={ref} className={'statement' + (inView ? ' in' : '')}>
-        One board. One target. Zero regressive elements.
+        One board. One target. <span className="statement-ending">Zero regressive elements.</span>
       </h2>
       <hr className="rule" />
     </div>
