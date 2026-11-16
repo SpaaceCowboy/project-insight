@@ -48,6 +48,22 @@ for (const mode of [
     await wait(`!!document.querySelector('.board .tile')`);
     await pause(delay);
     assert.equal(await js('scrollY'),0,'fresh board must work without scrolling');
+    // Reproduce the selection flash: release selects, then a zero-detail click
+    // must not toggle the same tile a second time.
+    const selection = await js(`(async () => {
+      const tile=document.querySelector('.board .tile'), r=tile.getBoundingClientRect();
+      const init={bubbles:true,button:0,pointerId:17,pointerType:'mouse',clientX:r.x+r.width/2,clientY:r.y+r.height/2};
+      tile.dispatchEvent(new PointerEvent('pointerdown',init));
+      tile.dispatchEvent(new PointerEvent('pointerup',init));
+      await new Promise(resolve=>setTimeout(resolve,30));
+      const afterRelease=tile.getAttribute('aria-pressed');
+      tile.dispatchEvent(new MouseEvent('click',{bubbles:true,detail:0}));
+      await new Promise(resolve=>setTimeout(resolve,100));
+      return {afterRelease,afterClick:tile.getAttribute('aria-pressed')};
+    })()`);
+    assert.deepEqual(selection,{afterRelease:'true',afterClick:'true'},'zero-detail follow-up must not deselect');
+    await tap(first,mode.touch);
+    await wait(`document.querySelector('.board .tile').getAttribute('aria-pressed')==='false'`);
     await js(`window.pointerLog=[]; for(const type of ['pointerdown','pointerup','pointercancel','lostpointercapture','click']) document.addEventListener(type,e=>{if(e.target.closest?.('.stage')) window.pointerLog.push({type,x:e.clientX,y:e.clientY,target:e.target.className,detail:e.detail});},true); window.tileClicks=[]; document.addEventListener('click',e=>window.tileClicks.push(e.target.matches('.board .tile')), {capture:true});`);
     await tap(first,mode.touch);
     await wait(`document.querySelector('.board .tile').getAttribute('aria-pressed')==='true'`);
@@ -58,6 +74,27 @@ for (const mode of [
   // A native click must also work when pointerup did not reach React/window.
   await js(`document.addEventListener('pointerup',e=>e.stopImmediatePropagation(),{capture:true,once:true})`);
   await tap(first,mode.touch);
+  await wait(`document.querySelector('.board .tile').getAttribute('aria-pressed')==='true'`);
+  // An unmatched pointer release must not block explicit keyboard activation,
+  // and its suppression must expire for standalone assistive clicks.
+  await js(`(async () => {
+    const tile=document.querySelector('.board .tile'), r=tile.getBoundingClientRect();
+    const init={bubbles:true,button:0,pointerId:18,pointerType:'mouse',clientX:r.x+r.width/2,clientY:r.y+r.height/2};
+    tile.dispatchEvent(new PointerEvent('pointerdown',init));
+    tile.dispatchEvent(new PointerEvent('pointerup',init));
+    await new Promise(resolve=>setTimeout(resolve,30));
+    tile.dispatchEvent(new KeyboardEvent('keydown',{bubbles:true,key:'Enter'}));
+    tile.click();
+  })()`);
+  await wait(`document.querySelector('.board .tile').getAttribute('aria-pressed')==='true'`);
+  await js(`(() => {
+    const tile=document.querySelector('.board .tile'), r=tile.getBoundingClientRect();
+    const init={bubbles:true,button:0,pointerId:19,pointerType:'mouse',clientX:r.x+r.width/2,clientY:r.y+r.height/2};
+    tile.dispatchEvent(new PointerEvent('pointerdown',init));
+    tile.dispatchEvent(new PointerEvent('pointerup',init));
+  })()`);
+  await pause(800);
+  await js(`document.querySelector('.board .tile').click()`);
   await wait(`document.querySelector('.board .tile').getAttribute('aria-pressed')==='true'`);
   // Pointer play must retain the border fix.
   assert.equal(await js(`getComputedStyle(document.querySelector('.board .tile')).outlineStyle`),'none');
@@ -129,6 +166,46 @@ for (const mode of [
   await cdp('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r'});
   await cdp('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
   await wait(`document.querySelector('.board .tile').getAttribute('aria-pressed')==='true'`);
+  // Real hold-to-restart: sample every painted reset frame, including stationary
+  // upper cells, then verify completion leaves no transforms or reset classes.
+  for (const scenario of [
+    {board:1,pairs:[[3,2]]}, // horizontal; top-left stays still
+    {board:1,pairs:[[1,3]]}, // vertical
+    {board:2,pairs:[[0,3],[1,3]]}, // mixed directions
+  ]) {
+    await js(`document.querySelector('.dots button:nth-child(${scenario.board === 1 ? 2 : 1})').click()`); await pause(400);
+    await js(`document.querySelector('.dots button:nth-child(${scenario.board})').click()`); await pause(400);
+    const original = await js(`[...document.querySelectorAll('.board .tile')].map(n=>n.getAttribute('aria-label')).join('|')`);
+    for (const [from,to] of scenario.pairs) {
+      await tap('.board .cell:nth-child('+(from+1)+') .tile',mode.touch);
+      await tap('.board .cell:nth-child('+(to+1)+') .tile',mode.touch);
+      await wait(`document.querySelector('.board').getAttribute('aria-busy')==='false'`);
+    }
+    await js(`window.resetFrames=[]; window.sampleReset=true; requestAnimationFrame(function sample() {
+      const board=document.querySelector('.board');
+      if(board.classList.contains('resetting')) resetFrames.push({
+        stacking:[...board.querySelectorAll('.cell')].map(n=>getComputedStyle(n).zIndex),
+        front:!!board.querySelector('.front'),
+        stationaryAnimated:[...board.querySelectorAll('.tile:not(.moving)')].some(n=>n.getAnimations().some(a=>a.constructor.name==='Animation'))
+      });
+      if(window.sampleReset) requestAnimationFrame(sample);
+    })`);
+    const hold = await js(`(() => {const r=document.querySelector('.platform').getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+60};})()`);
+    if(mode.touch) await cdp('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...hold,id:0}]});
+    else await mouse('mousePressed',hold.x,hold.y);
+    await pause(950);
+    if(mode.touch) await cdp('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+    else await mouse('mouseReleased',hold.x,hold.y);
+    await js(`window.sampleReset=false`);
+    const frames = await js('window.resetFrames');
+    if(mode.motion !== 'reduce') {
+      assert.ok(frames.length>2,'hold must produce visible rewind frames');
+      assert.ok(frames.every(f=>f.stacking.every(z=>z==='0') && !f.front && !f.stationaryAnimated),'rewind must retain equal stacking without animating stationary tiles');
+    }
+    assert.equal(await js(`[...document.querySelectorAll('.board .tile')].map(n=>n.getAttribute('aria-label')).join('|')`),original);
+    assert.equal(await js(`!!document.querySelector('.board.resetting, .board .moving, .board .selected')`),false);
+    assert.ok(await js(`[...document.querySelectorAll('.board .tile')].every(n=>getComputedStyle(n).transform==='none' && n.getAnimations().length===0)`));
+  }
   if (mode.touch) {
     await cdp('Emulation.setDeviceMetricsOverride',{width:mode.width,height:340,deviceScaleFactor:1,mobile:true});
     await pause(100);

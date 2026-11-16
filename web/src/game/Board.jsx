@@ -80,11 +80,14 @@ export function Board({game, label}) {
   const {board, ui, solved} = game;
   // Handle releases from the first render; the window listener is the fallback
   // for gestures outside the board. Child capture changes must not cancel it.
-  return <div ref={game.boardRef} role="group" aria-label={label} className={'board' + (solved && !ui.resetting ? ' solved' : '')}
+  return <div ref={game.boardRef} role="group" aria-label={label} className={'board' + (ui.resetting ? ' resetting' : solved ? ' solved' : '')}
     aria-busy={!!ui.moving} style={gridStyle(board)} onPointerUp={game.pointerUp}
     onPointerCancel={game.pointerCancel}
     onLostPointerCapture={event => { if (event.target === event.currentTarget) game.pointerCancel(event); }}
-    onKeyDown={event => { delete event.currentTarget.dataset.input; }}>
+    onKeyDown={event => {
+      delete event.currentTarget.dataset.input;
+      if (event.key === 'Enter' || event.key === ' ') game.keyboardActivation();
+    }}>
     {ui.bloom && <span key={ui.bloom.id} className={'board-ink ' + TILES[ui.bloom.type].cls} style={ui.bloom.style} aria-hidden="true" />}
     {board.flatMap((row, r) => row.map((type, c) => {
       const at = [r, c], key = r + ':' + c;
@@ -95,7 +98,7 @@ export function Board({game, label}) {
         ui.moving?.some(position => same(position, at)) && 'moving', same(ui.rejected, at) && 'rejected',
         ui.arrived.some(position => same(position, at)) && 'arrived',
       ].filter(Boolean).join(' ');
-      const front = same(ui.selected, at) || same(ui.drag?.from, at) || same(ui.moving?.[0], at);
+      const front = !ui.resetting && (same(ui.selected, at) || same(ui.drag?.from, at) || same(ui.moving?.[0], at));
       const moving = ui.moving?.some(position => same(position, at));
       return <div key={key} style={{'--order': r + c}} className={'cell' + (front ? ' front' : moving ? ' in-motion' : '')}>
         <button type="button" ref={game.tileRef(r, c)} className={`tile ${TILES[type].cls} ${states}`}

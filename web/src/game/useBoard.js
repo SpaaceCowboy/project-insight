@@ -18,7 +18,10 @@ export function useBoard(level) {
   const boardRef = useRef(null), platformRef = useRef(null), tiles = useRef(new Map()), drag = useRef(null), frame = useRef(null);
   const generation = useRef(0);
   const busy = useRef(false), timers = useRef(new Set()), animations = useRef([]);
-  const suppressClick = useRef(false);
+  const pendingClick = useRef(null);
+  // Bound suppression when a browser omits the follow-up click entirely.
+  const finishPointer = pointerId => { pendingClick.current = {pointerId, expiresAt: performance.now() + 750}; };
+  const keyboardActivation = () => { pendingClick.current = null; };
   const solved = !!level.target && Rules.key(board) === level.target.join('|');
   const solvedNow = useRef(solved); solvedNow.current = solved;
 
@@ -32,7 +35,7 @@ export function useBoard(level) {
     timers.current.forEach(clearTimeout); timers.current.clear();
     animations.current.forEach(animation => animation.cancel()); animations.current = [];
     cancelAnimationFrame(frame.current); frame.current = null;
-    endDrag(); busy.current = false;
+    endDrag(); pendingClick.current = null; busy.current = false;
   }
   useEffect(() => {
     // Keep the gesture alive over the header and outside the board, including
@@ -79,8 +82,8 @@ export function useBoard(level) {
     if (busy.current) return false;
     endDrag();
     timers.current.forEach(clearTimeout); timers.current.clear();
-    const start = Rules.parse(level.start), plan = rewindMoves(live.current, start);
-    if (!plan.some(([a, b]) => !same(a, b)) || reducedMotion()) {
+    const start = Rules.parse(level.start), plan = rewindMoves(live.current, start).filter(([a, b]) => !same(a, b));
+    if (!plan.length || reducedMotion()) {
       live.current = start; setBoard(start); setMoves(0); setUI(IDLE); return true;
     }
     busy.current = true;
@@ -88,10 +91,10 @@ export function useBoard(level) {
     const run = generation.current;
     if (!immediate) await new Promise(resolve => setTimeout(resolve, 150));
     if (run !== generation.current) return false;
-    const tracks = plan.filter(([a, b]) => !same(a, b)).map(([a, b]) => [tileAt(a), [0, 0], delta(a, b)]);
+    const tracks = plan.map(([a, b]) => [tileAt(a), [0, 0], delta(a, b)]);
     if (!await animateTiles(tracks, REWIND_MS)) return false;
-    flushSync(() => { live.current = start; setBoard(start); setMoves(0); setUI(IDLE); });
-    clearAnimations(); busy.current = false;
+    flushSync(() => { clearAnimations(); live.current = start; setBoard(start); setMoves(0); setUI(IDLE); });
+    busy.current = false;
     return true;
   }
   /** GameScreen.kt canRewind: there is something to undo and nothing in flight. */
@@ -141,9 +144,9 @@ export function useBoard(level) {
 
   function pointerDown(event, position) {
     // A rejected press must not become a delayed activation once a move ends.
-    suppressClick.current = true;
+    finishPointer(event.pointerId);
     if (event.button !== 0 || busy.current || drag.current || solvedNow.current) return;
-    suppressClick.current = false;
+    pendingClick.current = null;
     // Chrome ignores focusVisible: false, and a page that has not yet focused anything by mouse paints the keyboard ring
     // round the tile, so the board also says it is being played by pointer (site.css); Board.jsx clears that on a key press.
     boardRef.current.dataset.input = 'pointer';
@@ -167,7 +170,6 @@ export function useBoard(level) {
     if (!item.moved && Math.hypot(item.x - item.startX, item.y - item.startY) < 8) return;
     const started = !item.moved, previous = item.hover;
     item.moved = true;
-    suppressClick.current = true;
     if (started) {
       try { boardRef.current?.setPointerCapture?.(item.pointerId); } catch { /* window listeners retain the gesture */ }
     }
@@ -196,10 +198,10 @@ export function useBoard(level) {
     if (!drag.current || drag.current.pointerId !== event.pointerId) return;
     drag.current.x = event.clientX; drag.current.y = event.clientY; updateDrag(drag.current);
     const item = endDrag();
+    finishPointer(item.pointerId);
     if (!item.moved) {
       // Some touch browsers omit click after a swipe replaces the board.
       // Activate on release as a fallback and consume any following click.
-      suppressClick.current = true;
       choose(item.from);
       return;
     }
@@ -209,21 +211,22 @@ export function useBoard(level) {
   }
   function pointerCancel(event) {
     if (event && drag.current?.pointerId !== event.pointerId) return;
-    suppressClick.current = true;
+    finishPointer(drag.current?.pointerId);
     endDrag();
   }
   function activate(event, position) {
-    // Keyboard/assistive activation has no pointer gesture to suppress.
-    if (event.detail !== 0) {
-      if (suppressClick.current) return;
-      // A click can also arrive without our release handler receiving pointerup.
-      if (drag.current) {
-        if (drag.current.moved || !same(drag.current.from, position)) return;
-        endDrag();
-      }
+    // Click detail is not an input-source guarantee: a pointer follow-up can
+    // also have detail zero. Consume it once regardless of that value.
+    const pending = pendingClick.current;
+    pendingClick.current = null;
+    if (pending && performance.now() <= pending.expiresAt) return;
+    // A click can also arrive without our release handler receiving pointerup.
+    if (drag.current) {
+      if (drag.current.moved || !same(drag.current.from, position)) return;
+      endDrag();
     }
     choose(position);
   }
 
-  return {isBusy: () => busy.current || !!drag.current, canRestart, deselect, board, moves, ui, solved, boardRef, platformRef, tileRef, pointerDown, pointerMove, pointerUp, pointerCancel, activate, choose, restart};
+  return {isBusy: () => busy.current || !!drag.current, canRestart, deselect, board, moves, ui, solved, boardRef, platformRef, tileRef, pointerDown, pointerMove, pointerUp, pointerCancel, keyboardActivation, activate, choose, restart};
 }

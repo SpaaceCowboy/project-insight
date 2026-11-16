@@ -98,6 +98,9 @@ section { padding:64px 0; scroll-margin-top:72px; }
 .cell.hole { visibility:hidden; }
 .cell.in-motion { z-index:2; }
 .cell.front { z-index:3; }
+/* Rewind has no active tile: equal cell stacking keeps lower rows above the
+   shadows of upper rows, including cells that do not need to move. */
+.board.resetting .cell { z-index:0; }
 .board-ink { position:absolute; z-index:0; height:80px; pointer-events:none; border-radius:50%; background:radial-gradient(ellipse,var(--flat),transparent 72%); animation:board-ink 1.2s linear both; }
 @keyframes board-ink {
   0% { opacity:.6; transform:translate(-50%,-50%) rotate(var(--angle)) scale(.1,.05); }
