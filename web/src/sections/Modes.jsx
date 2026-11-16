@@ -1,6 +1,6 @@
 import {TargetMini} from '../game/Board.jsx';
 import {TILES, TILE_ORDER} from '../game/tileArt.js';
-import {LEVEL_COUNT, WORLDS_PRICE} from '../config.js';
+import {LEVEL_COUNT} from '../config.js';
 import {Heading, Icon, Live, PlayButton, tilt} from '../ui.jsx';
 
 export const WORLDS_INCLUDES = [
@@ -32,7 +32,7 @@ export default function Modes({onUnlock}) {
       <Heading sub="Midori has two halves, the same two keys you see on its home screen.">Journey is free. Worlds is a one-time purchase.</Heading>
       <div className="mode-grid">
         <article className="panel journey" {...tilt}>
-          <div className="panel-head"><h3>Journey</h3><span className="price">Free</span></div>
+          <h3>Journey</h3>
           <p className="panel-sub">The single-player experience.</p>
           {/* One flat target square per Journey level, in the six tile colours in turn. */}
           <Live once threshold={.5} className="trail" aria-hidden="true">
@@ -42,7 +42,7 @@ export default function Modes({onUnlock}) {
           <PlayButton />
         </article>
         <article className="panel worlds" {...tilt}>
-          <div className="panel-head"><h3>Worlds</h3><span className="price">{WORLDS_PRICE || 'Pay once'}</span></div>
+          <h3>Worlds</h3>
           <p className="panel-sub">Join the community of puzzle designers around the world. Make your own puzzles and share them with others.</p>
           <Live className="drifts" aria-hidden="true">
             <Drift boards={COMMUNITY.slice(0, 6)} />

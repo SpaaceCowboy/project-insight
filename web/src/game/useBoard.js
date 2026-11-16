@@ -140,7 +140,9 @@ export function useBoard(level) {
 
   function pointerDown(event, position) {
     if (event.button !== 0 || busy.current || drag.current || solvedNow.current) return;
-    // Without focusVisible: false, a page that has not yet focused anything by mouse paints the keyboard ring round the tile.
+    // Chrome ignores focusVisible: false, and a page that has not yet focused anything by mouse paints the keyboard ring
+    // round the tile, so the board also says it is being played by pointer (site.css); Board.jsx clears that on a key press.
+    boardRef.current.dataset.input = 'pointer';
     event.preventDefault(); event.currentTarget.focus({preventScroll: true, focusVisible: false});
     const legal = Rules.legalMoves(live.current, ...position);
     // Freeze the same platform/cell geometry used by Android for this gesture.

@@ -30,7 +30,7 @@ function Stage({level, picker, leaving, entering, shared, target, onAdvance, onS
   // GameModel.guideSteps: the target comes right after the board.
   const steps = ['board', 'target', 'hold', 'swipe'];
 
-  // No result bar: once the solve bloom has played, the next board slides in (the last one stays).
+  // No result bar: once the solve bloom has played, the next board slides in (after the last comes the first).
   useEffect(() => {
     if (!game.solved) return;
     onSolved(level.id);
@@ -112,9 +112,11 @@ export default function Hero({index, setIndex, onUnlock}) {
   const shared = useRef(null), target = useRef(null), latestGo = useRef(null);
   const level = LEVELS[index];
 
-  function go(next) {
-    if (next < 0 || next >= LEVELS.length || next === index || swap) return;
-    if (!reducedMotion()) setSwap({level, board: shared.current.map(row => row.join('')), direction: next > index ? 1 : -1});
+  // The boards form a ring: past the last one comes the first, and the caller says which way the platforms travel.
+  function go(to, direction) {
+    const next = (to + LEVELS.length) % LEVELS.length;
+    if (next === index || swap) return;
+    if (!reducedMotion()) setSwap({level, board: shared.current.map(row => row.join('')), direction: direction ?? (next > index ? 1 : -1)});
     setIndex(next);
   }
   latestGo.current = go;
@@ -145,7 +147,7 @@ export default function Hero({index, setIndex, onUnlock}) {
           {swap ? <MorphTarget from={swap.level.target} to={level.target} /> : <TargetMini board={level.target} />}
         </div>
         <Stage key={level.id} level={level} picker={picker} leaving={leaving} entering={swap?.direction}
-          shared={shared} target={target} onAdvance={() => latestGo.current(index + 1)} onSwipe={direction => go(index + direction)}
+          shared={shared} target={target} onAdvance={() => latestGo.current(index + 1, 1)} onSwipe={direction => go(index + direction, direction)}
           onSolved={id => setDone(previous => previous.has(id) ? previous : new Set(previous).add(id))} />
       </div>
       <div className="hero-cta">

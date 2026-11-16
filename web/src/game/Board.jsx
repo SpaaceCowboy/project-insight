@@ -79,7 +79,8 @@ export function StillBoard({board}) {
 export function Board({game, label}) {
   const {board, ui, solved} = game;
   return <div ref={game.boardRef} role="group" aria-label={label} className={'board' + (solved && !ui.resetting ? ' solved' : '')}
-    aria-busy={!!ui.moving} style={gridStyle(board)} onLostPointerCapture={game.pointerCancel}>
+    aria-busy={!!ui.moving} style={gridStyle(board)} onLostPointerCapture={game.pointerCancel}
+    onKeyDown={event => { delete event.currentTarget.dataset.input; }}>
     {ui.bloom && <span key={ui.bloom.id} className={'board-ink ' + TILES[ui.bloom.type].cls} style={ui.bloom.style} aria-hidden="true" />}
     {board.flatMap((row, r) => row.map((type, c) => {
       const at = [r, c], key = r + ':' + c;

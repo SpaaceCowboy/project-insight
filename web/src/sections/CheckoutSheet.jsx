@@ -43,14 +43,10 @@ export default function CheckoutSheet({shown, onClose}) {
       {checkout.simulated && <p className="notice">This was a test run. No payment was taken and nothing was unlocked.</p>}
       <button type="button" className="key primary" onClick={onClose}>Done</button>
     </> : <>
-      <p>A one-time purchase to play community puzzles and publish your own boards. Journey stays free.</p>
-      {WORLDS_PRICE ? <span className="price">{WORLDS_PRICE}</span> : <p className="notice">Price announced soon.</p>}
+      {WORLDS_PRICE && <span className="price">{WORLDS_PRICE}</span>}
       <ul>{WORLDS_INCLUDES.map(text => <li key={text}><Icon name="check" /><span>{text}</span></li>)}</ul>
 
-      {!open && <>
-        <p className="notice">Checkout opens soon. Nothing can be bought on this page yet, and you will not be charged.</p>
-        {SUPPORT_EMAIL && <a className="key primary" href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Tell me when Worlds opens')}`}>Email me when it opens</a>}
-      </>}
+      {!open && SUPPORT_EMAIL && <a className="key primary" href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Tell me when Worlds opens')}`}>Email me when it opens</a>}
 
       {open && <form onSubmit={pay}>
         {checkout.simulated && <p className="notice">Test mode: this build only rehearses the purchase. No money moves.</p>}

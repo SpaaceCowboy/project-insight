@@ -10,9 +10,6 @@ const PATHS = {
   sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4',
   moon: 'M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z',
   play: 'M7 4.5v15l12-7.5-12-7.5Z',
-  // GameScreen.kt heartIcon and bookmarkIcon.
-  heart: 'M12 20C3 14 2.5 8 6 5.5 8.5 3.8 11 5 12 7.5 13 5 15.5 3.8 18 5.5 21.5 8 21 14 12 20Z',
-  bookmark: 'M6 3.5h12v17l-6-4.5-6 4.5Z',
 };
 export function Icon({name}) {
   return <svg viewBox="0 0 24 24" aria-hidden="true" {...line}><path d={PATHS[name]} /></svg>;
@@ -78,6 +75,40 @@ export function Live({as: Tag = 'div', className = '', once = false, threshold, 
   return <Tag ref={ref} className={className + (inView ? ' live' : '')} {...props} />;
 }
 
+/**
+ * A capture of the game in a phone frame, from public/shots/<name>-<light|dark>[-1x]: a still (.webp), or with `loop` a
+ * muted video (.webm, .mp4) over its first frame (.webp). The loop runs only while it is on screen and motion is welcome.
+ */
+// Each capture exists 640 wide and 320 wide ("-1x"). A video cannot choose by density itself, and a browser scaling the large
+// one down to a standard-density screen blurs the game's small text, so the choice is made here.
+const RENDITION = window.devicePixelRatio < 1.5 ? '-1x' : '';
+export function Shot({name, label, loop = false}) {
+  const [ref, inView] = useInView();
+  useEffect(() => {
+    if (!loop) return;
+    const sync = () => ref.current.querySelectorAll('video').forEach(video => {
+      // offsetParent is null for the theme that is not displayed.
+      if (inView && video.offsetParent && !reducedMotion()) video.play().catch(() => { /* the poster stays */ });
+      else video.pause();
+    });
+    sync();
+    // The header's theme toggle swaps which capture is displayed.
+    const observer = new MutationObserver(sync);
+    observer.observe(document.documentElement, {attributeFilter: ['data-theme']});
+    return () => observer.disconnect();
+  }, [inView, loop]);
+  return <figure ref={ref} className="phone shot" role="img" aria-label={label}>
+    {['light', 'dark'].map(theme => {
+      const base = `/shots/${name}-${theme}`, src = base + RENDITION;
+      return loop
+        ? <video key={theme} className={theme} muted loop playsInline preload="none" poster={src + '.webp'} width="640" height="1322" aria-hidden="true">
+          <source src={src + '.webm'} type="video/webm" /><source src={src + '.mp4'} type="video/mp4" />
+        </video>
+        : <img key={theme} className={theme} src={base + '.webp'} srcSet={`${base}-1x.webp 1x, ${base}.webp 2x`} alt="" loading="lazy" decoding="async" width="640" height="1322" />;
+    })}
+  </figure>;
+}
+
 /** A section heading that rises out of a mask the first time it is seen. */
 export function Heading({children, sub}) {
   const [ref, inView] = useInView({once: true, threshold: .4});
@@ -85,24 +116,6 @@ export function Heading({children, sub}) {
     <h2><span>{children}</span></h2>
     {sub && <p>{sub}</p>}
   </div>;
-}
-
-/** Counts up to `to` the first time it scrolls into view. */
-export function CountUp({to}) {
-  const [ref, inView] = useInView({once: true, threshold: .6});
-  const [value, setValue] = useState(to);
-  useEffect(() => {
-    if (!inView || reducedMotion()) return;
-    let frame; const start = performance.now(), length = 1300;
-    const step = now => {
-      const t = Math.min(1, (now - start) / length);
-      setValue(Math.round(to * (1 - Math.pow(1 - t, 4))));
-      if (t < 1) frame = requestAnimationFrame(step);
-    };
-    setValue(0); frame = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frame);
-  }, [inView]);
-  return <span ref={ref} className="count">{value}</span>;
 }
 
 /** Leans a panel towards the mouse and moves its sheen with it. Touch and pen are left alone. */

@@ -121,6 +121,7 @@ span.tile { cursor:default; width:var(--cell); height:var(--cell); flex:none; }
 .tile svg { width:44%; height:44%; pointer-events:none; }
 .tile.hovered::after { content:""; position:absolute; inset:0; background:rgb(255 255 255 / .1); pointer-events:none; }
 .tile.selected { transform:translateY(-5px) scale(1.035); box-shadow:0 0 0 var(--ring) var(--ink),var(--rest); z-index:3; }
+.board[data-input="pointer"] .tile:focus-visible { outline:none; }
 .tile.dragging { z-index:40; }
 .tile.moving { z-index:4; }
 .tile.arrived { animation:arrive .42s ease-in-out; }
@@ -148,13 +149,9 @@ span.tile { cursor:default; width:var(--cell); height:var(--cell); flex:none; }
 
 @keyframes slide { to { transform:translateX(-50%); } }
 
-/* Introduction: one statement and three facts */
+/* Introduction: one statement, then a rule */
 .statement { max-width:22em; font:700 clamp(24px,4.4vw,48px)/1.28 var(--mono); letter-spacing:-.03em; text-wrap:pretty; }
-.facts { display:grid; gap:28px; margin-top:56px; }
-@media (min-width:720px) { .facts { grid-template-columns:repeat(3,1fr); gap:40px; } }
-.facts div { padding-top:18px; border-top:2px solid var(--ink); }
-.facts dt { font:700 clamp(40px,6vw,64px)/1 var(--mono); letter-spacing:-.04em; font-variant-numeric:tabular-nums; }
-.facts dd { margin-top:10px; color:var(--muted); font-size:14.5px; max-width:30ch; }
+.rule { margin-top:56px; border:0; border-top:2px solid var(--ink); }
 
 /* The six tiles: pick one and watch it walk its rule */
 .showcase { display:grid; gap:28px; align-items:center; justify-items:center; text-align:center; }
@@ -186,13 +183,14 @@ span.tile { cursor:default; width:var(--cell); height:var(--cell); flex:none; }
 .modes { background:color-mix(in srgb,var(--paper2) 55%,transparent); border-block:1px solid var(--line); }
 .mode-grid { display:grid; gap:26px; perspective:1400px; }
 @media (min-width:820px) { .mode-grid { grid-template-columns:1fr 1fr; } }
+/* Stacked, the two cards still stand the same height: Journey's trail becomes a 10 by 10 square and takes up the difference. */
+@media (max-width:819px) { .mode-grid { grid-auto-rows:1fr; } .mode-grid .trail { flex:1; grid-template-columns:repeat(10,1fr); gap:6px; } }
 .panel { position:relative; display:flex; flex-direction:column; padding:30px 26px 28px; border-radius:28px; overflow:hidden; background:linear-gradient(to bottom,var(--sheen),transparent 50%),var(--paper2); box-shadow:0 8px 0 var(--side),0 22px 28px var(--key-shadow); transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)); transition:transform .6s var(--out); }
 .panel::after { content:''; position:absolute; inset:0; pointer-events:none; opacity:0; background:radial-gradient(420px circle at var(--mx,50%) var(--my,0%),color-mix(in srgb,currentColor 9%,transparent),transparent 70%); transition:opacity .4s; }
 @media (hover:hover) { .panel:hover::after { opacity:1; } }
 /* The card is dark on the light theme and light on the dark one, so its target squares are drawn as the game draws them on that surface. */
 .panel.worlds { background:linear-gradient(to bottom,var(--sheen),transparent 50%),var(--accent); color:var(--accent-ink); box-shadow:0 8px 0 var(--accent-side),0 22px 28px var(--key-shadow); --mini-mix:var(--accent-mini-mix); --mini-edge:var(--accent-mini-edge); }
 .panel.worlds .panel-sub,.panel.worlds .price-note { color:inherit; opacity:.76; }
-.panel-head { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
 .panel h3 { font:700 clamp(34px,6.4vw,58px)/1 var(--mono); letter-spacing:.04em; text-transform:uppercase; }
 .price { font:700 clamp(17px,2.2vw,22px)/1 var(--mono); white-space:nowrap; }
 .panel-sub { margin-top:12px; color:var(--muted); font-size:14.5px; }
@@ -231,80 +229,21 @@ span.tile { cursor:default; width:var(--cell); height:var(--cell); flex:none; }
 
 /* Screens */
 .phones { display:flex; gap:36px; overflow-x:auto; padding:16px 8px 28px; scroll-snap-type:x mandatory; scrollbar-width:none; }
-@media (min-width:820px) { .phones { justify-content:center; overflow:visible; } }
-.phone { flex:none; width:220px; scroll-snap-align:center; animation:float 7s ease-in-out infinite alternate paused; }
-.phone:nth-child(2) { animation-delay:-2.3s; margin-top:28px; }
-.phone:nth-child(3) { animation-delay:-4.6s; }
-.phones.live .phone { animation-play-state:running; }
-@keyframes float { from { transform:translateY(-6px); } to { transform:translateY(8px); } }
-.phone-body { height:420px; display:flex; flex-direction:column; gap:10px; padding:14px 12px; border-radius:28px; background:var(--backdrop-flat); box-shadow:0 0 0 5px var(--side),0 24px 30px var(--key-shadow); }
-.phone figcaption { margin-top:22px; font-size:13px; color:var(--muted); text-align:center; }
-.phone-bar { display:flex; align-items:center; justify-content:space-between; font-size:12px; }
-.phone-bar .mark { width:20px; height:20px; color:var(--accent); }
-.pk { display:grid; place-items:center; border-radius:10px; background:var(--paper2); box-shadow:0 2px 0 var(--side); font-weight:700; letter-spacing:.05em; font-size:13px; }
-.pk.sq { width:26px; height:26px; }
-.pk.big { flex:1; border-radius:22px; box-shadow:0 5px 0 var(--side); text-transform:uppercase; }
-/* The two home keys take turns being pressed. */
-.phones.live .pk.big { animation:press 5s var(--out) infinite; }
-.phones.live .pk.big.second { animation-delay:2.5s; }
-@keyframes press { 0%,10%,100% { transform:none; box-shadow:0 5px 0 var(--side); } 4% { transform:translateY(4px) scale(.98); box-shadow:0 1px 0 var(--side); } }
-.pk.on { background:var(--accent); color:var(--accent-ink); box-shadow:0 2px 0 var(--accent-side); }
-.level-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:7px; }
-.level-grid .pk { aspect-ratio:1; font-size:9px; font-weight:400; }
-.level-grid .pk.solved { background:color-mix(in srgb,var(--paper2) 80%,var(--accent)); }
-.phones.live .level-grid .pk { animation:pop .5s var(--out) both; animation-delay:calc(var(--i) * 40ms); }
-@keyframes pop { from { opacity:0; transform:scale(.6); } }
-.level-grid .mini { --m:7px; gap:1.5px; }
-.phone-row { display:flex; gap:8px; margin-top:auto; }
-.phone-row .pk { flex:1; height:30px; font-size:10px; font-weight:600; }
+@media (min-width:1080px) { .phones { justify-content:center; overflow:visible; } }
+.phone { flex:none; width:min(300px,76vw); scroll-snap-align:center; }
+/* The phones stand still: drifting a capture a couple of pixels a second makes it step from pixel to pixel. */
+.phone:nth-child(2) { margin-top:28px; }
+/* A capture of the game in a rounded frame: a 1080 by 2340 phone screen without its status bar. */
+.shot > * { width:100%; height:auto; aspect-ratio:720/1488; object-fit:cover; border-radius:12.5%/6%; background:var(--backdrop-flat); box-shadow:0 0 0 5px var(--side),0 24px 30px var(--key-shadow); }
+.shot .light { display:var(--shot-light); }
+.shot .dark { display:var(--shot-dark); }
 
-/* Inside Worlds: four drawn phones standing in for captures of the app. They scroll sideways until all four fit. */
-.phones.four { gap:28px; }
+/* Inside Worlds: four captures. They scroll sideways until all four fit. */
+.phones.four { gap:24px; }
 .phones.four .phone { margin-inline:0; }
-@media (min-width:820px) and (max-width:1079px) { .phones.four { justify-content:flex-start; overflow-x:auto; } }
-.phone:nth-child(4) { animation-delay:-1.2s; margin-top:28px; }
-.pk.sq svg { width:14px; height:14px; }
-.pk.wide { height:34px; font-size:11px; background:var(--accent); color:var(--accent-ink); box-shadow:0 2px 0 var(--accent-side); }
-.pk.name { width:96px; height:24px; }
-.pk.name i { width:60px; height:6px; border-radius:3px; background:color-mix(in srgb,var(--ink) 22%,transparent); }
-.mock-shelf { display:flex; justify-content:space-between; padding:2px 2px 6px; --cell:26px; }
-.mock-platform { flex:1; display:grid; place-items:center; margin-bottom:5px; border-radius:18px; background:var(--paper2); box-shadow:0 5px 0 var(--side); }
-.mock-grid { display:grid; grid-template-columns:repeat(3,var(--cell)); gap:4px; --cell:46px; }
-.mock-grid.four { grid-template-columns:repeat(4,var(--cell)); --cell:38px; }
-.slot-empty { width:var(--cell); height:var(--cell); border-radius:23%; background:color-mix(in srgb,var(--paper2) 90%,var(--ink)); box-shadow:0 2px 0 color-mix(in srgb,var(--paper2) 85%,var(--side)); }
-.phones.live .mock-grid .drop { animation:pop .5s var(--out) both; }
-.phones.live .mock-grid .drop:nth-child(3n) { animation-delay:.25s; }
-.phones.live .mock-grid .drop:nth-child(3n+1) { animation-delay:.5s; }
-.mock-grid .swap-out { z-index:3; animation:mock-swap-out 6s var(--out) infinite paused; }
-.mock-grid .swap-back { animation:mock-swap-back 6s var(--out) infinite paused; }
-.phones.live .swap-out,.phones.live .swap-back { animation-play-state:running; }
-@keyframes mock-swap-out { 0%,15%,85%,100% { transform:none; } 24% { transform:translateY(-5px) scale(1.035); } 38%,62% { transform:translateX(50px); } 73% { transform:translate(50px,-5px) scale(1.035); } }
-@keyframes mock-swap-back { 0%,24%,73%,100% { transform:none; } 38%,62% { transform:translateX(-50px); } }
-.mock-person,.mock-row { display:flex; align-items:center; gap:10px; }
-.mock-row { padding:5px 0; }
-.avatar { flex:none; width:34px; height:34px; border-radius:50%; background:var(--paper2); box-shadow:0 2px 0 var(--side); }
-.mock-person .avatar { width:52px; height:52px; }
-.bars { flex:1; display:grid; gap:6px; }
-.bars i { height:7px; border-radius:4px; background:color-mix(in srgb,var(--ink) 18%,transparent); }
-.bars i:last-child { width:60%; opacity:.6; }
-.mock-badges { display:flex; gap:7px; padding:2px 0 4px; --cell:24px; }
-.mock-badges .badge { border-radius:50%; }
-.pk.follow { flex:none; width:76px; height:26px; font-size:9px; font-weight:600; letter-spacing:.02em; }
-.pk.follow b { grid-area:1 / 1; font-weight:inherit; }
-.pk.follow b:last-child { opacity:0; }
-/* One designer is followed and unfollowed in turn, the key sinking each time. */
-.phones.live .follow.turn { animation:follow-key 6s linear infinite; }
-.phones.live .follow.turn b:first-child { animation:follow-off 6s linear infinite; }
-.phones.live .follow.turn b:last-child { animation:follow-on 6s linear infinite; }
-@keyframes follow-key {
-  0%,46%,98%,100% { transform:none; background:var(--paper2); color:var(--ink); box-shadow:0 2px 0 var(--side); }
-  47%,97% { transform:translateY(2px); box-shadow:0 0 0 var(--side); }
-  48%,96% { transform:none; background:var(--accent); color:var(--accent-ink); box-shadow:0 2px 0 var(--accent-side); }
-}
-@keyframes follow-off { 0%,47%,97.1%,100% { opacity:1; } 47.1%,97% { opacity:0; } }
-@keyframes follow-on { 0%,47%,97.1%,100% { opacity:0; } 47.1%,97% { opacity:1; } }
-.phones.live .like svg { animation:beat 6s var(--out) infinite; }
-@keyframes beat { 0%,60%,72%,100% { transform:none; fill:none; } 64% { transform:scale(1.18); fill:currentColor; } 66%,71% { fill:currentColor; } }
+@media (min-width:820px) and (max-width:1139px) { .phones.four { justify-content:flex-start; overflow-x:auto; } }
+@media (min-width:1140px) { .phones.four .phone { width:244px; } }
+.phone:nth-child(4) { margin-top:28px; }
 
 /* Questions */
 .faq { max-width:780px; }
