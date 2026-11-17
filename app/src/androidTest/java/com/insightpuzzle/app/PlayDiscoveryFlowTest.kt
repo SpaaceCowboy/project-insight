@@ -205,7 +205,7 @@ class PlayDiscoveryFlowTest {
             repository.client.register(email, "fixture-password-long", "Casual " + java.util.UUID.randomUUID().toString().take(8))
             repository.client.logout()
         }
-        val store = Store(context); store.dev = false; store.motion = "on"; store.onboarded = true; store.worldsGuided = true; store.onlineGuided = true; store.creatorGuided = true; store.language = "en"
+        val store = Store(context); store.motion = "on"; store.onboarded = true; store.worldsGuided = true; store.onlineGuided = true; store.creatorGuided = true; store.language = "en"
         val fixture = runBlocking { repository.client.request("GET", "/test/discovery", account = null) }
         var activity = instrumentation.startActivitySync(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)) as MainActivity
         lateinit var model: GameModel
@@ -213,9 +213,11 @@ class PlayDiscoveryFlowTest {
         await("Startup splash finishes") { model.splashDone }
         try {
             tap("Worlds")
-            await("Worlds requires sign-in and retains its destination") { model.top == Route.Auth(Route.Online) }
-            instrumentation.runOnMainSync { model.online.login(email, "fixture-password-long", Route.Online) }
-            await("Worlds opens after sign-in finishes") { model.top == Route.Online && !model.online.busy }
+            await("Worlds shows its preview to a guest") { model.top == Route.WorldsPreview }
+            tap("Purchase")
+            await("Purchase requires sign-in and retains its destination") { model.top == Route.Auth(Route.Purchase) }
+            instrumentation.runOnMainSync { model.online.login(email, "fixture-password-long", Route.Purchase) }
+            await("An account that already owns Worlds goes straight in") { model.top == Route.Online && !model.online.busy }
             tap("Random")
             await("Casual opens a community game") { model.top == Route.Game && model.community?.casual == true }
             val initialSession = model.community!!.sessionId
@@ -319,7 +321,7 @@ class PlayDiscoveryFlowTest {
         val repository = OnlineRepository.get(context)
         val id = java.util.UUID.randomUUID().toString().take(8)
         runBlocking { repository.client.register("social-$id@example.test", "fixture-password-long", "Social $id") }
-        Store(context).apply { dev = false; motion = "on"; onboarded = true; worldsGuided = true; onlineGuided = true; creatorGuided = true; language = "en" }
+        Store(context).apply { motion = "on"; onboarded = true; worldsGuided = true; onlineGuided = true; creatorGuided = true; language = "en" }
         val activity = instrumentation.startActivitySync(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)) as MainActivity
         lateinit var model: GameModel
         fun main(action: () -> Unit) { instrumentation.runOnMainSync(action); instrumentation.waitForIdleSync() }

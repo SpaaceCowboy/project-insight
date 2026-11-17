@@ -150,7 +150,7 @@ class AppearanceHotfixTest {
         store.selectAccount(repository.client.user!!.id)
         store.importedInto = "hotfix-no-import"; store.onboarded = true; store.worldsGuided = true; store.onlineGuided = true; store.creatorGuided = true; store.language = "en"
         val badges = mapOf("first" to 789L, "first-clean" to 123L, "world-1" to 456L)
-        store.earned = badges; store.done = setOf(1); store.background = "aurora"; store.motion = "system"; store.dev = false
+        store.earned = badges; store.done = setOf(1); store.background = "aurora"; store.motion = "system"
         val activity = instrumentation.startActivitySync(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)) as MainActivity
         lateinit var model: GameModel
         fun main(action: () -> Unit) = instrumentation.runOnMainSync(action)
@@ -202,7 +202,7 @@ class AppearanceHotfixTest {
             val grid = JSONObject().put("id", "hotfix-grid").put("ownerId", "hotfix-owner").put("username", "Hotfix Maker").put("levelNumber", 1)
                 .put("start", JSONArray(model.levels[0].start)).put("target", JSONArray(model.levels[0].target))
             // This synthetic grid checks rendering; valid online sessions are exercised by PlayDiscoveryFlowTest.
-            main { model.toggleDev(); model.startCommunity(grid, "hotfix-session"); model.move(Pos(0, 0), Pos(1, 0)) }
+            main { model.startCommunity(grid, "hotfix-session"); model.move(Pos(0, 0), Pos(1, 0)) }
             await("Online result must appear") { model.top == Route.Win }
             SystemClock.sleep(1600); capture("online-solved-normal")
             main { model.restart() }; assertFalse(model.solved)

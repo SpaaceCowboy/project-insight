@@ -471,7 +471,7 @@ Gameplay uses Options and Profile shortcuts above an unframed target and the boa
 
 ## Android v0.2.2 Options
 
-Options has Options / Rulebook / About tabs. Options combines play, sound, theme, and Colourblind mode controls; About contains version, licences, and debug developer controls. Tile finishes, reward instructions, and Reset progress are removed. Badges remain permanent. Colourblind mode uses the alternative palette from Claude's changes and dark ink on Yellow, while preserving every tile's symbol. Targets and creator tiles use the same palette. Rulebook places six tile rules above a free 3×3 board, using the gameplay board's controls and feedback without a target or progress changes. The rules scroll when they exceed their space, including at enlarged text sizes; the practice board stays visible.
+Options has Options / Rulebook / About tabs. Options combines play, sound, theme, and Colourblind mode controls; About contains version, licences, privacy and contact. Tile finishes, reward instructions, and Reset progress are removed. Badges remain permanent. Colourblind mode uses the alternative palette from Claude's changes and dark ink on Yellow, while preserving every tile's symbol. Targets and creator tiles use the same palette. Rulebook places six tile rules above a free 3×3 board, using the gameplay board's controls and feedback without a target or progress changes. The rules scroll when they exceed their space, including at enlarged text sizes; the practice board stays visible.
 
 ## Game screen (Problem 17; supersedes the older game-board, pause, result and level-cell notes above)
 - **Header:** Options (top-left) and Profile (top-right) icons, the same as Home. No Menu, Restart or pause sheet. System Back goes Game → Levels → Home (community games return to their list).
@@ -501,7 +501,7 @@ Options has Options / Rulebook / About tabs. Options combines play, sound, theme
 - **Random:** loads in the background and opens the game directly; Back returns to Worlds. No loading screen.
 
 ## Polish hotfixes (Problem 21)
-- **Options:** no section headings and no explanation lines. Haptics, Sound, Ambience, Effects, Theme and Colourblind mode are plain rows; Developer mode (debug only) sits in About without a heading. "Pause ambience over other audio" and "Silence when headphones unplug" are removed: ambience plays whenever Sound is on, and unplugging headphones does not silence it.
+- **Options:** no section headings and no explanation lines. Haptics, Sound, Ambience, Effects, Theme and Colourblind mode are plain rows; "Pause ambience over other audio" and "Silence when headphones unplug" are removed: ambience plays whenever Sound is on, and unplugging headphones does not silence it.
 - **Home:** the header (Options, INSIGHT, Profile) stays on top; Journey fills the top half and Worlds the bottom half of the remaining space.
 - **Levels:** no on-screen title. The campaign is a flat list of 100 levels: the puzzles of the online account `Levels`, in its numbering (since v0.2.30).
 - **Win:** no modal. Two equal white rectangles slide up at the bottom: restart (left) and next (right), icons only. A newly earned achievement shows as a small white pill with its name above them; it opens Achievements.
@@ -616,7 +616,7 @@ Screen sheets layer over the screen beneath, hide covered controls from accessib
 - **Creator handle:** starting a drag hides the Android navigation handle, excludes the screen from system gestures while a tile is in hand, re-hides on a throttle during the drag, and hides again shortly after the drop.
 - **Creator guide borders:** the shelf border runs to the strip edges so the end tiles keep an 8dp gap; the stage button's top border is raised 2dp so the visible space above matches the space under its wall.
 - **Other profiles:** Follow and Achievements are one row, the same height as your own profile's three keys, so twelve puzzles (three rows) fit without the last row slipping under the page edge.
-- **Publishing:** no daily cap by default; `CREATE_DAILY_LIMIT` remains an optional operator cap and `DEVELOPER_USER_IDS` remains exempt. The Android preview no longer enforces ten a day.
+- **Publishing:** no daily cap by default; `CREATE_DAILY_LIMIT` remains an optional operator cap. The Android preview no longer enforces ten a day.
 - **Pending outbox:** `outcomes` returns failed submissions only, so a queued operation waiting out a 429 is not mistaken for a failure (fixes `RateLimitFlowTest`).
 
 ## Problem 43 hotfixes (v0.2.31)

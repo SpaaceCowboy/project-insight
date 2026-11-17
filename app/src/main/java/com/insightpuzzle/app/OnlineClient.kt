@@ -23,8 +23,9 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-data class OnlineUser(val id: String, val username: String, val verified: Boolean) {
-    companion object { fun parse(json: JSONObject) = OnlineUser(json.getString("id"), json.getString("username"), json.getBoolean("verified")) }
+/** [worlds]: the account owns Worlds (the server decides; an account saved by an older build reads as not owning it until the next refresh). */
+data class OnlineUser(val id: String, val username: String, val verified: Boolean, val worlds: Boolean = false) {
+    companion object { fun parse(json: JSONObject) = OnlineUser(json.getString("id"), json.getString("username"), json.getBoolean("verified"), json.optBoolean("worlds", false)) }
 }
 /** Either a signed-in Google account, or the server's suggestion for a new account's username. */
 data class GoogleSignIn(val user: OnlineUser?, val suggestedName: String?)
@@ -188,6 +189,14 @@ class OnlineClient(context: Context) {
             if (user?.id != account) throw OnlineException(401, "ACCOUNT_CHANGED", "Account changed.")
             save(JSONObject(credentials!!.toString()).put("user", response.getJSONObject("user")))
             user!!
+        }
+    }
+    /** The server refused a Worlds request: the saved account no longer owns Worlds (revoked or refunded). */
+    suspend fun worldsLost(): OnlineUser? = withContext(Dispatchers.IO) {
+        sessionLock.withLock {
+            val current = credentials ?: return@withLock null
+            save(JSONObject(current.toString()).put("user", JSONObject(current.getJSONObject("user").toString()).put("worlds", false)))
+            user
         }
     }
     suspend fun logout(): Boolean = withContext(Dispatchers.IO) {

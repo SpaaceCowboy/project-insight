@@ -168,7 +168,7 @@ fun HomeScreen(m: GameModel) {
                                 Label("${m.onlineStats.communityCount}", 10.5.sp, color = p.muted, lines = 1, translate = false)
                             }
                         }
-                    }) { m.openOnline(Route.Online) }
+                    }) { m.openWorlds() }
             }
         }
     }
@@ -373,8 +373,6 @@ fun OptionsScreen(m: GameModel) {
                         InfoRow("Licences", "", icon = documentIcon, onClick = { m.push(Route.Licences) })
                         if (AppLinks.PRIVACY_URL.isNotEmpty()) InfoRow("Privacy policy", "Open", onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(AppLinks.PRIVACY_URL))) })
                         if (AppLinks.CONTACT_EMAIL.isNotEmpty()) InfoRow("Contact", AppLinks.CONTACT_EMAIL, onClick = { context.startActivity(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:${AppLinks.CONTACT_EMAIL}"))) })
-
-                        if (BuildConfig.DEBUG) ToggleRow("Developer mode", m.dev) { m.toggleDev() }
                     }
                 }
             }

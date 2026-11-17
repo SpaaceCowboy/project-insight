@@ -63,9 +63,9 @@ export async function buildAdminApp(db: Db, config: Config, logging = true, supp
 
   // ---- reads
   app.get('/api/users', { preHandler: need, schema: { querystring: { type: 'object', additionalProperties: false, properties: {
-    q: { type: 'string', maxLength: 100 }, status: { enum: ['active', 'suspended', 'deleted'] }, page: { type: 'integer', minimum: 0, maximum: 100000 } } } } }, async req => {
-    const q = req.query as { q?: string; status?: ops.Status; page?: number };
-    return ops.listUsers(db, { q: q.q, status: q.status, limit: 50, offset: (q.page ?? 0) * 50 });
+    q: { type: 'string', maxLength: 100 }, status: { enum: ['active', 'suspended', 'deleted'] }, worlds: { enum: ['active', 'none'] }, page: { type: 'integer', minimum: 0, maximum: 100000 } } } } }, async req => {
+    const q = req.query as { q?: string; status?: ops.Status; worlds?: 'active' | 'none'; page?: number };
+    return ops.listUsers(db, { q: q.q, status: q.status, worlds: q.worlds, limit: 50, offset: (q.page ?? 0) * 50 });
   });
   app.get('/api/users/:id', { preHandler: need, schema: { params: idParams } }, async req => ops.userDetail(db, (req.params as { id: string }).id));
   app.get('/api/audit', { preHandler: need, schema: { querystring: { type: 'object', additionalProperties: false, properties: {

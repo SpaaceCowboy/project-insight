@@ -6,7 +6,7 @@ import java.util.UUID
 /** One visit/attempt, separate from the saved board and the server's play session. */
 data class PlayAttempt(val id: String, val session: String, val baseline: Int, val startedAt: Long, val closed: Boolean = false) {
     fun json() = JSONObject().put("id", id).put("session", session).put("baseline", baseline).put("startedAt", startedAt).put("closed", closed)
-    fun canFail(moves: Int, solved: Boolean, dev: Boolean) = !closed && !solved && !dev && moves > baseline
+    fun canFail(moves: Int, solved: Boolean) = !closed && !solved && moves > baseline
     companion object {
         fun open(saved: JSONObject?, session: String, moves: Int, now: Long = System.currentTimeMillis()): PlayAttempt {
             // Keep interrupted visits, but renew old sessions before the service's seven-day expiry.

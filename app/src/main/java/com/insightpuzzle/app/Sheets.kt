@@ -171,6 +171,8 @@ private fun RouteContent(m: GameModel, route: Route) {
         Route.Achievements -> AchievementsScreen(m)
         is Route.PlayerAchievements -> AchievementsScreen(m, route)
         Route.Online -> WorldsScreen(m)
+        Route.WorldsPreview -> WorldsPreviewScreen(m)
+        Route.Purchase -> PurchaseScreen(m)
         Route.Create -> CreatorScreen(m)
         is Route.Auth -> AuthScreen(m, route.destination)
         is Route.Profile -> ProfileScreen(m, route.id)

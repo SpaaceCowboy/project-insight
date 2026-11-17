@@ -14,8 +14,8 @@ android {
         applicationId = "com.insightpuzzle.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 42
-        versionName = "0.2.31"
+        versionCode = 43
+        versionName = "0.2.32"
         buildConfigField("boolean", "ONLINE_DEMO", onlineDemo.toString())
         buildConfigField("String", "GOOGLE_CLIENT_ID", "\"${googleClientId.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

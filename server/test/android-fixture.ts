@@ -17,6 +17,11 @@ const config: Config = { databaseUrl: url.toString(), encryptionKey: '28'.repeat
   smtpHost: 'localhost', smtpPort: 1025, smtpSecure: false, mailFrom: 'test@localhost', environment: 'test', trustProxy: false, mailDeliveryMode: 'test-inbox' };
 const db = database(config.databaseUrl);
 await migrate(db);
+// Worlds is off for new accounts in production; the Android flow tests mostly exercise Worlds, so every fixture account starts with it
+// (POST /test/worlds switches it for the tests that check the preview and the purchase redirect).
+await db.query(`CREATE FUNCTION fixture_grant_worlds() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
+  INSERT INTO entitlements(user_id,product,status,source,note) VALUES(NEW.id,'worlds','active','manual','android fixture'); RETURN NEW; END $$`);
+await db.query('CREATE TRIGGER fixture_grant_worlds AFTER INSERT ON users FOR EACH ROW EXECUTE FUNCTION fixture_grant_worlds()');
 const app = await buildApp(db, config, false);
 const paths = JSON.parse(readFileSync(new URL('../../app/src/test/resources/solutions.json', import.meta.url), 'utf8'));
 let fixtureGrid: any;
@@ -31,6 +36,12 @@ app.addHook('onRequest',async(req,reply)=>{
     if (throttleImport) return reply.code(429).header('Retry-After', '3').header('X-RateLimit-Policy', 'sync')
       .send({ code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.', policy: 'sync', retryAfterSeconds: 3, correlationId: req.id });
   }
+});
+app.post('/test/worlds', async req => {
+  const b = req.body as { email: string; active: boolean };
+  const r = await db.query(`INSERT INTO entitlements(user_id,product,status,source) SELECT id,'worlds',$2,'manual' FROM users WHERE email=$1
+    ON CONFLICT (user_id,product) DO UPDATE SET status=$2 RETURNING user_id`, [b.email.toLowerCase(), b.active ? 'active' : 'none']);
+  return { accepted: r.rowCount === 1 };
 });
 app.post('/test/outage',async req=>{ offline=!!(req.body as any).offline; return {accepted:true}; });
 app.post('/test/throttle-import', async req => { throttleImport = !!(req.body as any).enabled; return { accepted: true, importRequests }; });

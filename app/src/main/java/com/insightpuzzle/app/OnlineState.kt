@@ -53,8 +53,14 @@ class OnlineState(private val model: GameModel, app: Application, private val sc
     fun dismissError() { error = null }
     fun report(error: Throwable) {
         if (error is CancellationException) throw error
+        if (error is OnlineException && error.code == "WORLDS_REQUIRED") { worldsLost(); return }
         if (isNameError(error)) nameError = playerErrorMessage(error) else this.error = playerErrorMessage(error)
         Log.e("InsightOnline", "action_failed type=${error.javaClass.simpleName}")
+    }
+    /** The server says this account does not own Worlds (revoked or refunded, or the saved flag was stale): remember that and show the preview. */
+    private fun worldsLost() = scope.launch {
+        user = repository.client.worldsLost() ?: return@launch
+        model.mainMenu(); model.push(Route.WorldsPreview)
     }
     fun task(block: suspend () -> Unit) {
         if (busy) return
@@ -85,6 +91,9 @@ class OnlineState(private val model: GameModel, app: Application, private val sc
         try {
             flushProofs()
             repository.sync()
+            // A purchase, a refund or an admin's grant shows up here, with no new sign-in.
+            val fresh = repository.client.updateVerifiedUser()
+            if (user?.id == account) user = fresh
             val progress = repository.fetch("/v1/progress", account)
             if (user?.id == account) model.mergeAccountProgress(progress)
             // The server answered, so whatever marked the connection lost is over; screens that failed reload on [retry].
@@ -141,7 +150,7 @@ class OnlineState(private val model: GameModel, app: Application, private val sc
     }
     private suspend fun finishLogin(destination: Route?) {
         if (model.top is Route.Auth) model.back()
-        if (destination != null) model.push(destination)
+        if (destination != null) model.push(afterSignIn(destination, user?.worlds == true))
     }
     private suspend fun activate() {
         val account = user?.id ?: return

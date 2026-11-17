@@ -4,10 +4,12 @@ import { Button, Empty, ErrorNote, Loading, PageHeader, StatusText, Tabs } from 
 
 type Filter = '' | 'active' | 'suspended' | 'deleted';
 const FILTERS: { id: Filter; label: string }[] = [{ id: '', label: 'All' }, { id: 'active', label: 'Active' }, { id: 'suspended', label: 'Suspended' }, { id: 'deleted', label: 'Deleted' }];
+type WorldsFilter = '' | 'active' | 'none';
+const WORLDS: { id: WorldsFilter; label: string }[] = [{ id: '', label: 'Any Worlds access' }, { id: 'active', label: 'Has Worlds' }, { id: 'none', label: 'No Worlds' }];
 const PAGE = 50;
 
 export function Users() {
-  const [q, setQ] = useState(''); const [status, setStatus] = useState<Filter>(''); const [page, setPage] = useState(0);
+  const [q, setQ] = useState(''); const [status, setStatus] = useState<Filter>(''); const [worlds, setWorlds] = useState<WorldsFilter>(''); const [page, setPage] = useState(0);
   const [data, setData] = useState<{ total: number; users: UserRow[] } | null>(null);
   const [error, setError] = useState<unknown>(null); const [tick, setTick] = useState(0);
   const search = useRef<HTMLInputElement>(null);
@@ -20,18 +22,19 @@ export function Users() {
   useEffect(() => {
     let live = true; setError(null);
     const t = setTimeout(() => {
-      const qs = new URLSearchParams({ page: String(page), ...(q.trim() ? { q: q.trim() } : {}), ...(status ? { status } : {}) });
+      const qs = new URLSearchParams({ page: String(page), ...(q.trim() ? { q: q.trim() } : {}), ...(status ? { status } : {}), ...(worlds ? { worlds } : {}) });
       api<{ total: number; users: UserRow[] }>('GET', `/api/users?${qs}`).then(r => live && setData(r), e => live && setError(e));
     }, q ? 250 : 0);
     return () => { live = false; clearTimeout(t); };
-  }, [q, status, page, tick]);
+  }, [q, status, worlds, page, tick]);
   const from = page * PAGE + 1; const to = data ? Math.min(data.total, from + data.users.length - 1) : 0;
   const open = (id: string) => { location.hash = `#/users/${id}`; };
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title="Players" subtitle={data ? `${data.total.toLocaleString()} ${q || status ? 'matching' : 'in total'}` : 'Loading'} />
+      <PageHeader title="Players" subtitle={data ? `${data.total.toLocaleString()} ${q || status || worlds ? 'matching' : 'in total'}` : 'Loading'} />
       <input ref={search} className="field" type="search" aria-label="Search players" placeholder="Search by email, username or player ID (press / to focus)" value={q} onChange={e => { setQ(e.target.value); setPage(0); }} />
       <Tabs label="Filter by status" value={status} onChange={v => { setStatus(v); setPage(0); }} items={FILTERS} />
+      <Tabs label="Filter by Worlds access" value={worlds} onChange={v => { setWorlds(v); setPage(0); }} items={WORLDS} />
       {error != null ? <ErrorNote error={error} retry={() => setTick(t => t + 1)} /> : !data ? <Loading label="Loading players" /> : data.users.length === 0 ? <Empty>No players match.</Empty> : (
         <>
           <div className="card overflow-x-auto">

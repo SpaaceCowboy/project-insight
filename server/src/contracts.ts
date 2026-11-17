@@ -4,7 +4,7 @@ const nullable = (schema: object) => ({ anyOf: [schema, { type: 'null' }] });
 const object = (properties: Record<string, unknown>, required = Object.keys(properties)) => ({ type: 'object', additionalProperties: false, properties, required });
 const array = (items: object) => ({ type: 'array', items });
 const board = array(text);
-const user = object({ id: text, username: text, verified: boolean });
+const user = object({ id: text, username: text, verified: boolean, worlds: boolean });
 const progressFields = { level: integer, xpMilli: text, levelStartMilli: text, nextLevelMilli: nullable(text) };
 const gridFields = { id: text, ownerId: text, levelNumber: nullable(integer), code: text, start: board, target: board, hidden: boolean, moderated: boolean, publishedAt: nullable(text), username: text };
 const grid = object({ ...gridFields, completed: boolean, beatenCount: integer, failedAttemptCount: integer, popularity: integer, likeCount: integer, liked: boolean, bookmarked: boolean }, Object.keys(gridFields));

@@ -24,6 +24,10 @@ sealed interface Route {
     /** Another player's achievements, from their profile: [badges] are the ids the server lists for them (earned or not, no progress). */
     data class PlayerAchievements(val name: String, val badges: List<String>) : Route
     data object Online : Route
+    /** What Worlds shows anyone who has not bought it, signed in or not. */
+    data object WorldsPreview : Route
+    /** Buying Worlds. */
+    data object Purchase : Route
     data object Create : Route
     data class Auth(val destination: Route? = null) : Route
     data class Profile(val id: String? = null) : Route
@@ -96,7 +100,6 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     var sound by mutableStateOf(store.sound); private set
     var theme by mutableStateOf(store.theme); private set
     var haptics by mutableStateOf(store.haptics); private set
-    var dev by mutableStateOf(store.dev && BuildConfig.DEBUG); private set
     var effects by mutableStateOf(store.effects); private set
     var ambience by mutableStateOf(store.ambience); private set
     /** Rulebook sandbox: kept for the session so it resumes where the player left it. */
@@ -117,7 +120,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
 
     val spec get() = community?.spec ?: levels[level]
     val solved get() = Rules.key(board) == Rules.key(spec.target)
-    val unlocked get() = if (dev) levels.size else minOf(levels.size, (done.maxOrNull() ?: 0) + 1)
+    val unlocked get() = minOf(levels.size, (done.maxOrNull() ?: 0) + 1)
     fun canAccess(index: Int) = index < unlocked
     /** Undoing every move back to the start leaves nothing to restart. */
     val changed get() = Rules.key(board) != Rules.key(spec.start)
@@ -353,6 +356,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     fun openPendingLink() {
         val code = pendingLink ?: return
         if (online.user == null) { if (stack.none { it is Route.Auth }) push(Route.Auth(Route.Online)); return }
+        if (!online.user!!.worlds) { pendingLink = null; push(Route.WorldsPreview); return } // a shared puzzle is Worlds content
         pendingLink = null
         online.task {
             val account = online.user?.id ?: return@task
@@ -371,6 +375,10 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     fun openOnline(destination: Route) {
         if (online.user != null) push(destination) else push(Route.Auth(destination))
     }
+    /** Worlds is a purchase: owners go in; everyone else, signed in or not, sees the preview (looking needs no account). */
+    fun openWorlds() { push(if (online.user?.worlds == true) Route.Online else Route.WorldsPreview) }
+    /** The preview's Purchase button: sign in first when there is no account, and sign-in then lands on the purchase. */
+    fun openPurchase() { if (online.user == null) push(Route.Auth(Route.Purchase)) else push(Route.Purchase) }
 
     /** Takes the result bar away without choosing Next or Restart (the bar sinks first, then the game can slide to the next puzzle). */
     fun hideWin() { if (top == Route.Win) stack.removeAt(stack.lastIndex) }
@@ -391,7 +399,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
     private fun failureProof(reason: String, notBefore: Long = 0): JSONObject? {
         val current = community ?: return null
         val identity = current.attempt ?: return null
-        if (!identity.canFail(moves, solved, dev)) return null
+        if (!identity.canFail(moves, solved)) return null
         val proof = OnlineRepository.operation().put("_endpoint", "/v1/play-sessions/${current.sessionId}/failures")
             .put("attemptId", identity.id).put("reason", reason).put("path", path.jsonMoves()).put("_notBefore", notBefore)
         store.savePlayAttempt(current.id, encodedPath(), identity.copy(closed = true), proof)
@@ -539,10 +547,10 @@ class GameModel(app: Application) : AndroidViewModel(app) {
         board = Rules.swap(board, a, b); moves++; light = Art.LIGHT.getValue(type)
         path += (a.r * width + a.c) to (b.r * width + b.c)
         val current = community
-        if (!dev && current != null && moves == 1) online.completion(OnlineRepository.operation()
+        if (current != null && moves == 1) online.completion(OnlineRepository.operation()
             .put("_endpoint", "/v1/play-sessions/${current.sessionId}/move").put("path", path.jsonMoves()))
         if (!solved) { saveCurrentAttempt(path.joinToString(";") { "${it.first},${it.second}" }); return }
-        if (!dev) {
+        run {
             val proof = OnlineRepository.operation().put("kind", if (current == null) "campaign" else "community").put("day", java.time.LocalDate.now().toString())
                 .apply { if (current == null) put("levelId", level + 1) else { put("sessionId", current.sessionId); current.attempt?.let { put("attemptId", it.id) } } }.put("path", path.jsonMoves())
             if (current?.attempt != null) {
@@ -550,7 +558,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
                 online.proofSaved()
             } else online.completion(proof)
         }
-        if (!dev && current != null) {
+        if (current != null) {
             // Optimistic until the next progress refresh; the server then applies the campaign-duplicate rule.
             if (current.id !in communityDone && current.grid.optString("ownerId") != current.account) bumpOnlineStats(solved = 1)
             communityDone = communityDone + current.id; store.communityDone = communityDone
@@ -559,7 +567,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
             community = current.copy(attempt = current.attempt.copy(closed = true))
         }
         saveCurrentAttempt(null)
-        if (!dev && current == null) {
+        if (current == null) {
             done = done + (level + 1); store.done = done
             winBadges = achievements.newlyEarned(done, earned)
             if (winBadges.isNotEmpty()) { earned = earned + winBadges.associate { it.id to System.currentTimeMillis() }; store.earned = earned; online.refreshProgressAsync() }
@@ -600,7 +608,7 @@ class GameModel(app: Application) : AndroidViewModel(app) {
 
     fun publishCreator() {
         if (creator.phase != Phase.CHECK || creator.proof.isEmpty()) return
-        if (online.user == null) { push(Route.Auth(Route.Create)); return }
+        if (online.user?.worlds != true) { push(Route.WorldsPreview); return } // publishing is part of Worlds; designing stays free
         online.task {
             val account = online.user?.id ?: return@task
             val identity = creator.creationId
@@ -662,7 +670,6 @@ class GameModel(app: Application) : AndroidViewModel(app) {
         done = emptySet(); winBadges = emptyList()
         load(0)
     }
-    fun toggleDev() { dev = !dev; store.dev = dev }
     fun changeLanguage(code: String) { if (!L10n.supported(code)) return; language = code; store.language = code; L10n.language = code }
     fun toggleGuide() { guideOn = !guideOn; store.guide = guideOn; if (!guideOn) { guidePhase = 0; guideOnly = null; worldsGuidePhase = 0 } }
     /** The guide icon: plays the guide from its first step (always the full set), or sends it away if it is showing. */

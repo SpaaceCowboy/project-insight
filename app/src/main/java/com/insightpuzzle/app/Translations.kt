@@ -45,6 +45,7 @@ object Translations {
         t("Open", "Abrir", "Ouvrir", "Apri", "Öffnen")
         t("Contact", "Contacto", "Contact", "Contatti", "Kontakt")
         t("Coming soon", "Próximamente", "Bientôt disponible", "Prossimamente", "Demnächst")
+        t("Purchase", "Comprar", "Acheter", "Acquista", "Kaufen")
         t("Refresh", "Actualizar", "Actualiser", "Aggiorna", "Aktualisieren")
         t("Achievements", "Logros", "Succès", "Obiettivi", "Erfolge")
         t("Levels", "Niveles", "Niveaux", "Livelli", "Level")

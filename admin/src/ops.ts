@@ -4,7 +4,7 @@ import { challenge } from '../../server/src/mail.js';
 import { claimNickname, nickname } from '../../server/src/nickname.js';
 import { progression } from '../../server/src/progression.js';
 import { transaction, type Db } from '../../server/src/db.js';
-import { requireValue } from '../../server/src/rules.js';
+import { requireValue, worldsOwned } from '../../server/src/rules.js';
 
 type Q = Pick<PoolClient, 'query'>;
 export type Status = 'active' | 'suspended' | 'deleted';
@@ -51,7 +51,7 @@ const revokeSessions = (c: Q, id: string) => c.query('UPDATE sessions SET revoke
 // ---- reads -----------------------------------------------------------------------------------------------------------------------------
 
 const likeEscape = (s: string) => s.replace(/[\\%_]/g, m => `\\${m}`);
-export async function listUsers(db: Db, f: { q?: string; status?: Status; limit: number; offset: number }) {
+export async function listUsers(db: Db, f: { q?: string; status?: Status; worlds?: 'active' | 'none'; limit: number; offset: number }) {
   const where: string[] = []; const args: unknown[] = [];
   if (f.q) {
     args.push(`%${likeEscape(f.q.trim())}%`, f.q.trim());
@@ -60,6 +60,7 @@ export async function listUsers(db: Db, f: { q?: string; status?: Status; limit:
   if (f.status === 'active') where.push('NOT u.suspended');
   if (f.status === 'suspended') where.push('u.suspended AND u.deleted_at IS NULL');
   if (f.status === 'deleted') where.push('u.deleted_at IS NOT NULL');
+  if (f.worlds) where.push(`${f.worlds === 'none' ? 'NOT ' : ''}${worldsOwned('u.id')}`);
   const clause = where.length ? `WHERE ${where.join(' AND ')}` : '';
   const total = (await db.query(`SELECT count(*)::int AS n FROM users u ${clause}`, args)).rows[0].n as number;
   const rows = (await db.query(`SELECT u.id,u.email,u.username,u.suspended,u.deleted_at,u.deleted_by,u.created_at,(u.google_sub IS NOT NULL) AS google,

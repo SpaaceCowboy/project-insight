@@ -1,7 +1,7 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { PoolClient } from 'pg';
-import { authentication, objectSchema, operationSchema, uuidSchema } from './auth.js';
+import { authentication, objectSchema, operationSchema, uuidSchema, worldsRequired } from './auth.js';
 import { JOURNEY_EDITION, badgeIds, campaign, earnedBadges } from './campaign.js';
 import type { Config } from './config.js';
 import { digest } from './crypto.js';
@@ -80,10 +80,12 @@ async function sessionGrid(db: PoolClient | Db, user: string, sessionId: string)
 export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config) {
   await creators(app, db, config);
   const ready = [authentication(db, config)];
+  // Worlds (community puzzles, discovery, social) is a purchase. Campaign progress, account and profile-of-self stay on `ready`.
+  const worlds = [authentication(db, config), worldsRequired];
   const user = (r: FastifyRequest) => r.account!.id;
   const write = (r: FastifyRequest, kind: string, fn: (c: PoolClient) => Promise<unknown>, peers: string[] = []) =>
     operation(db, user(r), (r.body as any).operationId, kind, digest(JSON.stringify({ params: r.params, body: r.body }), config.encryptionKey), fn, peers);
-  app.post('/v1/casual/sessions', { preHandler: ready, schema: { body: objectSchema({ operationId: operationSchema }) } }, req => write(req, 'casual-session', async c => {
+  app.post('/v1/casual/sessions', { preHandler: worlds, schema: { body: objectSchema({ operationId: operationSchema }) } }, req => write(req, 'casual-session', async c => {
     const account = user(req);
     const initialized = await c.query('INSERT INTO casual_cycles(user_id) VALUES($1) ON CONFLICT DO NOTHING RETURNING cycle', [account]);
     if (initialized.rowCount) await c.query('INSERT INTO casual_completions(user_id,grid_id) SELECT user_id,grid_id FROM grid_completions WHERE user_id=$1 ON CONFLICT DO NOTHING', [account]);
@@ -123,6 +125,7 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
 
   app.get('/v1/profiles/:id', { preHandler: ready, schema: { params: idParams, querystring: objectSchema({ today: daySchema }, []) } }, async req => {
     const id = (req.params as any).id;
+    requireValue(id === req.account!.id || req.account!.worlds, 'WORLDS_REQUIRED', 'Worlds needs a purchase.', 403); // your own profile stays open
     // The viewer's local date decides whether the streak is still alive; without it, the server's UTC date.
     const today = acceptedDay((req.query as any).today);
     const person = (await db.query('SELECT id,username FROM users WHERE id=$1 AND NOT suspended', [id])).rows[0];
@@ -144,7 +147,7 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
       followerCount: follow.followerCount, followingCount: follow.followingCount, bookmarkCount: follow.bookmarkCount, following: follow.following, streak, ...progression };
   });
 
-  app.post('/v1/users/:id/follow', { preHandler: ready, schema: { params: idParams, body: toggleBody } }, req => write(req, 'follow', async c => {
+  app.post('/v1/users/:id/follow', { preHandler: worlds, schema: { params: idParams, body: toggleBody } }, req => write(req, 'follow', async c => {
     const id = (req.params as any).id, on = (req.body as any).on;
     requireValue(id !== user(req), 'SELF_FOLLOW', 'You cannot follow yourself.');
     requireValue((await c.query('SELECT 1 FROM users WHERE id=$1 AND NOT suspended', [id])).rowCount, 'NOT_FOUND', 'Profile unavailable.', 404);
@@ -158,7 +161,7 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
     requireValue(g, 'NOT_FOUND', 'Grid unavailable.', 404);
     return g;
   };
-  app.post('/v1/grids/:id/like', { preHandler: ready, schema: { params: idParams, body: toggleBody } }, req => write(req, 'grid-like', async c => {
+  app.post('/v1/grids/:id/like', { preHandler: worlds, schema: { params: idParams, body: toggleBody } }, req => write(req, 'grid-like', async c => {
     const g = await likeable(c, (req.params as any).id), on = (req.body as any).on;
     requireValue(g.owner_id !== user(req), 'OWN_PUZZLE', 'You cannot like your own puzzle.');
     if (on) await c.query('INSERT INTO grid_likes(user_id,grid_id) VALUES($1,$2) ON CONFLICT DO NOTHING', [user(req), g.id]);
@@ -166,14 +169,14 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
     const likeCount = (await c.query('SELECT count(*)::int AS n FROM grid_likes WHERE grid_id=$1', [g.id])).rows[0].n;
     return { liked: on, likeCount };
   }));
-  app.post('/v1/grids/:id/bookmark', { preHandler: ready, schema: { params: idParams, body: toggleBody } }, req => write(req, 'grid-bookmark', async c => {
+  app.post('/v1/grids/:id/bookmark', { preHandler: worlds, schema: { params: idParams, body: toggleBody } }, req => write(req, 'grid-bookmark', async c => {
     const g = await likeable(c, (req.params as any).id), on = (req.body as any).on;
     if (on) await c.query('INSERT INTO grid_bookmarks(user_id,grid_id) VALUES($1,$2) ON CONFLICT DO NOTHING', [user(req), g.id]);
     else await c.query('DELETE FROM grid_bookmarks WHERE user_id=$1 AND grid_id=$2', [user(req), g.id]);
     return { bookmarked: on };
   }));
 
-  app.get('/v1/grids', { preHandler: ready, schema: { querystring: objectSchema({
+  app.get('/v1/grids', { preHandler: worlds, schema: { querystring: objectSchema({
     owner: uuidSchema, query: { type: 'string', maxLength: 80, default: '' },
     sort: { type: 'string', enum: ['popular','newest','number','liked'], default: 'popular' },
     period: { type: 'string', enum: ['all','today','week','month','year'], default: 'all' },
@@ -207,13 +210,13 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
       [user(req),q.owner ?? null,searchPattern(q.query),q.query,q.page*q.limit,q.bookmarked,q.limit+1])).rows;
     return { items: rows.slice(0,q.limit), nextPage: rows.length > q.limit ? q.page+1 : null };
   });
-  app.post('/v1/grids', { preHandler: ready, schema: { body: objectSchema({ operationId: operationSchema,
+  app.post('/v1/grids', { preHandler: worlds, schema: { body: objectSchema({ operationId: operationSchema,
     start: boardSchema, target: boardSchema, path: pathSchema }) } }, req => write(req, 'puzzle-create', async c => {
     const b = req.body as any; replay(b,b.path);
     const owner = user(req), id = randomUUID();
     // operation() holds the account lock, so two publishes at once cannot both pass the count. Days are UTC, like XP and discovery.
-    // No daily cap unless the operator asks for one with CREATE_DAILY_LIMIT; developer accounts stay exempt.
-    const limit = config.developerUserIds?.includes(owner) ? Infinity : config.createDailyLimit ?? Infinity;
+    // No daily cap unless the operator asks for one with CREATE_DAILY_LIMIT.
+    const limit = config.createDailyLimit ?? Infinity;
     if (limit !== Infinity) {
       const today = (await c.query("SELECT count(*)::int AS n FROM grids WHERE owner_id=$1 AND published_at >= (date_trunc('day',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')",[owner])).rows[0].n;
       requireValue(today < limit,'DAILY_LIMIT',`You have reached the daily limit of ${limit} puzzles. Try again tomorrow.`,403);
@@ -236,28 +239,28 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
     await awardSocial(c, owner);
     return { id,code,levelNumber:number,awardedMilli:reward.toString() };
   }));
-  app.patch('/v1/grids/:id', { preHandler: ready, schema: { params: idParams, body: objectSchema({ operationId: operationSchema, hidden: { type: 'boolean' } }) } }, req => write(req, 'grid-update', async c => {
+  app.patch('/v1/grids/:id', { preHandler: worlds, schema: { params: idParams, body: objectSchema({ operationId: operationSchema, hidden: { type: 'boolean' } }) } }, req => write(req, 'grid-update', async c => {
     const result = await c.query('UPDATE grids SET hidden=$1 WHERE id=$2 AND owner_id=$3 AND NOT moderated RETURNING id',[(req.body as any).hidden,(req.params as any).id,user(req)]);
     requireValue(result.rowCount,'NOT_FOUND','Puzzle unavailable or cannot be changed.',404);
     return { accepted:true };
   }));
-  app.get('/v1/grids/code/:code', { preHandler: ready, schema: { params: objectSchema({ code: { type: 'string', pattern: '^[A-Fa-f0-9]{16}$' } }) } }, async req => {
+  app.get('/v1/grids/code/:code', { preHandler: worlds, schema: { params: objectSchema({ code: { type: 'string', pattern: '^[A-Fa-f0-9]{16}$' } }) } }, async req => {
     const grid = (await db.query(`${gridSelect} WHERE g.code=$1 AND ${publishedVisible}`, [(req.params as any).code.toUpperCase()])).rows[0];
     requireValue(grid, 'NOT_FOUND', 'Published grid not found.', 404); return { grid: { ...grid, ...(await socialFields(db, user(req), grid.id)) } };
   });
-  app.post('/v1/grids/:id/sessions', { preHandler: ready, schema: { params: idParams, body: objectSchema({ operationId: operationSchema }) } }, req => write(req, 'session', async c => {
+  app.post('/v1/grids/:id/sessions', { preHandler: worlds, schema: { params: idParams, body: objectSchema({ operationId: operationSchema }) } }, req => write(req, 'session', async c => {
     const g = (await c.query(`${gridSelect} WHERE g.id=$1 AND ${publishedVisible}`, [(req.params as any).id])).rows[0];
     requireValue(g, 'NOT_FOUND', 'Grid unavailable.', 404);
     const id = randomUUID(); await c.query('INSERT INTO play_sessions(id,user_id,grid_id) VALUES($1,$2,$3)', [id, user(req), g.id]);
     return { sessionId: id, grid: { ...g, ...(await socialFields(c, user(req), g.id)) } };
   }));
-  app.post('/v1/play-sessions/:id/move', { preHandler: ready, schema: { params: idParams, body: objectSchema({ operationId: operationSchema, path: pathSchema }) } }, async req => {
+  app.post('/v1/play-sessions/:id/move', { preHandler: worlds, schema: { params: idParams, body: objectSchema({ operationId: operationSchema, path: pathSchema }) } }, async req => {
     const g = await sessionGrid(db, user(req), (req.params as any).id);
     return write(req, 'qualify', async c => {
       replay(puzzle(g), (req.body as any).path, false); await qualify(c, user(req), g); return { accepted: true };
     }, [g.owner_id]);
   });
-  app.post('/v1/play-sessions/:id/failures', { preHandler: ready, schema: { params: idParams, body: objectSchema({ operationId: operationSchema, attemptId: uuidSchema, path: pathSchema, reason: { type: 'string', enum: ['restart','leave'] } }) } }, async req => {
+  app.post('/v1/play-sessions/:id/failures', { preHandler: worlds, schema: { params: idParams, body: objectSchema({ operationId: operationSchema, attemptId: uuidSchema, path: pathSchema, reason: { type: 'string', enum: ['restart','leave'] } }) } }, async req => {
     const b = req.body as any; const session = (req.params as any).id;
     const g = await sessionGrid(db, user(req), session);
     const board = replay(puzzle(g), b.path, false);
@@ -269,10 +272,9 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
     }, [g.owner_id]);
   });
   app.post('/v1/completions', { preHandler: ready, schema: { body: objectSchema({ operationId: operationSchema, kind: { type: 'string', enum: ['campaign', 'community'] },
-    levelId: { type: 'integer', minimum: 1, maximum: campaign.length }, sessionId: uuidSchema, attemptId: uuidSchema, path: pathSchema, debug: { type: 'boolean', default: false },
-    day: daySchema }, ['operationId', 'kind', 'path']) } }, async req => {
+    levelId: { type: 'integer', minimum: 1, maximum: campaign.length }, sessionId: uuidSchema, attemptId: uuidSchema, path: pathSchema, day: daySchema }, ['operationId', 'kind', 'path']) } }, async req => {
     const b = req.body as any;
-    requireValue(!b.debug, 'DEBUG_ACTIVITY', 'Debug activity cannot earn XP.');
+    requireValue(b.kind === 'campaign' || req.account!.worlds, 'WORLDS_REQUIRED', 'Worlds needs a purchase.', 403); // campaign solves stay free
     requireValue(b.kind === 'campaign' ? !!b.levelId && !b.sessionId : !!b.sessionId && !b.levelId, 'INVALID_PUZZLE', 'Choose one campaign level or community session.');
     const g = b.kind === 'community' ? await sessionGrid(db, user(req), b.sessionId) : null;
     const p: Puzzle = g ? puzzle(g) : campaign[b.levelId - 1]!;

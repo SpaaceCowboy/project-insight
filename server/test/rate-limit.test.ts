@@ -18,7 +18,7 @@ function databaseStub() {
     queries++;
     if (sql.includes('WHERE access_hash=')) {
       const id = params[0] === digest('a'.repeat(43), key) ? '11111111-1111-4111-8111-111111111111' : '22222222-2222-4222-8222-222222222222';
-      return { rows: [{ id, username: 'Audit Player', verified: true, session_id: id }], rowCount: 1 };
+      return { rows: [{ id, username: 'Audit Player', verified: true, worlds: false, session_id: id }], rowCount: 1 };
     }
     if (sql === 'SELECT 1' || ['BEGIN', 'COMMIT', 'ROLLBACK'].includes(sql) || sql.startsWith('SELECT')) return { rows: [], rowCount: 0 };
     throw new Error('Unexpected database write');

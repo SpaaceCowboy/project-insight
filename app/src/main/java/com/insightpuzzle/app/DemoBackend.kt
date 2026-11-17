@@ -99,7 +99,7 @@ class DemoBackend(context: Context) {
             if (list("users").any { it.getString("id") != player && Nicknames.normalize(it.getString("username")).lowercase(Locale.ROOT) == key }) failure("NAME_TAKEN", "That username is already taken. Choose another.", 409)
             person(player).put("username", name)
         }
-        fun publicUser(value: String) = person(value).let { JSONObject().put("id", value).put("username", it.getString("username")).put("verified", true) }
+        fun publicUser(value: String) = person(value).let { JSONObject().put("id", value).put("username", it.getString("username")).put("verified", true).put("worlds", true) }
         fun visible(g: JSONObject): Boolean = !g.isNull("publishedAt") && !g.optBoolean("hidden") && !g.optBoolean("moderated")
         fun grid(g: JSONObject): JSONObject = JSONObject(g.toString()).apply {
             remove("hash"); remove("worldId"); remove("name")
@@ -337,7 +337,6 @@ class DemoBackend(context: Context) {
                 qualify(g); JSONObject().put("accepted", true)
             }
             route == "/v1/completions" -> {
-                if (body.optBoolean("debug")) failure("DEBUG_ACTIVITY", "Debug activity cannot earn XP.")
                 val community = body.getString("kind") == "community"
                 val g = if (community) session(body.getString("sessionId")) else null
                 val level = if (community) null else levels[body.getInt("levelId") - 1]

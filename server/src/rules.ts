@@ -54,3 +54,6 @@ export function contentHash(puzzle: Puzzle): string {
   const crop = (b: Board) => b.slice(top, bottom + 1).map(row => row.slice(left, right + 1));
   return createHash('sha256').update(JSON.stringify([crop(puzzle.start), crop(puzzle.target)])).digest('hex');
 }
+
+/** Worlds is on only with an active entitlement: no row, none, revoked and refunded all mean no access. [userId] is a SQL expression. */
+export const worldsOwned = (userId: string) => `EXISTS(SELECT 1 FROM entitlements e WHERE e.user_id=${userId} AND e.product='worlds' AND e.status='active')`;

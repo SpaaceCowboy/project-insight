@@ -11,7 +11,6 @@ export interface Config {
   feedbackDeliveryMode?: 'store' | 'smtp';
   /** Puzzles one player may publish per UTC day. Unset means no cap. */
   createDailyLimit?: number;
-  developerUserIds?: string[];
   /** Dedicated, private Redis with persistence and no eviction. Required in production. */
   rateLimitRedisUrl?: string;
   rateLimitNamespace?: string;
@@ -49,6 +48,5 @@ export function configFromEnv(): Config {
     feedbackTo: process.env.FEEDBACK_TO || 'Insight.correspondence@gmail.com',
     feedbackDeliveryMode: process.env.FEEDBACK_DELIVERY_MODE === 'smtp' ? 'smtp' : 'store',
     createDailyLimit: Number(process.env.CREATE_DAILY_LIMIT) > 0 ? Number(process.env.CREATE_DAILY_LIMIT) : undefined,
-    developerUserIds: (process.env.DEVELOPER_USER_IDS ?? '').split(',').map(v => v.trim().toLowerCase()).filter(Boolean),
   };
 }

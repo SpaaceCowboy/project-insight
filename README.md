@@ -18,7 +18,7 @@ A native Android version (Kotlin + Jetpack Compose) of the INSIGHT puzzle game. 
 | Game board | `GameScreen.kt` |
 | `src/CreatorCanvas.jsx`, `src/creator-state.js` | `CreatorState.kt`, `CreatorScreen.kt` |
 
-Differences from the web project: the Android game is portrait only; its campaign is the flat web campaign; Dev Mode exists only in debug builds. Android includes accounts, profiles, community puzzle discovery/play, Casual, checked publishing, and XP.
+Differences from the web project: the Android game is portrait only; its campaign is the flat web campaign. Android includes accounts, profiles, community puzzle discovery/play, Casual, checked publishing, and XP.
 
 ## Online and installable builds
 

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { PoolClient } from 'pg';
-import { authentication, objectSchema } from './auth.js';
+import { authentication, objectSchema, worldsRequired } from './auth.js';
 import { campaign } from './campaign.js';
 import type { Config } from './config.js';
 import type { Db } from './db.js';
@@ -48,7 +48,7 @@ async function creatorRows(db: Db, o: { query: string; sort: string; period: str
 }
 
 export async function creators(app: FastifyInstance, db: Db, config: Config) {
-  app.get('/v1/creators', { preHandler: authentication(db, config), schema: { querystring: objectSchema({
+  app.get('/v1/creators', { preHandler: [authentication(db, config), worldsRequired], schema: { querystring: objectSchema({
     query: { type: 'string', maxLength: 80, default: '' },
     sort: { type: 'string', enum: ['level', 'designed', 'played', 'liked', 'followed'], default: 'level' },
     period: { type: 'string', enum: ['all', 'today', 'week', 'month', 'year'], default: 'all' },
@@ -61,7 +61,7 @@ export async function creators(app: FastifyInstance, db: Db, config: Config) {
   // Only the signed-in player's own lists: whom they follow, and who follows them. Nobody can see someone else's.
   const pageOnly = { querystring: objectSchema({ page: { type: 'integer', minimum: 0, maximum: 100000, default: 0 } }, []) };
   for (const [path, side] of [['/v1/following', 'follower'], ['/v1/followers', 'followee']] as const)
-    app.get(path, { preHandler: authentication(db, config), schema: pageOnly }, async req => {
+    app.get(path, { preHandler: [authentication(db, config), worldsRequired], schema: pageOnly }, async req => {
       const page = (req.query as { page: number }).page;
       const rows = await creatorRows(db, { query: '', sort: 'level', period: 'all', page, [side]: req.account!.id });
       return { items: rows.slice(0, 24), nextPage: rows.length > 24 ? page + 1 : null };

@@ -61,6 +61,7 @@ test('seed dry-run, collision checks, lost responses, repeat execution and publi
       // Simulate registration committing immediately before the process loses its response.
       const c = m.creators[0]!; c.registrationStarted = true; await saveManifest(file, m);
       const auth = await call('/v1/auth/register', { name: c.name, email: c.email, password: c.password });
+      await db.query("INSERT INTO entitlements(user_id,product,status,source) VALUES($1,'worlds','active','manual')", [auth.user.id]);
       // Simulate a publication committing with neither its ID nor response saved in the manifest.
       const p = c.puzzles[0]!;
       const published = await call('/v1/grids', { operationId: p.operationId, start: p.start, target: p.target, path: p.path }, auth.accessToken);

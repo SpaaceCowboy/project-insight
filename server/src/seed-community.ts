@@ -182,6 +182,8 @@ export async function applySeed(db: Db, config: Config, file: string, m: SeedMan
       token = auth.accessToken; assert.equal(auth.user.username, c.name);
       assert(!c.userId || c.userId === auth.user.id, 'Account identity changed');
       c.userId = auth.user.id; await saveManifest(file, m);
+      // Seed creators publish through the player API, which is Worlds-only; a rerun leaves an operator's revoke alone.
+      await db.query("INSERT INTO entitlements(user_id,product,status,source,note) VALUES($1,'worlds','active','manual','community seed') ON CONFLICT DO NOTHING", [auth.user.id]);
       for (const [index, p] of c.puzzles.entries()) {
         // Always retry the original request, including when its response was lost before the manifest save.
         const result = await request(app, 'POST', '/v1/grids', { operationId: p.operationId, start: p.start, target: p.target, path: p.path }, token);

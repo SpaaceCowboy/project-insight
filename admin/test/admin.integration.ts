@@ -45,9 +45,11 @@ async function p(method: any, path: string, body?: any, who?: any, status = 200)
   const r = await player.inject({ method, url: path, payload: body, headers: who ? { authorization: `Bearer ${who.accessToken}` } : {}, remoteAddress: nextIp() });
   assert.equal(r.statusCode, status, `${method} ${path}: ${r.body}`); return r.json();
 }
-async function makePlayer() {
+/** Worlds is off for a new account; pass true for tests that use the Worlds routes. */
+async function makePlayer(worlds = false) {
   const email = `${randomUUID()}@example.test`;
   const s = await p('POST', '/v1/auth/register', { email, password: 'long-test-password', name: `Player_${op().slice(0, 12)}` });
+  if (worlds) await db.query("INSERT INTO entitlements(user_id,product,status,source) VALUES($1,'worlds','active','manual')", [s.user.id]);
   return { ...s, email, id: s.user.id as string, name: s.user.username as string };
 }
 const login = (email: string, status = 200) => p('POST', '/v1/auth/login', { email, password: 'long-test-password' }, undefined, status);
@@ -108,7 +110,7 @@ test('a retried operation runs once; the same ID with different input is refused
 });
 
 test('soft delete hides and blocks the player; restore brings it back; unsuspend cannot undo a delete', async () => {
-  const u = await makePlayer(); const viewer = await makePlayer();
+  const u = await makePlayer(true); const viewer = await makePlayer(true);
   await p('POST', '/v1/grids', { operationId: op(), ...cell(901) }, u);
   assert.equal((await p('GET', `/v1/profiles/${u.id}`, undefined, viewer)).id, u.id);
   await a('POST', `/api/users/${u.id}/soft-delete`, { operationId: op(), reason: 'player asked to leave' });
@@ -136,7 +138,7 @@ test('restoring an account that was suspended before deletion leaves it suspende
 });
 
 test('hard delete: step-up is enforced, the player and their levels vanish, solvers keep their credit', async () => {
-  const creator = await makePlayer(); const solver = await makePlayer(); const fan = await makePlayer();
+  const creator = await makePlayer(true); const solver = await makePlayer(true); const fan = await makePlayer(true);
   const level = await p('POST', '/v1/grids', { operationId: op(), ...cell(911) }, creator);
   const own = await p('POST', '/v1/grids', { operationId: op(), ...cell(912) }, solver); // the solver's own level must survive
   const s = await p('POST', `/v1/grids/${level.id}/sessions`, { operationId: op() }, solver);
@@ -206,8 +208,16 @@ test('email edits, renames and entitlements are validated, unique and audited', 
   await a('POST', `/api/users/${u.id}/email`, { operationId: op(), email: `New.${u.email}`, reason: 'typo fixed', password: PASSWORD });
   await p('GET', '/v1/progress', undefined, session, 401); // changing the address signs the player out
   assert.equal((await db.query('SELECT email FROM users WHERE id=$1', [u.id])).rows[0].email, `new.${u.email}`);
+  // Worlds is off until an admin grants it, takes effect on the signed-in session at once, and is off again after a revoke.
+  const player = await login(`new.${u.email}`);
+  assert.equal(player.user.worlds, false); await p('GET', '/v1/grids', undefined, player, 403);
   await a('POST', `/api/users/${u.id}/entitlement`, { operationId: op(), status: 'active', note: 'goodwill grant after outage' });
+  assert.equal((await a('GET', '/api/users?worlds=active')).users.filter((x: any) => x.id === u.id).length, 1);
+  assert.equal((await a('GET', '/api/users?worlds=none')).users.filter((x: any) => x.id === u.id).length, 0);
+  await p('GET', '/v1/grids', undefined, player);
   await a('POST', `/api/users/${u.id}/entitlement`, { operationId: op(), status: 'revoked', note: 'chargeback' });
+  await p('GET', '/v1/grids', undefined, player, 403);
+  assert.equal((await a('GET', '/api/users?worlds=none')).users.filter((x: any) => x.id === u.id).length, 1);
   const d = await a('GET', `/api/users/${u.id}`);
   assert.equal(d.entitlements[0].status, 'revoked'); assert.equal(d.entitlements[0].source, 'manual');
   assert.equal((await db.query('SELECT count(*)::int AS n FROM entitlement_events WHERE user_id=$1', [u.id])).rows[0].n, 2);

@@ -99,7 +99,6 @@ class Store(context: Context) {
     var theme: String
         get() = if ((prefs.getString("theme", null) ?: if (prefs.getBoolean("dark", true)) "dark" else "light") == "light") "light" else "dark"
         set(value) = prefs.edit().putString("theme", value).apply()
-    var dev by bool("dev", false)
     var effects by float("effects", .8f)
     var ambience by float("ambience", .8f)
     var background by string("background", "forest")
@@ -139,7 +138,7 @@ class Store(context: Context) {
         check(editor.putInt("journeyEdition", JOURNEY_EDITION).commit())
     }
     private fun journeyBadge(id: String) = id == "first" || id == "complete" || id.startsWith("levels-")
-    init { startJourneyEdition() }
+    init { startJourneyEdition(); if (prefs.contains("dev")) prefs.edit().remove("dev").apply() } // the removed developer-mode flag must not linger in old installs
 
     /** Clears solved levels and unfinished attempts. Badges and settings are kept. */
     fun resetProgress() = prefs.edit().apply {

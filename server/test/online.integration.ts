@@ -37,10 +37,12 @@ async function call(method: any, path: string, body?: any, account?: any, status
   assert.equal(r.statusCode, status, `${method} ${path}: ${r.body}`); return r.json();
 }
 const op = () => randomUUID();
-async function makeAccount() {
+/** Worlds is off for every new account; most tests exercise Worlds routes, so they get an active entitlement unless they ask for none. */
+async function makeAccount(worlds = true) {
   const email = `${randomUUID()}@example.test`;
   const a = await call('POST', '/v1/auth/register', { email, password: 'long-test-password', name: `Player_${op().slice(0, 12)}` });
-  assert.equal(a.user.verified, true);
+  assert.equal(a.user.verified, true); assert.equal(a.user.worlds, false);
+  if (worlds) await db.query("INSERT INTO entitlements(user_id,product,status,source) VALUES($1,'worlds','active','manual')", [a.user.id]);
   return { ...a, email };
 }
 /** Reads the pending recover code straight from the outbox, as the mail worker would. */
@@ -301,17 +303,6 @@ test('without CREATE_DAILY_LIMIT a player can publish more than ten puzzles a UT
  } finally { await unlimited.close(); }
 });
 
-test('accounts in DEVELOPER_USER_IDS are exempt from the daily limit; others are not',async()=>{
- const a=await makeAccount(),b=await makeAccount();
- const limited=await buildApp(db,{...config,createDailyLimit:2,developerUserIds:[a.user.id.toLowerCase()]},false); await limited.ready();
- try {
-  const publish=(who:any,n:number)=>limited.inject({method:'POST',url:'/v1/grids',remoteAddress:`10.8.${n}.1`,headers:{authorization:`Bearer ${who.accessToken}`},payload:{operationId:op(),...custom(n+500)}});
-  for(let n=0;n<3;n++) assert.equal((await publish(a,n)).statusCode,200);
-  assert.equal((await publish(b,10)).statusCode,200); assert.equal((await publish(b,11)).statusCode,200);
-  assert.equal((await publish(b,12)).json().code,'DAILY_LIMIT');
- } finally { await limited.close(); }
-});
-
 test('progress communityCount ignores the player\'s own puzzles and equals the profile figure',async()=>{
  const maker=await makeAccount(),player=await makeAccount();
  const mine=await create(player,601),theirs=await create(maker,602);
@@ -499,4 +490,40 @@ test('full share codes filter the puzzle list case-insensitively', async () => {
  const found=await call('GET',`/v1/grids?query=${grid.code.toLowerCase()}`,undefined,a);
  assert.deepEqual(found.items.map((g:any)=>g.id),[grid.id]);
  assert.equal(found.nextPage,null);
+});
+test('Worlds routes need an active entitlement; campaign, account and your own profile stay open', async () => {
+ const owner = await makeAccount(), p = await makeAccount(false);
+ const grid = await create(owner, 801);
+ const refused = async (method: string, path: string, body?: any) => assert.equal((await call(method, path, body, p, 403)).code, 'WORLDS_REQUIRED', path);
+ await refused('GET', '/v1/grids'); await refused('GET', `/v1/grids/code/${grid.code}`);
+ await refused('POST', '/v1/grids', { operationId: op(), ...custom(802) }); await refused('PATCH', `/v1/grids/${grid.id}`, { operationId: op(), hidden: true });
+ await refused('POST', '/v1/casual/sessions', { operationId: op() }); await refused('POST', `/v1/grids/${grid.id}/sessions`, { operationId: op() });
+ await refused('POST', `/v1/grids/${grid.id}/like`, { operationId: op(), on: true }); await refused('POST', `/v1/grids/${grid.id}/bookmark`, { operationId: op(), on: true });
+ await refused('POST', `/v1/users/${owner.user.id}/follow`, { operationId: op(), on: true });
+ await refused('POST', `/v1/play-sessions/${op()}/move`, { operationId: op(), path: [[0, 5]] });
+ await refused('GET', '/v1/creators'); await refused('GET', '/v1/following'); await refused('GET', '/v1/followers');
+ await refused('POST', '/v1/completions', { operationId: op(), kind: 'community', sessionId: op(), path: [[0, 5]] });
+ await refused('GET', `/v1/profiles/${owner.user.id}`);
+ // Free: campaign progress and XP, the account, your own profile.
+ assert.equal((await complete(p, 1)).awardedMilli, '100000');
+ assert.equal((await call('GET', '/v1/progress', undefined, p)).done.length, 1);
+ await call('GET', `/v1/profiles/${p.user.id}`, undefined, p);
+ assert.equal((await call('GET', '/v1/account', undefined, p)).user.worlds, false);
+ // Every status but 'active' is no access; 'active' is access at once, with no new login.
+ const set = (status: string) => db.query(`INSERT INTO entitlements(user_id,product,status,source) VALUES($1,'worlds',$2,'manual')
+   ON CONFLICT (user_id,product) DO UPDATE SET status=$2`, [p.user.id, status]);
+ for (const status of ['none', 'revoked', 'refunded']) { await set(status); await call('GET', '/v1/grids', undefined, p, 403); }
+ await set('active');
+ assert.equal((await call('GET', '/v1/account', undefined, p)).user.worlds, true);
+ assert.ok((await call('GET', '/v1/grids', undefined, p)).items.length >= 1);
+ const login = await call('POST', '/v1/auth/login', { email: p.email, password: 'long-test-password' });
+ assert.equal(login.user.worlds, true);
+ assert.equal((await call('POST', '/v1/auth/refresh', { refreshToken: login.refreshToken, operationId: op() })).user.worlds, true);
+ await set('revoked'); await call('GET', '/v1/grids', undefined, p, 403);
+});
+test('one external purchase reference cannot unlock two accounts', async () => {
+ const a = await makeAccount(false), b = await makeAccount(false);
+ const grant = (id: string) => db.query("INSERT INTO entitlements(user_id,product,status,source,external_ref) VALUES($1,'worlds','active','google_play','token-1')", [id]);
+ await grant(a.user.id);
+ await assert.rejects(grant(b.user.id), /entitlements_external_ref_unique/);
 });
