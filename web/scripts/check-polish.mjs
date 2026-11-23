@@ -48,6 +48,11 @@ for (const mode of [
     await wait(`!!document.querySelector('.board .tile')`);
     await pause(delay);
     assert.equal(await js('scrollY'),0,'fresh board must work without scrolling');
+    if (mode.name === 'desktop') {
+      // Play is one screen on a computer: the board and both buttons show with no scrolling, and nothing of the next section does.
+      const fit = await js(`(() => { const bottom = s => document.querySelector(s).getBoundingClientRect().bottom; return {section: bottom('#play'), board: bottom('.board'), buttons: bottom('.hero-cta'), screen: innerHeight}; })()`);
+      assert.ok(fit.section <= fit.screen + 1 && fit.board <= fit.screen && fit.buttons <= fit.screen, 'Play must fit one screen: ' + JSON.stringify(fit));
+    }
     // Reproduce the selection flash: release selects, then a zero-detail click
     // must not toggle the same tile a second time.
     const selection = await js(`(async () => {

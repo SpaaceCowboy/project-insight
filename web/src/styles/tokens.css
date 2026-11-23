@@ -24,6 +24,8 @@
   --accent-mini-mix:0%; --accent-mini-edge:0%;
   /* Captures of the game come in both themes; only the matching one is displayed. */
   --shot-light:block; --shot-dark:none;
+  /* One shadow for every capture: the frame ring and a soft fall-off that stays inside the row's padding. */
+  --shot-shadow:0 0 0 5px var(--side),0 14px 24px -4px var(--key-shadow);
 }
 /* Dark is written twice on purpose: once for the system setting, once for the toggle. */
 @media (prefers-color-scheme:dark) {

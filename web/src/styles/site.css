@@ -232,20 +232,20 @@ span.tile { cursor:default; width:var(--cell); height:var(--cell); flex:none; }
 .how strong { color:var(--ink); font-weight:600; }
 
 /* Screens */
-.phones { display:flex; gap:24px; overflow-x:auto; padding:16px 8px 28px; scroll-snap-type:x mandatory; scrollbar-width:none; }
+/* A scrolling row clips on every side, so its padding must be as deep as the capture's shadow reaches (about 34px down, 25px across);
+   the negative margins hand the room back to the page. */
+.phones { display:flex; align-items:flex-start; gap:24px; overflow-x:auto; padding:16px calc(var(--gutter) + 8px) 44px; margin:0 calc(var(--gutter) * -1) -16px; scroll-snap-type:x mandatory; scrollbar-width:none; }
 @media (min-width:1080px) { .phones { justify-content:center; overflow:visible; } }
 .phone { flex:none; width:min(300px,76vw); margin-inline:0; scroll-snap-align:center; }
-/* The phones stand still: drifting a capture a couple of pixels a second makes it step from pixel to pixel. */
-.phone:nth-child(2) { margin-top:28px; }
+/* The phones stand still, side by side on one line: drifting a capture a couple of pixels a second makes it step from pixel to pixel. */
 /* A capture of the game in a rounded frame: a 1080 by 2340 phone screen without its status bar. */
-.shot > * { width:100%; height:auto; aspect-ratio:720/1488; object-fit:cover; border-radius:12.5%/6%; background:var(--backdrop-flat); box-shadow:0 0 0 5px var(--side),0 24px 30px var(--key-shadow); }
+.shot > * { width:100%; height:auto; aspect-ratio:720/1488; object-fit:cover; border-radius:12.5%/6%; background:var(--backdrop-flat); box-shadow:var(--shot-shadow); }
 .shot .light { display:var(--shot-light); }
 .shot .dark { display:var(--shot-dark); }
 
 /* Inside Worlds: four captures. They scroll sideways until all four fit. */
 @media (min-width:820px) and (max-width:1139px) { .phones.four { justify-content:flex-start; overflow-x:auto; } }
 @media (min-width:1140px) { .phones .phone { width:244px; } }
-.phone:nth-child(4) { margin-top:28px; }
 
 /* Questions */
 .faq { max-width:780px; }
@@ -298,3 +298,56 @@ body:has(> .legal) { display:flex; flex-direction:column; }
 .legal h1 { font:700 30px/1.2 var(--mono); margin:18px 0; }
 .legal h2 { font:600 17px/1.3 var(--mono); margin:28px 0 8px; }
 .legal p { color:var(--muted); margin-bottom:12px; }
+
+/* Desktop: every section fills one screen under the sticky header, so none shows a piece of its neighbour. It is min-height, not
+   height: on a window too short for its content a section grows instead of clipping or overlapping. Sizes that carry the content
+   (headings, gaps, the board, the phones) follow the viewport's height so it fits on as many screens as it can. */
+@media (min-width:900px) {
+  :root { --header-h:65px; --footer-h:96px; --shots-chrome:250px; }
+  main > section { min-height:calc(100vh - var(--header-h)); min-height:calc(100svh - var(--header-h)); display:flex; flex-direction:column; justify-content:center;
+    padding-block:clamp(20px,4.5svh,72px); scroll-margin-top:var(--header-h); }
+  /* The last screen is the final call and the footer together. */
+  main > #get { min-height:calc(100vh - var(--header-h) - var(--footer-h)); min-height:calc(100svh - var(--header-h) - var(--footer-h)); }
+  .site-footer { height:var(--footer-h); padding-block:0; display:flex; align-items:center; }
+  .site-footer .wrap { flex:1; }
+  .section-head { margin-bottom:clamp(16px,3.5svh,40px); }
+  .section-head h2 { font-size:clamp(28px,min(5.2vw,6.4svh),56px); }
+  .final h2 { font-size:clamp(28px,min(5.4vw,6.6svh),56px); margin-bottom:clamp(18px,3.5svh,30px); }
+  .statement { font-size:clamp(24px,min(4.4vw,6svh),48px); }
+
+  /* Play: the platform takes whatever height the screen leaves, between 240px and its usual 420px. */
+  main > .hero { height:calc(100vh - var(--header-h)); height:calc(100svh - var(--header-h)); min-height:var(--hero-min,640px); padding-block:clamp(14px,3svh,48px); }
+  .hero .wrap { flex:1; min-height:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:clamp(10px,2.4svh,28px); }
+  .hero h1 { font-size:clamp(26px,min(5.2vw,6.4svh),56px); margin-bottom:clamp(8px,1.6svh,18px); }
+  .hero-lede { max-width:64ch; }
+  .hero-copy,.hero .hero-cta { flex:none; }
+  .stage { flex:0 1 auto; min-height:0; display:flex; flex-direction:column; }
+  .stage-target { flex:none; margin-bottom:clamp(6px,1.4svh,12px); }
+  .stage-rail { flex:0 1 420px; min-height:240px; display:flex; flex-direction:column; }
+  .stage-rail > .slot:not(.leaving) { flex:1; min-height:0; display:flex; }
+  .stage .platform { flex:1; height:auto; }
+  .slot.leaving { inset:0 var(--gutter); }
+  .dots { flex:none; margin-top:clamp(14px,2.6svh,28px); }
+
+  /* Journey and Worlds: the tallest section, so its spacing gives first. */
+  .modes .section-head { max-width:none; margin-bottom:clamp(12px,2.4svh,24px); }
+  /* One line: 47 characters of 38px bold mono fill the 1064px column. */
+  .modes .section-head h2 { font-size:clamp(24px,min(3.3vw,5svh),38px); }
+  .modes .section-head p { max-width:none; margin-top:clamp(6px,1svh,14px); }
+  .mode-grid .trail { grid-template-columns:repeat(25,1fr); gap:3px; }
+  .panel { padding:clamp(16px,2.6svh,30px) 26px clamp(14px,2.2svh,28px); }
+  .panel h3 { font-size:clamp(28px,min(5vw,5.2svh),50px); }
+  .panel-sub { margin-top:clamp(6px,1.2svh,12px); }
+  .panel ul { margin:clamp(10px,2svh,22px) 0 clamp(12px,2.2svh,28px); gap:clamp(4px,.9svh,10px); font-size:13.5px; }
+  .trail { margin-top:clamp(10px,2svh,24px); }
+  .drifts { --b:clamp(40px,5.6svh,56px); margin-top:clamp(10px,2svh,24px); min-height:0; }
+  .drift b { width:var(--b); height:var(--b); }
+  .drift .mini { --m:calc(var(--b) * .16); }
+  .panel .key { min-height:clamp(46px,6svh,58px); }
+  .how { margin-top:clamp(14px,2.8svh,48px); }
+
+  /* The captures: as tall as the screen allows, never wider than they have been (300px, or 244px from 1140px wide), and the
+     same in both galleries. */
+  .phones .phone { --fit:calc((100svh - var(--header-h) - var(--shots-chrome)) * .484); width:clamp(150px,var(--fit),300px); }
+}
+@media (min-width:1140px) { .phones .phone { width:clamp(150px,var(--fit),244px); } }
