@@ -14,7 +14,8 @@ const periodUnits: Record<string, string> = { today: 'day', week: 'week', month:
 
 /**
  * Creator rows with the same public publication counts and campaign/community overlap rules as individual profiles.
- * [follower] limits the rows to people that account follows, [followee] to people following that account (with or without public puzzles); [period] limits counted likes.
+ * Every player is listed, with or without public puzzles. [follower] limits the rows to people that account follows, [followee] to people following that
+ * account; [period] limits counted likes.
  */
 async function creatorRows(db: Db, o: { query: string; sort: string; period: string; page: number; follower?: string; followee?: string }) {
   const unit = periodUnits[o.period];
@@ -22,7 +23,7 @@ async function creatorRows(db: Db, o: { query: string; sort: string; period: str
   const order = o.sort === 'designed' ? '"gridCount" DESC,xp DESC' : o.sort === 'played' ? '"beatenCount" DESC,xp DESC'
     : o.sort === 'liked' ? '"likeCount" DESC,xp DESC' : o.sort === 'followed' ? '"followerCount" DESC,xp DESC' : 'xp DESC';
   const join = o.follower ? 'JOIN follows f ON f.followee_id=u.id AND f.follower_id=$4 LEFT JOIN publications p ON p.owner_id=u.id'
-    : o.followee ? 'JOIN follows f ON f.follower_id=u.id AND f.followee_id=$4 LEFT JOIN publications p ON p.owner_id=u.id' : 'JOIN publications p ON p.owner_id=u.id';
+    : o.followee ? 'JOIN follows f ON f.follower_id=u.id AND f.followee_id=$4 LEFT JOIN publications p ON p.owner_id=u.id' : 'LEFT JOIN publications p ON p.owner_id=u.id';
   const related = o.follower ?? o.followee;
   return (await db.query(`WITH
       campaign_hashes AS (SELECT * FROM json_to_recordset($1::json) AS x(level_id int,hash text)),
@@ -59,9 +60,10 @@ export async function creators(app: FastifyInstance, db: Db, config: Config) {
     return { items: rows.slice(0, 24), nextPage: rows.length > 24 ? q.page + 1 : null };
   });
   // Only the signed-in player's own lists: whom they follow, and who follows them. Nobody can see someone else's.
+  // Part of your own profile, so they stay open without Worlds (opening a player from them is Worlds and asks for it).
   const pageOnly = { querystring: objectSchema({ page: { type: 'integer', minimum: 0, maximum: 100000, default: 0 } }, []) };
   for (const [path, side] of [['/v1/following', 'follower'], ['/v1/followers', 'followee']] as const)
-    app.get(path, { preHandler: [authentication(db, config), worldsRequired], schema: pageOnly }, async req => {
+    app.get(path, { preHandler: [authentication(db, config)], schema: pageOnly }, async req => {
       const page = (req.query as { page: number }).page;
       const rows = await creatorRows(db, { query: '', sort: 'level', period: 'all', page, [side]: req.account!.id });
       return { items: rows.slice(0, 24), nextPage: rows.length > 24 ? page + 1 : null };

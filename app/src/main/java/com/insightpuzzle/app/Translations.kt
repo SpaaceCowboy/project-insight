@@ -46,6 +46,14 @@ object Translations {
         t("Contact", "Contacto", "Contact", "Contatti", "Kontakt")
         t("Coming soon", "Próximamente", "Bientôt disponible", "Prossimamente", "Demnächst")
         t("Purchase", "Comprar", "Acheter", "Acquista", "Kaufen")
+        t("Log in and purchase", "Inicia sesión y compra", "Connectez-vous et achetez", "Accedi e acquista", "Anmelden und kaufen")
+        // The Worlds showcase captions.
+        t("Join the community of puzzle designers around the world", "Únete a la comunidad de creadores de puzles de todo el mundo",
+            "Rejoignez la communauté des créateurs de puzzles du monde entier", "Unisciti alla community di creatori di puzzle di tutto il mondo",
+            "Werde Teil der weltweiten Community der Rätselmacher")
+        t("Share and follow", "Comparte y sigue", "Partagez et suivez", "Condividi e segui", "Teilen und folgen")
+        t("Like and bookmark", "Dale me gusta y guarda", "Aimez et enregistrez", "Metti mi piace e salva", "Liken und merken")
+        t("Endless puzzles", "Puzles sin fin", "Des puzzles à l'infini", "Puzzle infiniti", "Endlose Rätsel")
         t("Refresh", "Actualizar", "Actualiser", "Aggiorna", "Aktualisieren")
         t("Achievements", "Logros", "Succès", "Obiettivi", "Erfolge")
         t("Levels", "Niveles", "Niveaux", "Livelli", "Level")

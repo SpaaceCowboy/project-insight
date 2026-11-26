@@ -14,8 +14,8 @@ android {
         applicationId = "com.insightpuzzle.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 43
-        versionName = "0.2.32"
+        versionCode = 45
+        versionName = "0.2.34"
         buildConfigField("boolean", "ONLINE_DEMO", onlineDemo.toString())
         buildConfigField("String", "GOOGLE_CLIENT_ID", "\"${googleClientId.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -33,6 +33,17 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+        }
+        // Recording the Worlds showcase: release code and speed, debug-signed, installed beside the real app, and talking only to a seeded server on the
+        // recording PC through `adb reverse tcp:3000 tcp:3000` (cleartext to 127.0.0.1 only, see src/showcase). Never shipped.
+        create("showcase") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".showcase"
+            versionNameSuffix = "-showcase"
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += "release"
+            buildConfigField("String", "ONLINE_BASE_URL", "\"http://127.0.0.1:3000\"")
+            resValue("string", "app_name", "Midori Showcase")
         }
         debug {
             val onlineUrl = providers.gradleProperty("insightDebugApiUrl").orElse(providers.gradleProperty("insightApiUrl")).orElse(providers.environmentVariable("INSIGHT_API_URL")).getOrElse("http://10.0.2.2:3000")
@@ -64,6 +75,8 @@ dependencies {
     implementation("androidx.room:room-runtime:2.8.4")
     annotationProcessor("androidx.room:room-compiler:2.8.4")
     implementation("androidx.work:work-runtime-ktx:2.11.2")
+    // The Worlds showcase: a silent, gapless loop of the recorded clips.
+    implementation("androidx.media3:media3-exoplayer:1.8.0")
     // Google Sign-In: Credential Manager asks Play Services for a verified ID token; the app never sees a password.
     implementation("androidx.credentials:credentials:1.6.0")
     implementation("androidx.credentials:credentials-play-services-auth:1.6.0")

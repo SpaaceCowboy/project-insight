@@ -13,6 +13,7 @@
     "migrate": "tsx src/migrate.ts",
     "operator": "tsx src/operator.ts",
     "seed:community": "tsx src/seed-community.ts",
+    "seed:showcase": "tsx src/seed-showcase.ts",
     "test": "node --import tsx test/unit.ts",
     "test:integration": "node --import tsx --test test/*.integration.ts",
     "test:rate-limit:redis": "node --import tsx test/rate-limit.redis.ts"

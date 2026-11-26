@@ -68,8 +68,8 @@ class Haptics(private val context: Context) {
     companion object {
         const val TICK_MS = 11L; const val FINE_TICK_MS = 7L
         const val TICK_AMPLITUDE = 128; const val FINE_TICK_AMPLITUDE = 80
-        /** The three restart/clear pulses: 4 ms each (short, so three in a row never add up to a strong buzz), 100 ms apart. */
-        const val TRIPLE_TICK_MS = 4L
+        /** The three restart/clear pulses: 7 ms each (short enough that three in a row never add up to a strong buzz), 100 ms apart. */
+        const val TRIPLE_TICK_MS = 7L
         const val TRIPLE_STEP_MS = 100L
     }
 }

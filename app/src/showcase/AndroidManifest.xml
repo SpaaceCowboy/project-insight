@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:networkSecurityConfig="@xml/showcase_network_security">
+        <!-- Replays gesture timelines for filming the Worlds showcase (see Autopilot.kt). Only in the showcase recording build. -->
+        <provider
+            android:name=".showcase.AutopilotProvider"
+            android:authorities="${applicationId}.autopilot"
+            android:exported="false" />
+    </application>
+</manifest>

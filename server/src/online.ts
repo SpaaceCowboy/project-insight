@@ -176,7 +176,7 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
     return { bookmarked: on };
   }));
 
-  app.get('/v1/grids', { preHandler: worlds, schema: { querystring: objectSchema({
+  app.get('/v1/grids', { preHandler: ready, schema: { querystring: objectSchema({
     owner: uuidSchema, query: { type: 'string', maxLength: 80, default: '' },
     sort: { type: 'string', enum: ['popular','newest','number','liked'], default: 'popular' },
     period: { type: 'string', enum: ['all','today','week','month','year'], default: 'all' },
@@ -186,6 +186,8 @@ export async function onlineRoutes(app: FastifyInstance, db: Db, config: Config)
     limit: { type: 'integer', enum: [24, 28], default: 24 }
   }, []) } }, async req => {
     const q = req.query as any;
+    // Your own puzzles and your own bookmarks are part of your profile, which stays open without Worlds; every other list is Worlds.
+    requireValue(req.account!.worlds || q.owner === user(req) || q.bookmarked, 'WORLDS_REQUIRED', 'Worlds needs a purchase.', 403);
     const unit = ({ today: 'day', week: 'week', month: 'month', year: 'year' } as Record<string,string>)[q.period];
     const period = unit ? `AND g.published_at >= (date_trunc('${unit}',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC') AND g.published_at <= now()` : '';
     // Bookmarks list newest bookmark first; "liked" is the Most popular sort.

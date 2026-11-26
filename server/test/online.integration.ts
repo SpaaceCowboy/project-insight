@@ -328,6 +328,9 @@ test('visibility, own profile collection, moderation and creator discovery agree
  await call('PATCH',`/v1/grids/${d.id}`,{operationId:op(),hidden:false},owner);
  const creators=await call('GET','/v1/creators?query='+encodeURIComponent(owner.user.username),undefined,viewer);
  assert.equal(creators.items[0].gridCount,1); assert.equal('worldCount' in creators.items[0],false);
+ // Players with no public puzzle are listed too, with a zero count.
+ const newcomer=(await call('GET','/v1/creators?query='+encodeURIComponent(viewer.user.username),undefined,owner)).items;
+ assert.deepEqual(newcomer.map((r:any)=>[r.id,r.gridCount]),[[viewer.user.id,0]]);
  await db.query('UPDATE grids SET moderated=true WHERE id=$1',[d.id]);
  await call('PATCH',`/v1/grids/${d.id}`,{operationId:op(),hidden:false},owner,404);
  assert.equal((await call('GET',`/v1/grids?owner=${owner.user.id}`,undefined,viewer)).items.length,0);
@@ -495,19 +498,23 @@ test('Worlds routes need an active entitlement; campaign, account and your own p
  const owner = await makeAccount(), p = await makeAccount(false);
  const grid = await create(owner, 801);
  const refused = async (method: string, path: string, body?: any) => assert.equal((await call(method, path, body, p, 403)).code, 'WORLDS_REQUIRED', path);
- await refused('GET', '/v1/grids'); await refused('GET', `/v1/grids/code/${grid.code}`);
+ await refused('GET', '/v1/grids'); await refused('GET', `/v1/grids?owner=${owner.user.id}`); await refused('GET', `/v1/grids/code/${grid.code}`);
  await refused('POST', '/v1/grids', { operationId: op(), ...custom(802) }); await refused('PATCH', `/v1/grids/${grid.id}`, { operationId: op(), hidden: true });
  await refused('POST', '/v1/casual/sessions', { operationId: op() }); await refused('POST', `/v1/grids/${grid.id}/sessions`, { operationId: op() });
  await refused('POST', `/v1/grids/${grid.id}/like`, { operationId: op(), on: true }); await refused('POST', `/v1/grids/${grid.id}/bookmark`, { operationId: op(), on: true });
  await refused('POST', `/v1/users/${owner.user.id}/follow`, { operationId: op(), on: true });
  await refused('POST', `/v1/play-sessions/${op()}/move`, { operationId: op(), path: [[0, 5]] });
- await refused('GET', '/v1/creators'); await refused('GET', '/v1/following'); await refused('GET', '/v1/followers');
+ await refused('GET', '/v1/creators');
  await refused('POST', '/v1/completions', { operationId: op(), kind: 'community', sessionId: op(), path: [[0, 5]] });
  await refused('GET', `/v1/profiles/${owner.user.id}`);
- // Free: campaign progress and XP, the account, your own profile.
+ // Free: campaign progress and XP, the account, your own profile and everything on it (your puzzles, bookmarks, following and followers).
  assert.equal((await complete(p, 1)).awardedMilli, '100000');
  assert.equal((await call('GET', '/v1/progress', undefined, p)).done.length, 1);
  await call('GET', `/v1/profiles/${p.user.id}`, undefined, p);
+ assert.deepEqual((await call('GET', `/v1/grids?owner=${p.user.id}&sort=number&query=`, undefined, p)).items, []);
+ assert.deepEqual((await call('GET', '/v1/grids?bookmarked=true&limit=28', undefined, p)).items, []);
+ assert.deepEqual((await call('GET', '/v1/following', undefined, p)).items, []);
+ assert.deepEqual((await call('GET', '/v1/followers', undefined, p)).items, []);
  assert.equal((await call('GET', '/v1/account', undefined, p)).user.worlds, false);
  // Every status but 'active' is no access; 'active' is access at once, with no new login.
  const set = (status: string) => db.query(`INSERT INTO entitlements(user_id,product,status,source) VALUES($1,'worlds',$2,'manual')

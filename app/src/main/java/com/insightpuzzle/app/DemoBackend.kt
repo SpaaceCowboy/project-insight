@@ -221,7 +221,7 @@ class DemoBackend(context: Context) {
                 val page = uri.getQueryParameter("page")?.toIntOrNull() ?: 0
                 val sort = uri.getQueryParameter("sort") ?: "level"
                 val since = since(uri.getQueryParameter("period"))
-                val rows = list("users").map { creator(it.getString("id"), since) }.filter { it.getInt("gridCount") > 0 && it.getString("username").contains(query, ignoreCase = true) }
+                val rows = list("users").map { creator(it.getString("id"), since) }.filter { it.getString("username").contains(query, ignoreCase = true) } // every player, as the server lists them
                     .sortedWith(compareByDescending<JSONObject> {
                         when (sort) { "designed" -> it.getInt("gridCount").toBigInteger(); "played" -> it.getInt("beatenCount").toBigInteger(); "liked" -> it.getInt("likeCount").toBigInteger(); "followed" -> it.getInt("followerCount").toBigInteger(); else -> it.getString("xpMilli").toBigInteger() }
                     }.thenByDescending { it.getString("xpMilli").toBigInteger() }.thenBy { it.getString("id") })

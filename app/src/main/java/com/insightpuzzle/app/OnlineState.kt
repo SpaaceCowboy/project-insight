@@ -57,10 +57,16 @@ class OnlineState(private val model: GameModel, app: Application, private val sc
         if (isNameError(error)) nameError = playerErrorMessage(error) else this.error = playerErrorMessage(error)
         Log.e("InsightOnline", "action_failed type=${error.javaClass.simpleName}")
     }
-    /** The server says this account does not own Worlds (revoked or refunded, or the saved flag was stale): remember that and show the preview. */
+    /**
+     * The server says this account does not own Worlds: remember that and show the preview. An owner who lost it (revoked, refunded, or the saved flag
+     * was stale) goes back to the main menu first, out of Worlds screens that no longer work. A player who never had it only reached for Worlds content
+     * from somewhere that stays open (a bookmark or a followed player on their own profile), so the preview opens on top and Back returns there.
+     */
     private fun worldsLost() = scope.launch {
+        val owned = user?.worlds == true
         user = repository.client.worldsLost() ?: return@launch
-        model.mainMenu(); model.push(Route.WorldsPreview)
+        if (owned) model.mainMenu()
+        if (model.top != Route.WorldsPreview) model.push(Route.WorldsPreview)
     }
     fun task(block: suspend () -> Unit) {
         if (busy) return
