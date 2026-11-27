@@ -126,9 +126,9 @@ class MainActivity : ComponentActivity() {
 fun App(m: GameModel) {
     // At the bottom of the stack on Home, Back falls through to the system and closes the app.
     BackHandler(enabled = !(m.stack.size == 1 && m.top == Route.Home)) { m.feedback(Cue.BACK); m.back() }
-    // The music plays everywhere but while a puzzle is played (Journey or online) and in the creator, which has its own bed.
-    val quiet = m.top == Route.Game || m.top == Route.Win || m.top == Route.Create
-    androidx.compose.runtime.SideEffect { m.audio.music(!quiet) }
+    // The music plays everywhere but while a puzzle is played (Journey or online) and in the creator, which has its own bed; the Worlds preview has its own track.
+    val track = musicTrack(m.top)
+    androidx.compose.runtime.SideEffect { m.audio.music(track) }
     // A screen that has just finished rising hides the handle again, in case Android restored it during the transition.
     val hideSystemBars = LocalHideSystemBars.current
     LaunchedEffect(m.stack.toList()) {

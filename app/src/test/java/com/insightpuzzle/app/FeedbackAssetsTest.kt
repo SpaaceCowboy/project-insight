@@ -16,6 +16,13 @@ class FeedbackAssetsTest {
         }
     }
 
+    @Test fun everyMusicTrackShipsAsMp3AndOpus() {
+        for (name in listOf("zen_streaming", "zen_connecting")) {
+            assertTrue("$name.mp3", File(raw, "$name.mp3").length() > 0)
+            assertTrue("$name.ogg", File(raw29, "$name.ogg").length() > 0)
+        }
+    }
+
     @Test fun landingTilesAreSeventyPercentAndSolvedPuzzlesNinetyOfTheOtherCues() {
         // Volume relative to the original zen cues (1.0) at the same Effects setting, allowing for how loud each file is stored.
         fun relative(cue: Cue) = cue.gain * cue.stored / ZEN_STORED

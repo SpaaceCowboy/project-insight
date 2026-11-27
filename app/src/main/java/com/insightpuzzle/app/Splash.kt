@@ -65,6 +65,8 @@ fun SplashGate(m: GameModel) {
     }
     // The things the first screens are made of are composed once, hidden under the splash, so their fonts and shadows are ready when the player gets there.
     Prewarm()
+    // The Worlds preview's video is played once, hidden, so its first real visit is as quick as the later ones.
+    ShowcaseWarmup()
     Box(Modifier.fillMaxSize().graphicsLayer { this.alpha = alpha.value }.background(SplashGrey)
         .pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent().changes.forEach { it.consume() } } }
         .clearAndSetSemantics { }, contentAlignment = Alignment.Center) {

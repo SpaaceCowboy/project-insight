@@ -214,7 +214,7 @@ class PlayDiscoveryFlowTest {
         try {
             tap("Worlds")
             await("Worlds shows its preview to a guest") { model.top == Route.WorldsPreview }
-            tap("Purchase")
+            tap("Log in and purchase, ${priceText(OFFER_CENTS)}")
             await("Purchase requires sign-in and retains its destination") { model.top == Route.Auth(Route.Purchase) }
             instrumentation.runOnMainSync { model.online.login(email, "fixture-password-long", Route.Purchase) }
             await("An account that already owns Worlds goes straight in") { model.top == Route.Online && !model.online.busy }

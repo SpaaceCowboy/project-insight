@@ -174,7 +174,7 @@ class MainMenuFlowTest {
         tap("Profile"); assertEquals(Route.Auth(Route.Profile()), model.top); back()
         // Worlds shows its preview to a guest, with no sign-in; only Purchase asks for one, and remembers where it was going.
         tap("Worlds"); assertEquals(Route.WorldsPreview, model.top)
-        tap("Purchase"); assertEquals(Route.Auth(Route.Purchase), model.top); back(); assertEquals(Route.WorldsPreview, model.top); back()
+        tap("Log in and purchase, ${priceText(OFFER_CENTS)}"); assertEquals(Route.Auth(Route.Purchase), model.top); back(); assertEquals(Route.WorldsPreview, model.top); back()
         tap("Journey"); assertEquals(Route.Game, model.top); assertEquals(0, model.level)
         tap("Options"); assertEquals(Route.Options, model.top); back()
         // Journey: the level screen opens from "Journey N" above the target; Back returns to the game, then Home.

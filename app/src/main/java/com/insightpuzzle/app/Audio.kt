@@ -7,9 +7,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
+/** The looping music: the menu's bed, or the Worlds preview's own. */
+enum class Track(val res: Int) { MENU(R.raw.zen_streaming), WORLDS(R.raw.zen_connecting) }
+
+/** The music under [top]: the Worlds preview has its own, the game screens and the creator have none (the creator has its own bed), everything else the menu's. */
+internal fun musicTrack(top: Route): Track? = when (top) {
+    Route.WorldsPreview -> Track.WORLDS
+    Route.Game, Route.Win, Route.Create -> null
+    else -> Track.MENU
+}
+
 /**
- * Zen interface cues through SoundPool, plus two loops on it: the zen "streaming" music everywhere but the game screens and the creator (on the Ambience
- * slider), and the creator's own "processing" bed (on the Effects slider).
+ * Zen interface cues through SoundPool, plus two loops on it: the zen "streaming" music everywhere but the game screens and the creator, with the zen
+ * "connecting" in its place on the Worlds preview (both on the Ambience slider), and the creator's own "processing" bed (on the Effects slider).
  */
 class Audio(private val context: Context) {
     // USAGE_GAME plays on the media stream, so the phone's volume keys scale the cues together with the music; the Effects slider is the level within that.
@@ -20,17 +30,18 @@ class Audio(private val context: Context) {
     private val loaded = mutableSetOf<Int>()
     /** Sounds that finished loading, well or badly. */
     private var settled = 0
-    private val musicId: Int
+    private val musicIds = mutableMapOf<Track, Int>()
     /** Every cue and the music loop are decoded (the splash screen waits for this): the first tap is instant and the music is already playing. */
     var ready by mutableStateOf(false); private set
-    private fun checkReady() { if (!ready && settled >= Cue.entries.size + 1) ready = true }
+    private fun checkReady() { if (!ready && settled >= Cue.entries.size + Track.entries.size) ready = true }
     @Volatile private var released = false
     private var foreground = true
     /** The creator wants its processing loop; [processingStream] is the playing stream, 0 when silent. */
     private var processing = false
     private var processingStream = 0
-    /** The screen on top is not a game screen or the creator; [musicStream] is the playing stream, 0 when silent. */
-    private var musicWanted = true
+    /** The track the screen on top wants (none on the game screens and the creator); [musicStream] is the playing stream of [musicPlaying], 0 when silent. */
+    private var musicWanted: Track? = Track.MENU
+    private var musicPlaying: Track? = null
     private var musicStream = 0
 
     // SoundPool cannot play above 1.0, so the +50% headroom is in the files: every zen cue is stored 1.5x louder than the original uisfx clip.
@@ -42,7 +53,7 @@ class Audio(private val context: Context) {
     init {
         pool.setOnLoadCompleteListener { _, id, status -> settled++; if (status == 0) { loaded += id; updateLoops() }; checkReady() }
         Cue.entries.forEach { ids[it] = pool.load(context, it.res, 1) }
-        musicId = pool.load(context, R.raw.zen_streaming, 1)
+        Track.entries.forEach { musicIds[it] = pool.load(context, it.res, 1) }
     }
 
     fun play(cue: Cue) {
@@ -56,8 +67,8 @@ class Audio(private val context: Context) {
     fun startProcessing() { processing = true; updateLoops() }
     fun stopProcessing() { processing = false; updateLoops() }
 
-    /** The music plays on every screen but the game screens (Journey and online) and the creator, which has its own bed. */
-    fun music(wanted: Boolean) { if (musicWanted != wanted) { musicWanted = wanted; updateLoops() } }
+    /** The music for the screen on top: see [musicTrack]. */
+    fun music(wanted: Track?) { if (musicWanted != wanted) { musicWanted = wanted; updateLoops() } }
 
     private fun updateLoops() {
         val audible = enabled && foreground && !released
@@ -65,9 +76,12 @@ class Audio(private val context: Context) {
         if (!wantProcessing && processingStream != 0) { pool.stop(processingStream); processingStream = 0 }
         val processingId = ids[Cue.PROCESSING]
         if (wantProcessing && processingStream == 0 && processingId != null && processingId in loaded) processingStream = pool.play(processingId, effects, effects, 0, -1, 1f)
-        val wantMusic = musicWanted && audible
-        if (!wantMusic && musicStream != 0) { pool.stop(musicStream); musicStream = 0 }
-        if (wantMusic && musicStream == 0 && musicId in loaded) musicStream = pool.play(musicId, musicVolume(), musicVolume(), 0, -1, 1f)
+        val wantMusic = if (audible) musicWanted else null
+        if (musicStream != 0 && wantMusic != musicPlaying) { pool.stop(musicStream); musicStream = 0; musicPlaying = null }
+        val musicId = wantMusic?.let { musicIds[it] }
+        if (wantMusic != null && musicStream == 0 && musicId != null && musicId in loaded) {
+            musicStream = pool.play(musicId, musicVolume(), musicVolume(), 0, -1, 1f); musicPlaying = wantMusic
+        }
     }
 
     fun onForeground(visible: Boolean) {

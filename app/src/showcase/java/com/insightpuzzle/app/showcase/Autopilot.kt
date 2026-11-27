@@ -25,6 +25,7 @@ import java.io.File
  * touching the phone. `adb push g.txt /sdcard/Android/data/com.insightpuzzle.app.showcase/files/` then
  * `adb shell am broadcast -a com.insightpuzzle.app.showcase.PLAY -p com.insightpuzzle.app.showcase`.
  * Each line of g.txt is "ms action x y" with action d (down), m (move) or u (up); ms counts from the start of the timeline.
+ * Events carry their scheduled time, not the time the main thread got round to them, so a late frame cannot bunch a swipe's samples (that skews the pager's fling velocity).
  */
 class AutopilotProvider : ContentProvider() {
     private var current: Activity? = null
@@ -63,7 +64,7 @@ class AutopilotProvider : ContentProvider() {
                 if (action == MotionEvent.ACTION_DOWN) downAt = at
                 val props = arrayOf(MotionEvent.PointerProperties().apply { id = 0; toolType = MotionEvent.TOOL_TYPE_FINGER })
                 val coords = arrayOf(MotionEvent.PointerCoords().apply { this.x = x; this.y = y; pressure = 1f; size = 0.05f; touchMajor = 20f; touchMinor = 20f })
-                val event = MotionEvent.obtain(downAt, SystemClock.uptimeMillis(), action, 1, props, coords, 0, 0, 1f, 1f, 0, 0, InputDevice.SOURCE_TOUCHSCREEN, 0)
+                val event = MotionEvent.obtain(downAt, at, action, 1, props, coords, 0, 0, 1f, 1f, 0, 0, InputDevice.SOURCE_TOUCHSCREEN, 0)
                 activity.dispatchTouchEvent(event)
                 event.recycle()
             }, at)
